@@ -2,24 +2,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  DIFFICULTIES, TIER_BANDS, TUNING, diffOf, bandLove, gateTier, moodMultiplier,
-  initialState, applyTurn, noteRadio, failureReason, verdict, debrief,
+  DIFFICULTIES, TIER_BANDS, TUNING, diffOf, bandLove, normalizeTier, moodMultiplier,
+  initialState, applyTurn, noteRadio, failureReason, verdict, debrief, surfacedSecrets,
 } from '../js/scoring.js';
 import { COUPLES, COUPLE_BY_ID } from '../js/couples.js';
+import { sanitizeSpec, DEFAULT_SPEC } from '../js/avatar.js';
 import * as P from '../js/prompts.js';
 
 const anyCouple = COUPLE_BY_ID['os-war'];
-const VIS = anyCouple.target.visiblePrefs;
-const HID = anyCouple.target.hiddenPrefs;
 
-// hit/critical은 게이트가 있으므로 취향 적중을 함께 넣어야 그 등급이 유지된다.
+// 심판 판정 하나. 이제 취향 적중 필드가 없다 — 등급과 증감, 그리고 서술뿐이다.
 const J = (tier, extra = {}) => ({
-  tier, moodDelta: 0, loveDelta: TIER_BANDS[tier][1],
-  visiblePrefHit: tier === 'hit' ? VIS[0] : '',
-  hiddenPrefHit: tier === 'critical' ? HID[0] : '',
-  redLineHit: tier === 'redline', reason: '', ...extra,
+  tier, moodDelta: 0, loveDelta: TIER_BANDS[tier] ? TIER_BANDS[tier][1] : 0,
+  reason: '', vibe: '', revealed: '', ...extra,
 });
-const OPTS = { knownHidden: HID, knownVisible: VIS };
+const AGENT = { name: '박큐피드', gender: '기밀' };
 
 // ── 커플 데이터 ──────────────────────────────────────────
 test('의뢰 대장은 정확히 20쌍이고 id가 중복되지 않는다', () => {
@@ -42,11 +39,19 @@ test('모든 커플이 필수 필드를 갖추고 있다', () => {
     assert.ok(c.client.story.length > 40, `${c.id}: 사연이 너무 짧다`);
     assert.ok(c.client.weakness, `${c.id}: 약점 누락`);
     assert.ok(c.target.visiblePrefs.length >= 2, `${c.id}: 공개 취향 부족`);
-    assert.ok(c.target.hiddenPrefs.length >= 3, `${c.id}: 미확인 취향 부족`);
-    assert.ok(c.target.redLines.length >= 3, `${c.id}: 지뢰 부족`);
-    // 미확인 취향이 공개 취향과 겹치면 게임이 성립하지 않는다
-    for (const h of c.target.hiddenPrefs) {
-      assert.ok(!c.target.visiblePrefs.includes(h), `${c.id}: 취향 중복 "${h}"`);
+    assert.ok(c.target.hiddenPrefs.length >= 3, `${c.id}: 감춰둔 이야기 부족`);
+    assert.ok(c.target.redLines.length >= 3, `${c.id}: 질색 목록 부족`);
+  }
+});
+
+// 대화 규칙을 걷어낸 뒤로 에이전트가 기댈 것은 자기 자신에 대한 정보뿐이다.
+// 내력이 얄팍하면 대화도 얄팍해진다 — 그래서 이건 필수 필드다.
+test('40명 전원에게 살아온 내력이 있다', () => {
+  for (const c of COUPLES) {
+    for (const who of ['client', 'target']) {
+      const b = c[who].background;
+      assert.ok(Array.isArray(b) && b.length >= 4, `${c.id}.${who}: 내력이 ${b?.length ?? 0}줄뿐이다`);
+      assert.ok(b.every(x => typeof x === 'string' && x.length > 6), `${c.id}.${who}: 내력이 너무 짧다`);
     }
   }
 });
@@ -57,7 +62,7 @@ test('난이도 세 종류가 모두 실제로 쓰인다', () => {
 });
 
 // ── 준비 단계는 규칙 계층에 존재하지 않는다 ──────────────
-test('규칙 계층에는 스타일링/코칭/연설 점수라는 개념 자체가 없다', () => {
+test('규칙 계층에는 착장/지침/연설 점수라는 개념 자체가 없다', () => {
   const s = initialState(diffOf('보통'));
   for (const k of ['styleScore', 'coachScore', 'courageScore', 'courage']) {
     assert.equal(s[k], undefined, `${k}가 아직 남아 있다`);
@@ -93,34 +98,91 @@ test('무전 배분은 기획서대로 문자 1회 / 대면 2회로 고정', () 
 
 // ── tier 밴드 ────────────────────────────────────────────
 test('심판이 뭘 뱉든 tier 밴드 안으로 강제된다', () => {
-  assert.equal(bandLove('empty', 9), 1, 'empty인데 +9를 주면 +1로 깎인다');
-  assert.equal(bandLove('critical', 2), 8, 'critical인데 +2면 밴드 하한으로 올린다');
-  assert.equal(bandLove('redline', 5), -6);
-  assert.equal(bandLove('backfire', 0), -2);
-  assert.equal(bandLove('ok', 100), 4);
+  assert.equal(bandLove('flat', 9), 1, 'flat인데 +9를 주면 +1로 깎인다');
+  assert.equal(bandLove('breakthrough', 2), 7, 'breakthrough인데 +2면 밴드 하한으로 올린다');
+  assert.equal(bandLove('disaster', 5), -6);
+  assert.equal(bandLove('chill', 0), -2);
+  assert.equal(bandLove('nudge', 100), 3);
   assert.equal(bandLove('없는tier', 5), 5, '모르는 tier면 원값을 -10~10으로만 자른다');
+});
+
+test('모르는 등급은 중립으로 떨어진다 — 이것이 유일하게 남은 등급 보정이다', () => {
+  assert.equal(normalizeTier('breakthrough'), 'breakthrough');
+  assert.equal(normalizeTier('critical'), 'flat', '구 등급명은 더 이상 통하지 않는다');
+  assert.equal(normalizeTier(undefined), 'flat');
 });
 
 test('tier가 높을수록 호감이 더 오른다 (동일 조건)', () => {
   const d = diffOf('보통');
   const base = initialState(d);
-  const order = ['redline', 'backfire', 'empty', 'ok', 'hit', 'critical'];
-  const gains = order.map(t => applyTurn(base, d, J(t), OPTS).lastDelta.love);
+  const order = ['disaster', 'chill', 'flat', 'nudge', 'warm', 'breakthrough'];
+  const gains = order.map(t => applyTurn(base, d, J(t)).lastDelta.love);
   for (let i = 1; i < gains.length; i++) {
     assert.ok(gains[i] > gains[i - 1], `${order[i]}(${gains[i]})가 ${order[i - 1]}(${gains[i - 1]})보다 커야 한다`);
   }
 });
 
-test('empty 판정만 반복하면 성공선에 절대 못 닿는다', () => {
+test('flat 판정만 반복하면 성공선에 절대 못 닿는다', () => {
   for (const name of ['쉬움', '보통', '헬']) {
     const d = diffOf(name);
     let s = initialState(d);
     for (let i = 0; i < d.textTurns + d.talkTurns; i++) {
       if (failureReason(s)) break;
-      s = applyTurn(s, d, J('empty', { moodDelta: 0 }), { knownHidden: [] });
+      s = applyTurn(s, d, J('flat', { moodDelta: 0 }));
     }
     assert.ok(!verdict(s, d).accepted, `${name}: 알맹이 없는 대화로 성사되면 안 된다`);
   }
+});
+
+// ── 취향 목록 대조 계층이 사라졌다 ───────────────────────
+// 이 테스트가 이번 개편의 핵심이다. 예전에는 심판이 뱉은 취향 문자열을 커플 데이터와 대조해
+// 보너스를 주거나 등급을 눌렀다. 이제는 그 필드를 봐도 아무 일도 일어나지 않는다.
+test('심판이 취향 목록을 맞췄다고 해서 추가 점수가 붙지 않는다', () => {
+  const d = diffOf('보통');
+  const base = initialState(d);
+  const plain = applyTurn(base, d, J('warm'));
+  const withPrefFields = applyTurn(base, d, J('warm', {
+    hiddenPrefHit: anyCouple.target.hiddenPrefs[0],
+    visiblePrefHit: anyCouple.target.visiblePrefs[0],
+  }));
+  assert.equal(withPrefFields.lastDelta.love, plain.lastDelta.love, '적중 필드가 점수를 바꾸면 안 된다');
+  assert.equal(withPrefFields.lastDelta.mood, plain.lastDelta.mood);
+  assert.equal(withPrefFields.revealed.length, 0, '옛 필드는 아예 읽지 않는다');
+});
+
+test('목록에 없는 이유로 상대가 무너져도 똑같이 유효하다', () => {
+  const d = diffOf('보통');
+  const s = applyTurn(initialState(d), d, J('breakthrough', { revealed: '아버지 얘기만 나오면 말이 없어진다' }));
+  assert.equal(s.lastDelta.tier, 'breakthrough', '목록 대조로 강등되지 않는다');
+  assert.deepEqual(s.revealed, ['아버지 얘기만 나오면 말이 없어진다']);
+});
+
+test('등급이 취향 목록 때문에 눌리는 게이트가 없다', () => {
+  const d = diffOf('보통');
+  const s = applyTurn(initialState(d), d, J('breakthrough'));
+  assert.equal(s.history.at(-1).tier, 'breakthrough');
+  assert.equal(s.history.at(-1).judgeTier, 'breakthrough', '심판 원등급도 그대로 남는다');
+});
+
+// ── 새로 드러난 것 / 공기 ────────────────────────────────
+test('드러난 것은 중복 없이 쌓이고 점수와 무관하다', () => {
+  const d = diffOf('보통');
+  let s = applyTurn(initialState(d), d, J('nudge', { revealed: '밤에 별을 본다' }));
+  const first = s.lastDelta.love;
+  s = applyTurn(s, d, J('nudge', { revealed: '밤에 별을 본다' }));
+  assert.deepEqual(s.revealed, ['밤에 별을 본다'], '같은 서술을 두 번 세지 않는다');
+  assert.equal(s.lastDelta.love, first, '드러났다고 해서 보너스가 붙지 않는다');
+  assert.equal(s.lastDelta.revealed, '', '중복은 이번 턴의 발견으로 치지 않는다');
+});
+
+test('공기는 심판이 갱신하고, 안 주면 직전 값이 유지된다', () => {
+  const d = diffOf('보통');
+  let s = { ...initialState(d), vibe: '아직 아무 일도 없다' };
+  s = applyTurn(s, d, J('nudge', { vibe: '상대가 처음으로 웃었다' }));
+  assert.equal(s.vibe, '상대가 처음으로 웃었다');
+  s = applyTurn(s, d, J('flat', { vibe: '' }));
+  assert.equal(s.vibe, '상대가 처음으로 웃었다', '빈 값이 오면 덮어쓰지 않는다');
+  assert.equal(s.history.at(-1).vibe, '상대가 처음으로 웃었다', '원장에도 그 시점 공기가 남는다');
 });
 
 // ── 분위기 ───────────────────────────────────────────────
@@ -133,21 +195,21 @@ test('분위기는 호감 획득 배율이다', () => {
 
 test('같은 판정이라도 분위기가 낮으면 호감이 덜 오른다', () => {
   const d = diffOf('보통');
-  const hi = applyTurn({ ...initialState(d), mood: 95 }, d, J('hit'), OPTS);
-  const lo = applyTurn({ ...initialState(d), mood: 5 }, d, J('hit'), OPTS);
+  const hi = applyTurn({ ...initialState(d), mood: 95 }, d, J('warm'));
+  const lo = applyTurn({ ...initialState(d), mood: 5 }, d, J('warm'));
   assert.ok(hi.lastDelta.love > lo.lastDelta.love * 2);
 });
 
 test('분위기는 높을수록 올리기 어렵다 (포화)', () => {
   const d = diffOf('보통');
-  const low = applyTurn({ ...initialState(d), mood: 20 }, d, J('ok', { moodDelta: 8 }), { knownHidden: [] });
-  const high = applyTurn({ ...initialState(d), mood: 90 }, d, J('ok', { moodDelta: 8 }), { knownHidden: [] });
+  const low = applyTurn({ ...initialState(d), mood: 20 }, d, J('nudge', { moodDelta: 8 }));
+  const high = applyTurn({ ...initialState(d), mood: 90 }, d, J('nudge', { moodDelta: 8 }));
   assert.ok(low.lastDelta.mood > high.lastDelta.mood, '같은 +8이라도 이미 좋은 분위기는 덜 오른다');
 });
 
 test('분위기 하락에는 포화가 걸리지 않는다', () => {
   const d = diffOf('보통');
-  const s = applyTurn({ ...initialState(d), mood: 95 }, d, J('backfire', { moodDelta: -8 }), { knownHidden: [] });
+  const s = applyTurn({ ...initialState(d), mood: 95 }, d, J('chill', { moodDelta: -8 }));
   assert.ok(s.lastDelta.mood <= -8, '나빠질 땐 그대로 나빠진다');
 });
 
@@ -155,90 +217,26 @@ test('분위기가 0이면 공작이 파탄난다', () => {
   const d = diffOf('보통');
   let s = initialState(d);
   for (let i = 0; i < 20 && !failureReason(s); i++) {
-    s = applyTurn(s, d, J('backfire', { moodDelta: -9 }), { knownHidden: [] });
+    s = applyTurn(s, d, J('chill', { moodDelta: -9 }));
   }
   assert.equal(failureReason(s), 'mood');
 });
 
-// ── 미확인 취향 / 지뢰 ───────────────────────────────────
-test('미확인 취향은 처음 한 번만 보너스를 준다', () => {
-  const d = diffOf('보통');
-  const first = applyTurn(initialState(d), d, J('critical', { hiddenPrefHit: HID[0] }), OPTS);
-  const second = applyTurn(first, d, J('critical', { hiddenPrefHit: HID[0] }), OPTS);
-  assert.deepEqual(first.hits, [HID[0]]);
-  assert.deepEqual(second.hits, [HID[0]], '같은 취향을 두 번 세지 않는다');
-  assert.ok(first.lastDelta.love > second.lastDelta.love);
-  assert.equal(second.history.at(-1).tier, 'ok', '재탕은 ok로 강등된다');
-});
-
-test('목록에 없는 문자열을 심판이 지어내도 적중으로 인정하지 않는다', () => {
-  const d = diffOf('보통');
-  const s = applyTurn(initialState(d), d, J('critical', { hiddenPrefHit: '없는취향' }), OPTS);
-  assert.deepEqual(s.hits, []);
-  assert.equal(s.history.at(-1).tier, 'ok', '근거 없는 critical은 ok로 내려간다');
-});
-
-// ── hit/critical 게이트 ──────────────────────────────────
-test('취향을 건드리지 않았으면 아무리 대화가 좋아도 ok가 상한이다', () => {
-  assert.equal(gateTier('hit', { visibleHit: false, hiddenHit: false }), 'ok');
-  assert.equal(gateTier('critical', { visibleHit: false, hiddenHit: false }), 'ok');
-  assert.equal(gateTier('hit', { visibleHit: true, hiddenHit: false }), 'hit');
-  assert.equal(gateTier('critical', { visibleHit: true, hiddenHit: false }), 'hit',
-    'critical은 미확인 취향을 관통했을 때만 남는다');
-  assert.equal(gateTier('critical', { visibleHit: false, hiddenHit: true }), 'critical');
-  assert.equal(gateTier('ok', { visibleHit: false, hiddenHit: false }), 'ok');
-  assert.equal(gateTier('empty', {}), 'empty');
-  assert.equal(gateTier('없는tier', {}), 'empty');
-});
-
-test('지뢰를 밟으면 심판이 뭐라 하든 redline이다', () => {
-  assert.equal(gateTier('critical', { hiddenHit: true, redHit: true }), 'redline');
-  const d = diffOf('보통');
-  const s = applyTurn({ ...initialState(d), love: 60 }, d,
-    J('critical', { hiddenPrefHit: HID[0], redLineHit: true }), OPTS);
-  assert.equal(s.history.at(-1).tier, 'redline');
-  assert.ok(s.lastDelta.love < 0);
-});
-
-test('심판의 원래 등급도 함께 기록된다 (밸런싱 추적용)', () => {
-  const d = diffOf('보통');
-  const s = applyTurn(initialState(d), d,
-    J('critical', { hiddenPrefHit: '', visiblePrefHit: '' }), OPTS);
-  assert.equal(s.history.at(-1).judgeTier, 'critical');
-  assert.equal(s.history.at(-1).tier, 'ok');
-});
-
-test('같은 알려진 취향을 재탕하면 hit 자격을 잃는다', () => {
-  const d = diffOf('보통');
-  let s = applyTurn(initialState(d), d, J('hit', { visiblePrefHit: VIS[0] }), OPTS);
-  assert.equal(s.history.at(-1).tier, 'hit');
-  s = applyTurn(s, d, J('hit', { visiblePrefHit: VIS[0] }), OPTS);
-  assert.equal(s.history.at(-1).tier, 'ok', '이미 캔 광맥은 ok');
-});
-
-test('지뢰는 분위기와 호감을 동시에 깎는다', () => {
+test('상대가 정색하면 자리가 추가로 식는다', () => {
   const d = diffOf('보통');
   const base = { ...initialState(d), love: 50, mood: 70 };
-  const red = applyTurn(base, d, J('redline', { redLineHit: true }), OPTS);
-  assert.ok(red.lastDelta.love < -5 && red.lastDelta.mood < -10);
-  assert.equal(red.redLines, 1);
-});
-
-test('지뢰 한 번이 잘한 두 턴을 지운다', () => {
-  const d = diffOf('보통');
-  let good = initialState(d);
-  good = applyTurn(good, d, J('hit', { moodDelta: 4, visiblePrefHit: VIS[0] }), OPTS);
-  good = applyTurn(good, d, J('hit', { moodDelta: 4, visiblePrefHit: VIS[1] }), OPTS);
-  const after = applyTurn(good, d, J('redline', { redLineHit: true, moodDelta: -6 }), OPTS);
-  assert.ok(after.love <= initialState(d).love + 1, '두 턴치 이득이 날아간다');
+  const dis = applyTurn(base, d, J('disaster', { moodDelta: -6 }));
+  const chill = applyTurn(base, d, J('chill', { moodDelta: -6 }));
+  assert.ok(dis.lastDelta.mood < chill.lastDelta.mood, 'disaster는 같은 moodDelta라도 더 깎인다');
+  assert.ok(dis.lastDelta.love < -5);
 });
 
 // ── 첫인상 ───────────────────────────────────────────────
 test('대면 첫인상은 가중된다 — 착장은 준비가 아니라 만남에서 평가된다', () => {
   const d = diffOf('보통');
   const base = initialState(d);
-  const normal = applyTurn(base, d, J('hit'), OPTS);
-  const first = applyTurn(base, d, J('hit'), { ...OPTS, firstImpression: true });
+  const normal = applyTurn(base, d, J('warm'));
+  const first = applyTurn(base, d, J('warm'), { firstImpression: true });
   assert.ok(first.lastDelta.love > normal.lastDelta.love);
   assert.ok(first.history.at(-1).firstImpression);
 });
@@ -263,21 +261,53 @@ test('등급은 마진 순으로 단조롭다', () => {
   assert.equal(g(-5), 'D'); assert.equal(g(-15), 'E'); assert.equal(g(-40), 'F');
 });
 
+// ── 밸런싱: 잘한 플레이와 대충한 플레이가 실제로 갈리는가 ─
+// 성공선은 오프라인 몬테카를로로 뽑았다(scoring.js 주석 참조). 그 분리가 유지되는지 여기서 지킨다.
+test('세 난이도 모두, 좋은 판정 흐름은 넘고 밋밋한 흐름은 못 넘는다', () => {
+  const strong = ['warm', 'nudge', 'breakthrough', 'warm', 'nudge', 'warm', 'nudge', 'breakthrough', 'warm', 'nudge'];
+  const weak = ['flat', 'flat', 'nudge', 'flat', 'chill', 'flat', 'flat', 'nudge', 'flat', 'flat'];
+  const MOOD = { breakthrough: 6, warm: 4, nudge: 2, flat: 0, chill: -4, disaster: -7 };
+  const run = (name, tiers) => {
+    const d = diffOf(name);
+    let s = initialState(d);
+    tiers.forEach((t, i) => {
+      if (failureReason(s)) return;
+      s = applyTurn(s, d, J(t, { moodDelta: MOOD[t] }), { firstImpression: i === 4 });
+    });
+    return verdict(s, d);
+  };
+  for (const name of ['쉬움', '보통', '헬']) {
+    assert.ok(run(name, strong).accepted, `${name}: 좋은 흐름이 성공선을 못 넘으면 도달 불가능한 게임이다`);
+    assert.ok(!run(name, weak).accepted, `${name}: 밋밋한 흐름이 성사되면 안 된다`);
+  }
+});
+
+// ── 비밀 표시 (점수와 무관) ──────────────────────────────
+test('감춰둔 이야기 표시는 대화록 대조일 뿐 점수와 무관하다', () => {
+  const c = COUPLE_BY_ID['vampire-garlic'];
+  const secret = c.target.hiddenPrefs.find(h => h.includes('별')); // '밤에 별 보는 걸 좋아한다'
+  assert.ok(secret, '테스트 전제: 별 관련 비밀이 있다');
+  const hit = surfacedSecrets(c, `김마늘: 저는 밤에 별 보는 걸 좋아해요`, []);
+  assert.ok(hit.surfaced.includes(secret), '대화록에 나온 비밀은 화제에 오른 것으로 표시된다');
+  const miss = surfacedSecrets(c, '오늘 날씨가 좋네요', []);
+  assert.ok(miss.missed.includes(secret));
+  assert.equal(miss.surfaced.length + miss.missed.length, c.target.hiddenPrefs.length);
+});
+
 // ── 디브리핑 ─────────────────────────────────────────────
 test('디브리핑은 채점이 아니라 사실 요약이다', () => {
   const d = diffOf('헬');
-  let s = initialState(d);
   const pol = COUPLE_BY_ID['politics'];
-  const polOpts = { knownHidden: pol.target.hiddenPrefs, knownVisible: pol.target.visiblePrefs };
-  s = applyTurn(s, d, J('critical', { hiddenPrefHit: pol.target.hiddenPrefs[0] }), polOpts);
-  s = applyTurn(s, d, J('redline', { redLineHit: true }), polOpts);
+  let s = initialState(d);
+  s = applyTurn(s, d, J('breakthrough', { revealed: '골프 핸디캡을 진지하게 물어보면 무너진다' }));
+  s = applyTurn(s, d, J('disaster', { moodDelta: -7 }));
   const v = verdict(s, d);
-  const db = debrief(s, d, v, COUPLE_BY_ID['politics']);
+  const db = debrief(s, d, v, pol, '힐라리 클링턴: 핸디캡이 몇이신가요');
   const byKey = Object.fromEntries(db.notes.map(n => [n.key, n]));
-  assert.equal(byKey.hidden.value, `1 / ${COUPLE_BY_ID['politics'].target.hiddenPrefs.length}건`);
-  assert.equal(byKey.redline.ok, false);
+  assert.equal(byKey.revealed.value, '1건');
+  assert.equal(byKey.cold.ok, false, '정색한 턴이 있으면 지적한다');
   assert.equal(byKey.radio.ok, false, '무전을 안 쓰면 지적한다');
-  assert.equal(db.missed.length, COUPLE_BY_ID['politics'].target.hiddenPrefs.length - 1);
+  assert.equal(db.surfaced.length + db.missed.length, pol.target.hiddenPrefs.length);
   // 준비 점수 항목이 남아 있으면 안 된다
   for (const n of db.notes) {
     assert.ok(!/스타일링|코칭|연설/.test(n.label), `디브리핑에 준비 채점 항목이 남아 있다: ${n.label}`);
@@ -286,58 +316,180 @@ test('디브리핑은 채점이 아니라 사실 요약이다', () => {
 
 test('히스토리는 증감과 누적을 둘 다 남긴다', () => {
   const d = diffOf('보통');
-  const s = applyTurn(initialState(d), d, J('hit', { moodDelta: 5 }), OPTS);
+  const s = applyTurn(initialState(d), d, J('warm', { moodDelta: 5 }));
   const h = s.history.at(-1);
   assert.equal(h.turn, 1);
   assert.equal(typeof h.dLove, 'number');
   assert.equal(typeof h.dMood, 'number');
   assert.equal(h.love, Math.round(s.love));
   assert.equal(h.mood, Math.round(s.mood));
-  assert.equal(h.tier, 'hit');
+  assert.equal(h.tier, 'warm');
 });
 
-// ── 프롬프트가 실제로 주입을 담고 있는지 ─────────────────
-test('요원이 쓴 코칭/연설이 클라이언트 시스템 프롬프트에 그대로 들어간다', () => {
+// ── 프롬프트: 주입은 되고, 규칙은 안 된다 ────────────────
+test('요원이 쓴 지침/연설이 클라이언트 시스템 프롬프트에 그대로 들어간다', () => {
   const coaching = '절대로 마늘 얘기를 먼저 꺼내지 마라';
   const speech = '412년을 기다렸으면 오늘 하루는 아무것도 아니다';
-  const sys = P.clientAgentSystem(COUPLE_BY_ID['vampire-garlic'], { coaching, speech, outfitDesc: '검정 망토' }, 'text');
+  const sys = P.clientAgentSystem(COUPLE_BY_ID['vampire-garlic'],
+    { coaching, speech, outfitDesc: '검정 망토' }, 'text', AGENT);
   assert.ok(sys.includes(coaching));
   assert.ok(sys.includes(speech));
   assert.ok(sys.includes('검정 망토'));
+  assert.ok(sys.includes('박큐피드'), '요원 이름이 지침의 출처로 명시된다');
 });
 
-test('준비를 비우면 클라이언트가 망가지도록 프롬프트가 바뀐다', () => {
+test('준비를 비우면 그 사실이 프롬프트에 사실로 적힌다', () => {
   const c = COUPLE_BY_ID['vampire-garlic'];
-  const empty = P.clientAgentSystem(c, { coaching: '', speech: '', outfitDesc: '' }, 'text');
-  assert.ok(empty.includes('약점이 계속 튀어나온다'));
-  assert.ok(empty.includes('겁에 질려 있다'));
+  const empty = P.clientAgentSystem(c, { coaching: '', speech: '', outfitDesc: '' }, 'text', AGENT);
+  assert.ok(empty.includes('아무도 너에게 어떻게 하라고 알려주지 않았다'));
+  assert.ok(empty.includes('등 떠밀려 나왔다'));
   assert.ok(empty.includes('평소 입던 옷'));
 });
 
-test('심판만 타겟의 미확인 취향을 알고, 클라이언트는 모른다', () => {
+// 이번 개편의 본체. 대화 에이전트에게 연출 지시를 주면 그 인물은 대화가 아니라 공략을 시작한다.
+test('대화 에이전트 프롬프트에 대화 규칙·연출 지시가 없다', () => {
   const c = COUPLE_BY_ID['os-war'];
-  const hidden = c.target.hiddenPrefs[0];
-  assert.ok(P.judgeSystem(c).includes(hidden), '심판은 알아야 판정한다');
-  assert.ok(P.targetAgentSystem(c, 'text', '').includes(hidden), '타겟 본인은 당연히 안다');
-  assert.ok(!P.clientAgentSystem(c, { coaching: '', speech: '' }, 'text').includes(hidden),
-    '클라이언트가 미확인 취향을 알면 게임이 성립하지 않는다');
+  const banned = [
+    '실마리', '물고 늘어', '캐물', '흘려라', '세 번 연속', '두 번째 발언부터',
+    '쉽게 넘어가지', '방어선', '눈치채지 못하고', '자 이내',
+  ];
+  const prompts = {
+    client: P.clientAgentSystem(c, { coaching: '', speech: '', outfitDesc: '' }, 'text', AGENT),
+    target: P.targetAgentSystem(c, 'talk', '평상복'),
+  };
+  for (const [who, sys] of Object.entries(prompts)) {
+    for (const word of banned) {
+      assert.ok(!sys.includes(word), `${who} 프롬프트에 대화 규칙이 남아 있다: "${word}"`);
+    }
+  }
 });
 
-test('심판 스키마는 tier를 필수로 요구한다', () => {
-  assert.ok(P.JUDGE_SCHEMA.required.includes('tier'));
-  assert.ok(P.JUDGE_SCHEMA.required.includes('visiblePrefHit'), 'hit 게이트에 필요한 필드');
+test('클라이언트는 상대의 감춰둔 이야기를 모른다', () => {
+  const c = COUPLE_BY_ID['os-war'];
+  const sys = P.clientAgentSystem(c, { coaching: '', speech: '' }, 'text', AGENT);
+  for (const h of c.target.hiddenPrefs) {
+    assert.ok(!sys.includes(h), `클라이언트 프롬프트에 상대의 비밀이 새어 있다: ${h}`);
+  }
+  assert.ok(P.targetAgentSystem(c, 'text', '').includes(c.target.hiddenPrefs[0]), '상대 본인은 당연히 안다');
+  assert.ok(P.judgeSystem(c).includes(c.target.hiddenPrefs[0]), '심판은 반응을 읽으려면 알아야 한다');
+});
+
+test('두 에이전트 모두 자기 내력을 프롬프트로 받는다', () => {
+  const c = COUPLE_BY_ID['circadian'];
+  const client = P.clientAgentSystem(c, { coaching: '', speech: '' }, 'text', AGENT);
+  const target = P.targetAgentSystem(c, 'text', '');
+  assert.ok(client.includes(c.client.background[0]));
+  assert.ok(target.includes(c.target.background[0]));
+  assert.ok(!client.includes(c.target.background[0]), '상대 내력까지 알면 초면이 아니다');
+});
+
+test('심판 스키마는 tier·해설·공기를 필수로 요구한다', () => {
+  for (const k of ['tier', 'reason', 'vibe', 'revealed', 'loveDelta', 'moodDelta']) {
+    assert.ok(P.JUDGE_SCHEMA.required.includes(k), `심판 스키마에 ${k}가 없다`);
+  }
   assert.deepEqual(
     [...P.JUDGE_SCHEMA.properties.tier.enum].sort(),
     Object.keys(TIER_BANDS).sort(),
     '스키마 enum과 밴드 표가 어긋나면 판정이 클램프되지 않는다');
 });
 
-test('결승선 종류마다 호감의 의미가 다르게 주입된다', () => {
+test('심판은 판정보다 해설이 먼저라고 지시받는다', () => {
+  const sys = P.judgeSystem(COUPLE_BY_ID['politics']);
+  assert.ok(sys.includes('1순위'), '우선순위가 명시되어야 한다');
+  assert.ok(/판정 불가/.test(sys), '"판정 불가" 금지가 명시되어야 한다');
+  assert.ok(sys.includes('억지로라도'), '부조리한 장면도 납득시키라는 지시가 있어야 한다');
+});
+
+test('결승선 종류마다 호감의 의미가 다르게 주입된다 — 단, 심판에게만', () => {
   const ally = COUPLE_BY_ID['orientation'];
   assert.equal(ally.endingKind, '동맹');
-  const sys = P.judgeSystem(ally);
-  assert.ok(sys.includes('연애가 물리적으로 불가능'));
+  assert.ok(P.judgeSystem(ally).includes('연애가 물리적으로 불가능'));
   assert.ok(P.frameOf('동맹').meterName.includes('전우애'));
+  // 목표를 대화 에이전트에게 주면 그 인물은 목표를 향해 연기하기 시작한다. 안 준다.
+  const client = P.clientAgentSystem(ally, { coaching: '', speech: '' }, 'text', AGENT);
+  assert.ok(!client.includes('[네 목표]'), '에이전트에게 결승선을 지시하면 안 된다');
+  assert.ok(client.includes('연애 말고 다른 걸로'), '대신 본인 사연에 녹아 있어야 한다');
+});
+
+// ── 표현 수위 ────────────────────────────────────────────
+test('세계관이 창작 인물 대상 수위를 명시적으로 열어둔다', () => {
+  assert.ok(P.WORLD.includes('19금'));
+  assert.ok(P.WORLD.includes('비방'));
+  assert.ok(/순화하지 마라/.test(P.WORLD));
+  // 실존 인물·현실 집단 혐오만 좁게 제외한다. 이건 취향이 아니라 운영 문제다 —
+  // 모형이 응답을 거부하면 공작이 그 자리에서 끊긴다.
+  assert.ok(P.WORLD.includes('실존 인물'));
+  assert.ok(P.WORLD.includes('혐오 발화'));
+});
+
+// ── 브리핑은 LLM을 안 쓴다 ───────────────────────────────
+test('국장 브리핑은 하드코딩이고 요원 정보가 박힌다', () => {
+  const text = P.briefingText({ name: '김철수', gender: '남' });
+  assert.ok(text.includes('김철수'));
+  assert.ok(text.includes('남'), '성별을 적었으면 서식에 인쇄된다');
+  assert.ok(text.includes('20건'));
+  assert.ok(text.trim().endsWith('이상! 건투를 빈다, 요원.'));
+  // 성별을 비워도 문장이 깨지지 않아야 한다
+  const noGender = P.briefingText({ name: '007', gender: '' });
+  assert.ok(noGender.includes('007') && !noGender.includes('등록 성별란'));
+  assert.equal(typeof P.BRIEFING_SYSTEM, 'undefined', '브리핑 프롬프트가 남아 있으면 호출도 남아 있다');
+});
+
+// ── 아바타 스키마와 렌더러가 어긋나지 않는다 ─────────────
+test('스타일링 스키마의 모든 값을 아바타가 받아들인다', () => {
+  const props = P.AVATAR_SPEC_SCHEMA.properties;
+  const cases = [
+    ['hairStyle', props.hairStyle.enum],
+    ['accessory', props.accessory.enum],
+    ['expression', props.expression.enum],
+    ['aura', props.aura.enum],
+    ['species', props.species.enum],
+  ];
+  for (const [key, values] of cases) {
+    assert.ok(values.length > 0, `${key} enum이 비어 있다`);
+    for (const v of values) {
+      const s = sanitizeSpec({ ...DEFAULT_SPEC, [key]: v });
+      assert.equal(s[key], v, `아바타가 ${key}="${v}"를 모른다 — LLM이 만든 걸 못 그린다`);
+    }
+  }
+});
+
+test('자유 도형은 살아남고 쓰레기는 걸러진다', () => {
+  const good = { shape: 'sphere', color: '#112233', size: 0.4, at: 'handR', motion: 'bob', label: '폭탄' };
+  const s = sanitizeSpec({
+    props: [
+      good,
+      { shape: '없는도형', color: '#fff', size: 1, at: 'handR', motion: 'none', label: 'x' },
+      { shape: 'box', color: 'zzz', size: 999, at: '없는자리', motion: 'none', label: 'y' },
+      { shape: 'box', color: 'not-hex', size: 99, at: 'chest', motion: '없는동작', label: 'z' },
+    ],
+  });
+  assert.equal(s.props.length, 2, '알 수 없는 도형/자리는 버린다');
+  assert.deepEqual(s.props[0], good);
+  assert.equal(s.props[1].color, '#cccccc', '색이 이상하면 기본색');
+  assert.equal(s.props[1].size, 1.2, '크기는 상한으로 잘린다');
+  assert.equal(s.props[1].motion, 'none', '모르는 동작은 정지');
+  // 6개 상한
+  const many = sanitizeSpec({ props: Array.from({ length: 20 }, () => good) });
+  assert.equal(many.props.length, 6);
+  assert.deepEqual(sanitizeSpec({ props: 'nope' }).props, []);
+});
+
+test('스타일링은 종족을 바꿀 수 없다고 프롬프트에 못박혀 있다', () => {
+  assert.ok(P.STYLING_SYSTEM.includes('species는 절대 바꾸지 않는다'));
+  assert.ok(P.STYLING_SYSTEM.includes('못 만드는 게 없다'), '거절하지 않는 시공업자여야 한다');
+  assert.ok(P.STYLING_SCHEMA.required.includes('clientReaction'), '거울 본 본인 반응이 필수다');
+});
+
+test('준비 단계 반응 프롬프트가 두 장소를 구분한다', () => {
+  const c = COUPLE_BY_ID['sauce-war'];
+  const interro = P.prepReactSystem(c, 'coaching');
+  const gate = P.prepReactSystem(c, 'speech');
+  assert.ok(interro.includes('취조실'));
+  assert.ok(gate.includes('정문'));
+  assert.ok(interro.includes(c.client.background[0]), '반응하려면 자기가 누군지 알아야 한다');
+  assert.deepEqual(P.PREP_REACT_SCHEMA.required.sort(), ['face', 'note', 'reaction']);
+  assert.ok(P.prepReactUser('speech', '', AGENT).includes('아무 말도 없었다'), '빈 입력도 장면이 된다');
 });
 
 // ── 테스트 예산 가드 ────────────────────────────────────

@@ -1,5 +1,5 @@
 // browser.mjs — 실제 브라우저에서 게임을 끝까지 돌리는 E2E.
-// three.js 렌더링 · 썸네일 40장 · 스타일링 반영 · 게이지 갱신 · 무전 · 결과 화면까지 확인한다.
+// three.js 렌더링 · 썸네일 40장 · 준비 3화면 · 자유 도형 · 게이지 · 무전 · 결과 화면까지 확인한다.
 //
 //   node tests/browser.mjs                        기본: 가짜 LLM 모드 (API 키·크레딧 불필요, 결정적)
 //   ANTHROPIC_API_KEY=sk-... node tests/browser.mjs --live    실제 API로 (크레딧 소모)
@@ -27,6 +27,7 @@ if (LIVE && !KEY) { console.error('--live 모드인데 ANTHROPIC_API_KEY가 없�
 const ROOT = path.resolve(import.meta.dirname, '..');
 const SHOTS = args.shots || '/tmp/claude-0/shots';
 const COUPLE = args.couple || 'os-war';
+const AGENT_NAME = '박큐피드';
 const PORT = 8199;
 fs.mkdirSync(SHOTS, { recursive: true });
 
@@ -64,11 +65,13 @@ const T = LIVE ? 1 : 0.1;   // 가짜 모드는 훨씬 빠르니 타임아웃도
 const ms = n => Math.max(4000, Math.round(n * T));
 
 // 페이지 안에서 실행될 가짜 LLM. label로 분기해 결정적인 값을 돌려준다.
-function installMockLlm(hiddenPrefs) {
+function installMockLlm() {
   const llm = window.__game.llm;
   let turn = 0, judged = 0;
   window.__mock = { calls: [], maxInFlight: 0, inFlight: 0 };
   window.__mockLatency = 240;   // 실제 LLM 왕복을 흉내내 UI 조작이 끼어들 틈을 만든다
+  // 등급이 한 종류로 몰리지 않게 순환시킨다
+  const TIERS = ['warm', 'nudge', 'flat', 'breakthrough', 'nudge', 'chill'];
   llm.call = async ({ label, system, messages, schema }) => {
     const m = window.__mock;
     m.inFlight++; m.maxInFlight = Math.max(m.maxInFlight, m.inFlight);
@@ -76,11 +79,6 @@ function installMockLlm(hiddenPrefs) {
     await new Promise(r => setTimeout(r, window.__mockLatency ?? 240));
     m.inFlight--;
     if (label === '본부 인증') return '이상무';
-    if (label === '국장 브리핑') {
-      return '요원. 큐피드국은 도저히 이어질 리 없는 20건을 상시 접수하고 있다. ' +
-        '어인과 사자 퍼리, 뱀파이어와 마늘 농장주, 정적끼리. 전부 정상이 아니다. ' +
-        '너는 그들을 이어붙여야 한다. 실패하면 출산율은 0.007이 된다. 이상! 건투를 빈다, 요원.';
-    }
     if (label === '스타일링 시공') {
       return {
         spec: {
@@ -88,13 +86,28 @@ function installMockLlm(hiddenPrefs) {
           bottom: '#2a3a4a', shoes: '#7a5a2a', heightScale: 1.02, widthScale: 0.9,
           accessory: 'sunglasses', accessoryColor: '#111111',
           expression: 'chad', aura: 'fire', species: 'human',
+          props: [
+            { shape: 'sphere', color: '#1a1a1a', size: 0.35, at: 'handR', motion: 'bob', label: '폭탄' },
+            { shape: 'torus', color: '#ffdd55', size: 0.4, at: 'crown', motion: 'yaw', label: '후광' },
+          ],
         },
-        outfitDesc: '형광 주황으로 물들인 머리에 새빨간 턱시도, 카우보이 부츠, 선글라스를 썼다.',
+        outfitDesc: '형광 주황으로 물들인 머리에 새빨간 턱시도, 카우보이 부츠, 선글라스. 오른손에 폭탄을 들었다.',
         comment: '시공 완료. 책임은 안 진다.',
+        clientReaction: '아니 정말 이러라고요? …뭐, 따르겠습니다만.',
+        clientFace: 'cringe',
       };
     }
+    if (label === '취조실 반응') {
+      return { reaction: '알겠습니다. 근데 그거 하면 제가 좀 이상해 보이지 않나요?', face: 'cringe', note: '피조사자 항의 1회. 수용함.' };
+    }
+    if (label === '정문 반응') {
+      return { reaction: '…그 얘기를 어떻게 아셨어요. (문고리를 잡는다)', face: 'shy', note: '동공 흔들림 관측. 사기 상승으로 판단.' };
+    }
     if (label.includes('상황 생성')) {
-      return { place: '네오서울 무한스크롤 카페', intro: '오후 7시. 둘이 마주 앉았다.', outfitReaction: '…그 부츠, 진심입니까.' };
+      return {
+        place: '네오서울 무한스크롤 카페', intro: '오후 7시. 둘이 마주 앉았다.',
+        outfitReaction: '…그 부츠, 진심입니까.', vibe: '앉자마자 상대가 부츠부터 봤다.',
+      };
     }
     if (label === '결과 편지') {
       return {
@@ -103,16 +116,16 @@ function installMockLlm(hiddenPrefs) {
       };
     }
     if (label.startsWith('판정') || label.startsWith('첫인상')) {
-      judged++;
-      // 앞쪽은 취향 적중, 뒤로 갈수록 무난 — tier가 한 종류로 몰리지 않게
-      const pick = hiddenPrefs[judged - 1];
-      if (pick) {
-        return { tier: 'critical', moodDelta: 5, loveDelta: 9, visiblePrefHit: '', hiddenPrefHit: pick, redLineHit: false, reason: '급소 관통! 상대가 무너진다' };
-      }
-      if (judged % 3 === 0) {
-        return { tier: 'empty', moodDelta: 0, loveDelta: 0, visiblePrefHit: '', hiddenPrefHit: '', redLineHit: false, reason: '알맹이 없는 맞장구, 공짜 점수는 없다' };
-      }
-      return { tier: 'ok', moodDelta: 3, loveDelta: 3, visiblePrefHit: '', hiddenPrefHit: '', redLineHit: false, reason: '맥락은 받았다, 결정타는 아니다' };
+      const tier = TIERS[judged++ % TIERS.length];
+      const BAND = { breakthrough: [9, 7], warm: [5, 4], nudge: [2, 2], flat: [0, 0], chill: [-3, -4], disaster: [-8, -7] };
+      const [love, mood] = BAND[tier];
+      return {
+        tier, loveDelta: love, moodDelta: mood,
+        reason: `${tier} 판정. 상대가 실제로 그만큼 움직였다`,
+        vibe: `공기 갱신 ${judged}: 둘 다 컵만 만지작거린다`,
+        revealed: judged === 2 ? '사실 매일 밤 WSL로 우분투를 쓴다' : '',
+        clientEmote: 'talk', targetEmote: judged % 2 ? 'nod' : 'laugh',
+      };
     }
     if (label.includes('발언')) return `클라이언트 ${++turn}번째 한마디입니다`;
     if (label.includes('응답')) return '…그래서요? (컵을 고쳐 잡는다)';
@@ -149,7 +162,6 @@ try {
 
   // 대비 가드: 팔레트를 손볼 때마다 어두운 배경 위에 어두운 글자가 남는 사고가 난다.
   // 보이는 텍스트마다 실제 배경을 거슬러 찾아 명암비를 계산한다 (WCAG AA 본문 4.5:1 / 큰 글자 3:1).
-  await page.addInitScript(() => { });
   await page.evaluate(() => {
     window.__contrast = () => {
       const lum = (r, g, b) => {
@@ -193,10 +205,11 @@ try {
   };
   await checkContrast('부팅 화면');
 
-  if (!LIVE) {
-    const hidden = await page.evaluate(id => window.__game.COUPLES.find(c => c.id === id).target.hiddenPrefs, COUPLE);
-    await page.evaluate(installMockLlm, hidden);
-  }
+  if (!LIVE) await page.evaluate(installMockLlm);
+
+  // 요원 등록 — 이름/성별은 주관식이다
+  await page.fill('#agent-name', AGENT_NAME);
+  await page.fill('#agent-gender', '기밀');
   await page.fill('#key-input', KEY);
   // 실제 API 모드에서도 테스트는 Sonnet만 쓴다
   await page.selectOption('#model-select', MODEL);
@@ -204,25 +217,39 @@ try {
     await page.inputValue('#model-select') === MODEL);
   await page.click('#btn-boot');
   await page.waitForSelector('#screen-intro:not(.hidden)', { timeout: ms(90000) });
-  check('키 인증 후 신입 교육 진입', true);
+  check('요원 등록 + 키 인증 후 신입 교육 진입', true);
+  check('요원 정보가 상태에 남는다',
+    await page.evaluate(() => window.__game.state.agent.name) === AGENT_NAME);
   await page.screenshot({ path: `${SHOTS}/1-intro.png` });
 
-  // 교육 슬라이드 5장이 전부 그려지는지
+  // 교육 슬라이드가 전부 그려지는지
+  const slideCount = await page.evaluate(() => document.querySelectorAll('#intro-dots .dot').length);
   const slideTexts = [];
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < slideCount; i++) {
     slideTexts.push(await page.textContent('#intro-slides'));
-    if (i < 4) await page.click('#btn-intro-next');
+    if (i < slideCount - 1) await page.click('#btn-intro-next');
   }
-  check('신입 교육 5장이 모두 다른 내용으로 그려진다', new Set(slideTexts).size === 5);
+  check(`신입 교육 ${slideCount}장이 모두 다른 내용으로 그려진다`, new Set(slideTexts).size === slideCount, `${slideCount}장`);
   check('교육에 준비 단계가 채점되지 않음이 명시된다',
     slideTexts.some(t => /채점(하지 않는다|되지 않는다|\s*대상이 아니다)/.test(t)));
+  check('교육에 대화 규칙이 폐지됐음이 명시된다',
+    slideTexts.some(t => /대화 규칙이 없다|전부 폐지/.test(t)));
+  check('교육이 준비 3장소를 안내한다',
+    slideTexts.some(t => /미용실/.test(t) && /취조실/.test(t) && /정문/.test(t)));
   await page.screenshot({ path: `${SHOTS}/2-slides.png` });
 
-  console.log('\n📠 브리핑');
+  console.log('\n📠 브리핑 (LLM 호출 없음)');
+  const callsBeforeBriefing = LIVE ? 0 : await page.evaluate(() => window.__mock.calls.length);
   await page.click('#btn-intro-next');
   await page.waitForSelector('#btn-to-roster:not(.hidden)', { timeout: ms(120000) });
   const briefing = await page.textContent('#briefing-text');
   check('국장 브리핑이 타이핑 연출까지 끝났다', briefing.length > 60, `${briefing.length}자`);
+  check('브리핑에 요원명이 인쇄된다', briefing.includes(AGENT_NAME));
+  if (!LIVE) {
+    const after = await page.evaluate(() => window.__mock.calls.length);
+    check('브리핑은 LLM을 호출하지 않는다 (하드코딩)', after === callsBeforeBriefing, `${after - callsBeforeBriefing}콜 발생`);
+  }
+  await checkContrast('브리핑 화면');
 
   console.log('\n📚 의뢰 대장 20건');
   await page.click('#btn-to-roster');
@@ -250,19 +277,15 @@ try {
   check('아바타 썸네일 40장 생성', thumb.count === 40, `${thumb.count}장`);
   check('썸네일이 빈 이미지가 아니다 (three.js가 실제로 그렸다)', thumb.minOpaque > 500, `최소 불투명 픽셀 ${thumb.minOpaque}`);
   check('인물마다 썸네일이 다르다', thumb.uniq > 34, `고유 ${thumb.uniq}/${thumb.count}`);
+  check('전적 줄에 요원명이 표시된다', (await page.textContent('#agent-record')).includes(AGENT_NAME));
   await checkContrast('의뢰 대장');
   check('WebGL 컨텍스트 고갈 없음 (오프스크린 1개 재사용)',
     !pageErrors.some(e => /context|WebGL/i.test(e)), pageErrors.filter(e => /context|WebGL/i.test(e))[0] || '');
 
   // 난이도 필터
-  const counts = await page.evaluate(() => {
-    const out = {};
-    for (const b of document.querySelectorAll('.filter-tab')) out[b.textContent.split(' ')[0]] = b.textContent;
-    return out;
-  });
   await page.click('.filter-tab[data-f="헬"]');
   const hellCards = await page.locator('.couple-card').count();
-  check('난이도 필터가 동작한다', hellCards > 0 && hellCards < 20, `헬 ${hellCards}장 / ${JSON.stringify(counts)}`);
+  check('난이도 필터가 동작한다', hellCards > 0 && hellCards < 20, `헬 ${hellCards}장`);
   await page.click('.filter-tab[data-f="전체"]');
   await page.screenshot({ path: `${SHOTS}/3-roster.png`, fullPage: true });
 
@@ -273,36 +296,33 @@ try {
   const shown = await page.evaluate(() => {
     const name = document.querySelector('#dossier-box h3').textContent;
     const c = window.__game.COUPLES.find(x => name.includes(x.client.name));
-    return { red: c.target.redLines, hidden: c.target.hiddenPrefs, visible: c.target.visiblePrefs };
+    return { red: c.target.redLines, hidden: c.target.hiddenPrefs, visible: c.target.visiblePrefs, bg: c.client.background };
   });
   check('의뢰서 상세에 접촉 금지 항목이 전부 공개된다',
     shown.red.every(r => dossier.includes(r)), `${shown.red.length}건`);
   check('의뢰서 상세에 알려진 취향이 노출된다', shown.visible.every(v => dossier.includes(v)));
-  check('의뢰서 상세에 미확인 취향 내용은 노출되지 않는다 (개수만)',
+  check('의뢰서 상세에 인물 내력이 노출된다', shown.bg.every(b => dossier.includes(b)));
+  check('의뢰서 상세에 감춰둔 이야기는 노출되지 않는다 (개수만)',
     shown.hidden.every(h => !dossier.includes(h)) && dossier.includes(String(shown.hidden.length)));
   await page.click('#dossier-close');
 
-  console.log('\n👔 컨설팅 + 스타일링');
+  console.log('\n💇 준비 ① 미용실');
   await page.evaluate(id => {
     const target = window.__game.COUPLES.find(c => c.id === id);
     const card = [...document.querySelectorAll('.couple-card')]
       .find(el => el.textContent.includes(target.client.name));
     card.querySelector('.cc-take').click();
   }, COUPLE);
-  await page.waitForSelector('#screen-consult:not(.hidden)', { timeout: ms(10000) });
+  await page.waitForSelector('#screen-salon:not(.hidden)', { timeout: ms(10000) });
+  check('조합 선택 시 미용실로 들어간다', true);
 
-  // 준비 3종이 "주입 미리보기"를 보여주는지 (점수가 아니라)
-  const consultText = await page.textContent('#screen-consult');
-  check('준비 단계에 점수 UI가 없다', !/\/10/.test(consultText), consultText.match(/\S{0,12}\/10/)?.[0] || '');
-  check('준비 단계가 채점 대상이 아님을 명시한다', /채점(하지 않는다|\s*대상이 아니다|\s*안 한다)/.test(consultText));
-  await page.fill('#coaching-input', '상대가 말끝을 흐리면 반드시 물고 늘어져라. 아치 얘기는 금지.');
-  const previewText = await page.textContent('#coaching-result');
-  check('코칭이 주입될 원문 그대로 미리보기된다', previewText.includes('물고 늘어져라'), previewText.slice(0, 50));
+  const salonText = await page.textContent('#screen-salon');
+  check('준비 단계에 점수 UI가 없다', !/\/10/.test(salonText), salonText.match(/\S{0,12}\/10/)?.[0] || '');
 
   const specBefore = await page.evaluate(() => structuredClone(window.__game.state.clientSpec));
-  await page.fill('#styling-input', '형광 주황색으로 염색, 새빨간 턱시도, 카우보이 부츠, 선글라스');
+  await page.fill('#styling-input', '형광 주황색으로 염색, 새빨간 턱시도, 카우보이 부츠, 선글라스, 오른손에 폭탄, 머리 위에 도는 금색 고리');
   await page.click('#btn-styling');
-  await page.waitForFunction(() => (document.querySelector('#styling-result')?.textContent || '').length > 5, null, { timeout: ms(120000) });
+  await page.waitForSelector('#styling-result .react-outfit', { timeout: ms(120000) });
   const specAfter = await page.evaluate(() => structuredClone(window.__game.state.clientSpec));
   const outfit = await page.evaluate(() => window.__game.state.prep.outfitDesc);
   const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
@@ -314,25 +334,61 @@ try {
   check('"빨간 턱시도" → 상의가 빨강 계열이 됐다',
     rgb(specAfter.top)[0] > 150 && rgb(specAfter.top)[1] < 110, specAfter.top);
   check('종족은 스타일링으로 바뀌지 않는다', specAfter.species === specBefore.species, specAfter.species);
+  check('자유 도형(폭탄·후광)이 스펙에 붙는다',
+    Array.isArray(specAfter.props) && specAfter.props.length >= 2,
+    (specAfter.props || []).map(p => `${p.label}:${p.shape}@${p.at}`).join(' '));
   check('착장 묘사가 생성됐다 (대면 첫인상 판정의 입력값)', outfit.length > 10, outfit.slice(0, 50));
+
+  const salonReact = await page.textContent('#styling-result');
+  check('가위손 박의 소감이 표시된다', /책임은 안 진다|시공/.test(salonReact), salonReact.slice(0, 40));
+  check('거울 본 의뢰인 본인의 반응이 표시된다', /이러라고요|따르겠/.test(salonReact));
 
   // 무대 캔버스가 실제로 픽셀을 뱉는지
   const stageOpaque = await page.evaluate(() => {
-    const cv = document.querySelector('#stage-consult');
+    const cv = document.querySelector('#stage-salon');
     const gl = cv.getContext('webgl2') || cv.getContext('webgl');
     return { w: cv.width, h: cv.height, hasGl: !!gl };
   });
-  check('컨설팅 3D 무대가 WebGL 컨텍스트를 잡고 그려진다',
+  check('미용실 3D 무대가 WebGL 컨텍스트를 잡고 그려진다',
     stageOpaque.hasGl && stageOpaque.w > 0, JSON.stringify(stageOpaque));
-  await checkContrast('작전 준비 화면');
-  await page.screenshot({ path: `${SHOTS}/4-consult.png`, fullPage: true });
+  await checkContrast('미용실 화면');
+  await page.screenshot({ path: `${SHOTS}/4-salon.png`, fullPage: true });
+
+  console.log('\n🔦 준비 ② 취조실');
+  await page.click('#btn-salon-next');
+  await page.waitForSelector('#screen-interro:not(.hidden)', { timeout: ms(10000) });
+  await page.fill('#coaching-input', '상대가 말을 아끼면 그냥 넘어가지 말고 한 번 더 물어라. 아치 얘기는 금지.');
+  const previewText = await page.textContent('#coaching-inject');
+  check('지침이 주입될 원문 그대로 미리보기된다', previewText.includes('한 번 더 물어라'), previewText.slice(0, 50));
+  await page.click('#btn-coaching');
+  // 빈 상태 안내문도 길이가 있으므로 글자 수로 기다리면 즉시 통과해버린다. 실제 반응 줄이 생길 때까지 기다린다.
+  await page.waitForSelector('#coaching-result .react-line', { timeout: ms(120000) });
+  const interroReact = await page.textContent('#coaching-result');
+  check('취조실에서 의뢰인의 개인적 반응이 표시된다', /알겠습니다|이상해 보이/.test(interroReact), interroReact.slice(0, 50));
+  check('기록관 관찰 기록이 함께 표시된다', /기록관/.test(interroReact));
+  await checkContrast('취조실 화면');
+  await page.screenshot({ path: `${SHOTS}/5-interro.png`, fullPage: true });
+
+  console.log('\n🚪 준비 ③ 정문');
+  await page.click('#btn-interro-next');
+  await page.waitForSelector('#screen-gate:not(.hidden)', { timeout: ms(10000) });
+  await page.fill('#speech-input', '컨퍼런스에서 장내가 얼어붙었을 때 너 혼자 심장이 얼어붙었다며. 오늘은 그걸 말로 해.');
+  await page.click('#btn-speech');
+  await page.waitForSelector('#speech-result .react-line', { timeout: ms(120000) });
+  const gateReact = await page.textContent('#speech-result');
+  check('정문에서 의뢰인의 개인적 반응이 표시된다', /어떻게 아셨어요|문고리/.test(gateReact), gateReact.slice(0, 50));
+  check('준비 상태 요약이 세 항목을 모두 기재됨으로 본다',
+    /세 항목 모두 기재/.test(await page.textContent('#prep-status')));
+  await checkContrast('정문 화면');
+  await page.screenshot({ path: `${SHOTS}/6-gate.png`, fullPage: true });
 
   console.log('\n🚨 작전 개시');
-  await page.fill('#speech-input', '컨퍼런스에서 장내가 얼어붙었을 때 너 혼자 심장이 얼어붙었다며. 오늘은 그걸 말로 해.');
   await page.click('#btn-start-op');
   await page.waitForSelector('#screen-chat:not(.hidden)', { timeout: ms(15000) });
   await page.waitForFunction(() => document.querySelectorAll('#chat-window .bubble').length >= 2, null, { timeout: ms(180000) });
   check('문자 페이즈에서 두 에이전트가 대화한다', true);
+  check('시작 시점부터 공기 한 줄이 떠 있다',
+    (await page.textContent('#vibe-text')).length > 3, await page.textContent('#vibe-text'));
 
   // 무전 개입
   await page.waitForFunction(() => !document.querySelector('#btn-intervene').disabled, null, { timeout: ms(60000) });
@@ -340,10 +396,10 @@ try {
   await page.waitForSelector('#modal-radio:not(.hidden)');
   const radioCtx = await page.textContent('#radio-context');
   const redOf = await page.evaluate(() => window.__game.state.couple.target.redLines);
-  check('무전 모달이 잔여 미확인 취향 수를 알려준다', /미확인 취향 잔여 \d+건/.test(radioCtx), radioCtx.slice(0, 40));
-  check('무전 모달이 접촉 금지 항목을 다시 보여준다', redOf.every(r => radioCtx.includes(r)));
+  check('무전 모달이 지금 공기를 보여준다', /지금 공기/.test(radioCtx), radioCtx.slice(0, 40));
+  check('무전 모달이 상대의 질색 항목을 다시 보여준다', redOf.every(r => radioCtx.includes(r)));
   check('무전 모달이 대화를 멈춰둔다', await page.evaluate(() => window.__game.state.engine.paused === true));
-  await page.fill('#radio-input', '지금 상대가 말하다 말았다. 그게 뭐였냐고 물고 늘어져라.');
+  await page.fill('#radio-input', '지금 상대가 말하다 말았다. 그게 뭐였냐고 물어봐라.');
   await page.click('#btn-radio-send');
   await page.waitForFunction(() => document.querySelectorAll('.bubble.radio').length >= 1, null, { timeout: ms(20000) });
   check('무전이 대화에 주입됐다', true);
@@ -352,9 +408,11 @@ try {
   // 판정은 한 턴 늦게 오므로 문자 페이즈 중에 최소 한 줄은 흘러야 한다
   await page.waitForFunction(() => document.querySelectorAll('.judge-line').length >= 1, null, { timeout: ms(120000) });
   const textJudge = await page.evaluate(() => document.querySelector('.judge-line').textContent);
-  check('문자 페이즈에 심판 판정이 흐른다', textJudge.includes('호감'), textJudge.slice(0, 60));
-  check('판정 줄에 tier 계산 근거가 노출된다', /판정 [+-]?\d+ × 분위기/.test(textJudge), textJudge.slice(-40));
-  await page.screenshot({ path: `${SHOTS}/5-texting.png`, fullPage: true });
+  check('문자 페이즈에 심판 해설이 흐른다', textJudge.includes('호감'), textJudge.slice(0, 60));
+  check('판정 줄에 계산 근거가 노출된다', /판정 [+-]?\d+ × 분위기/.test(textJudge), textJudge.slice(-40));
+  check('판정 줄에 등급 이름이 표시된다',
+    await page.locator('.judge-line .tag.tier').count() >= 1);
+  await page.screenshot({ path: `${SHOTS}/7-texting.png`, fullPage: true });
 
   console.log('   ...대면 페이즈 대기');
   // 빠른 모드에서는 이미 대면(또는 결과)까지 지나가 있을 수 있다. 어느 쪽이든 통과시킨다.
@@ -362,24 +420,25 @@ try {
     document.body.classList.contains('phase-talk')
     || !document.querySelector('#screen-result').classList.contains('hidden'),
   null, { timeout: ms(400000) });
-  // 페이즈가 바뀌면 판정 피드는 의도적으로 비워진다. 대면 판정이 새로 쌓이는지 본다.
   await page.waitForFunction(() =>
     document.querySelectorAll('.judge-line').length >= 1
     || !document.querySelector('#screen-result').classList.contains('hidden'),
   null, { timeout: ms(200000) });
   const judged = await page.locator('.judge-line').count();
-  check('대면 페이즈에도 심판 판정이 새로 쌓인다', judged >= 1, `${judged}줄`);
+  check('대면 페이즈에도 심판 해설이 새로 쌓인다', judged >= 1, `${judged}줄`);
   const meters = await page.evaluate(() => ({
     love: +document.querySelector('#meter-love-num').textContent,
     mood: +document.querySelector('#meter-mood-num').textContent,
     loveW: document.querySelector('#meter-love-fill').style.width,
     thrLeft: document.querySelector('#meter-threshold').style.left,
-    mult: document.querySelector('#hud-mult').textContent,
+    vibe: document.querySelector('#vibe-text').textContent,
+    intel: document.querySelector('#intel-list').textContent,
   }));
   check('게이지 바가 수치와 함께 갱신된다',
-    meters.loveW === meters.love + '%' && meters.thrLeft !== '', JSON.stringify(meters));
+    meters.loveW === meters.love + '%' && meters.thrLeft !== '', JSON.stringify({ ...meters, vibe: undefined, intel: undefined }));
+  check('공기가 판정에 따라 갱신된다', /공기 갱신|앉자마자|커피|컵/.test(meters.vibe) || LIVE, meters.vibe.slice(0, 40));
   await checkContrast('대면 공작 화면');
-  await page.screenshot({ path: `${SHOTS}/6-talking.png`, fullPage: true });
+  await page.screenshot({ path: `${SHOTS}/8-talking.png`, fullPage: true });
 
   console.log('   ...결과 대기');
   await page.waitForSelector('#screen-result:not(.hidden)', { timeout: ms(600000) });
@@ -391,8 +450,9 @@ try {
       love: r.verdict.love, mood: r.verdict.mood, grade: r.verdict.grade, accepted: r.verdict.accepted,
       threshold: r.difficulty.threshold, turns: r.state.history.length,
       tiers: r.state.history.map(h => h.tier),
-      hits: r.state.hits.length, hiddenTotal: r.couple.target.hiddenPrefs.length,
-      red: r.state.redLines, radio: r.state.radioUsed,
+      revealed: r.state.revealed.length, secretTotal: r.couple.target.hiddenPrefs.length,
+      surfaced: r.debrief.surfaced.length, radio: r.state.radioUsed,
+      agent: r.agent?.name,
       letter: (document.querySelector('#result-letter').textContent || '').length,
       stamp: document.querySelector('#result-stamp').textContent,
       mvp: document.querySelector('#result-mvp').textContent,
@@ -404,26 +464,30 @@ try {
   });
 
   check('전 턴이 판정됐다 (첫인상 1 + 문자 4 + 대면 5 = 10)', result.turns === 10, `${result.turns}턴`);
-  check('심판 tier가 한 종류로 몰리지 않았다', new Set(result.tiers).size >= 2, result.tiers.join(','));
+  check('심판 등급이 한 종류로 몰리지 않았다', new Set(result.tiers).size >= 2, result.tiers.join(','));
+  check('구 등급명이 남아 있지 않다',
+    !result.tiers.some(t => ['critical', 'hit', 'ok', 'empty', 'backfire', 'redline'].includes(t)), result.tiers.join(','));
   check('결과 편지가 타이핑까지 끝났다', result.letter > 60, `${result.letter}자`);
   check('결정적 순간(MVP)이 표시된다', result.mvp.length > 10);
   check('디브리핑 원장이 턴 수와 일치한다', result.debriefRows === result.turns + 1, `${result.debriefRows}행`);
-  check('타겟의 실제 취향이 종료 후 전면 공개된다',
-    result.prefRows >= result.hiddenTotal, `${result.prefRows}줄`);
+  check('상대의 실제 속마음이 종료 후 전면 공개된다',
+    result.prefRows >= result.secretTotal, `${result.prefRows}줄`);
+  check('요원 정보가 결과까지 따라간다', result.agent === AGENT_NAME || LIVE, result.agent);
   if (result.mock) {
     check('판정과 타겟 응답이 동시에 발사됐다 (턴당 왕복 2회)', result.mock.maxInFlight >= 2, `동시 최대 ${result.mock.maxInFlight}`);
-    check('총 LLM 호출이 예상 범위다', result.mock.calls >= 28 && result.mock.calls <= 34, `${result.mock.calls}콜`);
+    // 인증1 + 스타일링1 + 취조실1 + 정문1 + 발언9 + 응답9 + 판정10 + 상황1 + 편지1 = 34 (브리핑 호출은 없다)
+    check('총 LLM 호출이 예상 범위다', result.mock.calls >= 31 && result.mock.calls <= 37, `${result.mock.calls}콜`);
   } else {
     check('프롬프트 캐시가 실제로 적중했다', result.usage.cacheRead > 5000, `${result.usage.cacheRead}tok 재사용`);
   }
   check('페이지 런타임 에러 없음', pageErrors.length === 0, pageErrors.slice(0, 3).join(' | '));
 
   console.log(`\n  📊 ${result.stamp} · 등급 ${result.grade} · 호감 ${result.love}/${result.threshold} · 분위기 ${result.mood}` +
-    ` · 취향 ${result.hits}/${result.hiddenTotal} · 지뢰 ${result.red} · 무전 ${result.radio}`);
-  console.log(`  🧾 tier: ${result.tiers.join(' ')}`);
+    ` · 발견 ${result.revealed} · 비밀 ${result.surfaced}/${result.secretTotal} · 무전 ${result.radio}`);
+  console.log(`  🧾 등급: ${result.tiers.join(' ')}`);
   if (LIVE) console.log(`  💰 ${result.usage.calls}콜 · $${result.usage.cost.toFixed(3)} · 캐시 ${result.usage.cacheRead.toLocaleString()}tok`);
   await checkContrast('결과 화면');
-  await page.screenshot({ path: `${SHOTS}/7-result.png`, fullPage: true });
+  await page.screenshot({ path: `${SHOTS}/9-result.png`, fullPage: true });
 
   // 재도전 / 다음 의뢰 버튼
   await page.click('#btn-restart');

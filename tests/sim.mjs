@@ -1,45 +1,124 @@
-// sim.mjs — 오프라인 리플레이 밸런서.
-// tests/live.mjs가 남긴 실제 판정 스트림(tier/moodDelta/취향적중/지뢰)을 그대로 다시 흘려보내면서
-// 난이도 상수와 TUNING만 바꿔가며 성사율이 어떻게 움직이는지 본다. API 호출 0회.
+// sim.mjs — 오프라인 밸런서. API 호출 0회.
 //
-//   node tests/sim.mjs /tmp/live-results.json            현재 상수로 재현 + 프로필별 성사율
-//   node tests/sim.mjs /tmp/live-results.json --grid     성공선 후보를 훑어 추천값을 뽑는다
+// 두 가지 모드가 있다.
+//
+//   1) 리플레이 — tests/live.mjs가 남긴 실제 판정 스트림(tier/moodDelta)을 그대로 다시 흘리면서
+//      난이도 상수와 TUNING만 바꿔 성사율이 어떻게 움직이는지 본다. 실측 기반이라 제일 믿을 만하다.
+//
+//        node tests/sim.mjs /tmp/live-results.json          현재 상수로 재현 + 프로필별 성사율
+//        node tests/sim.mjs /tmp/live-results.json --grid   성공선 후보를 훑어 추천값을 뽑는다
+//        node tests/sim.mjs /tmp/live-results.json --tune   밴드/감쇠 상수까지 탐색
+//
+//   2) 몬테카를로 — 라이브 로그가 없을 때 쓴다. 프로필별 등급 분포를 가정하고 표본을 돌린다.
+//      실측이 아니라 추정이다. 판정기를 갈아엎어서 기존 로그를 못 쓰게 됐을 때의 임시방편이고,
+//      지금 scoring.js의 성공선(46/52/56)이 이 모드에서 나왔다.
+//
+//        node tests/sim.mjs --montecarlo
+//        node tests/sim.mjs --montecarlo --n=5000
 
 import fs from 'node:fs';
-import { DIFFICULTIES, TIER_BANDS, TUNING, diffOf, initialState, applyTurn, failureReason, verdict } from '../js/scoring.js';
+import {
+  DIFFICULTIES, TIER_BANDS, TUNING, diffOf,
+  initialState, applyTurn, failureReason, verdict,
+} from '../js/scoring.js';
 import { COUPLE_BY_ID } from '../js/couples.js';
 
-const file = process.argv[2];
+const argv = process.argv.slice(2);
+const flag = n => argv.includes('--' + n);
+const opt = (n, d) => {
+  const hit = argv.find(a => a.startsWith(`--${n}=`));
+  return hit ? hit.split('=')[1] : d;
+};
+const pad = (s, n) => String(s).padEnd(n);
+const TORDER = ['breakthrough', 'warm', 'nudge', 'flat', 'chill', 'disaster'];
+
+// ══════════ 몬테카를로 ══════════════════════════════════════════
+// 프로필별 등급 분포 가정치. 새 등급은 "상대가 얼마나 움직였는가"의 눈금이므로
+// 준비가 부실할수록 flat/chill 쪽으로 쏠린다는 형태로 잡았다.
+const PROFILE_DIST = {
+  ace:  { breakthrough: .12, warm: .30, nudge: .33, flat: .17, chill: .06, disaster: .02 },
+  good: { breakthrough: .05, warm: .22, nudge: .36, flat: .27, chill: .08, disaster: .02 },
+  lazy: { breakthrough: .01, warm: .08, nudge: .22, flat: .44, chill: .20, disaster: .05 },
+  none: { breakthrough: .00, warm: .04, nudge: .15, flat: .45, chill: .27, disaster: .09 },
+};
+const TIER_MOOD = { breakthrough: 6, warm: 4, nudge: 2, flat: 0, chill: -4, disaster: -7 };
+
+// 재현 가능해야 하므로 Math.random을 쓰지 않는다
+function makeRng(seed) {
+  let s = seed;
+  return () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+}
+
+function monteCarlo(n = 2500, seed = 20770819) {
+  console.log(`\n════════ 몬테카를로 (판당 ${n}회 표본) ════════`);
+  console.log('⚠ 실측이 아니라 등급 분포를 가정한 추정이다. 라이브 로그가 생기면 리플레이 모드를 쓸 것.\n');
+  console.log(pad('난이도', 8) + pad('성공선', 8) + pad('프로필', 8) + pad('성사율', 9) +
+    pad('호감 p10/중앙/p90', 22) + '파탄율');
+  for (const dn of Object.keys(DIFFICULTIES)) {
+    const d = diffOf(dn);
+    for (const p of Object.keys(PROFILE_DIST)) {
+      const rnd = makeRng(seed);
+      const pick = () => {
+        let r = rnd();
+        for (const [k, w] of Object.entries(PROFILE_DIST[p])) if ((r -= w) <= 0) return k;
+        return 'flat';
+      };
+      const runs = [];
+      for (let i = 0; i < n; i++) {
+        let s = initialState(d);
+        let aborted = false;
+        for (let turn = 0; turn < d.textTurns + d.talkTurns + 1; turn++) {
+          const tier = pick();
+          const [lo, hi] = TIER_BANDS[tier];
+          const judge = {
+            tier,
+            loveDelta: lo + Math.round(rnd() * (hi - lo)),
+            moodDelta: Math.max(-10, Math.min(10, TIER_MOOD[tier] + Math.round((rnd() - 0.5) * 4))),
+          };
+          s = applyTurn(s, d, judge, { firstImpression: turn === d.textTurns });
+          if (failureReason(s)) { aborted = true; break; }
+        }
+        runs.push({ ...verdict(s, d, { aborted }), aborted });
+      }
+      const loves = runs.map(r => r.love).sort((a, b) => a - b);
+      const q = f => loves[Math.floor(n * f)];
+      console.log(pad(dn, 8) + pad(d.threshold, 8) + pad(p, 8) +
+        pad(`${(runs.filter(r => r.accepted).length / n * 100).toFixed(0)}%`, 9) +
+        pad(`${q(.1)} / ${q(.5)} / ${q(.9)}`, 22) +
+        `${(runs.filter(r => r.aborted).length / n * 100).toFixed(0)}%`);
+    }
+    console.log('');
+  }
+  console.log('기준선: ace는 넘고(쉬움 80%+ / 보통 60%+ / 헬 35%+), lazy·none은 5% 미만이어야 한다.');
+}
+
+if (flag('montecarlo')) {
+  monteCarlo(Number(opt('n', 2500)), Number(opt('seed', 20770819)));
+  process.exit(0);
+}
+
+// ══════════ 리플레이 ════════════════════════════════════════════
+const file = argv.find(a => !a.startsWith('--'));
 if (!file || !fs.existsSync(file)) {
-  console.error('사용법: node tests/sim.mjs <live-results.json> [--grid]');
+  console.error('사용법: node tests/sim.mjs <live-results.json> [--grid] [--tune]');
+  console.error('   또는: node tests/sim.mjs --montecarlo   (라이브 로그 없이 추정)');
   process.exit(1);
 }
-const GRID = process.argv.includes('--grid');
+const GRID = flag('grid');
 const runs = JSON.parse(fs.readFileSync(file)).filter(r => r && !r.error && r.judgments);
 if (!runs.length) { console.error('judgments가 기록된 판이 없다. live.mjs를 다시 돌려라.'); process.exit(1); }
 
-// 기록된 판정 스트림을 주어진 난이도 상수로 다시 흘린다
+// 기록된 판정 스트림을 주어진 난이도 상수로 다시 흘린다.
+// 목록 대조 계층이 사라져서 리플레이도 단순해졌다 — 등급과 두 증감값이 전부다.
 function replay(run, overrides = {}) {
-  const couple = COUPLE_BY_ID[run.coupleId];
   const d = { ...diffOf(run.difficulty), ...overrides };
   let s = initialState(d);
   let aborted = false;
   for (const j of run.judgments) {
-    // tier는 이미 게이트를 통과한 값이므로 그대로 재사용한다.
-    // 게이트 재적용을 피하려고 적중 필드를 tier에 맞춰 복원해 넣는다.
-    const judge = {
-      tier: j.tier, moodDelta: j.moodDelta, loveDelta: undefined,
-      hiddenPrefHit: j.hit,
-      visiblePrefHit: j.tier === 'hit' && !j.hit ? couple.target.visiblePrefs[0] : '',
-      redLineHit: j.red,
-    };
-    const opts = {
-      knownHidden: couple.target.hiddenPrefs,
-      // 알려진 취향 재탕 강등을 리플레이에서 유발하지 않도록 매번 새 목록을 준다
-      knownVisible: couple.target.visiblePrefs,
-      firstImpression: j.firstImpression,
-    };
-    s = applyTurn({ ...s, seenVisible: [] }, d, judge, opts);
+    s = applyTurn(s, d, {
+      tier: j.tier, moodDelta: j.moodDelta, loveDelta: j.loveDelta,
+      revealed: j.revealed || '', vibe: '',
+    }, { firstImpression: j.firstImpression });
     if (failureReason(s)) { aborted = true; break; }
   }
   return { ...verdict(s, d, { aborted }), state: s, d };
@@ -47,11 +126,10 @@ function replay(run, overrides = {}) {
 
 const PROFILES = [...new Set(runs.map(r => r.profile))];
 const DIFFS = [...new Set(runs.map(r => r.difficulty))];
-const pad = (s, n) => String(s).padEnd(n);
 
 function table(overridesFor) {
   const rows = [];
-  for (const diff of ['쉬움', '보통', '헬'].filter(d => DIFFS.includes(d))) {
+  for (const diff of Object.keys(DIFFICULTIES).filter(d => DIFFS.includes(d))) {
     for (const p of PROFILES) {
       const sub = runs.filter(r => r.difficulty === diff && r.profile === p);
       if (!sub.length) continue;
@@ -61,6 +139,7 @@ function table(overridesFor) {
         win: res.filter(r => r.accepted).length,
         love: res.reduce((a, r) => a + r.love, 0) / res.length,
         mood: res.reduce((a, r) => a + r.mood, 0) / res.length,
+        found: sub.reduce((a, r) => a + (r.revealedCount || 0), 0) / sub.length,
       });
     }
   }
@@ -69,40 +148,34 @@ function table(overridesFor) {
 
 function printTable(rows, title) {
   console.log(`\n──── ${title} ────`);
-  console.log(pad('난이도', 8) + pad('프로필', 8) + pad('성사', 8) + pad('평균호감', 10) + '평균분위기');
+  console.log(pad('난이도', 8) + pad('프로필', 8) + pad('성사', 8) + pad('평균호감', 10) + pad('평균분위기', 12) + '발견');
   for (const r of rows) {
     console.log(pad(r.diff, 8) + pad(r.profile, 8) + pad(`${r.win}/${r.n}`, 8) +
-      pad(r.love.toFixed(1), 10) + r.mood.toFixed(1));
+      pad(r.love.toFixed(1), 10) + pad(r.mood.toFixed(1), 12) + r.found.toFixed(1));
   }
 }
 
 // 재현 검증: 리플레이가 라이브 결과와 일치하는가
 let match = 0;
-for (const r of runs) {
-  const v = replay(r);
-  if (v.accepted === r.accepted) match++;
-}
+for (const r of runs) if (replay(r).accepted === r.accepted) match++;
 console.log(`🔁 리플레이 재현율 ${match}/${runs.length} (현재 상수 기준)`);
 printTable(table(null), '현재 상수');
 
 // tier 분포
 const tiers = runs.flatMap(r => r.judgments.map(j => j.tier));
-const jTiers = runs.flatMap(r => r.judgments.map(j => j.judgeTier));
 const count = a => { const c = {}; for (const x of a) c[x] = (c[x] || 0) + 1; return c; };
-const TORDER = ['critical', 'hit', 'ok', 'empty', 'backfire', 'redline'];
 const fmt = c => TORDER.map(t => `${t} ${c[t] || 0}(${((c[t] || 0) / tiers.length * 100).toFixed(0)}%)`).join(' · ');
-console.log(`\n심판 원등급 : ${fmt(count(jTiers))}`);
-console.log(`게이트 통과 : ${fmt(count(tiers))}`);
+console.log(`\n심판 등급 분포 : ${fmt(count(tiers))}`);
 for (const p of PROFILES) {
   const t = runs.filter(r => r.profile === p).flatMap(r => r.judgments.map(j => j.tier));
   const c = count(t);
-  console.log(`  ${pad(p, 5)} ` + TORDER.map(x => `${x.slice(0, 1).toUpperCase()}${c[x] || 0}`).join(' ') + ` (n=${t.length})`);
+  console.log(`  ${pad(p, 5)} ` + TORDER.map(x => `${x.slice(0, 2)}${c[x] || 0}`).join(' ') + ` (n=${t.length})`);
 }
 
 if (GRID) {
   console.log('\n════════ 성공선 후보 탐색 ════════');
   console.log('목표: ace/good은 넘고 lazy/none은 못 넘는 성공선을 찾는다.\n');
-  for (const diff of ['쉬움', '보통', '헬'].filter(d => DIFFS.includes(d))) {
+  for (const diff of Object.keys(DIFFICULTIES).filter(d => DIFFS.includes(d))) {
     const sub = runs.filter(r => r.difficulty === diff);
     if (!sub.length) continue;
     const scored = sub.map(r => ({ profile: r.profile, ...replay(r, { threshold: 0 }) }));
@@ -121,10 +194,9 @@ if (GRID) {
   }
 }
 
-
 // ── 상수 탐색 ────────────────────────────────────────────
 // TIER_BANDS / TUNING은 모듈 상수 객체라 속성을 갈아끼우면 리플레이에 그대로 반영된다.
-if (process.argv.includes('--tune')) {
+if (flag('tune')) {
   const snapshot = { bands: structuredClone(TIER_BANDS), tuning: { ...TUNING } };
   const restore = () => {
     for (const [k, v] of Object.entries(snapshot.bands)) TIER_BANDS[k] = [...v];
@@ -138,12 +210,12 @@ if (process.argv.includes('--tune')) {
   // 분리도: 잘한 플레이의 최저 호감 - 대충한 플레이의 최고 호감. 클수록 성공선을 놓을 자리가 넓다.
   function separation(diff, cfg) {
     restore();
-    TIER_BANDS.ok = cfg.ok;
-    TIER_BANDS.empty = cfg.empty;
+    TIER_BANDS.nudge = cfg.nudge;
+    TIER_BANDS.flat = cfg.flat;
     Object.assign(TUNING, cfg.tuning || {});
     const rows = byDiff[diff].map(r => ({
       profile: r.profile,
-      love: replay(r, { threshold: 0, loveDecay: cfg.decay }).love,
+      love: replay(r, { threshold: 0, loveDecay: cfg.decay, gainScale: cfg.gain }).love,
     }));
     const sk = rows.filter(r => SKILLED.has(r.profile)).map(r => r.love);
     const sl = rows.filter(r => !SKILLED.has(r.profile)).map(r => r.love);
@@ -152,22 +224,24 @@ if (process.argv.includes('--tune')) {
     return { gap: lo - hi, lo, hi, mid: Math.round((lo + hi) / 2), sk: sk.sort((a, b) => a - b), sl: sl.sort((a, b) => b - a) };
   }
 
-  const OK_CANDS = [[2, 4], [1, 3], [1, 2], [0, 2]];
-  const EMPTY_CANDS = [[-1, 1], [-1, 0], [-2, 0]];
-  const DECAYS = { '쉬움': [0, 0.8, 1.6, 2.4], '보통': [0.5, 1.2, 2.0, 2.8], '헬': [1.0, 1.8, 2.6, 3.4] };
+  const NUDGE_CANDS = [[1, 3], [1, 2], [0, 2], [2, 4]];
+  const FLAT_CANDS = [[-1, 1], [-1, 0], [-2, 0]];
+  const DECAYS = { '쉬움': [0, 0.4, 0.8], '보통': [0.3, 0.7, 1.2], '헬': [0.6, 1.1, 1.6] };
+  const GAINS = { '쉬움': [1.4, 1.7, 2.0], '보통': [1.7, 2.0, 2.3], '헬': [1.8, 2.1, 2.4] };
 
   console.log('\n════════ 상수 탐색 (분리도 = 잘한 최저 − 대충한 최고) ════════');
   const best = {};
   for (const diff of Object.keys(byDiff)) {
     const cands = [];
-    for (const ok of OK_CANDS) for (const empty of EMPTY_CANDS) for (const decay of DECAYS[diff] || [1]) {
-      const sep = separation(diff, { ok, empty, decay });
-      if (sep) cands.push({ ok, empty, decay, ...sep });
-    }
+    for (const nudge of NUDGE_CANDS) for (const flat of FLAT_CANDS)
+      for (const decay of DECAYS[diff] || [1]) for (const gain of GAINS[diff] || [2]) {
+        const sep = separation(diff, { nudge, flat, decay, gain });
+        if (sep) cands.push({ nudge, flat, decay, gain, ...sep });
+      }
     cands.sort((a, b) => b.gap - a.gap);
     console.log(`\n[${diff}] 상위 5개 (n=${byDiff[diff].length}판)`);
     for (const c of cands.slice(0, 5)) {
-      console.log(`  ok[${c.ok}] empty[${c.empty}] decay ${c.decay}  →  분리도 ${String(c.gap).padStart(4)}` +
+      console.log(`  nudge[${c.nudge}] flat[${c.flat}] decay ${c.decay} gain ${c.gain}  →  분리도 ${String(c.gap).padStart(4)}` +
         `  성공선 후보 ${String(c.mid).padStart(3)}  잘한 ${c.sk.join(',')} | 대충한 ${c.sl.join(',')}`);
     }
     best[diff] = cands[0];
@@ -175,6 +249,6 @@ if (process.argv.includes('--tune')) {
   restore();
   console.log('\n권장값:');
   for (const [d, c] of Object.entries(best)) {
-    if (c) console.log(`  ${d}: threshold ${c.mid}, loveDecay ${c.decay}  (공통 ok[${c.ok}] empty[${c.empty}])`);
+    if (c) console.log(`  ${d}: threshold ${c.mid}, loveDecay ${c.decay}, gainScale ${c.gain}  (공통 nudge[${c.nudge}] flat[${c.flat}])`);
   }
 }
