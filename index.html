@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>연애조작단 2077: 오퍼레이션 큐피드</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💘</text></svg>">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gugi&display=swap" media="print" onload="this.media='all'">
+</head>
+<body>
+  <div id="crt"></div>
+
+  <header id="topbar">
+    <div class="marquee"><span>★★★ 미연방 비밀기관 큐피드局 공식 공작 단말기 ★★★ 출산율 0.008 국가비상사태 ★★★ 테크노킹 도람푸 3세 특명 제77호 ★★★ 오늘도 무고백 무연애 무한대기 중인 국민을 구출하라 ★★★ 본 단말기는 LLM으로 구동됩니다. LLM이 없으면 아무 일도 일어나지 않습니다 ★★★</span></div>
+    <button id="btn-bgm" class="btn95" type="button">🔊 BGM</button>
+  </header>
+
+  <main>
+    <!-- 부팅 / 키 입력 -->
+    <section id="screen-boot" class="screen">
+      <h1 class="title-main"><span class="blink">💘</span> 연애조작단 2077 <span class="blink">💘</span><br><small>OPERATION: CUPID</small></h1>
+      <p class="subtitle">국가공인 연애공작 시뮬레이터 (B급) — 재미없으면 도람푸 3세에게 항의 바람</p>
+      <div class="panel95 boot-panel">
+        <h2>■ 공작 단말기 부팅</h2>
+        <p class="warn">이 게임은 <b>전부</b> LLM(Claude)으로 돌아간다. API 키가 없으면 시작 화면조차 못 넘어간다.<br>
+        키는 브라우저에서 <code>api.anthropic.com</code>으로만 전송된다. 그 외 어디에도 안 보낸다.</p>
+        <label>ANTHROPIC API KEY
+          <input id="key-input" type="password" placeholder="sk-ant-api03-..." autocomplete="off">
+        </label>
+        <label>공작 두뇌 (모델)
+          <select id="model-select">
+            <option value="claude-opus-5" selected>claude-opus-5 (국장님 추천)</option>
+            <option value="claude-sonnet-5">claude-sonnet-5</option>
+            <option value="claude-haiku-4-5">claude-haiku-4-5 (예산 절감형)</option>
+          </select>
+        </label>
+        <label class="chk"><input id="remember-key" type="checkbox"> 이 브라우저에 키 저장 (공용 PC에서 체크하면 간첩죄)</label>
+        <button id="btn-boot" class="btn95 big" type="button">▶ 요원 착임 (부팅)</button>
+        <p id="boot-error" class="error hidden"></p>
+      </div>
+      <p class="dim small">GitHub Pages 정적 사이트 · 서버 없음 · 키 유출 걱정은 본인 브라우저에게</p>
+    </section>
+
+    <!-- 국장 브리핑 -->
+    <section id="screen-briefing" class="screen hidden">
+      <div class="panel95 briefing-panel">
+        <h2>📠 착신: 국장 왕큐피드</h2>
+        <pre id="briefing-text" class="briefing-text"></pre>
+        <button id="btn-to-screening" class="btn95 big hidden" type="button">의뢰서 수신 ▶</button>
+      </div>
+    </section>
+
+    <!-- 의뢰서 스크리닝 -->
+    <section id="screen-screening" class="screen hidden">
+      <h2 class="section-title">📚 오늘의 의뢰서 — 한 명을 선택하라</h2>
+      <div id="client-cards" class="cards"></div>
+    </section>
+
+    <!-- 컨설팅 -->
+    <section id="screen-consult" class="screen hidden">
+      <h2 class="section-title" id="consult-title">작전 준비</h2>
+      <div class="consult-grid">
+        <div class="stage-wrap panel95">
+          <div class="stage-label">◀ 클라이언트 ─── 타겟 ▶</div>
+          <canvas id="stage-consult" class="stage-canvas"></canvas>
+        </div>
+        <div class="consult-forms">
+          <div class="panel95" id="consult-dossier"></div>
+          <div class="panel95">
+            <h3>👔 스타일링 지시 <small>(태그 콤마 구분)</small></h3>
+            <input id="styling-input" type="text" placeholder="예: 빨간 턱시도, 카우보이 부츠, 금목걸이">
+            <button id="btn-styling" class="btn95" type="button">가위손 박 호출</button>
+            <p id="styling-result" class="eval-result"></p>
+          </div>
+          <div class="panel95">
+            <h3>🎧 대화 코칭 <small>(대화 중 클라이언트의 행동 지침)</small></h3>
+            <textarea id="coaching-input" rows="3" placeholder="예: 상대 얘기에 리액션 크게 하고, 삼겹살 얘기가 나오면 무조건 맛집 아는 척을 해라"></textarea>
+          </div>
+          <div class="panel95">
+            <h3>🔥 격려 연설 <small>(간지날수록 용기 상승)</small></h3>
+            <textarea id="speech-input" rows="3" placeholder="클라이언트의 사연에 와닿는 인생 명연설을 하라"></textarea>
+            <button id="btn-speech" class="btn95" type="button">연설 개시</button>
+            <p id="speech-result" class="eval-result"></p>
+          </div>
+          <button id="btn-start-op" class="btn95 big danger" type="button">🚨 작전 개시 🚨</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 대화 (문자/대면 공용) -->
+    <section id="screen-chat" class="screen hidden">
+      <h2 class="section-title" id="chat-phase-label"></h2>
+      <div class="chat-grid">
+        <div class="chat-left">
+          <div class="stage-wrap panel95">
+            <canvas id="stage-chat" class="stage-canvas"></canvas>
+          </div>
+          <div class="panel95 hud">
+            <div class="meter">
+              <span class="meter-name">😊 MOOD</span>
+              <div class="meter-bar"><div id="meter-mood-fill" class="meter-fill mood"></div></div>
+              <span id="meter-mood-num" class="meter-num">50</span>
+            </div>
+            <div class="meter">
+              <span class="meter-name">💗 LOVE</span>
+              <div class="meter-bar"><div id="meter-love-fill" class="meter-fill love"></div></div>
+              <span id="meter-love-num" class="meter-num">20</span>
+            </div>
+            <button id="btn-intervene" class="btn95 danger" type="button">📻 무전 개입</button>
+            <h4>🗄 입수한 기밀 취향</h4>
+            <ul id="intel-list"></ul>
+          </div>
+        </div>
+        <div class="chat-right">
+          <div id="chat-window" class="panel95 chat-window"></div>
+          <div id="judge-feed" class="judge-feed"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 결과 -->
+    <section id="screen-result" class="screen hidden">
+      <div class="result-grid">
+        <div class="stage-wrap panel95">
+          <canvas id="stage-result" class="stage-canvas"></canvas>
+          <div id="result-stamp" class="result-stamp"></div>
+        </div>
+        <div class="panel95 result-panel">
+          <h2>💌 며칠 뒤 도착한 편지</h2>
+          <p id="result-grade" class="result-grade"></p>
+          <p id="result-score" class="dim"></p>
+          <pre id="result-letter" class="letter"></pre>
+          <p id="result-epilogue" class="epilogue"></p>
+          <button id="btn-restart" class="btn95 big hidden" type="button">다음 의뢰 접수 ▶</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 무전 모달 -->
+  <div id="modal-radio" class="modal hidden">
+    <div class="panel95 modal-box">
+      <h3>📻 본부 → 클라이언트 긴급 무전</h3>
+      <p class="dim">상대에게는 안 들린다. 클라이언트가 다음 발언에 반영한다.</p>
+      <textarea id="radio-input" rows="3" placeholder="예: 지금 당장 취미 물어봐! 그리고 제발 자기 자랑 그만해!"></textarea>
+      <div class="modal-btns">
+        <button id="btn-radio-send" class="btn95 danger" type="button">송신</button>
+        <button id="btn-radio-cancel" class="btn95" type="button">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 로딩 오버레이 -->
+  <div id="loading-overlay" class="modal hidden">
+    <div class="loading-box">
+      <div class="loading-spinner">📡</div>
+      <div id="loading-text" class="loading-text"></div>
+      <div id="loading-tip" class="loading-tip"></div>
+    </div>
+  </div>
+
+  <!-- 토스트 -->
+  <div id="toast" class="hidden"></div>
+
+  <!-- LLM 하네스 콘솔 -->
+  <div id="console-panel" class="collapsed">
+    <button id="console-toggle" type="button">🛰 LLM 하네스 콘솔</button>
+    <div id="console-usage" class="console-usage">호출 0</div>
+    <div id="console-log"></div>
+  </div>
+
+  <script type="module" src="js/game.js"></script>
+</body>
+</html>
