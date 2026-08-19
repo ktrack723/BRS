@@ -246,9 +246,15 @@
           </div>
         </div>
         <div class="chat-right">
+          <!-- 감청은 실시간이지만 읽는 사람은 실시간이 아니다. 재생 속도를 요원이 정한다. -->
+          <div class="pace-bar">
+            <span class="pace-tag">재생 속도</span>
+            <div id="pace-buttons" class="pace-buttons" role="group" aria-label="대화 재생 속도"></div>
+          </div>
           <!-- 텍스트로 된 분위기. 심판이 매 턴 갱신하고, 이 문장이 그대로 의뢰인에게 전달된다. -->
           <div id="vibe-bar" class="vibe-bar"><span class="vibe-tag">공기</span><span id="vibe-text"></span></div>
           <div id="chat-window" class="panel95 chat-window" data-title="교신 기록 · 실시간 감청"></div>
+          <div id="chat-advance" class="chat-advance" aria-live="off">▼ 눌러서 다음</div>
           <div id="judge-feed" class="judge-feed"></div>
         </div>
       </div>

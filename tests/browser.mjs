@@ -156,9 +156,45 @@ page.on('requestfailed', r => {
 
 try {
   console.log(`\n🌐 부팅 (${LIVE ? '실제 API' : '가짜 LLM'} 모드)`);
-  await page.goto(`http://127.0.0.1:${PORT}/`, { waitUntil: 'networkidle' });
+  // 재생 속도는 기본적으로 꺼 둔다(?pace=instant). 사람 읽는 속도로 돌리면 E2E가 몇 분씩 걸린다.
+  // 실제 체감을 보고 싶으면 --pace=normal 처럼 넘긴다. 페이싱 자체는 아래 '재생 속도' 항목에서 검사한다.
+  await page.goto(`http://127.0.0.1:${PORT}/?pace=${args.pace || 'instant'}`, { waitUntil: 'networkidle' });
   await page.waitForFunction(() => window.__game && window.__game.COUPLES);
   check('모듈이 로드되고 의뢰 대장이 노출된다', true);
+
+  // ── 재생 속도 ────────────────────────────────────────
+  // 대화가 눈보다 빨리 지나가서 넣은 층이다. 대기가 실제로 걸리는지, 눌러서 건너뛸 수 있는지 본다.
+  const paceProbe = await page.evaluate(async () => {
+    const pace = window.__game.pace;
+    const plan = pace.bubblePlan('가'.repeat(40), 1);       // '보통' 기준
+    const instant = pace.bubblePlan('가'.repeat(40));       // 지금 설정(?pace=instant)
+    const t0 = performance.now();
+    const waited = pace.beat(1200);
+    await new Promise(r => setTimeout(r, 60));
+    const wasWaiting = pace.isWaiting();
+    document.querySelector('#chat-window').dispatchEvent(
+      new PointerEvent('pointerup', { bubbles: true }));
+    await waited;
+    const skipMs = performance.now() - t0;
+    const t1 = performance.now();
+    await pace.beat(300);
+    return {
+      steps: pace.PACE_STEPS.map(s => s.key),
+      buttons: [...document.querySelectorAll('#pace-buttons .pace-btn')].map(b => b.textContent),
+      planTotal: plan.total, planType: plan.typeMs, instantTotal: instant.total,
+      wasWaiting, skipMs, fullMs: performance.now() - t1,
+    };
+  });
+  check('재생 속도 단계가 화면에 나온다', paceProbe.buttons.length === paceProbe.steps.length,
+    paceProbe.buttons.join('/'));
+  check('말풍선 하나에 읽을 시간이 배정된다',
+    paceProbe.planTotal >= 3000 && paceProbe.planType > 0, `${paceProbe.planTotal}ms`);
+  if (!args.pace || args.pace === 'instant') {
+    check("'즉시'로 두면 대기가 사라진다", paceProbe.instantTotal === 0);
+  }
+  check('대기 중에는 "눌러서 다음" 신호가 선다', paceProbe.wasWaiting === true);
+  check('기록창을 누르면 대기가 즉시 끝난다', paceProbe.skipMs < 700, `${Math.round(paceProbe.skipMs)}ms`);
+  check('누르지 않으면 정해진 시간만큼 기다린다', paceProbe.fullMs >= 280, `${Math.round(paceProbe.fullMs)}ms`);
 
   // 대비 가드: 팔레트를 손볼 때마다 어두운 배경 위에 어두운 글자가 남는 사고가 난다.
   // 보이는 텍스트마다 실제 배경을 거슬러 찾아 명암비를 계산한다 (WCAG AA 본문 4.5:1 / 큰 글자 3:1).
