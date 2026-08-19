@@ -51,7 +51,7 @@ export class Harness {
     let lastErr = null;
     for (let attempt = 0; attempt <= 3; attempt++) {
       if (attempt > 0) await sleep(1000 * 2 ** (attempt - 1) + Math.random() * 400);
-      let res, data;
+      let res;
       try {
         res = await fetch(API_URL, {
           method: 'POST',
@@ -63,29 +63,25 @@ export class Harness {
           },
           body: JSON.stringify(body),
         });
-        data = await res.json();
       } catch (e) {
         lastErr = new Error(`통신 두절: ${e.message}`);
         continue; // 네트워크 오류는 재시도
       }
+      let data = null;
+      try { data = await res.json(); } catch { /* 게이트웨이가 비JSON을 뱉는 경우 — 상태코드로 판단 */ }
 
       if (!res.ok) {
         const type = data?.error?.type || `http_${res.status}`;
-        const msg = data?.error?.message || res.statusText;
+        const msg = data?.error?.message || res.statusText || '본문 없음';
         if (res.status === 429 || res.status >= 500) { lastErr = new Error(`${type}: ${msg}`); continue; }
         entry.status = 'error'; entry.error = `${type}: ${msg}`; entry.ms = performance.now() - started;
         this.#emit(entry);
         if (res.status === 401) throw new Error('API 키가 틀렸다. 본부 인증 실패!');
         throw new Error(`${type}: ${msg}`);
       }
+      if (!data) { lastErr = new Error('응답 본문 파싱 불가'); continue; }
 
-      // max_tokens에 잘리면 한 번만 더 크게 재시도
-      if (data.stop_reason === 'max_tokens' && body.max_tokens < 32000) {
-        body.max_tokens = Math.min(body.max_tokens * 3, 32000);
-        lastErr = new Error('출력이 잘림 (max_tokens)');
-        continue;
-      }
-
+      // 사용량은 재시도되는 호출까지 전부 집계한다 (실제 과금 기준)
       entry.ms = performance.now() - started;
       entry.response = data;
       this.usage.calls += 1;
@@ -94,6 +90,13 @@ export class Harness {
       this.usage.outputTokens += u.output_tokens || 0;
       const p = PRICES[data.model] || PRICES[this.model] || [5, 25];
       this.usage.cost += ((u.input_tokens || 0) * p[0] + (u.output_tokens || 0) * p[1]) / 1e6;
+
+      // max_tokens에 잘리면 상한을 키워 재시도
+      if (data.stop_reason === 'max_tokens' && body.max_tokens < 32000) {
+        body.max_tokens = Math.min(body.max_tokens * 3, 32000);
+        lastErr = new Error('출력이 잘림 (max_tokens)');
+        continue;
+      }
 
       if (data.stop_reason === 'refusal') {
         entry.status = 'refusal'; this.#emit(entry);

@@ -31,9 +31,18 @@ const state = {
 };
 window.__game = { state, harness, CONFIG }; // 자동 테스트용 후크
 
-let viewers = [];
-function clearViewers() { viewers.forEach(v => v.dispose()); viewers = []; }
-function newViewer(canvas, opts) { const v = new AvatarViewer(canvas, opts); viewers.push(v); return v; }
+// 미니 뷰어(스크리닝 카드)는 캔버스와 함께 버려지므로 매번 dispose,
+// 무대 뷰어는 캔버스가 DOM에 상주하므로 WebGL 컨텍스트를 재사용한다 (컨텍스트 고갈 방지).
+let miniViewers = [];
+const stageViewers = new Map();
+function clearMinis() { miniViewers.forEach(v => v.dispose()); miniViewers = []; }
+function newMiniViewer(canvas, opts) { const v = new AvatarViewer(canvas, opts); miniViewers.push(v); return v; }
+function getStageViewer(canvasId) {
+  let v = stageViewers.get(canvasId);
+  if (!v) { v = new AvatarViewer($('#' + canvasId), {}); stageViewers.set(canvasId, v); }
+  v.reset();
+  return v;
+}
 
 // ── 공용 UI 유틸 ────────────────────────────────────────
 function show(screen) {
@@ -97,17 +106,21 @@ harness.onLog((entry, usage) => {
   }
   const st = { pending: '📡', ok: '✅', error: '💥', refusal: '🙅' }[entry.status] || '❓';
   const u = entry.response?.usage;
-  el.innerHTML = `<summary>${st} <b>${entry.label}</b> · ${entry.model} · ${entry.ms ? Math.round(entry.ms) + 'ms' : '...'}${u ? ` · ${u.input_tokens}→${u.output_tokens}tok` : ''}${entry.error ? ` · ${entry.error}` : ''}</summary><pre>${escapeHtml(JSON.stringify({ request: entry.request, response: entry.response ?? null }, null, 1).slice(0, 8000))}</pre>`;
+  el.innerHTML = `<summary>${st} <b>${escapeHtml(entry.label)}</b> · ${escapeHtml(entry.model)} · ${entry.ms ? Math.round(entry.ms) + 'ms' : '...'}${u ? ` · ${u.input_tokens}→${u.output_tokens}tok` : ''}${entry.error ? ` · ${escapeHtml(entry.error)}` : ''}</summary><pre>${escapeHtml(JSON.stringify({ request: entry.request, response: entry.response ?? null }, null, 1).slice(0, 8000))}</pre>`;
   $('#console-usage').textContent =
     `호출 ${usage.calls} · in ${usage.inputTokens.toLocaleString()} · out ${usage.outputTokens.toLocaleString()} · 약 $${usage.cost.toFixed(3)}`;
 });
 function escapeHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
 
+// 스토리지 차단 환경(쿠키 전면 차단 등)에서도 게임이 죽지 않게 감싼다
+function sget(store, k) { try { return window[store].getItem(k); } catch { return null; } }
+function sset(store, k, v) { try { v === null ? window[store].removeItem(k) : window[store].setItem(k, v); } catch { /* 저장 불가 환경 */ } }
+
 // ── 부팅 ────────────────────────────────────────────────
 function initBoot() {
-  const saved = localStorage.getItem('cupid_key') || sessionStorage.getItem('cupid_key');
+  const saved = sget('localStorage', 'cupid_key') || sget('sessionStorage', 'cupid_key');
   if (saved) $('#key-input').value = saved;
-  const savedModel = localStorage.getItem('cupid_model');
+  const savedModel = sget('localStorage', 'cupid_model');
   if (savedModel) $('#model-select').value = savedModel;
 
   $('#btn-boot').addEventListener('click', async () => {
@@ -116,16 +129,15 @@ function initBoot() {
     if (!key.startsWith('sk-ant-')) { bootError('그건 API 키가 아니라 그냥 문자열이다. sk-ant-... 형식의 키를 내놔라.'); return; }
     harness.apiKey = key;
     harness.model = $('#model-select').value;
-    localStorage.setItem('cupid_model', harness.model);
-    sessionStorage.setItem('cupid_key', key);
-    if ($('#remember-key').checked) localStorage.setItem('cupid_key', key);
-    else localStorage.removeItem('cupid_key');
+    sset('localStorage', 'cupid_model', harness.model);
+    sset('sessionStorage', 'cupid_key', key);
+    sset('localStorage', 'cupid_key', $('#remember-key').checked ? key : null);
     try {
       await withLoading('본부 회선 연결 중... (키 인증)', () => harness.ping());
       startBgm();
       await gotoBriefing();
     } catch (e) {
-      harness.apiKey = null;
+      show('boot'); // 브리핑 도중 실패해도 에러가 보이는 화면으로 복귀
       bootError(errMsg(e));
     }
   });
@@ -147,9 +159,15 @@ async function gotoBriefing() {
 }
 
 // ── 의뢰서 스크리닝 ─────────────────────────────────────
+function screeningFail(e) {
+  toast(errMsg(e));
+  $('#screening-error').classList.remove('hidden'); // 재시도 버튼 노출 (데드엔드 방지)
+}
+
 async function gotoScreening() {
-  clearViewers();
+  clearMinis();
   show('screening');
+  $('#screening-error').classList.add('hidden');
   $('#client-cards').innerHTML = '';
   const data = await withLoading('오늘자 의뢰서 수신 중... (병맛 인간 3명 생성)', () =>
     harness.call({ label: '의뢰서 3건 생성', system: P.CLIENTS_SYSTEM, messages: [{ role: 'user', content: P.CLIENTS_USER }], schema: P.CLIENTS_SCHEMA, effort: 'medium', maxTokens: 12000 }));
@@ -179,7 +197,7 @@ async function gotoScreening() {
       <div class="difficulty diff-${{ '쉬움': 'easy', '보통': 'normal', '헬': 'hell' }[c.difficulty] || 'normal'}">난이도: ${c.difficulty}</div>
       <button class="btn-select btn95">이 인간을 돕는다</button>`;
     $('#client-cards').appendChild(card);
-    const v = newViewer(card.querySelector('canvas'), { spin: true, cameraZ: 3.4 });
+    const v = newMiniViewer(card.querySelector('canvas'), { spin: true, cameraZ: 3.4 });
     v.setSolo(state.clientSpecs[i]);
     card.querySelector('.btn-select').addEventListener('click', () => { sfx.stamp(); chooseClient(i); });
   });
@@ -192,16 +210,17 @@ function chooseClient(i) {
   state.targetSpec = state.targetSpecs[i];
   state.outfitDesc = ''; state.styleScore = 0; state.courage = 2; state.coaching = '';
   state.intel = []; state.transcript = []; state.aborted = false;
+  state.pendingRadio = null; state.radioOpen = false; // 이전 판의 무전 잔재 제거
   gotoConsult();
 }
 
 // ── 컨설팅 ──────────────────────────────────────────────
 let consultViewer = null;
 function gotoConsult() {
-  clearViewers();
+  clearMinis();
   show('consult');
   const c = state.client;
-  consultViewer = newViewer($('#stage-consult'), {});
+  consultViewer = getStageViewer('stage-consult');
   consultViewer.setDuo(state.clientSpec, state.targetSpec, 'camera');
   $('#consult-title').textContent = `작전명: ${c.name} 구출 작전`;
   $('#consult-dossier').innerHTML = `
@@ -243,7 +262,11 @@ function gotoConsult() {
     } catch (e) { toast(errMsg(e)); }
   };
 
-  $('#btn-start-op').onclick = () => { sfx.radio(); startTexting(); };
+  $('#btn-start-op').onclick = () => {
+    state.coaching = $('#coaching-input').value.trim(); // 코칭은 여기서 확정되어 에이전트 시스템 프롬프트에 들어간다
+    sfx.radio();
+    startTexting();
+  };
 }
 
 // ── 대화 엔진 공용 ──────────────────────────────────────
@@ -310,6 +333,7 @@ async function runConversation(phase) {
 
     // 1) 클라이언트 발언
     const clientMsg = await harness.call({ label: `${label} 발언 ${i + 1} (클라)`, system: clientSystem, messages: state.clientHist, effort: 'low', maxTokens: 4000 });
+    const historyForJudge = transcriptText(14); // 판정 대상 발언이 이력에 중복되지 않도록 push 전에 캡처
     state.clientHist.push({ role: 'assistant', content: clientMsg });
     state.transcript.push({ who: 'client', text: clientMsg });
     addBubble('client', clientMsg);
@@ -318,7 +342,7 @@ async function runConversation(phase) {
     // 2) 심판 판정
     let judge;
     try {
-      judge = await harness.call({ label: `판정 ${i + 1}`, system: judgeSys, messages: [{ role: 'user', content: P.judgeUser(transcriptText(14), clientMsg) }], schema: P.JUDGE_SCHEMA, effort: 'low', maxTokens: 4000 });
+      judge = await harness.call({ label: `판정 ${i + 1}`, system: judgeSys, messages: [{ role: 'user', content: P.judgeUser(historyForJudge, clientMsg) }], schema: P.JUDGE_SCHEMA, effort: 'low', maxTokens: 4000 });
     } catch (e) {
       judge = { moodDelta: 0, loveDelta: 0, reason: '(심판이 잠시 졸았다)', hiddenPrefHit: '' };
     }
@@ -376,14 +400,13 @@ function setupChatScreen(phaseTitle, interventions) {
 // ── 페이즈 1: 문자 ──────────────────────────────────────
 let stageViewer = null;
 async function startTexting() {
-  clearViewers();
   state.phase = 'text';
   state.mood = Math.min(100, 40 + state.courage * 2);
   state.love = Math.min(100, 15 + state.styleScore);
   state.clientHist = [{ role: 'user', content: `[상황] 드디어 용기를 냈다. ${state.client.target.name}에게 먼저 보낼 첫 문자를 지금 작성해서 전송하라.` }];
   state.targetHist = [];
   setupChatScreen('📱 작전 1단계: 문자 공작', CONFIG.textInterventions);
-  stageViewer = newViewer($('#stage-chat'), {});
+  stageViewer = getStageViewer('stage-chat');
   stageViewer.setDuo(state.clientSpec, state.targetSpec, 'camera');
   document.body.classList.add('phase-text');
   document.body.classList.remove('phase-talk');
@@ -407,11 +430,10 @@ async function startTalking() {
       harness.call({ label: '대면 상황 생성', system: P.situationSystem(), messages: [{ role: 'user', content: P.situationUser(state.client, transcriptText(20)) }], schema: P.SITUATION_SCHEMA, effort: 'low' }));
   } catch (e) { /* 상황 생성 실패해도 대면은 진행 */ }
 
-  clearViewers();
   state.clientHist = [{ role: 'user', content: `[상황] 문자 작전 끝에 드디어 만났다. 장소: ${situation.place}. ${situation.intro}\n먼저 첫 마디를 건네라.` }];
   state.targetHist = [{ role: 'user', content: `[상황] ${situation.place}에서 ${state.client.name}을(를) 만나기로 해서 나왔다. 곧 상대가 말을 걸 것이다.` }];
   setupChatScreen(`💬 작전 2단계: 대면 공작 @ ${situation.place}`, CONFIG.talkInterventions);
-  stageViewer = newViewer($('#stage-chat'), {});
+  stageViewer = getStageViewer('stage-chat');
   stageViewer.setDuo(state.clientSpec, state.targetSpec, 'each');
   stageViewer.setParty(true);
   document.body.classList.remove('phase-text');
@@ -428,7 +450,14 @@ async function startTalking() {
 }
 
 // ── 결과 ────────────────────────────────────────────────
+function closeRadioModal() {
+  state.radioOpen = false;
+  state.pendingRadio = null;
+  $('#modal-radio').classList.add('hidden');
+}
+
 async function gotoResult() {
+  closeRadioModal(); // 대화 종료 시점에 모달이 열려 있으면 결과 화면을 덮어버린다
   let r;
   try {
     r = await withLoading('며칠 뒤... 결과 정산 중...', () =>
@@ -436,10 +465,11 @@ async function gotoResult() {
   } catch (e) {
     r = { accepted: false, grade: 'F', letter: '(편지가 오지 않았다. 본부와의 통신도 끊겼다. 그것이 2077년의 인터넷이다.)', epilogue: '통신 두절.' };
   }
-  clearViewers();
   document.body.classList.remove('phase-text', 'phase-talk');
   show('result');
-  const v = newViewer($('#stage-result'), {});
+  $('#btn-restart').classList.add('hidden');
+  $('#result-epilogue').textContent = '';
+  const v = getStageViewer('stage-result');
   v.setDuo(state.clientSpec, state.targetSpec, r.accepted ? 'each' : 'camera');
   v.setParty(r.accepted);
   const stamp = $('#result-stamp');
@@ -452,7 +482,7 @@ async function gotoResult() {
     if (r.accepted) {
       sfx.fanfare(); v.burst('love');
       const iv = setInterval(() => {
-        if (state.screen !== 'result' || v._dead) { clearInterval(iv); return; }
+        if (state.screen !== 'result') { clearInterval(iv); return; }
         v.burst('love');
       }, 2500);
     } else { sfx.trombone(); v.burst('rain'); }
@@ -492,8 +522,9 @@ function initRadio() {
 function init() {
   initBoot();
   initRadio();
-  $('#btn-to-screening').addEventListener('click', () => { sfx.click(); gotoScreening().catch(e => toast(errMsg(e))); });
-  $('#btn-restart').addEventListener('click', () => { sfx.click(); gotoScreening().catch(e => toast(errMsg(e))); });
+  $('#btn-to-screening').addEventListener('click', () => { sfx.click(); gotoScreening().catch(screeningFail); });
+  $('#btn-restart').addEventListener('click', () => { sfx.click(); gotoScreening().catch(screeningFail); });
+  $('#btn-retry-screening').addEventListener('click', () => { sfx.click(); gotoScreening().catch(screeningFail); });
   $('#console-toggle').addEventListener('click', () => $('#console-panel').classList.toggle('collapsed'));
   $('#btn-bgm').addEventListener('click', () => {
     const on = toggleBgm();

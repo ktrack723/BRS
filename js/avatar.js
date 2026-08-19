@@ -51,6 +51,10 @@ export function buildAvatar(rawSpec) {
   addAccessory(headG, spec);
   g.add(legL, legR, shoeL, shoeR, torso, armL, armR, handL, handR, headG);
 
+  // 머리 그룹의 회전축을 목 높이로 옮긴다 (발밑 축이면 회전 시 머리가 옆으로 미끄러진다)
+  headG.position.y = 1.1;
+  for (const ch of headG.children) ch.position.y -= 1.1;
+
   g.scale.set(spec.widthScale, spec.heightScale, spec.widthScale);
   g.userData = { headG, armL, armR, spec, jump: 0, phase: Math.random() * Math.PI * 2 };
   return g;
@@ -189,6 +193,7 @@ function emojiTexture(ch) {
   ctx.font = '48px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText(ch, 32, 36);
   const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
   texCache.set(ch, tex);
   return tex;
 }
@@ -212,11 +217,11 @@ export class AvatarViewer {
     this.camera.position.set(0, cameraY, cameraZ);
     this.camera.lookAt(0, 0.9, 0);
 
-    this.scene.add(new THREE.AmbientLight(0xffffff, 1.4));
-    const sun = new THREE.DirectionalLight(0xffffff, 1.6); sun.position.set(2, 5, 4);
+    this.scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(2, 5, 4);
     this.scene.add(sun);
-    this.discoA = new THREE.PointLight(0xff33cc, 30, 14); this.discoA.position.set(2.5, 2.6, 1.5);
-    this.discoB = new THREE.PointLight(0x33ddff, 30, 14); this.discoB.position.set(-2.5, 2.6, 1.5);
+    this.discoA = new THREE.PointLight(0xff33cc, 22, 14); this.discoA.position.set(2.5, 2.6, 1.5);
+    this.discoB = new THREE.PointLight(0x33ddff, 22, 14); this.discoB.position.set(-2.5, 2.6, 1.5);
     this.scene.add(this.discoA, this.discoB);
 
     // 체커보드 병맛 무대
@@ -296,6 +301,7 @@ export class AvatarViewer {
   _loop() {
     if (this._dead) return;
     requestAnimationFrame(this._loop);
+    if (!this.canvas.isConnected || this.canvas.offsetParent === null) return; // 숨겨진 화면은 렌더 생략
     const dt = Math.min(this._clock.getDelta(), 0.05);
     const t = this._clock.elapsedTime;
 
@@ -354,12 +360,20 @@ export class AvatarViewer {
     this.renderer.render(this.scene, this.camera);
   }
 
-  dispose() {
-    this._dead = true;
+  // 화면 재진입 시 무대만 초기화하고 WebGL 컨텍스트는 재사용한다
+  reset() {
     this.#swap('left', null); this.#swap('right', null);
     for (const p of this.particles) { this.scene.remove(p.sp); p.sp.material.dispose(); }
     this.particles = [];
+    this.party = false;
+    this.facing = 'camera';
+  }
+
+  dispose() {
+    this._dead = true;
+    this.reset();
     this.renderer.dispose();
+    this.renderer.forceContextLoss(); // 캔버스가 버려지는 미니 뷰어용: 컨텍스트 즉시 반납 (브라우저 컨텍스트 상한 고갈 방지)
   }
 }
 
