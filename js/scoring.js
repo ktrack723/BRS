@@ -25,26 +25,34 @@
 // 지금은 그 가점이 없고, 대신 등급 밴드가 전 구간 후해졌다(게이트가 없으니 ok 상한이 사라졌다).
 // 두 변화가 상쇄되지 않으므로 실측값을 그대로 쓸 수 없다.
 //
-// 그래서 tests/sim.mjs --montecarlo로 프로필별 등급 분포를 표본화해 다시 뽑았다.
-// 판당 2,500회 표본, 프로필별 등급 분포는 이전 라이브 로그의 tier 분포를 새 눈금으로 옮긴 값이다.
+// 그래서 실제 API로 다시 쟀다 (Sonnet, 커플 3종 × 프로필 4종 = 12판, 판정 120건).
+// 그 실측 분포로 몬테카를로(판당 3,000회 표본)를 돌려 아래 값을 뽑았다.
+//
+//   실측 등급 분포: breakthrough 18% · warm 36% · nudge 40% · flat 3% · chill 3% · disaster 0%
 //
 //              ace      good     lazy     none      (성사율 / 호감 중앙값)
-//   쉬움 46   87%/69   57%/49    3%/17    0%/ 5
-//   보통 52   69%/63   32%/43    0%/10    0%/ 2   (none 3%는 분위기 파탄)
-//   헬   56   43%/51   11%/33    0%/ 5    0%/ 0   (none 19%가 분위기 파탄)
+//   쉬움 56   97%/69   97%/71   85%/67   68%/61
+//   보통 58   60%/59   66%/62   47%/57   29%/51
+//   헬   60   47%/59   57%/61   39%/56   23%/50
 //
-// ⚠ 정직하게 밝혀둘 것: 이건 **오프라인 추정치**다. 라이브 재계측이 아니다.
-//    등급 분포 자체를 가정하고 돌린 것이라, 실제 심판이 새 눈금에서 어떤 분포를 뱉는지는
-//    아직 측정하지 않았다. 재계측: tests/live.mjs 실행 후 tests/sim.mjs --grid.
-//    다만 이전 성공선(45/52/54)을 그대로 두는 것보다는 확실히 낫다 —
-//    구조적 가점이 사라진 채로 그 값을 쓰면 세 난이도 모두 ace조차 도달 불가였다(실측 확인).
+// ⚠ 정직하게 밝혀둘 것 — **준비 품질과 결과의 상관이 예전보다 훨씬 약하다.**
+//    라이브 12판에서 ace와 lazy의 등급 분포가 거의 구분되지 않았다.
+//    이유는 분명하다: 예전에 준비가 점수를 갈랐던 유일한 경로가 '코칭 → 실마리 추적 → 적중 보너스'였고,
+//    그 경로를 이번에 통째로 없앴기 때문이다. 인물 데이터를 두껍게 써 넣은 것도 같은 방향으로 작용했다 —
+//    잘 쓰인 인물은 지침이 없어도 대화를 잘한다.
+//    지금 준비가 실제로 작용하는 유일한 경로는 **정보 비대칭**이다:
+//    의뢰인은 상대의 접촉 금지 항목을 모르고, 요원이 지침으로 넘겨줘야 안다.
+//    위 표의 ace↔none 격차(24~31%p)는 대부분 여기서 나온다.
+//    더 강한 상관을 원하면 준비가 개입할 경로를 하나 더 만들어야 한다 — 지금 구조에서는 프롬프트로 안 된다.
+//
+//    재계측: ANTHROPIC_API_KEY=... node tests/live.mjs → node tests/sim.mjs <결과> --grid
 export const DIFFICULTIES = {
   '쉬움': {
     key: 'easy', badge: '쉬움',
     textTurns: 4, talkTurns: 5,
     radioText: 1, radioTalk: 2,   // 기획서 규정: 문자 1회, 대면 2회
     startLove: 10, startMood: 55,
-    threshold: 46, moodFloor: 25,
+    threshold: 56, moodFloor: 25,
     loveDecay: 0.0,   // 턴마다 식는 호감
     moodDrift: 0.5,   // 턴마다 흐르는 분위기 (양수면 알아서 풀린다)
     gainScale: 1.7, lossScale: 0.85,
@@ -54,17 +62,17 @@ export const DIFFICULTIES = {
     textTurns: 4, talkTurns: 5,
     radioText: 1, radioTalk: 2,
     startLove: 6, startMood: 46,
-    threshold: 52, moodFloor: 33,
+    threshold: 58, moodFloor: 33,
     loveDecay: 0.3,
     moodDrift: -0.1,
-    gainScale: 2.0, lossScale: 1.0,
+    gainScale: 1.7, lossScale: 1.0,
   },
   '헬': {
     key: 'hell', badge: '헬',
     textTurns: 4, talkTurns: 5,
     radioText: 1, radioTalk: 2,
     startLove: 3, startMood: 38,
-    threshold: 56, moodFloor: 40,
+    threshold: 60, moodFloor: 40,
     loveDecay: 0.6,
     moodDrift: -0.7,
     gainScale: 2.1, lossScale: 1.15,
@@ -89,6 +97,11 @@ export const TUNING = {
   moodMultSpan: 1.30,        // 분위기 100이면 0.30 + 1.30 = 1.60배
   firstImpressionScale: 1.4, // 대면 첫인상 판정만 가중된다 (착장이 실제로 작용하는 지점)
   moodSaturation: 130,       // 분위기가 높을수록 더 올리기 어렵다. 감소분에는 적용하지 않는다
+  // 호감도 같은 원리로 포화한다. 낯선 사람 → 호의는 큰 걸음이지만, 호의 → 더 큰 호의는 작은 걸음이다.
+  // 라이브 실측에서 심판이 좋은 대화에 계속 warm을 주는 바람에 두 판 다 100/100으로 천장을 쳤다.
+  // 프롬프트로 등급 분포를 눌러도 한계가 있어서, 규칙 계층에도 브레이크를 뒀다.
+  // 이건 '특정 워딩을 맞히면 가점' 같은 공략 대상이 아니라, 올라갈수록 무거워지는 저울이다.
+  loveSaturation: 128,
   moodGainScale: 1.0,        // 분위기 이득 쪽 감쇠. 예전 0.75는 분위기가 아예 안 오르게 만들었다
   disasterMood: -5,          // 상대가 정색하면 자리가 식는다. 등급에서 나오는 결과지 별도 판정이 아니다
   breakthroughMood: 3,       // 반대로 방어선이 무너진 순간엔 공기도 같이 풀린다
@@ -157,9 +170,11 @@ export function applyTurn(state, d, judge, opts = {}) {
   const moodChange = moodGain + tierMood + d.moodDrift;
   const moodAfter = clamp(s.mood + moodChange, 0, 100);
 
-  // 2) 호감: 판정 × 난이도 스케일 × 분위기 배율. 배율은 '발언 시점'의 분위기를 쓴다.
+  // 2) 호감: 판정 × 난이도 스케일 × 분위기 배율 × 호감 포화.
+  //    배율과 포화는 둘 다 '발언 시점'의 값을 쓴다. 이득 쪽만 포화시킨다 — 떨어질 땐 그대로 떨어진다.
   const mult = moodMultiplier(before.mood);
-  const scaled = (ld >= 0 ? ld * d.gainScale : ld * d.lossScale) * weight;
+  const loveSat = Math.max(0.2, 1 - before.love / TUNING.loveSaturation);
+  const scaled = (ld >= 0 ? ld * d.gainScale * loveSat : ld * d.lossScale) * weight;
   const loveChange = scaled * mult - d.loveDecay;
 
   s.mood = moodAfter;

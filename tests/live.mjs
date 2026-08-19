@@ -164,7 +164,12 @@ async function playOne(coupleId, profile) {
         schema: P.STYLING_SCHEMA, effort: 'low', maxTokens: 4000,
       });
       outfitDesc = st.outfitDesc || raw.styling;
-    } catch { outfitDesc = raw.styling; }
+    } catch (e) {
+      // 조용히 삼키면 안 된다. 예전에 스키마 오류로 스타일링이 매 판 실패했는데
+      // 이 catch가 그걸 덮어서, 착장 없이 돈 판들을 정상 판으로 착각하고 밸런싱을 맞췄다.
+      console.error(`  ⚠ 스타일링 실패 (${c.id}/${profile}): ${e.message} — 태그 원문으로 대체한다`);
+      outfitDesc = raw.styling;
+    }
   }
 
   const engine = new Engine(llm, {

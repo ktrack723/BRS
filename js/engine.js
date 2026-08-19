@@ -44,6 +44,7 @@ export class Engine {
     this.paused = false;      // 무전 모달이 열려 있는 동안
     this.pendingRadio = null; // 다음 클라이언트 발언에 주입될 지시
     this.pendingJudge = null; // 아직 채점되지 않은 직전 발언 (판정은 한 턴 늦게 온다)
+    this.tierLog = [];        // 심판이 지금까지 매긴 등급. 심판 본인에게 되돌려줘 분포를 점검하게 한다
     this.lastVibeSent = null; // 클라이언트에게 마지막으로 알려준 공기 (바뀔 때만 다시 알려준다)
     this.radioLeft = 0;
     this.phase = 'text';
@@ -170,7 +171,7 @@ export class Engine {
       fi = await this.llm.call({
         label: '첫인상 판정',
         system: P.judgeSystem(this.couple), cache: true,
-        messages: [{ role: 'user', content: P.firstImpressionUser(this.couple, this.prep.outfitDesc, sit.outfitReaction) }],
+        messages: [{ role: 'user', content: P.firstImpressionUser(this.couple, this.prep.outfitDesc, sit.outfitReaction, this.tierLog) }],
         schema: P.JUDGE_SCHEMA, effort: 'low', maxTokens: 3000,
       });
     } catch { fi = this.#neutralJudge('(첫인상 판정 불능)'); }
@@ -204,6 +205,7 @@ export class Engine {
 
   #reportJudge(judge, extra = {}) {
     const dl = this.state.lastDelta;
+    this.tierLog.push(dl.tier);
     this.h.judge?.({
       mood: dl.mood, love: dl.love,
       rawMood: dl.rawMood, rawLove: dl.rawLove, mult: dl.mult, tier: dl.tier,
@@ -222,7 +224,7 @@ export class Engine {
   #judgeCall(pending, tag) {
     return this.llm.call({
       label: `판정 ${tag}`, system: P.judgeSystem(this.couple), cache: true,
-      messages: [{ role: 'user', content: P.judgeUser(pending.history, pending.clientMsg, pending.reaction) }],
+      messages: [{ role: 'user', content: P.judgeUser(pending.history, pending.clientMsg, pending.reaction, this.tierLog) }],
       schema: P.JUDGE_SCHEMA, effort: 'low', maxTokens: 3000,
     }).catch(() => this.#neutralJudge('(심판이 잠시 졸았다)'));
   }

@@ -167,12 +167,29 @@ test('등급이 취향 목록 때문에 눌리는 게이트가 없다', () => {
 // ── 새로 드러난 것 / 공기 ────────────────────────────────
 test('드러난 것은 중복 없이 쌓이고 점수와 무관하다', () => {
   const d = diffOf('보통');
-  let s = applyTurn(initialState(d), d, J('nudge', { revealed: '밤에 별을 본다' }));
-  const first = s.lastDelta.love;
-  s = applyTurn(s, d, J('nudge', { revealed: '밤에 별을 본다' }));
-  assert.deepEqual(s.revealed, ['밤에 별을 본다'], '같은 서술을 두 번 세지 않는다');
-  assert.equal(s.lastDelta.love, first, '드러났다고 해서 보너스가 붙지 않는다');
-  assert.equal(s.lastDelta.revealed, '', '중복은 이번 턴의 발견으로 치지 않는다');
+  const base = initialState(d);
+  // 같은 출발 상태에서 발견이 있는 턴과 없는 턴을 비교한다.
+  // (연속 두 턴으로 비교하면 호감 포화분이 섞여 들어와 엉뚱한 걸 재게 된다)
+  const withFind = applyTurn(base, d, J('nudge', { revealed: '밤에 별을 본다' }));
+  const without = applyTurn(base, d, J('nudge'));
+  assert.equal(withFind.lastDelta.love, without.lastDelta.love, '드러났다고 해서 보너스가 붙지 않는다');
+  assert.equal(withFind.lastDelta.mood, without.lastDelta.mood);
+  assert.deepEqual(withFind.revealed, ['밤에 별을 본다']);
+
+  const again = applyTurn(withFind, d, J('nudge', { revealed: '밤에 별을 본다' }));
+  assert.deepEqual(again.revealed, ['밤에 별을 본다'], '같은 서술을 두 번 세지 않는다');
+  assert.equal(again.lastDelta.revealed, '', '중복은 이번 턴의 발견으로 치지 않는다');
+});
+
+test('호감도 포화한다 — 이미 높으면 같은 판정이 덜 오른다', () => {
+  const d = diffOf('보통');
+  const lo = applyTurn({ ...initialState(d), love: 5, mood: 60 }, d, J('warm'));
+  const hi = applyTurn({ ...initialState(d), love: 85, mood: 60 }, d, J('warm'));
+  assert.ok(lo.lastDelta.love > hi.lastDelta.love * 1.5, '천장 근처에서는 같은 warm이 훨씬 덜 오른다');
+  // 하락에는 포화가 걸리지 않는다
+  const loDown = applyTurn({ ...initialState(d), love: 5, mood: 60 }, d, J('chill'));
+  const hiDown = applyTurn({ ...initialState(d), love: 85, mood: 60 }, d, J('chill'));
+  assert.equal(loDown.lastDelta.love, hiDown.lastDelta.love, '떨어질 땐 위치와 무관하게 그대로 떨어진다');
 });
 
 test('공기는 심판이 갱신하고, 안 주면 직전 값이 유지된다', () => {
@@ -364,6 +381,24 @@ test('대화 에이전트 프롬프트에 대화 규칙·연출 지시가 없다
   }
 });
 
+// 이 게임에 남은 유일한 게임성은 정보 비대칭이다.
+// 접촉 금지 항목은 요원의 의뢰서에만 인쇄되어 있고, 지침으로 넘겨줘야 의뢰인에게 도달한다.
+// 이걸 의뢰인 프롬프트에 직접 넣었더니 준비를 안 해도 알아서 다 피해서
+// 준비 유무가 점수를 전혀 못 갈랐다(라이브 실측 lazy 65~69 vs ace 61~76).
+test('클라이언트는 상대의 접촉 금지 항목을 모른다 — 요원이 알려줘야 안다', () => {
+  const c = COUPLE_BY_ID['politics'];
+  const bare = P.clientAgentSystem(c, { coaching: '', speech: '' }, 'text', AGENT);
+  for (const r of c.target.redLines) {
+    assert.ok(!bare.includes(r), `지침 없이도 지뢰를 알고 있다: ${r}`);
+  }
+  // 요원이 지침에 적어 넘기면 그때 도달한다
+  const told = P.clientAgentSystem(c, { coaching: `${c.target.redLines[0]}은 절대 꺼내지 마라`, speech: '' }, 'text', AGENT);
+  assert.ok(told.includes(c.target.redLines[0]));
+  // 심판과 상대 본인은 당연히 안다
+  assert.ok(P.judgeSystem(c).includes(c.target.redLines[0]));
+  assert.ok(P.targetAgentSystem(c, 'text', '').includes(c.target.redLines[0]));
+});
+
 test('클라이언트는 상대의 감춰둔 이야기를 모른다', () => {
   const c = COUPLE_BY_ID['os-war'];
   const sys = P.clientAgentSystem(c, { coaching: '', speech: '' }, 'text', AGENT);
@@ -490,6 +525,40 @@ test('준비 단계 반응 프롬프트가 두 장소를 구분한다', () => {
   assert.ok(interro.includes(c.client.background[0]), '반응하려면 자기가 누군지 알아야 한다');
   assert.deepEqual(P.PREP_REACT_SCHEMA.required.sort(), ['face', 'note', 'reaction']);
   assert.ok(P.prepReactUser('speech', '', AGENT).includes('아무 말도 없었다'), '빈 입력도 장면이 된다');
+});
+
+// ── 구조화 출력 스키마 가드 ─────────────────────────────
+// 실제로 당한 사고: props에 maxItems를 걸었더니 API가 400으로 거절했고
+// ("For 'array' type, property 'maxItems' is not supported"),
+// 스타일링 호출이 매 판 조용히 실패했다. 가짜 LLM은 스키마를 검증하지 않으므로 테스트가 못 잡았다.
+// 그래서 스키마에 쓰는 키워드를 여기서 직접 제한한다.
+test('구조화 출력 스키마는 지원되는 키워드만 쓴다', () => {
+  const ALLOWED = new Set(['type', 'properties', 'required', 'additionalProperties', 'items', 'enum', 'description']);
+  const schemas = {
+    STYLING_SCHEMA: P.STYLING_SCHEMA,
+    AVATAR_SPEC_SCHEMA: P.AVATAR_SPEC_SCHEMA,
+    PROP_SCHEMA: P.PROP_SCHEMA,
+    PREP_REACT_SCHEMA: P.PREP_REACT_SCHEMA,
+    JUDGE_SCHEMA: P.JUDGE_SCHEMA,
+    SITUATION_SCHEMA: P.SITUATION_SCHEMA,
+    RESULT_SCHEMA: P.RESULT_SCHEMA,
+  };
+  const walk = (node, where) => {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) return node.forEach((n, i) => walk(n, `${where}[${i}]`));
+    for (const [k, v] of Object.entries(node)) {
+      if (k === 'properties') { for (const [pk, pv] of Object.entries(v)) walk(pv, `${where}.${pk}`); continue; }
+      assert.ok(ALLOWED.has(k), `${where}: 지원되지 않는 스키마 키워드 "${k}" (API가 400으로 거절한다)`);
+      if (k === 'items') walk(v, `${where}.items`);
+    }
+    // 객체는 additionalProperties:false + 모든 속성이 required여야 한다 (구조화 출력 요건)
+    if (node.type === 'object') {
+      assert.equal(node.additionalProperties, false, `${where}: additionalProperties:false가 없다`);
+      assert.deepEqual([...(node.required || [])].sort(), Object.keys(node.properties || {}).sort(),
+        `${where}: required가 properties와 일치하지 않는다`);
+    }
+  };
+  for (const [name, sch] of Object.entries(schemas)) walk(sch, name);
 });
 
 // ── 테스트 예산 가드 ────────────────────────────────────
