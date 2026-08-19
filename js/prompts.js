@@ -153,9 +153,9 @@ export const AVATAR_SPEC_SCHEMA = {
     expression: { type: 'string', enum: EXPRESSIONS },
     aura: { type: 'string', enum: AURAS },
     species: { type: 'string', enum: SPECIES, description: '절대 바꾸지 마라. 원본 그대로 복사한다' },
+    // 구조화 출력 스키마는 maxItems 같은 개수 제약을 받지 않는다.
+    // 상한 6개는 프롬프트로 지시하고, 실제 강제는 avatar.js의 sanitizeProps가 한다.
     props: {
-      // maxItems를 쓰면 안 된다 — 구조화 출력 스키마가 배열의 maxItems를 거부한다(400).
-      // 개수 상한은 프롬프트로 알리고 avatar.js의 sanitizeProps가 잘라낸다.
       type: 'array', items: PROP_SCHEMA,
       description: '열거형으로 표현 못 하는 것을 직접 만들어 붙이는 자리. 최대 6개. 없으면 빈 배열',
     },

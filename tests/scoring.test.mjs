@@ -528,37 +528,24 @@ test('준비 단계 반응 프롬프트가 두 장소를 구분한다', () => {
 });
 
 // ── 구조화 출력 스키마 가드 ─────────────────────────────
-// 실제로 당한 사고: props에 maxItems를 걸었더니 API가 400으로 거절했고
-// ("For 'array' type, property 'maxItems' is not supported"),
-// 스타일링 호출이 매 판 조용히 실패했다. 가짜 LLM은 스키마를 검증하지 않으므로 테스트가 못 잡았다.
-// 그래서 스키마에 쓰는 키워드를 여기서 직접 제한한다.
-test('구조화 출력 스키마는 지원되는 키워드만 쓴다', () => {
-  const ALLOWED = new Set(['type', 'properties', 'required', 'additionalProperties', 'items', 'enum', 'description']);
-  const schemas = {
-    STYLING_SCHEMA: P.STYLING_SCHEMA,
-    AVATAR_SPEC_SCHEMA: P.AVATAR_SPEC_SCHEMA,
-    PROP_SCHEMA: P.PROP_SCHEMA,
-    PREP_REACT_SCHEMA: P.PREP_REACT_SCHEMA,
-    JUDGE_SCHEMA: P.JUDGE_SCHEMA,
-    SITUATION_SCHEMA: P.SITUATION_SCHEMA,
-    RESULT_SCHEMA: P.RESULT_SCHEMA,
-  };
+// 지원되지 않는 키워드 검사는 tests/schema.test.mjs가 전담한다 (스키마를 자동으로 훑는다).
+// 여기서는 그쪽이 안 보는 것만 본다 — 구조화 출력은 객체마다
+// additionalProperties:false와 '모든 속성이 required'를 요구한다. 빠지면 응답이 조용히 새거나 400이 난다.
+test('스키마의 모든 객체가 구조화 출력 요건을 지킨다', () => {
+  const schemas = Object.entries(P).filter(([k, v]) => k.endsWith('_SCHEMA') && v && typeof v === 'object');
+  assert.ok(schemas.length >= 6, `스키마가 ${schemas.length}개뿐이다 — 목록이 어긋났다`);
   const walk = (node, where) => {
     if (!node || typeof node !== 'object') return;
     if (Array.isArray(node)) return node.forEach((n, i) => walk(n, `${where}[${i}]`));
-    for (const [k, v] of Object.entries(node)) {
-      if (k === 'properties') { for (const [pk, pv] of Object.entries(v)) walk(pv, `${where}.${pk}`); continue; }
-      assert.ok(ALLOWED.has(k), `${where}: 지원되지 않는 스키마 키워드 "${k}" (API가 400으로 거절한다)`);
-      if (k === 'items') walk(v, `${where}.items`);
-    }
-    // 객체는 additionalProperties:false + 모든 속성이 required여야 한다 (구조화 출력 요건)
     if (node.type === 'object') {
       assert.equal(node.additionalProperties, false, `${where}: additionalProperties:false가 없다`);
       assert.deepEqual([...(node.required || [])].sort(), Object.keys(node.properties || {}).sort(),
         `${where}: required가 properties와 일치하지 않는다`);
+      for (const [k, v] of Object.entries(node.properties || {})) walk(v, `${where}.${k}`);
     }
+    if (node.items) walk(node.items, `${where}.items`);
   };
-  for (const [name, sch] of Object.entries(schemas)) walk(sch, name);
+  for (const [name, sch] of schemas) walk(sch, name);
 });
 
 // ── 테스트 예산 가드 ────────────────────────────────────
