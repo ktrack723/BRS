@@ -19,7 +19,7 @@
   <header id="topbar">
     <div class="classif">극비 // SCI-CUPID // 무단 열람 및 복제 금지</div>
     <div class="toolbar">
-      <div class="marquee"><span>큐피드局 공작단말 v3.0 · 특명 제77호(테크노킹 도람푸 3세) · 출산율 0.008 국가비상사태 · 상설 의뢰 20건 전부 "이어질 리 없는 조합" 분류 · 본 단말은 대규모언어모형으로 구동됨 · 대화 통제 지침 전면 폐지(제3차 개정) · 무단 열람 시 국가보안법 제77조</span></div>
+      <div class="marquee"><span>큐피드局 공작단말 v3.0 · 특명 제77호(테크노킹 도람푸 3세) · 출산율 0.008 국가비상사태 · 상설 의뢰 <span class="n-couples">30</span>건 전부 "이어질 리 없는 조합" 분류 · 본국은 반려 절차를 보유하지 않음 · 대화 내용 통제 권한 없음 · 무단 열람 시 국가보안법 제77조</span></div>
       <button id="btn-console" class="btn95 tiny" type="button" title="LLM 호출 기록">통신기록</button>
       <button id="btn-bgm" class="btn95 tiny" type="button">음향 ON</button>
     </div>
@@ -32,7 +32,7 @@
       <p class="subtitle">국가공인 <b>불가능 매칭</b> 공작 단말기 — 열람 권한 없는 자의 접속은 기록됩니다</p>
       <div class="panel95 boot-panel" data-title="요원 등록 및 단말기 인증"><span class="win-status">회선 대기</span>
         <p class="warn">본 단말은 <b>전부</b> 대규모언어모형(Claude)으로 구동된다. 인증키 없이는 개방되지 않는다.<br>
-        의뢰인 20쌍은 고정 대장이지만, <b>그들이 실제로 무슨 말을 하고 어떻게 판정되는지는 전량 실시간 연산</b>이다.<br>
+        의뢰인 <span class="n-couples">30</span>쌍은 고정 대장이지만, <b>그들이 실제로 무슨 말을 하고 어떻게 판정되는지는 전량 실시간 연산</b>이다.<br>
         인증키는 본 단말에서 <code>api.anthropic.com</code>으로만 송신된다. 그 외 어디에도 송신하지 않는다.</p>
 
         <div class="agent-form">
@@ -85,10 +85,10 @@
       </div>
     </section>
 
-    <!-- 의뢰 대장 (20쌍) -->
+    <!-- 의뢰 대장 -->
     <section id="screen-roster" class="screen hidden">
       <h2 class="section-title">상설 의뢰 대장 <span class="doc-no">문서 CUP-2077-020</span></h2>
-      <p class="section-sub">접수 20건 전부 <b>이어질 리 없는 조합</b>으로 분류됨. 본국은 반려 절차를 보유하지 않는다. 한 건을 선택하라.</p>
+      <p class="section-sub">접수 <span class="n-couples">30</span>건 전부 <b>이어질 리 없는 조합</b>으로 분류됨. 본국은 반려 절차를 보유하지 않는다. 한 건을 선택하라.</p>
       <div id="agent-record" class="agent-record"></div>
       <div class="roster-filters" id="roster-filters"></div>
       <div id="roster-cards" class="roster"></div>
@@ -153,7 +153,7 @@
             이건 취조가 아니라 브리핑이다. 아무도 그렇게 안 느낀다.</p>
           </div>
           <div class="panel95 prep-card" data-title="지침 하달 · 대화 지침">
-            <p class="prep-sub">의뢰인 시스템 프롬프트에 직접 주입된다.</p>
+            <p class="prep-sub">여기 적은 문장이 그대로 의뢰인 머릿속에 들어간다.</p>
             <p class="prep-hint">여기 쓴 문장이 <b>명령</b>으로 그 인간의 머릿속에 들어간다. 참고사항이 아니다. 채점도 없다.<br>
             비워두면 그 인간은 <b>제 성향대로만</b> 나간다. 점수가 깎이는 게 아니라, 알아서 망한다.<br>
             <b class="hint-key">왼쪽의 「질색」 목록은 의뢰인이 모른다.</b> 밟지 않게 하려면 여기에 직접 적어라.</p>

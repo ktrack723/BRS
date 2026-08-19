@@ -19,9 +19,13 @@ const J = (tier, extra = {}) => ({
 const AGENT = { name: '박큐피드', gender: '기밀' };
 
 // ── 커플 데이터 ──────────────────────────────────────────
-test('의뢰 대장은 정확히 20쌍이고 id가 중복되지 않는다', () => {
-  assert.equal(COUPLES.length, 20);
-  assert.equal(new Set(COUPLES.map(c => c.id)).size, 20);
+test('의뢰 대장의 id가 중복되지 않고 난이도가 고루 있다', () => {
+  assert.ok(COUPLES.length >= 20, `의뢰가 ${COUPLES.length}건뿐이다`);
+  assert.equal(new Set(COUPLES.map(c => c.id)).size, COUPLES.length, 'id가 중복된다');
+  // 필터 탭이 빈 채로 남으면 안 된다
+  for (const d of Object.keys(DIFFICULTIES)) {
+    assert.ok(COUPLES.some(c => c.difficulty === d), `난이도 ${d}에 의뢰가 하나도 없다`);
+  }
 });
 
 test('모든 커플이 필수 필드를 갖추고 있다', () => {
@@ -563,7 +567,7 @@ test('국장 브리핑은 하드코딩이고 요원 정보가 박힌다', () => 
   const text = P.briefingText({ name: '김철수', gender: '남' });
   assert.ok(text.includes('김철수'));
   assert.ok(text.includes('남'), '성별을 적었으면 서식에 인쇄된다');
-  assert.ok(text.includes('20건'));
+  assert.ok(text.includes(`${COUPLES.length}건`), '브리핑이 실제 접수 건수를 안 말한다');
   assert.ok(text.trim().endsWith('이상! 건투를 빈다, 요원.'));
   // 성별을 비워도 문장이 깨지지 않아야 한다
   const noGender = P.briefingText({ name: '007', gender: '' });
@@ -758,5 +762,59 @@ test('화면 문구가 엔진과 모순되지 않는다', async () => {
   const sys = P.clientAgentSystem(c, { outfitDesc: '', coaching: '', speech: '' }, 'text', { name: '요원', gender: '기밀' });
   for (const r of c.target.redLines) {
     assert.ok(!sys.includes(r), `의뢰인 프롬프트에 상대의 지뢰가 새고 있다: ${r}`);
+  }
+});
+
+test("대면('each')일 때 두 아바타가 서로를 본다", async () => {
+  const fs = await import('node:fs');
+  const src = fs.readFileSync('js/avatar.js', 'utf8');
+  const m = src.match(/static FACE_EACH = ([^;]+);/);
+  assert.ok(m, 'FACE_EACH 상수가 없다');
+  const F = eval(m[1]);                       // Math.PI / 2 - 0.4
+
+  // 얼굴은 +Z. Y축 θ 회전 → 시선 (sinθ, 0, cosθ).
+  const gaze = th => ({ x: Math.sin(th), z: Math.cos(th) });
+  const left = gaze(F), right = gaze(-F);
+
+  // 왼쪽은 x=-0.9에 있으니 상대(+X) 쪽을 봐야 하고, 오른쪽은 그 반대.
+  assert.ok(left.x > 0.5, `왼쪽이 상대를 안 본다 (시선x=${left.x.toFixed(2)})`);
+  assert.ok(right.x < -0.5, `오른쪽이 상대를 안 본다 (시선x=${right.x.toFixed(2)})`);
+  // 완전 측면이면 얼굴이 안 보인다. 카메라 쪽으로 조금은 틀어져 있어야 한다.
+  assert.ok(left.z > 0.2 && right.z > 0.2, '옆모습만 보여서 표정이 안 보인다');
+
+  // 'camera' 모드는 둘 다 카메라를 봐야 한다
+  const C = eval(src.match(/static FACE_CAM = ([^;]+);/)[1]);
+  assert.ok(gaze(C).z > 0.9 && gaze(-C).z > 0.9, 'camera 모드인데 카메라를 안 본다');
+});
+
+test('제2차 강제배정은 기존 헬보다 하자가 나쁘다', async () => {
+  const { COUPLES, FLAW_SEVERITY } = await import('../js/couples.js');
+  const NEW = ['gender-war', 'birth-strike', 'death-row', 'body-war', 'noise-vow',
+    'carbon', 'class-war', 'scalpel', 'tobacco', 'spoiler'];
+  assert.equal(NEW.length, 10);
+
+  // 하자 점수: bad 2 / mid 1 / ok 0. 두 사람 몫을 합친다.
+  const score = c => ['client', 'target'].reduce((sum, who) =>
+    sum + ['reads', 'attention', 'compliance'].reduce((s2, ax) => {
+      const lv = FLAW_SEVERITY[ax][c[who].flaw[ax]];
+      return s2 + (lv === 'bad' ? 2 : lv === 'mid' ? 1 : 0);
+    }, 0), 0);
+
+  const oldHell = COUPLES.filter(c => c.difficulty === '헬' && !NEW.includes(c.id));
+  const newHell = COUPLES.filter(c => NEW.includes(c.id));
+  assert.equal(newHell.length, 10, '새 배정분이 대장에 다 안 들어갔다');
+  for (const c of newHell) assert.equal(c.difficulty, '헬', `${c.id}: 헬이 아니다`);
+
+  const avg = arr => arr.reduce((a, c) => a + score(c), 0) / arr.length;
+  const oldAvg = avg(oldHell), newAvg = avg(newHell);
+  assert.ok(newAvg > oldAvg,
+    `새 배정분이 더 안 어렵다 (기존 헬 ${oldAvg.toFixed(1)} vs 신규 ${newAvg.toFixed(1)})`);
+
+  // 양쪽 다 상대를 꺾거나 교화하거나 인정받으려 나온다 — 저절로 풀릴 구석이 없어야 한다
+  for (const c of newHell) {
+    for (const who of ['client', 'target']) {
+      assert.ok(c[who].flaw.want.length > 12, `${c.id}.${who}: want가 너무 짧다`);
+      assert.ok(c[who].flaw.fixation.length > 5, `${c.id}.${who}: fixation이 너무 짧다`);
+    }
   }
 });

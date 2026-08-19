@@ -19,7 +19,7 @@
 import fs from 'node:fs';
 import {
   DIFFICULTIES, TIER_BANDS, TUNING, diffOf,
-  initialState, applyTurn, failureReason, verdict,
+  initialState, applyTurn, failureReason, verdict, extraTurn,
 } from '../js/scoring.js';
 import { COUPLE_BY_ID } from '../js/couples.js';
 
@@ -59,7 +59,7 @@ function monteCarlo(n = 2500, seed = 20770819) {
   console.log(`\n════════ 몬테카를로 (판당 ${n}회 표본) ════════`);
   console.log('등급 분포는 라이브 12판 실측값이다. 판정 스트림 자체를 다시 흘리려면 리플레이 모드를 쓸 것.\n');
   console.log(pad('난이도', 8) + pad('성공선', 8) + pad('프로필', 8) + pad('성사율', 9) +
-    pad('호감 p10/중앙/p90', 22) + '파탄율');
+    pad('호감 p10/중앙/p90', 22) + pad('파탄율', 8) + '연장');
   for (const dn of Object.keys(DIFFICULTIES)) {
     const d = diffOf(dn);
     for (const p of Object.keys(PROFILE_DIST)) {
@@ -70,10 +70,22 @@ function monteCarlo(n = 2500, seed = 20770819) {
         return 'flat';
       };
       const runs = [];
+      const extras = [];
       for (let i = 0; i < n; i++) {
         let s = initialState(d);
         let aborted = false;
-        for (let turn = 0; turn < d.textTurns + d.talkTurns + 1; turn++) {
+        const tiers = [];
+        // 케미가 좋으면 자리가 길어진다. 하네스와 같은 규칙(extraTurn)을 그대로 태운다 —
+        // 예정 턴만 돌리면 여기 숫자는 실제 판과 다른 게임의 숫자가 된다.
+        let textTurns = d.textTurns, talkTurns = d.talkTurns;
+        let exText = 0, exTalk = 0;
+        for (let turn = 0; turn < textTurns + talkTurns + 1; turn++) {
+          const inText = turn < textTurns;
+          const phase = inText ? 'text' : 'talk';
+          const last = inText ? turn === textTurns - 1 : turn === textTurns + talkTurns;
+          if (last && extraTurn(phase, tiers, s.mood, inText ? exText : exTalk, d)) {
+            if (inText) { textTurns += 1; exText += 1; } else { talkTurns += 1; exTalk += 1; }
+          }
           const tier = pick();
           const [lo, hi] = TIER_BANDS[tier];
           const judge = {
@@ -81,17 +93,21 @@ function monteCarlo(n = 2500, seed = 20770819) {
             loveDelta: lo + Math.round(rnd() * (hi - lo)),
             moodDelta: Math.max(-10, Math.min(10, TIER_MOOD[tier] + Math.round((rnd() - 0.5) * 4))),
           };
-          s = applyTurn(s, d, judge, { firstImpression: turn === d.textTurns });
+          s = applyTurn(s, d, judge, { firstImpression: turn === textTurns });
+          tiers.push(tier);
           if (failureReason(s)) { aborted = true; break; }
         }
+        extras.push(exText + exTalk);
         runs.push({ ...verdict(s, d, { aborted }), aborted });
       }
+      const avgExtra = (extras.reduce((a, b) => a + b, 0) / n).toFixed(1);
       const loves = runs.map(r => r.love).sort((a, b) => a - b);
       const q = f => loves[Math.floor(n * f)];
       console.log(pad(dn, 8) + pad(d.threshold, 8) + pad(p, 8) +
         pad(`${(runs.filter(r => r.accepted).length / n * 100).toFixed(0)}%`, 9) +
         pad(`${q(.1)} / ${q(.5)} / ${q(.9)}`, 22) +
-        `${(runs.filter(r => r.aborted).length / n * 100).toFixed(0)}%`);
+        pad(`${(runs.filter(r => r.aborted).length / n * 100).toFixed(0)}%`, 8) +
+        `+${avgExtra}턴`);
     }
     console.log('');
   }

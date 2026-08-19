@@ -680,7 +680,7 @@ const EMOTE_MOVES = {
 };
 
 // ── 썸네일 렌더러 ───────────────────────────────────────
-// 의뢰 대장에 20쌍 = 40명이 깔린다. 카드마다 WebGL 컨텍스트를 잡으면 브라우저 상한(보통 16개)에서 터진다.
+// 의뢰 대장에 30쌍 = 60명이 깔린다. 카드마다 WebGL 컨텍스트를 잡으면 브라우저 상한(보통 16개)에서 터진다.
 // 그래서 오프스크린 렌더러 하나를 돌려쓰며 PNG로 구워낸다. 선택된 커플만 살아 있는 3D 무대에 올린다.
 let thumbRenderer = null, thumbScene = null, thumbCam = null;
 const thumbCache = new Map();
@@ -760,10 +760,18 @@ export class AvatarViewer {
     requestAnimationFrame(this._loop);
   }
 
+  // 얼굴은 +Z를 본다(눈·코가 z>0에 붙어 있다). Y축 θ 회전은 시선을 (sinθ, 0, cosθ)로 보낸다.
+  // 왼쪽(x=-0.9)이 상대를 보려면 +X를 봐야 하니 sinθ>0 → θ=+π/2, 오른쪽은 그 반대.
+  // 부호가 뒤집혀 있어서 'each'인데 서로 등을 지고 바깥을 보고 있었다.
+  // ±0.4는 완전 측면이 되지 않게 카메라 쪽으로 살짝 트는 각도다 — 얼굴이 보여야 한다.
+  static FACE_EACH = Math.PI / 2 - 0.4;
+  static FACE_CAM = 0.25;
+
   #place(g, slot, duo, facing) {
+    const each = facing === 'each';
     if (!duo) { g.position.set(0, 0, 0); g.rotation.y = 0; }
-    else if (slot === 'left') { g.position.set(-0.9, 0, 0); g.rotation.y = facing === 'each' ? -Math.PI / 2 + 0.4 : 0.25; }
-    else { g.position.set(0.9, 0, 0); g.rotation.y = facing === 'each' ? Math.PI / 2 - 0.4 : -0.25; }
+    else if (slot === 'left') { g.position.set(-0.9, 0, 0); g.rotation.y = each ? AvatarViewer.FACE_EACH : AvatarViewer.FACE_CAM; }
+    else { g.position.set(0.9, 0, 0); g.rotation.y = each ? -AvatarViewer.FACE_EACH : -AvatarViewer.FACE_CAM; }
   }
 
   #swap(slot, spec) {

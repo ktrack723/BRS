@@ -81,6 +81,36 @@ export const DIFFICULTIES = {
   },
 };
 
+// ── 자리가 길어지는 조건 ───────────────────────────────────────
+// 대화가 잘 풀리면 사람은 안 일어난다. 케미가 뜨거우면 예정된 턴을 넘겨 더 앉아 있는다.
+// 판정 등급이 곧 케미 계측기다 — 따로 지표를 만들지 않는다.
+// 호감에는 포화가 걸려 있으므로 연장 턴의 한계 이득은 앞턴보다 작다. 그래서 상한만 막아두면 된다.
+export const EXTENSION = {
+  maxExtra: { text: 2, talk: 3 },   // 페이즈별 최대 연장 턴
+  window: 3,                        // 최근 몇 턴을 보는가
+  minSeen: 2,                       // 최소 이만큼은 채점돼 있어야 판단한다
+  hotTiers: ['breakthrough', 'warm'],
+  needHot: 2,                       // 그 중 몇 턴이 뜨거워야 하는가
+  // 절대값이 아니라 '시작보다 얼마나 끌어올렸나'로 잰다.
+  // 절대 하한을 쓰면 쉬움(시작 55)은 시작하자마자 조건을 만족하고,
+  // 헬(시작 38, 매 턴 -0.7)은 아무리 잘해도 도달을 못 해 연장이 사문화된다.
+  moodGain: 12,
+};
+// 판정은 한 턴 늦게 온다. 그래서 4턴짜리 문자 페이즈는 마지막 턴에서도 기록이 2개뿐이다 —
+// window를 그대로 하한으로 쓰면 문자 페이즈는 영영 안 늘어난다. 하한은 minSeen이 따로 잡는다.
+
+// 지금 한 턴 더 앉아 있을 이유가 있는가.
+// d는 난이도 규격 — 시작 분위기를 알아야 '끌어올렸는지'를 판단할 수 있다.
+export function extraTurn(phase, tiers, mood, alreadyExtra, d) {
+  const cap = EXTENSION.maxExtra[phase] ?? 0;
+  if (alreadyExtra >= cap) return false;
+  const base = (d?.startMood ?? 50) + EXTENSION.moodGain;
+  if (mood < base) return false;
+  const recent = (tiers || []).slice(-EXTENSION.window);
+  if (recent.length < EXTENSION.minSeen) return false;   // 아직 볼 게 없으면 늘리지 않는다
+  return recent.filter(t => EXTENSION.hotTiers.includes(t)).length >= EXTENSION.needHot;
+}
+
 // 심판이 고른 등급이 곧 호감 증감의 상한/하한이다.
 // 스칼라만 요구하면 LLM은 판정을 전부 +4~+6에 몰아넣는다(실측). 등급을 강제하고 여기서 클램프한다.
 // 등급의 정의는 전부 "상대가 실제로 어떻게 반응했는가"다. 목록 대조는 없다.

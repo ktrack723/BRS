@@ -1,5 +1,5 @@
 // browser.mjs — 실제 브라우저에서 게임을 끝까지 돌리는 E2E.
-// three.js 렌더링 · 썸네일 40장 · 준비 3화면 · 자유 도형 · 게이지 · 무전 · 결과 화면까지 확인한다.
+// three.js 렌더링 · 인물 썸네일 전량 · 준비 3화면 · 자유 도형 · 게이지 · 무전 · 결과 화면까지 확인한다.
 //
 //   node tests/browser.mjs                        기본: 가짜 LLM 모드 (API 키·크레딧 불필요, 결정적)
 //   ANTHROPIC_API_KEY=sk-... node tests/browser.mjs --live    실제 API로 (크레딧 소모)
@@ -296,6 +296,7 @@ try {
 
   // 교육 슬라이드가 전부 그려지는지
   const slideCount = await page.evaluate(() => document.querySelectorAll('#intro-dots .dot').length);
+  const coupleCount = await page.evaluate(() => window.__game.COUPLES.length);
   const slideTexts = [];
   for (let i = 0; i < slideCount; i++) {
     slideTexts.push(await page.textContent('#intro-slides'));
@@ -304,8 +305,17 @@ try {
   check(`신입 교육 ${slideCount}장이 모두 다른 내용으로 그려진다`, new Set(slideTexts).size === slideCount, `${slideCount}장`);
   check('교육에 준비 단계가 채점되지 않음이 명시된다',
     slideTexts.some(t => /채점(하지 않는다|되지 않는다|\s*대상이 아니다)/.test(t)));
-  check('교육에 대화 규칙이 폐지됐음이 명시된다',
-    slideTexts.some(t => /대화 규칙이 없다|전부 폐지/.test(t)));
+  check('교육에 대화 규칙이 없음이 명시된다',
+    slideTexts.some(t => /대화에는 규칙이 없다|무슨 얘기를 할지 정하지 않는다/.test(t)));
+  // 신입 교육은 큐피드국 교관의 말이다. 개정 이력과 내부 구현 용어는 요원이 알 바 아니다.
+  check('교육에 개정 이력이 새어나오지 않는다',
+    !slideTexts.some(t => /예전 단말|전면 폐지|차 개정|폐지했다/.test(t)),
+    slideTexts.find(t => /예전 단말|전면 폐지|차 개정|폐지했다/.test(t))?.slice(0, 40) || '없음');
+  check('교육에 구현 용어가 새어나오지 않는다',
+    !slideTexts.some(t => /프롬프트|의뢰인 AI|이 게임/.test(t)),
+    slideTexts.find(t => /프롬프트|의뢰인 AI|이 게임/.test(t))?.slice(0, 40) || '없음');
+  check('교육이 실제 의뢰 건수를 말한다',
+    slideTexts.some(t => new RegExp(`상설 의뢰 ${coupleCount}건`).test(t)), `${coupleCount}건`);
   check('교육이 준비 3장소를 안내한다',
     slideTexts.some(t => /미용실/.test(t) && /취조실/.test(t) && /정문/.test(t)));
   // 교육이 거짓말을 하면 그 뒤의 모든 판단이 틀어진다
@@ -330,11 +340,20 @@ try {
   }
   await checkContrast('브리핑 화면');
 
-  console.log('\n📚 의뢰 대장 20건');
+  console.log(`\n📚 의뢰 대장 ${coupleCount}건`);
   await page.click('#btn-to-roster');
   await page.waitForSelector('.couple-card', { timeout: ms(20000) });
   const cardCount = await page.locator('.couple-card').count();
-  check('20쌍이 모두 렌더링됐다', cardCount === 20, `${cardCount}장`);
+  check('대장의 모든 쌍이 렌더링됐다', cardCount === coupleCount, `${cardCount}/${coupleCount}장`);
+  // 건수를 화면 곳곳에 박아두면 커플을 추가할 때마다 어긋난다. 실제로 어긋났었다.
+  const counts = await page.evaluate(() =>
+    [...document.querySelectorAll('.n-couples')].map(e => e.textContent));
+  check('화면에 박힌 의뢰 건수가 실제와 일치한다',
+    counts.length >= 2 && counts.every(t => t === String(coupleCount)), counts.join(','));
+  // 전광판에 개정 이력이 흘러선 안 된다
+  const marquee = await page.textContent('.marquee');
+  check('전광판에 개정 이력이 흐르지 않는다', !/차 개정|전면 폐지/.test(marquee),
+    marquee.match(/[^·]*개정[^·]*/)?.[0]?.trim() || '없음');
 
   // 썸네일이 진짜 three.js 렌더 결과인지 (투명한 빈 PNG가 아닌지)
   const thumb = await page.evaluate(async () => {
@@ -353,7 +372,7 @@ try {
     const sample = await Promise.all(imgs.slice(0, 6).map(opaqueOf));
     return { count: imgs.length, uniq: new Set(imgs.map(i => i.src)).size, sample, minOpaque: Math.min(...sample) };
   });
-  check('아바타 썸네일 40장 생성', thumb.count === 40, `${thumb.count}장`);
+  check('아바타 썸네일이 인물 수만큼 생성됐다', thumb.count === coupleCount * 2, `${thumb.count}/${coupleCount * 2}장`);
   check('썸네일이 빈 이미지가 아니다 (three.js가 실제로 그렸다)', thumb.minOpaque > 500, `최소 불투명 픽셀 ${thumb.minOpaque}`);
   check('인물마다 썸네일이 다르다', thumb.uniq > 34, `고유 ${thumb.uniq}/${thumb.count}`);
   check('전적 줄에 요원명이 표시된다', (await page.textContent('#agent-record')).includes(AGENT_NAME));

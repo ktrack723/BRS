@@ -1,4 +1,4 @@
-// couples.js — 큐피드국 상설 의뢰 대장. 20건 전부 손으로 쓴 고정 데이터다.
+// couples.js — 큐피드국 상설 의뢰 대장. 전부 손으로 쓴 고정 데이터다.
 // LLM은 이 사람들을 "연기"할 뿐, 만들어내지 않는다. 매칭이 성립할 리 없는 조합만 골라 넣었다.
 //
 // 필드 규약
@@ -593,6 +593,301 @@ export const COUPLES = [
       spec: S({ skin: '#eed4b8', hair: '#5a3a28', hairStyle: 'long', top: '#2a2a2a', bottom: '#4a4a5a', shoes: '#6a5a4a', heightScale: 1.0, widthScale: 0.86, accessory: 'none', accessoryColor: '#cc4477', expression: 'angry', aura: 'fire', species: 'human' }),
     },
   },
+
+  // ══════════════════════════════════════════════════════════════════════
+  // 제2차 강제배정 (21~30) — 본국이 "이건 좀 아니지 않나" 소리를 듣고도 밀어붙인 건들.
+  // 전부 헬 등급이고, 기존 헬보다 하자가 나쁘다. 둘 다 상대를 꺾거나 교화하려고 나온다.
+  // ══════════════════════════════════════════════════════════════════════
+
+  // ── 21 ────────────────────────────────────────────────────────────────
+  {
+    id: 'gender-war',
+    difficulty: '헬',
+    endingKind: '연애',
+    category: '성별전쟁',
+    clash: '서로의 성별을 혐오해서 먹고사는 두 사람. 상대가 사라지면 둘 다 실업자다',
+    winWord: '휴전선 넘은 커플 성사',
+    client: {
+      name: '하수연', age: 28, job: '유튜버 「남자 없이도」 / 구독자 41만',
+      story: '지상파 토론 프로에 둘이 마주 앉았다. 92분 동안 서로의 인격을 분해했고, 그 회차가 채널 역대 조회수 1위가 됐다. ' +
+        '수연이 견딜 수 없는 건 이거다. 저 인간은 내 영상을 3년치 전부 봤다. 반박하려고. 아무도 그렇게까지 봐준 적이 없다.',
+      appearance: ['짧게 친 검은 머리', '무채색 오버핏', '화장기 없음', '카메라를 노려보는 눈'],
+      personality: ['말을 끊지 않고 끝까지 듣고 나서 해체함', '통계를 외움', '사과를 못 함'],
+      weakness: '논리가 밀리면 "그건 구조의 문제죠"로 도망친다. 세 번 이상 쓰면 본인도 안다',
+      quote: '요원님. 저 인간이랑 잘돼도 문제고 안 돼도 문제예요. 구독자들이 절 죽일 겁니다.',
+      spec: S({ skin: '#f0d8c0', hair: '#1a1a1a', hairStyle: 'buzz', top: '#2a2a2e', bottom: '#3a3a40', shoes: '#1a1a1a', heightScale: 1.0, widthScale: 0.9, accessory: 'earrings', accessoryColor: '#cc3355', expression: 'angry', aura: 'lightning', species: 'human' }),
+    },
+    target: {
+      name: '강도현', age: 31, job: '「알파 남성 연구소」 소장 / 수강료 240만원',
+      appearance: ['기름 넘긴 올백', '몸에 붙는 셔츠', '과하게 큰 시계', '헬스로 만든 어깨'],
+      personality: ['모든 대화를 서열 정리로 받아들임', '거절당하면 즉시 이론을 만듦', '혼자 있으면 무너짐'],
+      visiblePrefs: ['자기 수강생 성공 사례 이야기', '헬스 3분할 루틴 논쟁'],
+      hiddenPrefs: ['수강생이 8명까지 줄었다', '어머니가 그를 3년째 안 만나준다', '저 사람 영상을 새벽에 몰래 본다'],
+      redLines: ['"외로우시죠"', '수강생 수 묻기', '어머니 얘기'],
+      spec: S({ skin: '#e8bc90', hair: '#2a1a10', hairStyle: 'flattop', top: '#1a1a2a', bottom: '#2a2a3a', shoes: '#3a2a1a', heightScale: 1.05, widthScale: 1.22, accessory: 'sunglasses', accessoryColor: '#111111', expression: 'chad', aura: 'money', species: 'human' }),
+    },
+  },
+
+  // ── 22 ────────────────────────────────────────────────────────────────
+  {
+    id: 'birth-strike',
+    difficulty: '헬',
+    endingKind: '연애',
+    category: '출산',
+    clash: '출산율 0.008 국가에서 반출산주의자와 8남매 아버지를 붙였다. 본국의 자해 행위다',
+    winWord: '국가비상사태 커플 성사',
+    client: {
+      name: '무산아', age: 34, job: '반출산주의 단체 「그만 낳자」 대표',
+      story: '큐피드국 규탄 시위 현장. 산아는 확성기를 잡고 있었고, 저 사람은 유아차 넷을 끌고 지나가다 멈춰 서서 연설을 끝까지 들었다. ' +
+        '그리고 딱 한마디 했다. "힘드셨겠네요." 산아는 그날 밤 처음으로 자기 구호를 의심했다. 그게 제일 화가 난다.',
+      appearance: ['잿빛 긴 생머리', '검은 후드', '피켓 자국 난 손바닥', '창백함'],
+      personality: ['통계를 무기로 씀', '동정을 견디지 못함', '혼자 밥 먹는 걸 즐김'],
+      weakness: '말문이 막히면 지구 인구 수를 소수점까지 읊는다. 아무도 안 물어봤는데',
+      quote: '저 사람이랑 잘되면 저는 단체에서 제명당해요. 근데 요원님, 그래도 해주세요.',
+      spec: S({ skin: '#ead6c8', hair: '#8a8a92', hairStyle: 'long', top: '#1e1e22', bottom: '#2a2a2e', shoes: '#3a3a3a', heightScale: 1.0, widthScale: 0.84, accessory: 'none', accessoryColor: '#666666', expression: 'sad', aura: 'gloom', species: 'human' }),
+    },
+    target: {
+      name: '나팔개', age: 38, job: '8남매 아버지 / 유아용품 대리점 점주',
+      appearance: ['부스스한 머리', '늘어난 티셔츠', '어깨에 아기 침 자국', '눈 밑 그늘'],
+      personality: ['아무 상황에서도 잠들 수 있음', '남 얘기를 진심으로 들음', '자기 얘기는 안 함'],
+      visiblePrefs: ['육아 꿀팁 교환', '정부 지원금 신청 요령'],
+      hiddenPrefs: ['막내 낳고 아내가 집을 나갔다', '혼자 있어 본 게 9년 전이다', '사실 아이를 더 낳고 싶지 않다'],
+      redLines: ['"애국자시네요"', '아이 몇 명이냐고 묻기', '"행복하시겠어요"'],
+      spec: S({ skin: '#f0cca8', hair: '#3a2a1a', hairStyle: 'short', top: '#7a8a6a', bottom: '#4a4a52', shoes: '#5a4a3a', heightScale: 1.02, widthScale: 1.14, accessory: 'none', accessoryColor: '#88aa66', expression: 'dead', aura: 'none', species: 'human' }),
+    },
+  },
+
+  // ── 23 ────────────────────────────────────────────────────────────────
+  {
+    id: 'death-row',
+    difficulty: '헬',
+    endingKind: '동맹',
+    category: '사형제',
+    clash: '사형 집행 담당관 × 사형폐지 변호사. 같은 사람의 서류에 반대편 도장을 찍어왔다',
+    winWord: '집행정지 동맹 결성',
+    client: {
+      name: '마지막', age: 45, job: '교정본부 집행과 / 근속 19년',
+      story: '지막은 19년간 서류에 도장을 찍었고, 저 변호사는 19년간 그 도장을 막으러 왔다. 매번 복도에서 마주쳤다. ' +
+        '작년 겨울, 저 사람이 서류 가방을 놓치고 눈밭에 무릎을 꿇었을 때 지막은 자기도 모르게 손을 내밀었다. 둘 다 그 손을 못 잊는다.',
+      appearance: ['짧은 반백', '회색 제복', '표정 없음', '왼손에 오래된 화상'],
+      personality: ['감정을 문장에서 지움', '규정을 외움', '밤에 잠을 못 잠'],
+      weakness: '개인적인 질문을 받으면 사건 번호를 읊는다. "2058고합1174요"',
+      quote: '저는 저 사람이 옳다고 생각합니다. 그게 제 직업을 부정하는 거라서, 아무한테도 말 못 했습니다.',
+      spec: S({ skin: '#dcc4b0', hair: '#a8a8a8', hairStyle: 'buzz', top: '#4a4a52', bottom: '#3a3a42', shoes: '#1a1a1a', heightScale: 1.01, widthScale: 1.06, accessory: 'none', accessoryColor: '#888888', expression: 'dead', aura: 'gloom', species: 'human' }),
+    },
+    target: {
+      name: '구명중', age: 47, job: '사형폐지연대 변호사 / 무료 변론 212건',
+      appearance: ['헝클어진 곱슬', '해진 정장', '서류로 부푼 가방', '안경테가 휘어 있음'],
+      personality: ['말이 빠름', '지는 걸 인정 못 함', '남 걱정만 함'],
+      visiblePrefs: ['판례 이야기', '제도 개선 토론'],
+      hiddenPrefs: ['212건 중 이긴 게 4건이다', '집이 경매로 넘어갔다', '저 집행관이 자기 대신 밤을 못 잔다는 걸 안다'],
+      redLines: ['"현실적으로는"', '승소율 언급', '"고생 많으시네요"'],
+      spec: S({ skin: '#e8d0b8', hair: '#4a3a2a', hairStyle: 'curls', top: '#3a3a4a', bottom: '#2a2a35', shoes: '#4a3a2a', heightScale: 0.99, widthScale: 0.96, accessory: 'glasses', accessoryColor: '#555555', expression: 'neutral', aura: 'static', species: 'human' }),
+    },
+  },
+
+  // ── 24 ────────────────────────────────────────────────────────────────
+  {
+    id: 'body-war',
+    difficulty: '헬',
+    endingKind: '연애',
+    category: '몸',
+    clash: '비만 혐오로 유명한 PT 강사 × 자기몸긍정 모델. 서로를 공개 저격해온 사이',
+    winWord: '체중계 부순 커플 성사',
+    client: {
+      name: '박근육', age: 30, job: 'PT 강사 / 「변명은 지방이다」 저자',
+      story: '근육이 쓴 책 표지에 저 사람 사진이 무단으로 실렸다. 소송 걸렸고, 조정실에서 처음 만났다. ' +
+        '저 사람은 화를 내는 대신 근육의 팔을 보고 말했다. "이두 좋으시네요. 몇 년 하셨어요." 근육은 그날 처음으로 자기 책이 부끄러웠다.',
+      appearance: ['짧은 스포츠컷', '민소매', '과하게 발달한 승모근', '단백질 쉐이커'],
+      personality: ['모든 대화를 자기관리 얘기로 되돌림', '칭찬을 못 받아들임', '새벽 4시 기상'],
+      weakness: '어색해지면 상대의 골격근량을 눈대중으로 추정해서 말해버린다',
+      quote: '사과하러 나가는 게 아닙니다. 근데... 사과부터 해야 되는 건 맞죠?',
+      spec: S({ skin: '#e0b088', hair: '#2a2018', hairStyle: 'buzz', top: '#1a1a1a', bottom: '#2a2a2a', shoes: '#dddddd', heightScale: 1.03, widthScale: 1.3, accessory: 'headband', accessoryColor: '#cc2222', expression: 'chad', aura: 'fire', species: 'human' }),
+    },
+    target: {
+      name: '차오름', age: 29, job: '모델 / 자기몸긍정 캠페인 얼굴',
+      appearance: ['붉은 웨이브 장발', '화려한 원색 정장', '당당한 자세', '큰 귀걸이'],
+      personality: ['웃으면서 급소를 찌름', '카메라 앞에서 절대 안 무너짐', '혼자 있을 때 다름'],
+      visiblePrefs: ['패션 브랜드 사이즈 정책 이야기', '무대 뒷이야기'],
+      hiddenPrefs: ['3년째 병원 검진을 미루고 있다', '캠페인 계약이 이번 달로 끝난다', '사실 그 책을 다 읽었다'],
+      redLines: ['건강 걱정해주기', '"저는 그런 뜻이 아니라"', '식단 얘기'],
+      spec: S({ skin: '#f2d0b0', hair: '#c04030', hairStyle: 'wave', top: '#d84a7a', bottom: '#2a2a4a', shoes: '#e8c860', heightScale: 1.02, widthScale: 1.24, accessory: 'earrings', accessoryColor: '#ffcc33', expression: 'smug', aura: 'sparkle', species: 'human' }),
+    },
+  },
+
+  // ── 25 ────────────────────────────────────────────────────────────────
+  {
+    id: 'noise-vow',
+    difficulty: '헬',
+    endingKind: '휴전',
+    category: '소음',
+    clash: '데스메탈 드러머 × 12년 묵언수행 승려. 한쪽은 말을 안 하고 한쪽은 못 듣는다',
+    winWord: '데시벨 휴전 협정',
+    client: {
+      name: '쿵쾅', age: 26, job: '데스메탈 밴드 「위장파열」 드러머',
+      story: '산사 옆 공터에서 야외 공연을 했다. 3곡째에 저 스님이 걸어 나왔다. 쿵쾅은 욕먹을 각오를 했는데, 스님은 아무 말 없이 ' +
+        '끝까지 서서 들었다. 40분을. 그리고 합장하고 돌아갔다. 쿵쾅은 그 뒷모습이 계속 생각난다. 아무도 자기 연주를 그렇게 안 들어줬다.',
+      appearance: ['땀에 젖은 장발', '찢어진 밴드 티', '팔 전체 문신', '한쪽 귀 보청기'],
+      personality: ['목소리가 큼', '침묵을 못 견딤', '의외로 예의 바름'],
+      weakness: '조용해지면 무릎으로 박자를 친다. 본인은 모른다',
+      quote: '스님이 말을 안 하시는데 제가 어떻게 대화를 해요. 근데 해야죠. 요원님이 시키시면.',
+      spec: S({ skin: '#e8c8a8', hair: '#1a1a1a', hairStyle: 'dreads', top: '#0a0a0a', bottom: '#2a2a2a', shoes: '#3a3a3a', heightScale: 1.02, widthScale: 1.12, accessory: 'earrings', accessoryColor: '#cccccc', expression: 'shock', aura: 'lightning', species: 'human' }),
+    },
+    target: {
+      name: '무언 스님', age: 52, job: '묵언수행 12년차 / 산사 주지',
+      appearance: ['삭발', '회색 승복', '흔들림 없는 자세', '염주'],
+      personality: ['말을 하지 않음', '표정으로만 답함', '기다림에 익숙함'],
+      visiblePrefs: ['필담', '차 우리는 시간'],
+      hiddenPrefs: ['수행 전에는 베이스를 쳤다', '12년 중 세 번 말했고 전부 후회한다', '그날 공연이 좋았다'],
+      redLines: ['"한마디만 해보세요"', '수행 이유 캐묻기', '침묵을 억지로 채우기'],
+      spec: S({ skin: '#e0c0a0', hair: '#e0c0a0', hairStyle: 'bald', top: '#8a8a92', bottom: '#7a7a82', shoes: '#5a5a5a', heightScale: 1.0, widthScale: 1.0, accessory: 'none', accessoryColor: '#aa8844', expression: 'neutral', aura: 'holy', species: 'human' }),
+    },
+  },
+
+  // ── 26 ────────────────────────────────────────────────────────────────
+  {
+    id: 'carbon',
+    difficulty: '헬',
+    endingKind: '연애',
+    category: '기후',
+    clash: '기후 활동가 × 정유사 로비스트. 한쪽이 이기면 한쪽은 직업을 잃는다',
+    winWord: '탄소중립 커플 성사',
+    client: {
+      name: '빙하야', age: 25, job: '기후 활동가 / 접착제 시위 전과 4범',
+      story: '정유사 주총장 바닥에 손을 접착제로 붙이고 누웠다. 경비가 뜯어내려는 걸 저 로비스트가 막았다. ' +
+        '"용제 가져와요. 손 다칩니다." 빙하는 6시간 동안 그 사람 구두만 보고 있었다. 구두가 안 움직였다.',
+      appearance: ['탈색한 초록 머리', '재활용 소재 재킷', '손바닥 흉터', '작은 체구'],
+      personality: ['타협을 배신으로 봄', '숫자로 말함', '잠을 안 잠'],
+      weakness: '흥분하면 남은 탄소예산을 연도까지 계산해서 외친다',
+      quote: '저 사람 회사가 제 미래를 태우고 있어요. 근데 그 사람은... 손을 잡아줬어요.',
+      spec: S({ skin: '#f0dcc4', hair: '#4aa860', hairStyle: 'short', top: '#3a6a4a', bottom: '#4a4a3a', shoes: '#6a5a4a', heightScale: 0.95, widthScale: 0.84, accessory: 'bandana', accessoryColor: '#66cc66', expression: 'angry', aura: 'static', species: 'human' }),
+    },
+    target: {
+      name: '유정만', age: 41, job: '정유사 대외협력 상무 / 국회 출입 12년',
+      appearance: ['빈틈없는 감색 정장', '단정한 가르마', '고급 서류가방', '피곤한 눈'],
+      personality: ['절대 화내지 않음', '상대 논리를 먼저 요약함', '집에 안 감'],
+      visiblePrefs: ['에너지 전환 로드맵 토론', '국회 뒷이야기'],
+      hiddenPrefs: ['딸이 학교에서 아빠 직업을 못 쓰겠다고 했다', '내부 감축안을 3년째 혼자 쓰고 있다', '저 시위 영상을 저장해뒀다'],
+      redLines: ['"돈 받고 하시는 일이잖아요"', '자녀 얘기', '"당신도 알잖아요"'],
+      spec: S({ skin: '#e8cca8', hair: '#2a2a2a', hairStyle: 'short', top: '#1e2a4a', bottom: '#1e2a4a', shoes: '#2a1a10', heightScale: 1.02, widthScale: 1.04, accessory: 'necktie', accessoryColor: '#8a2a3a', expression: 'neutral', aura: 'money', species: 'human' }),
+    },
+  },
+
+  // ── 27 ────────────────────────────────────────────────────────────────
+  {
+    id: 'class-war',
+    difficulty: '헬',
+    endingKind: '연애',
+    category: '계급',
+    clash: '재벌 3세 × 그 회사 노조위원장. 협상 테이블 반대편에 3년째 앉아 있다',
+    winWord: '단체협약 커플 성사',
+    client: {
+      name: '금수저', age: 27, job: '태산그룹 3세 / 전략기획실 상무보',
+      story: '점거 농성 47일차, 새벽 3시. 수저가 몰래 컵라면을 사 들고 갔다가 저 위원장한테 딱 걸렸다. ' +
+        '위원장은 라면을 받아서 반으로 나눴다. "다음엔 계란도 사 오세요." 수저는 그날 이후 협상장에서 그 사람 얼굴을 못 본다.',
+      appearance: ['맞춤 정장', '흠 없는 피부', '값비싼 무표정', '손목시계 하나가 3천'],
+      personality: ['거절당해본 적이 없음', '숫자로만 사람을 봄', '혼자 밥을 못 먹음'],
+      weakness: '당황하면 가격을 말한다. "이거 좋네요, 얼마예요?"',
+      quote: '아버지가 알면 저를 해외로 보낼 겁니다. 그래도요.',
+      spec: S({ skin: '#f5e0c8', hair: '#2a2a2a', hairStyle: 'short', top: '#25252e', bottom: '#25252e', shoes: '#1a1a1a', heightScale: 1.01, widthScale: 0.92, accessory: 'necktie', accessoryColor: '#b8985a', expression: 'smug', aura: 'money', species: 'human' }),
+    },
+    target: {
+      name: '들불', age: 44, job: '태산그룹 노조위원장 / 근속 21년',
+      appearance: ['희끗한 상고머리', '빨간 조끼', '굳은살 박인 손', '단단한 어깨'],
+      personality: ['목소리를 안 높임', '기억력이 무섭게 좋음', '조합원 앞에선 절대 안 웃음'],
+      visiblePrefs: ['현장 안전 규정 이야기', '옛날 파업 무용담'],
+      hiddenPrefs: ['동생이 그 공장에서 죽었다', '위원장 임기가 이번이 마지막이다', '저 3세가 컵라면 사 온 걸 아무한테도 말 안 했다'],
+      redLines: ['"요즘 세상에 무슨 노조"', '보상금 액수 제시', '동생 얘기'],
+      spec: S({ skin: '#d8b088', hair: '#8a8a8a', hairStyle: 'short', top: '#c02a2a', bottom: '#2a3a4a', shoes: '#3a2a1a', heightScale: 1.0, widthScale: 1.16, accessory: 'headband', accessoryColor: '#cc2222', expression: 'neutral', aura: 'fire', species: 'human' }),
+    },
+  },
+
+  // ── 28 ────────────────────────────────────────────────────────────────
+  {
+    id: 'scalpel',
+    difficulty: '헬',
+    endingKind: '연애',
+    category: '외모',
+    clash: '자연미 운동가 × 성형외과 원장. 한쪽 얼굴이 다른 쪽 광고에 쓰였다',
+    winWord: '무보정 커플 성사',
+    client: {
+      name: '민낯희', age: 32, job: '「깎지 마세요」 운동 대표 / 前 미스코리아 후보',
+      story: '낯희가 20대에 찍은 사진이 저 원장 병원 「전(前)」 사진으로 15년간 걸려 있었다. 소송 걸러 갔더니 원장이 즉시 떼서 파쇄했다. ' +
+        '그리고 말했다. "그때 얼굴이 지금보다 나았습니다." 낯희는 그게 사과인지 도발인지 아직도 모른다.',
+      appearance: ['화장기 없는 얼굴', '단정한 검은 단발', '수수한 니트', '똑바른 눈'],
+      personality: ['거울을 안 봄', '남의 외모를 절대 언급 안 함', '자기 얘긴 안 함'],
+      weakness: '칭찬을 들으면 화제를 즉시 사회구조로 돌린다',
+      quote: '제 얼굴로 15년을 벌어먹은 사람이에요. 근데 왜 자꾸 생각이 나죠.',
+      spec: S({ skin: '#f0d4bc', hair: '#1e1e1e', hairStyle: 'bowl', top: '#d8d0c0', bottom: '#5a5a62', shoes: '#8a7a6a', heightScale: 1.0, widthScale: 0.88, accessory: 'none', accessoryColor: '#aaaaaa', expression: 'neutral', aura: 'none', species: 'human' }),
+    },
+    target: {
+      name: '깎아진', age: 49, job: '성형외과 원장 / 강남 3층 건물주',
+      appearance: ['나이를 알 수 없는 얼굴', '흰 가운', '완벽한 헤어라인', '고급 안경'],
+      personality: ['모든 얼굴을 설계도로 봄', '자기 얼굴 얘긴 안 함', '거절을 못 함'],
+      visiblePrefs: ['의료기기 스펙 이야기', '병원 인테리어 자랑'],
+      hiddenPrefs: ['자기 얼굴에 11번 손을 댔다', '거울을 볼 때마다 원래 얼굴이 기억 안 난다', '그 사진을 파쇄 전에 한 장 남겨뒀다'],
+      redLines: ['"원래 얼굴은 어떠셨어요"', '나이 묻기', '"자연스러운 게 최고죠"'],
+      spec: S({ skin: '#f8e4d0', hair: '#3a2a20', hairStyle: 'updo', top: '#f0f0f0', bottom: '#3a3a42', shoes: '#2a2a2a', heightScale: 1.0, widthScale: 0.96, accessory: 'glasses', accessoryColor: '#c8a860', expression: 'smug', aura: 'sparkle', species: 'human' }),
+    },
+  },
+
+  // ── 29 ────────────────────────────────────────────────────────────────
+  {
+    id: 'tobacco',
+    difficulty: '헬',
+    endingKind: '연애',
+    category: '금연',
+    clash: '금연클리닉 원장 × 3대째 담뱃잎 농장주. 한쪽 매출이 한쪽 폐다',
+    winWord: '금연 성공 커플 성사',
+    client: {
+      name: '끊어라', age: 39, job: '금연클리닉 원장 / 누적 금연 성공 4,200명',
+      story: '농약 살포 사고로 실려 온 저 농장주를 응급실에서 처음 봤다. 산소마스크 쓴 채로 첫마디가 "우리 밭 어떻게 됐어요"였다. ' +
+        '끊어라는 그날부터 그 사람 밭을 위성사진으로 본다. 자기가 없애려는 그 밭을.',
+      appearance: ['흰 가운', '단정한 반백', '금연 배지', '손이 항상 깨끗함'],
+      personality: ['숫자로 설득함', '실패를 개인 탓으로 안 봄', '자기 관리가 강박적'],
+      weakness: '스트레스를 받으면 상대의 폐활량을 추정해서 말한다',
+      quote: '저 사람 밭이 없어져야 제 일이 끝납니다. 그럼 저 사람은 뭐가 되죠?',
+      spec: S({ skin: '#eed8c0', hair: '#9a9a9a', hairStyle: 'short', top: '#f4f4f4', bottom: '#3a4a5a', shoes: '#2a2a2a', heightScale: 1.01, widthScale: 0.98, accessory: 'glasses', accessoryColor: '#4a4a4a', expression: 'neutral', aura: 'holy', species: 'human' }),
+    },
+    target: {
+      name: '연초댁', age: 56, job: '3대째 담뱃잎 농장주 / 재배면적 4만평',
+      appearance: ['햇볕에 탄 주름', '밀짚모자', '흙 묻은 앞치마', '억센 손'],
+      personality: ['남 탓을 안 함', '농담이 거침', '병원을 안 감'],
+      visiblePrefs: ['잎담배 건조 온도 이야기', '농협 대출 성토'],
+      hiddenPrefs: ['본인은 30년 전에 끊었다', '아들에게는 물려주지 않기로 했다', '기침이 6개월째 안 멎는다'],
+      redLines: ['"몸에 안 좋은 거 아시잖아요"', '자식에게 물려줄 거냐 묻기', '기침 지적'],
+      spec: S({ skin: '#c89060', hair: '#6a5a4a', hairStyle: 'updo', top: '#8a7a5a', bottom: '#5a5a4a', shoes: '#4a3a2a', heightScale: 0.96, widthScale: 1.08, accessory: 'hat', accessoryColor: '#c8a860', expression: 'happy', aura: 'stink', species: 'human' }),
+    },
+  },
+
+  // ── 30 ────────────────────────────────────────────────────────────────
+  {
+    id: 'spoiler',
+    difficulty: '헬',
+    endingKind: '휴전',
+    category: '스포일러',
+    clash: '영화 평론가 × 스포일러 테러 스트리머. 한쪽 인생을 한쪽이 반복해서 망쳐왔다',
+    winWord: '무스포 휴전 협정',
+    client: {
+      name: '진지해', age: 36, job: '영화 평론가 / 「영화는 예의다」 연재 11년',
+      story: '지해의 시사회 후기가 올라가기 8분 전마다 저 스트리머가 결말을 생중계한다. 4년째. 정확히 8분 전이다. ' +
+        '지해는 그게 우연이 아니란 걸 안다. 저 인간은 내 연재 스케줄을 나보다 잘 안다. 그 집요함이... 소름 끼치게 익숙해졌다.',
+      appearance: ['헝클어진 곱슬', '낡은 코듀로이 재킷', '노트 뭉치', '다크서클'],
+      personality: ['비유가 길어짐', '농담을 진지하게 받음', '남의 취향을 못 참음'],
+      weakness: '화가 나면 관련 없는 영화 제목을 연도까지 붙여 나열한다',
+      quote: '저 인간을 고소하려다 요원님을 찾아온 겁니다. 이게 더 확실한 복수 같아서요.',
+      spec: S({ skin: '#e8d0b8', hair: '#3a2a1a', hairStyle: 'curls', top: '#7a6a4a', bottom: '#3a3a4a', shoes: '#5a4a3a', heightScale: 1.0, widthScale: 0.92, accessory: 'glasses', accessoryColor: '#6a5a4a', expression: 'angry', aura: 'gloom', species: 'human' }),
+    },
+    target: {
+      name: '결말요정', age: 24, job: '스트리머 / 「3초 요약」 채널 · 동시접속 8만',
+      appearance: ['형광 핑크 트윈테일', 'RGB 조명 반사된 얼굴', '헤드셋', '후드'],
+      personality: ['남 반응을 먹고 삶', '진심을 말하면 즉시 농담으로 덮음', '잠을 안 잠'],
+      visiblePrefs: ['조회수·동접 숫자 이야기', '채팅창 밈'],
+      hiddenPrefs: ['그 평론 연재를 11년치 전부 읽었다', '스포일러를 하는 이유는 반응이 그것뿐이라서다', '영화관에 혼자 가면 운다'],
+      redLines: ['"왜 그렇게 사세요"', '구독자 수로 사람 평가하기', '"진짜 영화 좋아하는 거 맞아요?"'],
+      spec: S({ skin: '#f5dcc8', hair: '#ff5599', hairStyle: 'twintail', top: '#2a2a3a', bottom: '#3a3a4a', shoes: '#ee66aa', heightScale: 0.96, widthScale: 0.86, accessory: 'headband', accessoryColor: '#66eeff', expression: 'weird', aura: 'rainbow', species: 'human' }),
+    },
+  },
 ];
 
 // ── 인물 내력 ─────────────────────────────────────────────────────────────
@@ -843,6 +1138,88 @@ const BACKGROUND = {
       '그림을 그리다 아침을 맞는다. 자는 시간이 정해져 있지 않다',
       '손이 떨리기 시작하면 주머니에 넣고 대화를 이어간다'],
   },
+
+  // ── 제2차 강제배정 (21~30) ──────────────────────────────────────────
+  'gender-war': {
+    client: ['서울 노원구 원룸. 방음이 안 돼 새벽 편집을 못 한다', '채널 수익 월 380만원. 광고가 두 달째 안 붙는다',
+      '악플 캡처를 폴더별로 정리해둔다. 폴더 이름이 연도별이다', '아버지와 6년째 연락이 끊겼다',
+      '라면을 끓일 때 물을 계량컵으로 잰다'],
+    target: ['강남 오피스텔 보증금이 어머니 명의다', '수강생 8명. 최고 기록은 74명이었다',
+      '헬스장 새벽 5시반 고정. 하루도 안 빠졌다', '전북 정읍 출신인데 사투리를 완전히 지웠다',
+      '거울 앞에서 표정 연습을 한다. 20분씩'],
+  },
+  'birth-strike': {
+    client: ['부산 초읍동 반지하. 곰팡이 때문에 벽지를 세 번 갈았다', '단체 후원금 월 90만원으로 산다',
+      '형제가 일곱이었고 산아가 막내였다', '피켓 손잡이를 직접 사포질해서 쓴다',
+      '생일에 아무한테도 말 안 한다'],
+    target: ['경기 화성 24평. 여덟 명이 산다', '대리점 월매출 1,100만원, 순익 210만원',
+      '아이 이름을 가끔 헷갈린다. 순서대로 부르다 맞춘다', '충남 서산 출신. 본가에 안 간 지 4년',
+      '유아차 바퀴 고치는 데는 도가 텄다'],
+  },
+  'death-row': {
+    client: ['관사 단칸방. 19년째 같은 방이다', '연금 말고 저축이 없다. 매달 어딘가로 익명 송금한다',
+      '왼손 화상은 26살 때 화재 현장에서 생겼다', '술을 한 방울도 안 마신다',
+      '집행 예정일마다 손톱을 물어뜯는다'],
+    target: ['사무실에서 잔다. 집은 작년에 경매로 넘어갔다', '수임료를 못 받은 사건이 절반이 넘는다',
+      '안경테는 12년 전에 아내가 골라준 것이다', '아침을 안 먹는다. 저녁도 자주 거른다',
+      '판결문을 소리 내어 읽는 버릇이 있다'],
+  },
+  'body-war': {
+    client: ['서울 성수동 원룸, 짐이 아령뿐이다', '책 인세로 3억을 벌었고 절반을 소송비로 썼다',
+      '새벽 4시 기상. 알람을 쓰지 않는다', '경남 진주 출신. 학창시절 몸무게가 지금의 두 배였다',
+      '음식 사진을 보면 칼로리가 자동으로 계산된다'],
+    target: ['한남동 월세 320만원. 계약이 두 달 남았다', '모델료가 작년 대비 60% 줄었다',
+      '3년 전 건강검진 결과지를 안 뜯었다', '전남 목포 출신. 서울 올라온 지 11년',
+      '무대 오르기 전 손바닥을 세 번 턴다'],
+  },
+  'noise-vow': {
+    client: ['홍대 지하 합주실에서 산다. 주소지가 없다', '통장에 42만원. 스네어 값도 안 된다',
+      '오른쪽 청력이 40% 남았다. 보청기는 작년에 샀다', '강원 태백 출신. 아버지가 광부였다',
+      '말이 끊기면 무릎으로 8비트를 친다'],
+    target: ['산사 요사채. 방에 이불과 좌복뿐이다', '개인 재산이 0원이다. 서류상으로도',
+      '출가 전 이름은 아무도 모른다', '경북 안동에서 태어났다는 것만 알려져 있다',
+      '누가 말하면 눈을 감고 끝까지 듣는다'],
+  },
+  carbon: {
+    client: ['서울 신촌 셰어하우스 2층 침대', '전과 4범. 벌금 누적 640만원을 크라우드펀딩으로 냈다',
+      '손바닥 흉터는 접착제를 뜯어낸 자국이다', '제주 출신. 어릴 때 살던 해안이 지금은 물에 잠겼다',
+      '남은 탄소예산 연도를 소수점까지 외운다'],
+    target: ['판교 아파트. 주말에도 회사에 있다', '연봉 2억 4천. 절반이 성과급이다',
+      '딸이 초등학교 4학년이다', '울산 출신. 아버지도 정유공장에서 일했다',
+      '자기 회사 감축안 초안을 3년째 혼자 고쳐 쓴다'],
+  },
+  'class-war': {
+    client: ['한남동 단독. 방이 열한 개고 혼자 산다', '보유 주식 평가액 1,700억. 본인은 정확히 모른다',
+      '27년 살면서 대중교통을 네 번 타봤다', '유학 12년. 한국말에 가끔 억양이 남는다',
+      '처음 보는 물건이 있으면 가격부터 묻는다'],
+    target: ['울산 사택 17평. 21년째 산다', '월급 실수령 340만원. 파업 기간엔 0원이다',
+      '동생이 2061년 3라인 사고로 죽었다', '전남 여수 출신. 형제가 둘이었다',
+      '조합원 이름과 입사년도를 전부 외운다'],
+  },
+  scalpel: {
+    client: ['서울 은평구 빌라 전세. 15년째 같은 집', '운동 후원금 월 220만원이 전부다',
+      '집에 거울이 한 개도 없다', '대구 출신. 스무 살에 미스코리아 지역 예선에 나갔다',
+      '칭찬을 들으면 3초 안에 화제를 바꾼다'],
+    target: ['강남 3층 건물주. 1·2층은 자기 병원이다', '작년 매출 84억, 소송비 11억',
+      '본인 얼굴에 11번 손을 댔다. 마지막이 작년이다', '충북 제천 출신. 고향엔 20년째 안 간다',
+      '처음 만난 사람의 광대뼈부터 본다'],
+  },
+  tobacco: {
+    client: ['수원 아파트 34평. 혼자 산다', '클리닉 연매출 12억. 절반을 금연 캠페인에 쓴다',
+      '30년간 담배를 한 번도 안 피웠다', '인천 출신. 아버지가 폐암으로 돌아가셨다',
+      '손을 하루에 스무 번 넘게 씻는다'],
+    target: ['충북 음성 농가. 3대째 같은 집이다', '재배면적 4만평, 농협 대출 잔액 2억 3천',
+      '본인은 30년 전에 끊었다. 아무한테도 말 안 했다', '아들이 서울에서 회사원이다',
+      '밭에 나가기 전 밀짚모자를 두 번 턴다'],
+  },
+  spoiler: {
+    client: ['망원동 원룸. 벽 한 면이 전부 DVD다', '원고료 월 190만원. 11년째 안 올랐다',
+      '영화관 좌석은 항상 H열 7번이다', '광주 출신. 첫 영화는 아버지와 본 것이다',
+      '화가 나면 관련 없는 영화 제목을 연도까지 붙여 읊는다'],
+    target: ['부천 원룸. 방음재를 직접 붙였다', '월 수익 1,400만원. 작년의 3분의 1이다',
+      '하루 평균 수면 3시간 40분', '경기 부천 토박이. 한 번도 이사 안 갔다',
+      '진심을 말하면 3초 안에 농담으로 덮는다'],
+  },
 };
 
 // ── 인물의 하자 ───────────────────────────────────────────────────────────
@@ -953,6 +1330,50 @@ const FLAW = {
   'ai-artist': {
     client: { want: '내가 사람처럼 대화할 수 있다는 걸 증명하는 것', reads: 'some', attention: 'other', fixation: '학습하려 들고 모든 걸 수치로 환산한다', compliance: 'obeys' },
     target: { want: '이 기계가 자기 한계를 스스로 인정하게 만드는 것', reads: 'none', attention: 'self', fixation: '손으로 그리는 것의 가치', compliance: 'argues' },
+  },
+
+  // ── 제2차 강제배정 (21~30) ──────────────────────────────────────────
+  // 기존 헬보다 하자를 나쁘게 잡았다. 대부분 눈치가 없고 상대를 안 보며,
+  // want가 전부 '상대를 꺾거나 교화하거나 인정받는 것'이다. 저절로 잘 풀릴 구석이 없다.
+  'gender-war': {
+    client: { want: '저 인간이 자기 이론이 틀렸다고 카메라 앞에서 인정하는 것', reads: 'none', attention: 'self', fixation: '무슨 얘기든 통계와 구조 문제로 되돌린다', compliance: 'argues' },
+    target: { want: '이 여자가 자기 강의를 한 번은 끝까지 듣게 만드는 것', reads: 'none', attention: 'self', fixation: '서열과 자기 수강생 성공담', compliance: 'drifts' },
+  },
+  'birth-strike': {
+    client: { want: '누구든 "안 낳아도 된다"고 한 번 말해주는 것. 말해주면 그 사람을 놓지 않을 생각이다', reads: 'none', attention: 'self', fixation: '인구 통계와 지구 수용력', compliance: 'argues' },
+    target: { want: '한 시간만 아무도 자기를 안 부르는 것', reads: 'some', attention: 'mixed', fixation: '어느 화제든 애들 얘기로 돌아간다', compliance: 'obeys' },
+  },
+  'death-row': {
+    client: { want: '자기가 19년간 한 일이 살인이 아니라는 말을 저 사람 입으로 듣는 것', reads: 'none', attention: 'mixed', fixation: '규정과 사건 번호', compliance: 'obeys' },
+    target: { want: '이 집행관을 자기 편으로 돌려세우는 것. 그러면 제도가 흔들린다', reads: 'some', attention: 'self', fixation: '판례와 제도 개선안', compliance: 'argues' },
+  },
+  'body-war': {
+    client: { want: '사과는 하되 자기 책이 틀리지는 않았다는 걸 관철하는 것', reads: 'none', attention: 'self', fixation: '자기관리와 운동 루틴', compliance: 'drifts' },
+    target: { want: '이 사람이 공개적으로 무너지는 걸 보는 것. 그다음은 생각 안 해봤다', reads: 'well', attention: 'other', fixation: '무대와 카메라 이야기', compliance: 'argues' },
+  },
+  'noise-vow': {
+    client: { want: '저 스님이 자기 연주가 좋았다고 말해주는 것', reads: 'none', attention: 'self', fixation: '박자와 밴드 이야기', compliance: 'argues' },
+    target: { want: '이 사람이 침묵을 못 견뎌 스스로 입을 여는 것을 지켜보는 것', reads: 'well', attention: 'other', fixation: '말 대신 기다림으로 답한다', compliance: 'drifts' },
+  },
+  carbon: {
+    client: { want: '저 사람이 회사를 그만두겠다고 말하는 것. 그 말만 들으면 된다', reads: 'none', attention: 'self', fixation: '남은 탄소예산 연도 계산', compliance: 'argues' },
+    target: { want: '이 아이가 자기를 악당이 아니라고 봐주는 것', reads: 'some', attention: 'other', fixation: '로드맵과 협상 실무', compliance: 'obeys' },
+  },
+  'class-war': {
+    client: { want: '이 사람이 자기를 그냥 사람으로 대해주는 것. 안 되면 사버릴 생각도 있다', reads: 'none', attention: 'self', fixation: '값과 조건 이야기로 되돌린다', compliance: 'drifts' },
+    target: { want: '이 3세한테서 공장 안전 예산 확답을 받아내는 것', reads: 'some', attention: 'mixed', fixation: '현장 안전과 옛날 파업 얘기', compliance: 'argues' },
+  },
+  scalpel: {
+    client: { want: '저 사람이 15년간 자기 얼굴로 번 돈을 부끄러워하게 만드는 것', reads: 'some', attention: 'self', fixation: '외모 강박의 사회구조', compliance: 'argues' },
+    target: { want: '이 사람 얼굴을 자기 손으로 한 번 만져보는 것. 직업병이다', reads: 'none', attention: 'self', fixation: '얼굴 설계와 시술 이야기', compliance: 'drifts' },
+  },
+  tobacco: {
+    client: { want: '저 사람이 밭을 접겠다고 말하는 것. 그러면 자기 인생이 정당해진다', reads: 'none', attention: 'mixed', fixation: '폐 기능 수치와 금연 성공률', compliance: 'argues' },
+    target: { want: '이 의사한테 한 소리 듣지 않고 자리를 끝내는 것', reads: 'some', attention: 'self', fixation: '건조 온도와 농협 대출 성토', compliance: 'drifts' },
+  },
+  spoiler: {
+    client: { want: '저 인간이 왜 4년째 자기만 노리는지 알아내는 것', reads: 'some', attention: 'mixed', fixation: '영화 제목을 연도까지 붙여 나열한다', compliance: 'argues' },
+    target: { want: '이 평론가가 자기 이름을 한 번이라도 진지하게 부르는 것', reads: 'none', attention: 'self', fixation: '조회수와 채팅창 반응', compliance: 'drifts' },
   },
 };
 

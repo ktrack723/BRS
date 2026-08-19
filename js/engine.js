@@ -55,7 +55,8 @@ export class Engine {
     this.vibeBeats = 0;       // 공기가 갱신된 횟수. 눈치가 반쯤인 인물은 이 중 절반만 받는다
     this.radioLeft = 0;
     this.phase = 'text';
-    this.phaseTurn = 0;   // 현재 페이즈에서 소화한 턴 수. 남은 턴을 계기판에 띄우려면 필요하다
+    this.phaseTurn = 0;    // 현재 페이즈에서 소화한 턴 수. 남은 턴을 계기판에 띄우려면 필요하다
+    this.phaseTurns = 0;   // 현재 페이즈의 실제 턴 수. 케미가 좋으면 예정치보다 늘어난다
   }
 
   // ── 외부 제어 ────────────────────────────────────────
@@ -76,7 +77,8 @@ export class Engine {
 
   snapshot() {
     const s = this.state, t = this.couple.target;
-    const turnsTotal = this.phase === 'text' ? this.d.textTurns : this.d.talkTurns;
+    // 케미가 좋으면 자리가 길어진다. 예정 턴이 아니라 실제 턴을 띄운다.
+    const turnsTotal = this.phaseTurns || (this.phase === 'text' ? this.d.textTurns : this.d.talkTurns);
     return {
       mood: Math.round(s.mood), love: Math.round(s.love),
       threshold: this.d.threshold, moodFloor: this.d.moodFloor,
@@ -143,6 +145,8 @@ export class Engine {
     const c = this.couple;
     this.phase = 'text';
     this.radioLeft = this.d.radioText;
+    this.phaseTurn = 0;
+    this.phaseTurns = this.d.textTurns;
     this.pendingRadio = null;
     this.clientHist = [{
       role: 'user',
@@ -187,6 +191,7 @@ export class Engine {
     // 페이즈가 바뀌는 즉시 계기판을 갱신한다. 안 하면 대면 초반에 문자 페이즈의
     // 잔여 턴("0/4")과 잔여 무전이 그대로 남아 거짓 수치가 보인다 (라이브에서 잡았다).
     this.phaseTurn = 0;
+    this.phaseTurns = this.d.talkTurns;
     this.h.meters?.(this.snapshot());
     this.pendingRadio = null;   // 문자 페이즈 막판에 보낸 지시는 대면 맥락에 맞지 않는다
 
@@ -296,12 +301,28 @@ export class Engine {
     this.pendingJudge = null;
 
     this.phaseTurn = 0;
+    this.phaseTurns = turns;   // 연장되면 늘어난다
+    let extra = 0;
 
-    for (let i = 0; i < turns; i++) {
+    for (let i = 0; i < this.phaseTurns; i++) {
       await this.#gate();
       this.phaseTurn = i;
+
+      // 마지막 턴에 들어서는 참인데 케미가 뜨거우면 자리가 길어진다.
+      // 대면 상황 선발주(아래)보다 먼저 판단해야 한다 — 그래야 '진짜 마지막 턴'에서 발주된다.
+      if (i === this.phaseTurns - 1 &&
+          S.extraTurn(phase, this.tierLog, this.state.mood, extra, this.d)) {
+        this.phaseTurns += 1; extra += 1;
+        const msg = phase === 'text'
+          ? '(대화가 끊길 기미가 없다. 둘 다 휴대폰을 놓지 않는다.)'
+          : '(누구도 자리에서 일어나지 않는다. 얘기가 더 이어진다.)';
+        this.transcript.push({ who: 'sys', text: msg });
+        await this.h.bubble?.('sys', msg);
+        this.h.extend?.({ phase, turns: this.phaseTurns, extra });
+      }
+
       // turn 핸들러는 await한다 — 자동 플레이 하네스가 이 시점에 무전을 끼워 넣을 수 있게.
-      await this.h.turn?.({ phase, turn: i + 1, turns, turnsLeft: turns - i });
+      await this.h.turn?.({ phase, turn: i + 1, turns: this.phaseTurns, turnsLeft: this.phaseTurns - i });
       await this.#gate();
 
       // 무전 지시 주입 (상대에게는 안 들린다)
@@ -335,7 +356,7 @@ export class Engine {
         pending ? this.#judgeCall(pending, `${pending.turn}`) : Promise.resolve(null),
       ];
       // 문자 마지막 턴이면 대면 상황 생성까지 같은 배치에 태운다
-      if (phase === 'text' && i === turns - 1) {
+      if (phase === 'text' && i === this.phaseTurns - 1) {
         this.situationPromise = this.#callSituation(this.#history());
       }
 
@@ -354,7 +375,7 @@ export class Engine {
     }
     // 페이즈 마지막 발언은 아직 채점되지 않았다. 문자 페이즈면 대면으로 넘겨 이어서 처리한다.
     this.pendingJudge = pending;
-    this.phaseTurn = turns;   // 페이즈를 다 소화했다. 남은 턴 표시가 1에서 멈추면 안 된다
+    this.phaseTurn = this.phaseTurns;   // 페이즈를 다 소화했다. 남은 턴 표시가 1에서 멈추면 안 된다
 
   }
 

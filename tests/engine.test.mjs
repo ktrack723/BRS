@@ -547,3 +547,66 @@ test('핸들러가 약속을 돌려주지 않아도 그냥 흘러간다', async 
   const { result } = await playFull(llm);   // 전부 동기 핸들러
   assert.ok(result.verdict, '동기 핸들러에서도 끝까지 돈다');
 });
+
+// ── 케미가 좋으면 자리가 길어진다 ──────────────────────────────────────
+// 대화가 잘 풀리는데 예정된 턴에서 칼같이 끊기면, 잘 풀렸다는 사실 자체가 무의미해진다.
+
+test('판정이 뜨겁고 분위기가 오르면 턴이 늘어난다', async () => {
+  const S = await import('../js/scoring.js');
+  // 매 턴 뜨겁게 채점해서 분위기를 끌어올린다
+  const llm = new FakeLlm({
+    judge: () => ({
+      tier: 'warm', moodDelta: 9, loveDelta: 5, reason: '잘 풀린다',
+      vibe: '둘 다 웃고 있다', revealed: '', clientEmote: 'laugh', targetEmote: 'laugh',
+    }),
+  });
+  const couple = COUPLES.find(c => c.difficulty === '쉬움');
+  const events = [];
+  const engine = new Engine(llm, {
+    couple, prep: {}, agent: AGENT, handlers: { extend: e => events.push(e) },
+  });
+  await engine.runTexting();
+  const sit = await engine.situation();
+  await engine.runTalking(sit);
+
+  assert.ok(events.length >= 1, '판 내내 뜨거웠는데 한 턴도 안 늘어났다');
+  assert.ok(engine.state.mood >= engine.d.startMood + S.EXTENSION.moodGain,
+    '분위기가 실제로 올라야 연장 조건이 성립한다');
+  for (const e of events) {
+    assert.ok(e.extra <= S.EXTENSION.maxExtra[e.phase], `${e.phase} 연장 상한을 넘었다`);
+    assert.ok(e.turns > (e.phase === 'text' ? engine.d.textTurns : engine.d.talkTurns),
+      '연장됐다면서 예정 턴을 안 넘었다');
+  }
+});
+
+test('대화가 미지근하면 턴이 늘어나지 않는다', async () => {
+  const llm = new FakeLlm({
+    judge: () => ({
+      tier: 'flat', moodDelta: 0, loveDelta: 0, reason: '아무 일도 없다',
+      vibe: '침묵', revealed: '', clientEmote: 'talk', targetEmote: 'talk',
+    }),
+  });
+  const couple = COUPLES.find(c => c.difficulty === '쉬움');
+  const events = [];
+  const engine = new Engine(llm, {
+    couple, prep: {}, agent: AGENT, handlers: { extend: e => events.push(e) },
+  });
+  await engine.runTexting();
+  assert.equal(events.length, 0, '미지근한데 자리가 길어졌다');
+  assert.equal(engine.phaseTurns, engine.d.textTurns);
+});
+
+test('분위기를 끌어올리지 못하면 판정이 좋아도 늘어나지 않는다', async () => {
+  const S = await import('../js/scoring.js');
+  const hot = ['warm', 'breakthrough', 'warm'];
+  for (const name of Object.keys(S.DIFFICULTIES)) {
+    const d = S.diffOf(name);
+    const need = d.startMood + S.EXTENSION.moodGain;
+    assert.equal(S.extraTurn('talk', hot, need - 1, 0, d), false, `${name}: 안 끌어올렸는데 길어진다`);
+    assert.equal(S.extraTurn('talk', hot, need, 0, d), true, `${name}: 끌어올렸는데 안 길어진다`);
+    // 시작하자마자 조건을 만족하면 안 된다 — 아무것도 안 한 판이 공짜로 연장된다
+    assert.equal(S.extraTurn('talk', hot, d.startMood, 0, d), false, `${name}: 시작 분위기로 연장된다`);
+    // 상한을 넘겨서는 안 된다
+    assert.equal(S.extraTurn('talk', hot, 100, S.EXTENSION.maxExtra.talk, d), false, `${name}: 연장 상한이 안 먹는다`);
+  }
+});
