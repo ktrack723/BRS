@@ -50,7 +50,8 @@ const SCREENS = ['boot', 'intro', 'briefing', 'roster', 'salon', 'interro', 'gat
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
 const server = http.createServer((rq, rs) => {
-  const f = path.join(ROOT, rq.url === '/' ? 'index.html' : decodeURIComponent(rq.url.split('?')[0]));
+  const rel = decodeURIComponent(rq.url.split('?')[0]);   // ?pace= 같은 질의는 파일 경로가 아니다
+  const f = path.join(ROOT, rel === '/' ? 'index.html' : rel);
   if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { rs.writeHead(404); return rs.end(); }
   rs.writeHead(200, { 'content-type': MIME[path.extname(f)] || 'application/octet-stream' });
   fs.createReadStream(f).pipe(rs);
@@ -117,9 +118,11 @@ function poseScreens() {
     const d = document.createElement('div');
     d.className = `bubble ${who}`;
     const name = who === 'client' ? c.client.name : who === 'target' ? c.target.name : who === 'radio' ? '본부 무전' : '상황';
-    d.innerHTML = `<span class="who">${esc(name)}</span>${esc(text)}`;
+    d.innerHTML = `<span class="who">${esc(name)}</span><span class="say">${esc(text)}</span>`;
     win.appendChild(d);
   }
+  // 재생 대기 표시도 자리를 차지한다 — 켜 둔 상태로 레이아웃을 본다
+  document.querySelector('#chat-advance').classList.add('on');
   const feed = document.querySelector('#judge-feed');
   feed.innerHTML = '';
   for (const [cls, html] of [
@@ -282,7 +285,7 @@ const problems = [];
 const page = await browser.newPage({ viewport: { width: 1500, height: 1000 } });
 page.on('pageerror', e => problems.push({ vp: '-', screen: '-', kind: 'JS 오류', detail: String(e).slice(0, 120) }));
 
-await page.goto(`http://127.0.0.1:${PORT}/`, { waitUntil: 'networkidle' });
+await page.goto(`http://127.0.0.1:${PORT}/?pace=instant`, { waitUntil: 'networkidle' });
 await page.waitForFunction(() => window.__game && window.__game.COUPLES);
 await page.evaluate(mockLlm);
 await page.evaluate(installContrast);

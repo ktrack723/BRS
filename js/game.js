@@ -6,6 +6,7 @@ import { DIFFICULTIES, diffOf } from './scoring.js';
 import { COUPLES, flawReport, FLAW_LABELS } from './couples.js';
 import { AvatarViewer, sanitizeSpec, renderThumb } from './avatar.js';
 import { sfx, startBgm, toggleBgm, unlockAudio } from './audio.js';
+import * as pace from './pacing.js';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -22,7 +23,7 @@ const state = {
   engine: null, result: null,
   filter: '전체',
 };
-window.__game = { state, llm, DIFFICULTIES, COUPLES }; // 자동 테스트 후크
+window.__game = { state, llm, DIFFICULTIES, COUPLES, pace }; // 자동 테스트 후크
 
 // ── 뷰어 관리 (무대 캔버스는 WebGL 컨텍스트를 재사용한다) ─────
 const stageViewers = new Map();
@@ -77,15 +78,14 @@ function errMsg(e) {
   return `통신 사고 — ${e.message}`;
 }
 
+// 브리핑·편지처럼 '한 덩어리로 읽는 글'을 흘려 넣는다.
+// 이건 재생 속도가 아니라 타자 연출이다 — 글이 화면에 그대로 남으니 읽는 속도는 사람이 정한다.
+// 그래서 초당 글자 수는 넉넉히 잡고, 대신 재생 속도 설정과 '눌러서 건너뛰기'는 똑같이 먹힌다.
 async function typeText(el, text, cps = 60) {
-  el.textContent = '';
-  const step = Math.max(1, Math.round(text.length / 400));
-  for (let i = 0; i < text.length; i += step) {
-    el.textContent += text.slice(i, i + step);
-    if (i % 4 === 0) sfx.type();
-    await new Promise(r => setTimeout(r, 1000 / cps));
-  }
-  el.textContent = text;
+  const mult = pace.paceMult();
+  let n = 0;
+  await pace.typeInto(el, text, () => { if (n++ % 6 === 0) sfx.type(); },
+    { typeMs: mult > 0 ? (text.length / cps) * 1000 * mult : 0, mult });
 }
 
 // 스토리지 차단 환경에서도 죽지 않게
@@ -292,7 +292,7 @@ function initIntro() {
 async function gotoBriefing() {
   show('briefing');
   $('#btn-to-roster').classList.add('hidden');
-  await typeText($('#briefing-text'), P.briefingText(state.agent), 220);
+  await typeText($('#briefing-text'), P.briefingText(state.agent), 90);
   $('#btn-to-roster').classList.remove('hidden');
 }
 
@@ -688,18 +688,31 @@ function emoteFromText(text) {
   return 'talk';
 }
 
-function addBubble(who, text) {
+// 말풍선 하나. 표정·효과음은 즉시 붙고, 글자는 읽는 속도로 흐른다.
+// engine이 이 함수를 await 하므로 여기서 붙잡는 동안 다음 턴이 시작되지 않는다 —
+// 그래야 무전 개입이 '지금 이 장면'에 끼어드는 게 된다.
+async function addBubble(who, text) {
   const w = $('#chat-window');
   const div = document.createElement('div');
   div.className = `bubble ${who}`;
   const name = who === 'client' ? state.couple.client.name : who === 'target' ? state.couple.target.name
     : who === 'radio' ? '본부 무전' : '상황';
-  div.innerHTML = `<span class="who">${escapeHtml(name)}</span>${escapeHtml(text)}`;
+  div.innerHTML = `<span class="who">${escapeHtml(name)}</span><span class="say"></span>`;
+  const say = div.querySelector('.say');
   w.appendChild(div);
-  w.scrollTop = w.scrollHeight;
+  const follow = () => { w.scrollTop = w.scrollHeight; };
+  follow();
   if (who === 'client') { stageViewer?.emote('left', emoteFromText(text)); sfx.send(); }
   else if (who === 'target') { stageViewer?.emote('right', emoteFromText(text)); sfx.send(); }
   else if (who === 'radio') sfx.radio();
+
+  // 무전은 요원이 방금 자기 손으로 쓴 문장이다. 읽어줄 이유가 없다.
+  if (who === 'radio') { say.textContent = text; follow(); return; }
+
+  const plan = pace.bubblePlan(text);
+  await pace.typeInto(say, text, follow, { typeMs: plan.typeMs });
+  follow();
+  await pace.beat(plan.beatMs);
 }
 
 // 등급 → 무대 연출. 이제 '취향 적중'이 아니라 '상대가 얼마나 움직였는가'가 기준이다.
@@ -731,6 +744,8 @@ function addJudge(j) {
   else if (j.love > 0) sfx.love();
   else if (j.tier === 'disaster') sfx.trombone();
   else if (j.love < 0) sfx.bad();
+  // 판정은 이 게임에서 유일한 피드백이다. 게이지가 움직이는 걸 볼 시간은 줘야 한다.
+  return pace.beat(pace.judgeMs(j.reason));
 }
 
 function setupChatScreen(title, { keepFeed = false } = {}) {
@@ -872,7 +887,7 @@ async function gotoResult() {
     } else { sfx.trombone(); v.burst('rain'); }
   }, 600);
 
-  await typeText($('#result-letter'), r.letter.letter, 60);
+  await typeText($('#result-letter'), r.letter.letter, 40);
   $('#result-mvp').textContent = `승패를 가른 순간 — ${r.letter.mvp}`;
   $('#result-epilogue').textContent = `— 에필로그: ${r.letter.epilogue}`;
   $('#btn-retry').classList.remove('hidden');
@@ -920,11 +935,36 @@ function initRadio() {
   $('#btn-radio-cancel').addEventListener('click', () => { sfx.click(); closeRadioModal(); });
 }
 
+// ── 재생 속도 ───────────────────────────────────────────
+// 대화가 눈보다 빨리 지나가던 문제의 조종간. 실제 대기 시간은 pacing.js가 계산한다.
+function initPacing() {
+  const box = $('#pace-buttons');
+  const btns = pace.PACE_STEPS.map(step => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'btn95 tiny pace-btn';
+    b.dataset.pace = step.key;
+    b.textContent = step.label;
+    b.addEventListener('click', () => { sfx.click(); pace.setPace(step.key); });
+    box.appendChild(b);
+    return b;
+  });
+  const paint = key => btns.forEach(b => b.classList.toggle('on', b.dataset.pace === key));
+  paint(pace.getPace());
+  pace.onPaceChange(paint);
+
+  // 기록창 아무 데나 눌러도 다음으로. 버튼·입력칸 위는 제외된다 (pacing.js).
+  pace.attachSkip($('#screen-chat'));
+  const advance = $('#chat-advance');
+  pace.onWaitChange(on => advance.classList.toggle('on', on && pace.paceMult() > 0));
+}
+
 // ── 초기화 ──────────────────────────────────────────────
 function init() {
   initBoot();
   initIntro();
   initRadio();
+  initPacing();
   $('#btn-to-roster').addEventListener('click', () => { sfx.click(); gotoRoster(); });
   $('#btn-restart').addEventListener('click', () => { sfx.click(); gotoRoster(); });
   $('#btn-retry').addEventListener('click', () => { sfx.click(); chooseCouple(state.couple); });

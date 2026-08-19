@@ -506,3 +506,44 @@ test('페이즈가 바뀌는 즉시 잔여 턴이 새 페이즈 기준으로 갱
   assert.equal(first.total, engine.d.talkTurns, `대면 총 턴이 ${first.total}로 잘못 나온다`);
   assert.equal(first.left, engine.d.talkTurns, '대면 시작인데 남은 턴이 0으로 보인다');
 });
+
+// ── UI가 대화를 붙잡아 둘 수 있어야 한다 ────────────────
+// 말풍선이 도착하는 즉시 다음 턴이 시작되면, 읽는 사람은 스크롤이 지나간 뒤에야 뭔가 있었음을 안다.
+// 하네스는 핸들러가 돌려준 약속을 기다려야 하고, 그동안 새 LLM 호출이 나가면 안 된다.
+test('bubble·judge 핸들러가 끝날 때까지 다음 호출이 나가지 않는다', async () => {
+  const llm = new FakeLlm();
+  const timeline = [];
+  const hold = ms => new Promise(r => setTimeout(r, ms));
+  const engine = new Engine(llm, {
+    couple, agent: AGENT, prep: { outfitDesc: '테스트 착장' },
+    handlers: {
+      bubble: async (who) => {
+        timeline.push(`bubble:${who}:start`);
+        await hold(20);
+        timeline.push(`bubble:${who}:end`);
+      },
+      judge: async () => { timeline.push('judge:start'); await hold(20); timeline.push('judge:end'); },
+    },
+  });
+  const seen = new Set();
+  const origCall = llm.call.bind(llm);
+  llm.call = args => { timeline.push(`call:${args.label}`); seen.add(args.label); return origCall(args); };
+
+  await engine.runTexting();
+
+  // 붙잡는 중에 호출이 끼어들었다면 start와 end 사이에 call이 들어온다
+  for (let i = 0; i < timeline.length; i++) {
+    if (!timeline[i].endsWith(':start')) continue;
+    const end = timeline.indexOf(timeline[i].replace(':start', ':end'), i);
+    const between = timeline.slice(i + 1, end).filter(e => e.startsWith('call:'));
+    assert.deepEqual(between, [], `${timeline[i]} 도중에 호출이 나갔다: ${between.join(', ')}`);
+  }
+  assert.ok(timeline.filter(e => e === 'bubble:client:start').length >= D.textTurns, '발언마다 붙잡아야 한다');
+  assert.ok(timeline.includes('judge:start'), '판정도 붙잡을 수 있어야 한다');
+});
+
+test('핸들러가 약속을 돌려주지 않아도 그냥 흘러간다', async () => {
+  const llm = new FakeLlm();
+  const { result } = await playFull(llm);   // 전부 동기 핸들러
+  assert.ok(result.verdict, '동기 핸들러에서도 끝까지 돈다');
+});
