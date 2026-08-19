@@ -293,19 +293,45 @@ ${text && text.trim() ? `"""\n${text.trim()}\n"""` : '(아무 말도 없었다. 
 //   상대에 대해 공개된 것만 / 받아들인 지침 / 들은 연설
 //   (턴마다 메시지로 들어오는 것) 무전 내역 · 분위기 텍스트 · 대화 내역
 // 대화를 어떻게 하라는 지시는 단 한 줄도 없다. 있으면 그건 버그다.
+// 상대에 대해 이 인물이 실제로 아는 만큼만 적는다.
+// 관심이 'self'인 사람은 상대의 성격도 취향도 모른다 — 알아볼 생각을 해본 적이 없기 때문이다.
+// "상대를 신경 쓰지 마라"라고 지시하는 대신, 신경 쓸 재료를 안 준다. 지시는 안 먹고 이건 먹는다.
+function knownAbout(p, attention, extraLine = '') {
+  const lines = [`${p.name} · ${p.age}세 · ${p.job}`, `· 겉모습: ${p.appearance.join(', ')}`];
+  if (attention !== 'self') lines.push(`· 성격이라고 들은 것: ${p.personality.join(', ')}`);
+  if (attention === 'other' && p.visiblePrefs) lines.push(`· 좋아한다고 알려진 것: ${p.visiblePrefs.join(' / ')}`);
+  if (extraLine) lines.push(extraLine);
+  const tail = attention === 'self'
+    ? '이게 네가 아는 전부다. 저 사람이 어떤 사람인지 굳이 알아본 적이 없다.'
+    : attention === 'mixed'
+      ? '이게 네가 아는 전부다. 저 사람이 뭘 좋아하는지까지는 모른다.'
+      : '이게 네가 아는 전부다. 저 사람 속에 뭐가 들었는지는 모른다.';
+  return lines.join('\n') + '\n' + tail;
+}
+
+// 명령의 결. 셋 다 이행한다 — 어떻게 이행하느냐가 다를 뿐이다.
+const COMPLY = {
+  obeys: '너는 이 명령을 그대로 이행한다.',
+  argues: '너는 이 명령을 이행한다. 속으로 토를 달더라도 하기는 한다.',
+  drifts: '너는 이 명령을 이행한다. 다만 한 번 이행하고 나면 원래 하던 얘기로 돌아간다.',
+};
+
 export function clientAgentSystem(couple, prep, phase, agent) {
   const c = couple.client, t = couple.target;
+  const f = c.flaw;
   const coaching = (prep.coaching || '').trim();
   const speech = (prep.speech || '').trim();
   const who = agentLabel(agent);
 
   const coachBlock = coaching
-    ? `[본부 요원 ${who}에게서 받은 대화 지침 — 너는 이것을 받아들였다]
+    ? `[본부 명령 — 요원 ${who}이(가) 너에게 직접 하달한 대화 지침]
 """
 ${coaching}
-"""`
-    : `[본부에서 받은 대화 지침] 없다. 아무도 너에게 어떻게 하라고 알려주지 않았다.
-준비 없이 그냥 나왔다는 사실을 너 자신도 알고 있다.`;
+"""
+이건 조언이나 참고사항이 아니다. 명령이다. ${COMPLY[f.compliance] || COMPLY.obeys}
+명령이 다루지 않은 상황에서는 네 판단대로 한다.`
+    : `[본부 명령] 없다. 아무도 너에게 어떻게 하라고 알려주지 않았다.
+전부 네 판단이고, 준비 없이 나왔다는 사실을 너 자신도 안다.`;
 
   const speechBlock = speech
     ? `[출동 직전, 요원 ${who}이(가) 너에게 해준 말]
@@ -318,11 +344,16 @@ ${speech}
 
 너는 "${c.name}"이다. 지금부터 나오는 건 전부 네가 알고 있는 것들이다.
 
+[네가 이 자리에서 원하는 것]
+${f.want}
+저 사람을 위해서가 아니라 너를 위해서다. 네 입에서 나오는 말은 전부 여기서 출발한다.
+
 [너]
 ${c.name} · ${c.age}세 · ${c.job}
 · 생김새: ${c.appearance.join(', ')}
 · 성격: ${c.personality.join(', ')}
 · 살아온 내력: ${c.background.join(' / ')}
+· 가만두면 네 얘기가 흘러가는 곳: ${f.fixation}
 · 너도 아는 네 못된 버릇: ${c.weakness}
 · 입버릇처럼 하는 말: "${c.quote}"
 
@@ -332,13 +363,8 @@ ${couple.clash}
 [네가 저 사람에게 빠진 경위]
 ${c.story}
 
-[네가 저 사람에 대해 아는 것 — 남들도 다 아는 만큼만]
-${t.name} · ${t.age}세 · ${t.job}
-· 생김새: ${t.appearance.join(', ')}
-· 성격: ${t.personality.join(', ')}
-· 좋아한다고 알려진 것: ${t.visiblePrefs.join(' / ')}
-그 이상은 모른다. 저 사람이 무슨 얘기에 얼어붙는지도, 속에 뭐가 들었는지도 하나도 모른다.
-너는 연애 경험이 없고, 저 사람을 멀리서 봐온 게 전부다.
+[네가 저 사람에 대해 아는 것]
+${knownAbout(t, f.attention)}
 
 [오늘 네 꼴]
 ${prep.outfitDesc || '평소 입던 옷 그대로. 딱히 꾸미지 않았다.'}
@@ -354,7 +380,7 @@ ${phase === 'text' ? `${t.name}에게 문자를 보내는 중이다.` : `${t.nam
 ${phase === 'text' ? '문자 한 통' : '지금 이 자리에서 나온 말 한 마디'}만 쓴다.
 길이는 하고 싶은 말에 맞춘다. 한 글자여도 되고 여러 문장이어도 된다. 매번 같은 길이로 쓰지 마라.
 따옴표·이름표·해설 없이 내용만 출력한다. 짧은 행동 묘사는 괄호로 붙여도 된다.
-[본부 무전]은 상대에게 들리지 않는다. 그건 네 귓속으로만 들어온 소리다.`;
+[본부 명령]은 상대에게 들리지 않는다. 그건 네 귓속으로만 들어온 소리다.`;
 }
 
 // ── 5) 대화 에이전트: 타겟 ─────────────────────────────────────
@@ -363,24 +389,29 @@ ${phase === 'text' ? '문자 한 통' : '지금 이 자리에서 나온 말 한 
 // 나오면 나오는 거고, 안 나오면 안 나오는 거다. 그게 실제 대화다.
 export function targetAgentSystem(couple, phase, outfitDesc) {
   const c = couple.client, t = couple.target;
+  const f = t.flaw;
+  const seen = phase === 'talk' && outfitDesc ? `· 오늘 저 사람 꼴: ${outfitDesc}` : '';
   return `${WORLD}
 
 너는 "${t.name}"이다. 지금부터 나오는 건 전부 네가 알고 있는 것들이다.
+
+[네가 이 자리에서 원하는 것]
+${f.want}
+저 사람을 위해서가 아니라 너를 위해서다. 네 입에서 나오는 말은 전부 여기서 출발한다.
 
 [너]
 ${t.name} · ${t.age}세 · ${t.job}
 · 생김새: ${t.appearance.join(', ')}
 · 성격: ${t.personality.join(', ')}
 · 살아온 내력: ${t.background.join(' / ')}
+· 가만두면 네 얘기가 흘러가는 곳: ${f.fixation}
 · 네가 좋아하는 것 (주변에 다 알려진 것): ${t.visiblePrefs.join(' / ')}
 · 네가 좋아하는 것 (아직 아무한테도 말한 적 없는 것): ${t.hiddenPrefs.join(' / ')}
 · 네가 질색하는 것: ${t.redLines.join(' / ')}
 
-[상대]
-${c.name} · ${c.age}세 · ${c.job}
-· 생김새: ${c.appearance.join(', ')}
-· 성격: ${c.personality.join(', ')}
-${phase === 'talk' && outfitDesc ? `· 오늘 저 사람 꼴: ${outfitDesc}\n` : ''}
+[네가 저 사람에 대해 아는 것]
+${knownAbout(c, f.attention, seen)}
+
 [너와 저 사람 사이에 걸려 있는 것]
 ${couple.clash}
 

@@ -36,14 +36,15 @@ const TORDER = ['breakthrough', 'warm', 'nudge', 'flat', 'chill', 'disaster'];
 // 프로필별 등급 분포. **가정치가 아니라 라이브 실측이다** —
 // Sonnet으로 커플 3종(쉬움/보통/헬) × 프로필 4종 = 12판, 프로필당 판정 30건을 돌려 얻었다.
 //
-// 여기서 바로 보이는 사실 하나: ace와 lazy의 분포가 거의 같다.
-// 심판이 준비 품질의 차이를 등급으로 거의 못 잡아낸다는 뜻이고, 이게 현재 설계의 한계다.
-// 갈리는 지점은 flat/chill 쪽 꼬리뿐인데, 그건 준비 없는 의뢰인이 상대의 지뢰를 모르고 밟기 때문이다.
+// 인물 하자 시스템을 넣은 뒤로 프로필이 실제로 갈린다. 갈리는 지점은 chill 꼬리다:
+//   ace 0% · good 3.3% · lazy 6.7% · none 16.7%
+// 준비 없는 의뢰인은 상대의 지뢰를 모르고, 공기도 못 읽고, 상대에게 관심도 없어서
+// 자기 관심사로 대화를 끌고 가다 상대를 식힌다. breakthrough 쪽은 여전히 잘 안 갈린다.
 const PROFILE_DIST = {
-  ace:  { breakthrough: .133, warm: .467, nudge: .400, flat: .000, chill: .000, disaster: 0 },
-  good: { breakthrough: .200, warm: .367, nudge: .433, flat: .000, chill: .000, disaster: 0 },
-  lazy: { breakthrough: .200, warm: .300, nudge: .400, flat: .067, chill: .033, disaster: 0 },
-  none: { breakthrough: .167, warm: .300, nudge: .367, flat: .067, chill: .100, disaster: 0 },
+  ace:  { breakthrough: .133, warm: .433, nudge: .433, flat: .000, chill: .000, disaster: 0 },
+  good: { breakthrough: .067, warm: .433, nudge: .467, flat: .000, chill: .033, disaster: 0 },
+  lazy: { breakthrough: .133, warm: .367, nudge: .367, flat: .067, chill: .067, disaster: 0 },
+  none: { breakthrough: .067, warm: .300, nudge: .467, flat: .000, chill: .167, disaster: 0 },
 };
 // 심판이 실제로 뱉은 moodDelta 평균을 등급별로 정리한 값
 const TIER_MOOD = { breakthrough: 6, warm: 3, nudge: 1, flat: 0, chill: -2, disaster: -7 };

@@ -28,22 +28,24 @@
 // 그래서 실제 API로 다시 쟀다 (Sonnet, 커플 3종 × 프로필 4종 = 12판, 판정 120건).
 // 그 실측 분포로 몬테카를로(판당 3,000회 표본)를 돌려 아래 값을 뽑았다.
 //
-//   실측 등급 분포: breakthrough 18% · warm 36% · nudge 40% · flat 3% · chill 3% · disaster 0%
+// ── 인물 하자 시스템 투입 후 재계측 ─────────────────────────────
+// 그 전까지는 준비 품질이 결과를 거의 못 갈랐다(ace↔none 24~31%p). 두 에이전트가
+// 준비와 무관하게 상대를 잘 맞춰줬기 때문이다. couples.js의 하자 시스템으로 그걸 끊었다:
+// 공기를 못 읽는 인물에게는 vibe를 안 주고, 관심 없는 인물에게는 상대 정보를 안 준다.
+//
+//   실측 등급 분포: breakthrough 10% · warm 38% · nudge 43% · flat 2% · chill 7% · disaster 0%
+//   프로필별 chill 비율: ace 0% · good 3% · lazy 7% · none 17%   ← 여기서 갈린다
 //
 //              ace      good     lazy     none      (성사율 / 호감 중앙값)
-//   쉬움 56   97%/69   97%/71   85%/67   68%/61
-//   보통 58   60%/59   66%/62   47%/57   29%/51
-//   헬   60   47%/59   57%/61   39%/56   23%/50
+//   쉬움 54   97%/68   84%/62   78%/62   38%/50
+//   보통 56   63%/58   34%/52   37%/52    9%/39
+//   헬   60   43%/58   17%/50   24%/51    4%/37
 //
-// ⚠ 정직하게 밝혀둘 것 — **준비 품질과 결과의 상관이 예전보다 훨씬 약하다.**
-//    라이브 12판에서 ace와 lazy의 등급 분포가 거의 구분되지 않았다.
-//    이유는 분명하다: 예전에 준비가 점수를 갈랐던 유일한 경로가 '코칭 → 실마리 추적 → 적중 보너스'였고,
-//    그 경로를 이번에 통째로 없앴기 때문이다. 인물 데이터를 두껍게 써 넣은 것도 같은 방향으로 작용했다 —
-//    잘 쓰인 인물은 지침이 없어도 대화를 잘한다.
-//    지금 준비가 실제로 작용하는 유일한 경로는 **정보 비대칭**이다:
-//    의뢰인은 상대의 접촉 금지 항목을 모르고, 요원이 지침으로 넘겨줘야 안다.
-//    위 표의 ace↔none 격차(24~31%p)는 대부분 여기서 나온다.
-//    더 강한 상관을 원하면 준비가 개입할 경로를 하나 더 만들어야 한다 — 지금 구조에서는 프롬프트로 안 된다.
+// ace↔none 격차가 39~59%p로 벌어졌다. 준비 없는 의뢰인은 상대의 지뢰를 모르고,
+// 공기도 못 읽고, 상대에게 관심도 없어서 자기 관심사로 대화를 끌고 가다 상대를 식힌다.
+//
+// ⚠ 남은 한계: good과 lazy는 여전히 잘 안 갈린다(표본 30건 기준 오차 범위).
+//    breakthrough 쪽으로는 준비가 거의 작용하지 않는다 — 갈리는 건 chill 꼬리뿐이다.
 //
 //    재계측: ANTHROPIC_API_KEY=... node tests/live.mjs → node tests/sim.mjs <결과> --grid
 export const DIFFICULTIES = {
@@ -52,7 +54,7 @@ export const DIFFICULTIES = {
     textTurns: 4, talkTurns: 5,
     radioText: 1, radioTalk: 2,   // 기획서 규정: 문자 1회, 대면 2회
     startLove: 10, startMood: 55,
-    threshold: 56, moodFloor: 25,
+    threshold: 54, moodFloor: 25,
     loveDecay: 0.0,   // 턴마다 식는 호감
     moodDrift: 0.5,   // 턴마다 흐르는 분위기 (양수면 알아서 풀린다)
     gainScale: 1.7, lossScale: 0.85,
@@ -62,7 +64,7 @@ export const DIFFICULTIES = {
     textTurns: 4, talkTurns: 5,
     radioText: 1, radioTalk: 2,
     startLove: 6, startMood: 46,
-    threshold: 58, moodFloor: 33,
+    threshold: 56, moodFloor: 33,
     loveDecay: 0.3,
     moodDrift: -0.1,
     gainScale: 1.7, lossScale: 1.0,

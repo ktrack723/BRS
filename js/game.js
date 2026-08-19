@@ -221,6 +221,17 @@ const SLIDES = [
     <span class="slide-warn">심판은 그걸 "판정 불가"로 처리하지 않는다. 무슨 일이 벌어졌든 진지한 얼굴로 해설한다. 그게 심판의 1순위 업무다.</span>`,
   },
   {
+    art: '전원 하자 있음 &nbsp;·&nbsp; 예외 없음',
+    title: '저 사람들은 상대에게 맞춰줄 생각이 없다',
+    body: `<b>둘 다 이 자리에서 원하는 게 따로 있다.</b> 상대를 기쁘게 하는 게 아니라 —
+    논쟁에서 이기고 싶거나, 자기 수집품 얘기를 끝까지 하고 싶거나, 그냥 빠져나가고 싶다.<br>
+    그리고 <b>전원이 어딘가 고장나 있다.</b> 이건 연출이 아니라 시스템이다.<br>
+    · 분위기를 못 읽는 사람에게는 <b>분위기를 알려주지 않는다.</b> 상대가 시계를 봐도 모른다.<br>
+    · 상대에게 관심 없는 사람은 <b>상대의 성격도 취향도 모른다.</b> 알아볼 생각을 안 해봤으니까.<br>
+    · 가만두면 각자 자기 관심사로 대화를 끌고 간다.<br>
+    <span class="slide-warn">그러니 "알아서 잘하겠지"는 없다. 요원이 명령하지 않으면 그 인간은 제 성향대로만 군다.</span>`,
+  },
+  {
     art: '취향 ？／？ &nbsp;&nbsp; 접촉금지 전면공개',
     title: '상대의 속은 모른다. 대화로만 나온다',
     body: `상대의 취향 중 일부만 의뢰서에 인쇄되어 있다. 나머지는 <b>미확인</b>이며 <b>개수만</b> 통보된다.<br>
@@ -785,7 +796,7 @@ function initRadio() {
     const t = state.couple.target;
     $('#radio-context').innerHTML =
       `<b>지금 공기:</b> ${escapeHtml(e.state.vibe || '(아직 아무 일도 없다)')}<br>` +
-      `<span class="dim">저 둘에게는 대화 규칙이 없다. 흐름을 바꾸고 싶으면 여기서 바꿔야 한다.</span><br>` +
+      `<span class="dim">저 둘은 각자 원하는 게 따로 있다. 흐름을 바꾸고 싶으면 여기서 바꿔야 한다.</span><br>` +
       `<span class="dim">상대가 질색: ${t.redLines.map(escapeHtml).join(' / ')}</span>`;
     $('#modal-radio').classList.remove('hidden');
     $('#radio-input').value = '';
