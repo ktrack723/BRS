@@ -7,6 +7,12 @@
 //   · 시스템 프롬프트는 턴마다 바이트 동일 → 캐시 breakpoint를 걸어 입력 토큰을 재사용한다.
 //   · 심판에게 넘기는 대화 로그는 최근 12줄로 자른다.
 //
+// UI와의 계약:
+//   · bubble/judge 핸들러가 약속(Promise)을 돌려주면 하네스는 그걸 기다린다.
+//     LLM이 응답하는 속도와 사람이 읽는 속도는 다르다 — 후자를 정하는 건 UI 쪽(pacing.js)이다.
+//     기다리는 동안 다음 호출이 나가지 않으므로, 무전 개입이 '지금 보고 있는 장면'에 끼어든다.
+//   · 동기 핸들러(테스트·시뮬레이터)를 넘기면 예전처럼 그냥 흘러간다.
+//
 // 구조 메모 (개편):
 //   · 문자 → 대면으로 넘어갈 때 대화 내역을 **이어받는다.** 두 사람은 자기가 방금 주고받은 문자를 기억한다.
 //     예전에는 대면에서 컨텍스트를 새로 시작해서, 만나자마자 초면처럼 구는 일이 있었다.
@@ -169,9 +175,9 @@ export class Engine {
     this.pendingRadio = null;   // 문자 페이즈 막판에 보낸 지시는 대면 맥락에 맞지 않는다
 
     this.transcript.push({ who: 'sys', text: `[${sit.place}] ${sit.intro}` });
-    this.h.bubble?.('sys', `[${sit.place}] ${sit.intro}`);
+    await this.h.bubble?.('sys', `[${sit.place}] ${sit.intro}`);
     this.transcript.push({ who: 'target', text: sit.outfitReaction });
-    this.h.bubble?.('target', sit.outfitReaction);
+    await this.h.bubble?.('target', sit.outfitReaction);
 
     // 문자 페이즈 마지막 발언의 미결 판정을 먼저 정산한다 (대면 첫 반응이 그 발언의 결과이기도 하다)
     await this.#flushJudge('text');
@@ -189,7 +195,7 @@ export class Engine {
     } catch { fi = this.#neutralJudge('(첫인상 판정 불능)'); }
 
     this.state = S.applyTurn(this.state, this.d, fi, { firstImpression: true });
-    this.#reportJudge(fi, { firstImpression: true });
+    await this.#reportJudge(fi, { firstImpression: true });
 
     // 대화 내역을 이어받는다. 두 사람은 방금 주고받은 문자를 기억한 채로 마주 앉는다.
     this.lastVibeSent = null;   // 자리가 바뀌었으니 공기를 다시 알려준다
@@ -215,10 +221,12 @@ export class Engine {
     };
   }
 
-  #reportJudge(judge, extra = {}) {
+  // 판정줄·게이지·표정은 같은 순간에 움직여야 한다. 그래서 judge 핸들러를 먼저 '띄우고',
+  // 나머지를 다 반영한 뒤에 그 핸들러가 돌려준 대기(읽는 시간)를 마지막에 기다린다.
+  async #reportJudge(judge, extra = {}) {
     const dl = this.state.lastDelta;
     this.tierLog.push(dl.tier);
-    this.h.judge?.({
+    const shown = this.h.judge?.({
       mood: dl.mood, love: dl.love,
       rawMood: dl.rawMood, rawLove: dl.rawLove, mult: dl.mult, tier: dl.tier,
       reason: judge.reason || '', revealed: dl.revealed,
@@ -229,6 +237,7 @@ export class Engine {
     if (judge.clientEmote) this.h.emote?.('client', judge.clientEmote);
     if (judge.targetEmote) this.h.emote?.('target', judge.targetEmote);
     this.h.meters?.(this.snapshot());
+    await shown;
   }
 
   // 심판 호출 하나. 반드시 '상대가 실제로 어떻게 반응했는지'까지 같이 넘긴다 —
@@ -242,19 +251,20 @@ export class Engine {
   }
 
   // 판정 하나를 상태에 반영. 분위기 파탄이면 true를 돌려준다.
-  #applyJudge(judge, pending, opts = {}) {
+  // 판정줄도 사람이 읽는 것이라 UI가 붙잡아 둘 수 있어야 한다 → 핸들러를 기다린다.
+  async #applyJudge(judge, pending, opts = {}) {
     this.state = S.applyTurn(this.state, this.d, judge, opts);
-    this.#reportJudge(judge, { turn: pending?.turn, ...(opts.firstImpression ? { firstImpression: true } : {}) });
+    await this.#reportJudge(judge, { turn: pending?.turn, ...(opts.firstImpression ? { firstImpression: true } : {}) });
     return !!S.failureReason(this.state);
   }
 
-  #breakdown(phase) {
+  async #breakdown(phase) {
     const msg = phase === 'text'
       ? '...읽씹당했다. 프로필 사진도 강아지로 바뀌었다.'
       : '...상대가 "화장실 좀"이라며 나가더니 돌아오지 않았다.';
     this.aborted = true; this.abortReason = 'mood';
     this.transcript.push({ who: 'sys', text: msg });
-    this.h.bubble?.('sys', msg);
+    await this.h.bubble?.('sys', msg);
   }
 
   // ── 턴 루프 ──────────────────────────────────────────
@@ -293,7 +303,7 @@ export class Engine {
       });
       this.clientHist.push({ role: 'assistant', content: clientMsg });
       this.transcript.push({ who: 'client', text: clientMsg });
-      this.h.bubble?.('client', clientMsg);
+      await this.h.bubble?.('client', clientMsg);
 
       // 2) [직전 턴 판정] ∥ [이번 턴 타겟 응답] — 서로 독립이므로 동시 발사
       this.#pushUser(this.targetHist, `[${c.client.name}의 ${said}] ${clientMsg}`);
@@ -313,12 +323,12 @@ export class Engine {
       const [targetMsg, judge] = await Promise.all(jobs);
 
       // 3) 직전 턴 판정 반영
-      if (judge && this.#applyJudge(judge, pending)) { this.#breakdown(phase); return; }
+      if (judge && await this.#applyJudge(judge, pending)) { await this.#breakdown(phase); return; }
 
       // 4) 타겟 응답 반영 — 이게 이번 발언의 '반응'이 되어 다음 배치에서 채점된다
       this.targetHist.push({ role: 'assistant', content: targetMsg });
       this.transcript.push({ who: 'target', text: targetMsg });
-      this.h.bubble?.('target', targetMsg);
+      await this.h.bubble?.('target', targetMsg);
       this.#pushUser(this.clientHist, `[${c.target.name}의 ${phase === 'text' ? '답장' : '말'}] ${targetMsg}`);
 
       pending = { history: historyBefore, clientMsg, reaction: targetMsg, turn: `${label} ${i + 1}` };
@@ -333,7 +343,7 @@ export class Engine {
     this.pendingJudge = null;
     if (!pending) return;
     const judge = await this.#judgeCall(pending, `${pending.turn} (최종)`);
-    if (this.#applyJudge(judge, pending)) this.#breakdown(phase);
+    if (await this.#applyJudge(judge, pending)) await this.#breakdown(phase);
   }
 
   // ── 정산 ─────────────────────────────────────────────
