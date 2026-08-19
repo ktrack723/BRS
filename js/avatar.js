@@ -6,8 +6,15 @@ export const DEFAULT_SPEC = {
   top: '#ff2d95', bottom: '#2d7dff', shoes: '#222222',
   heightScale: 1, widthScale: 1,
   accessory: 'none', accessoryColor: '#ffee00',
-  expression: 'neutral', aura: 'none',
+  expression: 'neutral', aura: 'none', species: 'human',
 };
+
+const HAIR_STYLES = new Set(['short', 'long', 'bald', 'mohawk', 'afro', 'twintail', 'bowl', 'spiky', 'fin', 'mane']);
+const ACCESSORIES = new Set(['none', 'glasses', 'sunglasses', 'mustache', 'beard', 'hat', 'crown', 'headband', 'flower', 'antenna', 'mask']);
+const EXPRESSIONS = new Set(['happy', 'neutral', 'shy', 'chad', 'weird', 'angry']);
+const AURAS = new Set(['none', 'sparkle', 'hearts', 'fire', 'gloom', 'money']);
+// 인간이 아닌 의뢰인이 절반이다. 종족이 곧 실루엣이 된다.
+const SPECIES = new Set(['human', 'fish', 'lion', 'cat', 'zombie', 'vampire', 'alien', 'robot']);
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, Number(v) || 1));
@@ -21,6 +28,11 @@ export function sanitizeSpec(raw) {
   }
   s.heightScale = clamp(s.heightScale, 0.7, 1.45);
   s.widthScale = clamp(s.widthScale, 0.6, 1.7);
+  if (!HAIR_STYLES.has(s.hairStyle)) s.hairStyle = 'short';
+  if (!ACCESSORIES.has(s.accessory)) s.accessory = 'none';
+  if (!EXPRESSIONS.has(s.expression)) s.expression = 'neutral';
+  if (!AURAS.has(s.aura)) s.aura = 'none';
+  if (!SPECIES.has(s.species)) s.species = 'human';
   return s;
 }
 
@@ -50,6 +62,7 @@ export function buildAvatar(rawSpec) {
   addHair(headG, spec.hairStyle, hair);
   addAccessory(headG, spec);
   g.add(legL, legR, shoeL, shoeR, torso, armL, armR, handL, handR, headG);
+  addSpecies(g, headG, spec, { armL, armR, torso });
 
   // 머리 그룹의 회전축을 목 높이로 옮긴다 (발밑 축이면 회전 시 머리가 옆으로 미끄러진다)
   headG.position.y = 1.1;
@@ -116,6 +129,18 @@ function addHair(headG, style, color) {
       const cap = box(0.62, 0.28, 0.57, color); cap.position.y = 1.5; add(cap);
       break;
     }
+    case 'fin': {  // 어인 등지느러미
+      const fin = new THREE.Mesh(new THREE.ConeGeometry(0.26, 0.42, 3), mat(color));
+      fin.position.set(0, 1.74, -0.04); fin.rotation.x = -0.25; add(fin);
+      const ridge = box(0.1, 0.14, 0.5, color); ridge.position.set(0, 1.6, -0.02); add(ridge);
+      break;
+    }
+    case 'mane': {  // 사자 갈기
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.19, 6, 12), mat(color));
+      ring.position.set(0, 1.3, -0.02); add(ring);
+      const top = box(0.66, 0.18, 0.6, color); top.position.y = 1.62; add(top);
+      break;
+    }
     case 'spiky': {
       for (let i = 0; i < 5; i++) {
         const spike = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.26, 4), mat(color));
@@ -170,6 +195,18 @@ function addAccessory(headG, spec) {
     case 'headband': {
       const band = box(0.6, 0.07, 0.55, c); band.position.y = 1.47; add(band); break;
     }
+    case 'antenna': {
+      for (const x of [-0.13, 0.13]) {
+        const rod = box(0.03, 0.26, 0.03, c); rod.position.set(x, 1.7, 0);
+        const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), mat(c)); bulb.position.set(x, 1.85, 0);
+        add(rod, bulb);
+      }
+      break;
+    }
+    case 'mask': {
+      const plate = box(0.5, 0.3, 0.04, c); plate.position.set(0, 1.3, 0.27); add(plate);
+      break;
+    }
     case 'flower': {
       const stem = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), mat('#ffdd00')); stem.position.set(0.26, 1.55, 0.12);
       add(stem);
@@ -179,6 +216,98 @@ function addAccessory(headG, spec) {
         petal.position.set(0.26 + Math.cos(a) * 0.09, 1.55 + Math.sin(a) * 0.09, 0.1);
         add(petal);
       }
+      break;
+    }
+  }
+}
+
+// ── 종족 파츠 ───────────────────────────────────────────
+// 어인·퍼리·좀비·뱀파이어·외계인·안드로이드가 절반이다. 종족이 실루엣을 바꾼다.
+function addSpecies(g, headG, spec, parts) {
+  const skin = spec.skin;
+  const add = m => headG.add(m);
+  const addBody = m => g.add(m);
+
+  switch (spec.species) {
+    case 'fish': {
+      // 볼 아가미 3줄 + 옆지느러미 + 꼬리지느러미
+      for (let i = 0; i < 3; i++) {
+        const gill = box(0.03, 0.1, 0.02, '#0d4f58');
+        gill.position.set(-0.28, 1.3 - i * 0.02, 0.1 - i * 0.07); add(gill);
+        const gr = gill.clone(); gr.position.x = 0.28; add(gr);
+      }
+      for (const sx of [-1, 1]) {
+        const sideFin = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.3, 3), mat(spec.hair));
+        sideFin.position.set(sx * 0.3, 1.3, -0.1); sideFin.rotation.z = sx * 1.2; add(sideFin);
+      }
+      const tail = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.34, 3), mat(spec.hair));
+      tail.position.set(0, 0.5, -0.3); tail.rotation.x = 1.5; addBody(tail);
+      break;
+    }
+    case 'lion':
+    case 'cat': {
+      const big = spec.species === 'lion';
+      for (const sx of [-1, 1]) {
+        const ear = new THREE.Mesh(new THREE.ConeGeometry(big ? 0.12 : 0.09, big ? 0.2 : 0.16, 4), mat(spec.hair));
+        ear.position.set(sx * 0.2, 1.68, 0); add(ear);
+      }
+      const snout = box(0.2, 0.12, 0.1, skin); snout.position.set(0, 1.22, 0.29); add(snout);
+      const nose = box(0.08, 0.06, 0.03, '#2a1a1a'); nose.position.set(0, 1.26, 0.35); add(nose);
+      for (let i = 0; i < 3; i++) {
+        for (const sx of [-1, 1]) {
+          const wk = box(0.16, 0.012, 0.012, '#ffffff');
+          wk.position.set(sx * 0.24, 1.22 + i * 0.035, 0.28); wk.rotation.z = sx * (0.15 - i * 0.12); add(wk);
+        }
+      }
+      const tail = box(0.08, 0.08, 0.5, spec.hair); tail.position.set(0, 0.72, -0.35); tail.rotation.x = 0.5; addBody(tail);
+      if (big) { const tuft = new THREE.Mesh(new THREE.SphereGeometry(0.1, 6, 6), mat(spec.hair)); tuft.position.set(0, 0.6, -0.58); addBody(tuft); }
+      break;
+    }
+    case 'zombie': {
+      // 팔을 앞으로. 실밥 자국과 흘러내린 눈.
+      parts.armL.rotation.x = -1.35; parts.armR.rotation.x = -1.35;
+      for (let i = 0; i < 4; i++) {
+        const st = box(0.03, 0.02, 0.02, '#5a2a2a');
+        st.position.set(-0.2 + i * 0.11, 1.44, 0.26); add(st);
+      }
+      const drip = box(0.06, 0.1, 0.02, '#2a4a2a'); drip.position.set(-0.12, 1.28, 0.26); add(drip);
+      const patch = box(0.14, 0.12, 0.02, '#7a8f6a'); patch.position.set(0.2, 1.24, 0.26); add(patch);
+      break;
+    }
+    case 'vampire': {
+      for (const sx of [-1, 1]) {
+        const ear = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.2, 4), mat(skin));
+        ear.position.set(sx * 0.3, 1.4, 0); ear.rotation.z = sx * -0.4; add(ear);
+      }
+      for (const sx of [-1, 1]) {
+        const fang = new THREE.Mesh(new THREE.ConeGeometry(0.028, 0.09, 4), mat('#ffffff'));
+        fang.position.set(sx * 0.06, 1.14, 0.26); fang.rotation.x = Math.PI; add(fang);
+      }
+      const cape = box(0.72, 0.9, 0.06, '#5a0d1a'); cape.position.set(0, 0.85, -0.2); addBody(cape);
+      const collar = box(0.5, 0.26, 0.06, '#8a0d2a'); collar.position.set(0, 1.15, -0.22); addBody(collar);
+      break;
+    }
+    case 'alien': {
+      // 눈만 거대하다. 나머지는 작다.
+      for (const sx of [-1, 1]) {
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 10), mat('#0a0a12'));
+        eye.position.set(sx * 0.14, 1.35, 0.2); eye.scale.set(1, 1.4, 0.6); add(eye);
+        const glint = box(0.04, 0.04, 0.02, '#ffffff'); glint.position.set(sx * 0.16, 1.42, 0.31); add(glint);
+      }
+      const dome = box(0.5, 0.16, 0.46, skin); dome.position.y = 1.58; add(dome);
+      break;
+    }
+    case 'robot': {
+      const visor = box(0.44, 0.14, 0.03, '#0d1a22'); visor.position.set(0, 1.36, 0.26); add(visor);
+      for (let i = 0; i < 3; i++) {
+        const px = box(0.05, 0.05, 0.02, spec.accessoryColor);
+        px.position.set(-0.12 + i * 0.12, 1.36, 0.29); add(px);
+      }
+      const jaw = box(0.36, 0.06, 0.04, '#8a9aa8'); jaw.position.set(0, 1.16, 0.26); add(jaw);
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.12, 8), mat('#8a9aa8'));
+      neck.position.set(0, 1.06, 0); addBody(neck);
+      const chest = box(0.24, 0.16, 0.04, '#1a2a33'); chest.position.set(0, 0.82, 0.17); addBody(chest);
+      const led = box(0.07, 0.07, 0.02, spec.accessoryColor); led.position.set(0, 0.82, 0.2); addBody(led);
       break;
     }
   }
@@ -204,6 +333,44 @@ function emojiSprite(ch, size = 0.3) {
 }
 
 const AURA_EMOJI = { sparkle: '✨', hearts: '💖', fire: '🔥', gloom: '💧', money: '💸' };
+
+// ── 썸네일 렌더러 ───────────────────────────────────────
+// 의뢰 대장에 20쌍 = 40명이 깔린다. 카드마다 WebGL 컨텍스트를 잡으면 브라우저 상한(보통 16개)에서 터진다.
+// 그래서 오프스크린 렌더러 하나를 돌려쓰며 PNG로 구워낸다. 선택된 커플만 살아 있는 3D 무대에 올린다.
+let thumbRenderer = null, thumbScene = null, thumbCam = null;
+const thumbCache = new Map();
+
+function initThumb() {
+  if (thumbRenderer) return;
+  const cv = document.createElement('canvas');
+  cv.width = 320; cv.height = 400;
+  thumbRenderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, alpha: true, preserveDrawingBuffer: true });
+  thumbRenderer.setClearColor(0x000000, 0);
+  thumbScene = new THREE.Scene();
+  thumbScene.add(new THREE.AmbientLight(0xffffff, 1.1));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.3); sun.position.set(2, 5, 4);
+  const rim = new THREE.PointLight(0xff33cc, 14, 12); rim.position.set(-2, 2, 2);
+  thumbScene.add(sun, rim);
+  thumbCam = new THREE.PerspectiveCamera(38, 320 / 400, 0.1, 40);
+  thumbCam.position.set(0.9, 1.35, 3.2);
+  thumbCam.lookAt(0, 0.9, 0);
+}
+
+export function renderThumb(rawSpec, cacheKey = null) {
+  if (cacheKey && thumbCache.has(cacheKey)) return thumbCache.get(cacheKey);
+  initThumb();
+  const g = buildAvatar(rawSpec);
+  g.rotation.y = 0.35;
+  thumbScene.add(g);
+  thumbRenderer.render(thumbScene, thumbCam);
+  const url = thumbRenderer.domElement.toDataURL('image/png');
+  thumbScene.remove(g);
+  disposeGroup(g);
+  if (cacheKey) thumbCache.set(cacheKey, url);
+  return url;
+}
+
+export function clearThumbCache() { thumbCache.clear(); }
 
 // ── 뷰어 ────────────────────────────────────────────────
 export class AvatarViewer {

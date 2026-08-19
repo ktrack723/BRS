@@ -12,7 +12,7 @@
   <div id="crt"></div>
 
   <header id="topbar">
-    <div class="marquee"><span>★★★ 미연방 비밀기관 큐피드局 공식 공작 단말기 ★★★ 출산율 0.008 국가비상사태 ★★★ 테크노킹 도람푸 3세 특명 제77호 ★★★ 오늘도 무고백 무연애 무한대기 중인 국민을 구출하라 ★★★ 본 단말기는 LLM으로 구동됩니다 ★★★</span></div>
+    <div class="marquee"><span>★★★ 미연방 비밀기관 큐피드局 공식 공작 단말기 ★★★ 출산율 0.008 국가비상사태 ★★★ 테크노킹 도람푸 3세 특명 제77호 ★★★ 상설 의뢰 20건 전부 "이어질 리 없는 조합"임 ★★★ 본 단말기는 LLM으로 구동됩니다 ★★★</span></div>
     <button id="btn-console" class="btn95" type="button" title="LLM 호출 로그">🛰 LLM</button>
     <button id="btn-bgm" class="btn95" type="button">🔊 BGM</button>
   </header>
@@ -21,10 +21,11 @@
     <!-- 부팅 -->
     <section id="screen-boot" class="screen">
       <h1 class="title-main"><span class="blink">💘</span> 연애조작단 2077 <span class="blink">💘</span><br><small>OPERATION: CUPID</small></h1>
-      <p class="subtitle">국가공인 연애공작 시뮬레이터 (B급) — 재미없으면 도람푸 3세에게 항의 바람</p>
+      <p class="subtitle">국가공인 <b>불가능 매칭</b> 공작 시뮬레이터 (B급) — 재미없으면 도람푸 3세에게 항의 바람</p>
       <div class="panel95 boot-panel">
         <h2>■ 공작 단말기 부팅</h2>
         <p class="warn">이 게임은 <b>전부</b> LLM(Claude)으로 돌아간다. API 키가 없으면 시작조차 못 한다.<br>
+        의뢰인 20쌍은 고정 데이터지만, <b>그들이 실제로 무슨 말을 하고 어떻게 판정되는지는 100% 실시간 LLM</b>이다.<br>
         키는 브라우저에서 <code>api.anthropic.com</code>으로만 전송된다. 그 외 어디에도 안 보낸다.</p>
         <label>ANTHROPIC API KEY
           <input id="key-input" type="password" placeholder="sk-ant-api03-..." autocomplete="off">
@@ -43,7 +44,7 @@
       <p class="dim small">GitHub Pages 정적 사이트 · 서버 없음 · 키는 당신 브라우저에만</p>
     </section>
 
-    <!-- 신입 교육 슬라이드 (의뢰서는 뒤에서 미리 생성된다) -->
+    <!-- 신입 교육 슬라이드 -->
     <section id="screen-intro" class="screen hidden">
       <div class="panel95 intro-panel">
         <div class="intro-head">
@@ -56,7 +57,7 @@
           <div id="intro-dots" class="intro-dots"></div>
           <button id="btn-intro-next" class="btn95 big" type="button">다음 ▶</button>
         </div>
-        <p id="intro-prefetch" class="intro-prefetch">📡 본부에서 오늘자 의뢰서 수신 중...</p>
+        <p id="intro-prefetch" class="intro-prefetch">📡 국장 브리핑 수신 중...</p>
       </div>
     </section>
 
@@ -65,25 +66,23 @@
       <div class="panel95 briefing-panel">
         <h2>📠 착신: 국장 왕큐피드</h2>
         <pre id="briefing-text" class="briefing-text"></pre>
-        <button id="btn-to-screening" class="btn95 big hidden" type="button">의뢰서 열람 ▶</button>
+        <button id="btn-to-roster" class="btn95 big hidden" type="button">상설 의뢰 대장 열람 ▶</button>
       </div>
     </section>
 
-    <!-- 의뢰서 -->
-    <section id="screen-screening" class="screen hidden">
-      <h2 class="section-title">📚 오늘의 의뢰서 — 한 명을 선택하라</h2>
-      <p class="section-sub">난이도가 높을수록 알려진 취향이 적고, 준비 4종(스타일링·코칭·격려·무전) 중 하나만 부실해도 실패한다.</p>
+    <!-- 의뢰 대장 (20쌍) -->
+    <section id="screen-roster" class="screen hidden">
+      <h2 class="section-title">📚 상설 의뢰 대장 — 20건</h2>
+      <p class="section-sub">전부 <b>이어질 리 없는 조합</b>이다. 큐피드국은 반려를 모른다. 한 건 골라라.</p>
       <div id="agent-record" class="agent-record"></div>
-      <div id="client-cards" class="cards"></div>
-      <div id="screening-error" class="panel95 hidden">
-        <p class="error">의뢰서 수신 실패. 2077년에도 전파는 가끔 삐끗한다.</p>
-        <button id="btn-retry-screening" class="btn95 big" type="button">📡 재수신 시도</button>
-      </div>
+      <div class="roster-filters" id="roster-filters"></div>
+      <div id="roster-cards" class="roster"></div>
     </section>
 
     <!-- 컨설팅 -->
     <section id="screen-consult" class="screen hidden">
       <h2 class="section-title" id="consult-title">작전 준비</h2>
+      <p class="section-sub" id="consult-sub"></p>
       <div class="consult-grid">
         <div class="consult-left">
           <div class="stage-wrap panel95">
@@ -93,33 +92,44 @@
           <div class="panel95" id="consult-dossier"></div>
         </div>
         <div class="consult-forms">
+          <div class="panel95 notice-card">
+            <h3>❗ 준비 단계는 채점하지 않는다</h3>
+            <p>아래 세 칸에 뭘 쓰든 <b>점수는 나오지 않는다.</b> 전부 클라이언트 AI의 프롬프트로 그대로 주입될 뿐이다.<br>
+            평가는 오직 <b>실제 문자·대면에서 클라이언트가 뱉은 말</b>로만 이루어진다.
+            준비를 대충 하면 점수가 깎이는 게 아니라 — <b>그 인간이 대화에서 알아서 망한다.</b></p>
+          </div>
+
           <div class="panel95 prep-card" id="card-styling">
-            <h3>① 👔 스타일링 <small>(태그 콤마 구분)</small> <span class="prep-score" id="score-styling">미실시</span></h3>
-            <p class="prep-hint">호감 출발선과 <b>호감 획득 배율</b>을 정한다. 대면 첫인상에서 한 번 더 크게 작용.</p>
-            <input id="styling-input" type="text" placeholder="예: 빨간 턱시도, 카우보이 부츠, 금목걸이">
-            <button id="btn-styling" class="btn95" type="button">가위손 박 호출</button>
+            <h3>① 👔 스타일링 <small>(태그 콤마 구분)</small></h3>
+            <p class="prep-hint">3D 모델과 <b>착장 묘사</b>가 바뀐다. 이 착장은 <b>대면 첫 순간에 타겟이 직접 보고 반응</b>한다. 거기서 판정이 붙는다.</p>
+            <input id="styling-input" type="text" placeholder="예: 금색 이름표 박힌 넥타이, 골프 장갑">
+            <button id="btn-styling" class="btn95" type="button">가위손 박 호출 (모델 갱신)</button>
             <p id="styling-result" class="eval-result"></p>
           </div>
+
           <div class="panel95 prep-card" id="card-coaching">
-            <h3>② 🎧 대화 코칭 <span class="prep-score" id="score-coaching">미실시</span></h3>
-            <p class="prep-hint">분위기 출발선과 <b>분위기 증감 비대칭</b>을 정한다. 클라이언트의 약점을 봉인하라.</p>
-            <textarea id="coaching-input" rows="3" placeholder="예: 자기 수집품 얘기는 절대 꺼내지 마라. 상대 말에 리액션하고, 새벽 근무 얘기가 나오면 공감부터 해라"></textarea>
-            <button id="btn-coaching" class="btn95" type="button">말빨 소령 호출</button>
+            <h3>② 🎧 대화 코칭 <small>(클라이언트 시스템 프롬프트에 직접 주입)</small></h3>
+            <p class="prep-hint">여기 쓴 문장이 <b>그대로</b> 클라이언트 AI의 행동 규칙이 된다. 비워두면 그 인간은 약점대로 행동한다.</p>
+            <textarea id="coaching-input" rows="4" placeholder="예: 지난 선거 얘기는 절대 꺼내지 마라. 상대가 뭘 말하든 먼저 골프 핸디캡을 물어보고, 상대가 자랑을 시작하면 끝까지 들어라"></textarea>
             <p id="coaching-result" class="eval-result"></p>
           </div>
+
           <div class="panel95 prep-card" id="card-speech">
-            <h3>③ 🔥 격려 연설 <span class="prep-score" id="score-speech">미실시</span></h3>
-            <p class="prep-hint"><b>용기 스태미나</b>를 정한다. 턴마다 닳고, 바닥나면 클라이언트가 패닉에 빠진다.</p>
-            <textarea id="speech-input" rows="3" placeholder="클라이언트의 사연 속 디테일을 짚어 자부심으로 뒤집는 명연설을 하라"></textarea>
-            <button id="btn-speech" class="btn95" type="button">연설 개시</button>
+            <h3>③ 🔥 격려 연설 <small>(출동 직전 한마디로 주입)</small></h3>
+            <p class="prep-hint">클라이언트가 이 말을 곱씹으며 대화한다. <b>사연의 디테일을 짚었는지는 그 인간이 판단</b>한다. 뻔한 응원이면 겉으로만 웃는다. 비워두면 겁에 질린 채로 나간다.</p>
+            <textarea id="speech-input" rows="4" placeholder="클라이언트 사연 속 구체적인 장면을 짚어라. 채점은 없다. 그 인간이 실제로 기가 사는지가 전부다"></textarea>
             <p id="speech-result" class="eval-result"></p>
           </div>
+
           <div class="panel95 prep-card">
-            <h3>④ 📻 무전 개입 <span class="prep-score" id="score-radio">작전 중 사용</span></h3>
-            <p class="prep-hint">대화 중 <b id="radio-budget">문자 1회 / 대면 2회</b>. 용기를 회복시키고, <b>미확인 취향을 캐낼 유일한 수단</b>이다. 엉뚱한 지시는 분위기를 깎는다.</p>
+            <h3>④ 📻 무전 개입 <span class="prep-tag" id="radio-budget">문자 1회 / 대면 2회</span></h3>
+            <p class="prep-hint">대화 중 클라이언트에게만 들리는 지시. <b>이것도 채점 안 한다.</b> 다음 발언에 주입될 뿐이고, 결과는 그 발언의 판정으로 돌아온다.<br>
+            <b>미확인 취향을 캐낼 유일한 수단</b>이다. 무전이 없는 턴에 클라이언트는 새 화제를 열지 못한다.</p>
           </div>
-          <div id="prep-warning" class="prep-warning"></div>
+
+          <div id="prep-status" class="prep-warning"></div>
           <button id="btn-start-op" class="btn95 big danger" type="button">🚨 작전 개시 🚨</button>
+          <button id="btn-back-roster" class="btn95" type="button">◀ 다른 의뢰 보기</button>
         </div>
       </div>
     </section>
@@ -135,28 +145,25 @@
           </div>
           <div class="panel95 hud">
             <div class="meter">
-              <span class="meter-name">💗 호감</span>
+              <span class="meter-name" id="meter-love-name">💗 호감</span>
               <div class="meter-bar"><div id="meter-love-fill" class="meter-fill love"></div><div id="meter-threshold" class="meter-threshold"></div></div>
               <span id="meter-love-num" class="meter-num">0</span>
             </div>
             <div class="meter">
               <span class="meter-name">😊 분위기</span>
-              <div class="meter-bar"><div id="meter-mood-fill" class="meter-fill mood"></div></div>
+              <div class="meter-bar"><div id="meter-mood-fill" class="meter-fill mood"></div><div id="meter-moodfloor" class="meter-threshold mf"></div></div>
               <span id="meter-mood-num" class="meter-num">0</span>
             </div>
-            <div class="meter">
-              <span class="meter-name">🔥 용기</span>
-              <div class="meter-bar"><div id="meter-courage-fill" class="meter-fill courage"></div></div>
-              <span id="meter-courage-num" class="meter-num">0</span>
-            </div>
             <div class="hud-row">
-              <span id="hud-style" class="hud-chip">👔 매력 ×1.0</span>
+              <span id="hud-mult" class="hud-chip">분위기 배율 ×1.0</span>
               <span id="hud-diff" class="hud-chip">난이도</span>
             </div>
             <button id="btn-intervene" class="btn95 danger" type="button">📻 무전 개입</button>
             <div class="hud-intel">
               <h4>🎯 타겟 취향 <span id="intel-count"></span></h4>
               <ul id="intel-list"></ul>
+              <h4>💣 지뢰 <span id="redline-count"></span></h4>
+              <ul id="redline-list"></ul>
             </div>
           </div>
         </div>
@@ -179,8 +186,9 @@
             <h3>🗂 작전 디브리핑</h3>
             <p id="debrief-summary" class="debrief-summary"></p>
             <ul id="debrief-list" class="debrief-list"></ul>
-            <h4>🎯 타겟의 실제 취향 (작전 종료 후 공개)</h4>
+            <h4>🎯 타겟의 실제 취향 (작전 종료 후 전면 공개)</h4>
             <ul id="debrief-prefs" class="debrief-prefs"></ul>
+            <details id="debrief-log"><summary>📈 턴별 판정 원장</summary><div id="debrief-turns"></div></details>
           </div>
         </div>
         <div class="panel95 result-panel">
@@ -190,7 +198,10 @@
           <pre id="result-letter" class="letter"></pre>
           <p id="result-mvp" class="mvp"></p>
           <p id="result-epilogue" class="epilogue"></p>
-          <button id="btn-restart" class="btn95 big hidden" type="button">다음 의뢰 접수 ▶</button>
+          <div class="result-btns">
+            <button id="btn-retry" class="btn95 big hidden" type="button">🔁 같은 의뢰 재도전</button>
+            <button id="btn-restart" class="btn95 big hidden" type="button">다음 의뢰 접수 ▶</button>
+          </div>
         </div>
       </div>
     </section>
@@ -201,13 +212,19 @@
     <div class="panel95 modal-box">
       <h3>📻 본부 → 클라이언트 긴급 무전</h3>
       <p class="dim">상대에게는 안 들린다. 대화는 송신할 때까지 멈춰 있다.<br>
-      지금 흐름에 정확히 필요한 지시일수록 효과가 크다. 막연한 응원은 오히려 손해.</p>
-      <textarea id="radio-input" rows="3" placeholder="예: 지금 상대가 새벽 근무 얘기 꺼냈다. 그거 공감해주고 무슨 일 하는지 물어봐!"></textarea>
+      <b>이 지시는 채점되지 않는다.</b> 다음 발언에 그대로 주입될 뿐이고, 결과는 그 발언의 판정으로 돌아온다.</p>
+      <div id="radio-context" class="radio-context"></div>
+      <textarea id="radio-input" rows="3" placeholder="예: 지금 상대가 갈기 손질 얘기 꺼냈다. 그거 물고 늘어져서 슈트 만들 때 제일 힘든 게 뭔지 물어봐"></textarea>
       <div class="modal-btns">
         <button id="btn-radio-send" class="btn95 danger" type="button">송신 (Ctrl+Enter)</button>
         <button id="btn-radio-cancel" class="btn95" type="button">취소</button>
       </div>
     </div>
+  </div>
+
+  <!-- 의뢰서 상세 모달 -->
+  <div id="modal-dossier" class="modal hidden">
+    <div class="panel95 modal-box wide" id="dossier-box"></div>
   </div>
 
   <!-- 로딩 -->

@@ -1,11 +1,11 @@
 // llm.js — Claude Messages API의 브라우저용 클라이언트 래퍼.
-// 역할은 딱 여기까지다: 요청 전송, 재시도/백오프, 구조화 출력 파싱, 거절 처리, 사용량 집계, 호출 로그.
+// 역할은 여기까지다: 요청 전송, 프롬프트 캐싱, 재시도/백오프, 구조화 출력 파싱, 거절 처리, 사용량 집계, 호출 로그.
 // 에이전트를 턴마다 물려 돌리는 '하네스'는 engine.js다.
 
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const API_VERSION = '2023-06-01';
 
-// effort 파라미터를 지원하지 않는 모델 (Haiku 4.5)
+// effort 파라미터를 지원하지 않는 모델
 const NO_EFFORT_MODELS = new Set(['claude-haiku-4-5']);
 
 const PRICES = { // $ per MTok (input, output)
@@ -13,9 +13,11 @@ const PRICES = { // $ per MTok (input, output)
   'claude-sonnet-5': [3, 15],
   'claude-haiku-4-5': [1, 5],
 };
+const CACHE_WRITE_MULT = 1.25;  // 캐시 기록은 입력 단가의 1.25배
+const CACHE_READ_MULT = 0.1;    // 캐시 적중은 0.1배
 
 export class RefusalError extends Error {
-  constructor() { super('LLM이 이 요청을 정중히 거절했다'); this.name = 'RefusalError'; }
+  constructor(msg) { super(msg || 'LLM이 이 요청을 정중히 거절했다'); this.name = 'RefusalError'; }
 }
 
 export class LlmClient {
@@ -23,32 +25,47 @@ export class LlmClient {
     this.apiKey = null;
     this.model = 'claude-opus-5';
     this.log = [];
-    this.usage = { calls: 0, inputTokens: 0, outputTokens: 0, cost: 0 };
+    this.usage = { calls: 0, inputTokens: 0, outputTokens: 0, cacheWrite: 0, cacheRead: 0, cost: 0, saved: 0 };
     this.listeners = new Set();
+    this.maxLog = 80;
   }
 
   onLog(fn) { this.listeners.add(fn); }
   #emit(entry) { for (const fn of this.listeners) { try { fn(entry, this.usage); } catch { /* UI 리스너 실패는 무시 */ } } }
 
+  // system을 캐시 가능한 블록 배열로. 시스템 프롬프트는 턴마다 바이트 단위로 동일해야 캐시가 붙는다.
+  #systemBlocks(system, cache) {
+    if (!system) return undefined;
+    const block = { type: 'text', text: system };
+    if (cache) block.cache_control = { type: 'ephemeral' };
+    return [block];
+  }
+
   // 핵심 진입점. schema를 주면 구조화 JSON, 없으면 텍스트를 반환한다.
-  async call({ label, system, messages, schema = null, effort = 'low', maxTokens = 8000 }) {
+  //   cache=true  → system 블록에 캐시 breakpoint를 건다 (턴마다 재사용되는 에이전트용)
+  //   model       → 이 호출만 다른 모델로 (심판처럼 기계적인 판정을 싸게 돌릴 때)
+  async call({ label, system, messages, schema = null, effort = 'low', maxTokens = 4000, cache = false, model = null }) {
     if (!this.apiKey) throw new Error('API 키 없음: 하네스 미가동');
+    const useModel = model || this.model;
     const body = {
-      model: this.model,
+      model: useModel,
       max_tokens: maxTokens,
-      system,
       messages,
     };
+    const sys = this.#systemBlocks(system, cache);
+    if (sys) body.system = sys;
+
     const outputConfig = {};
-    if (!NO_EFFORT_MODELS.has(this.model)) outputConfig.effort = effort;
+    if (!NO_EFFORT_MODELS.has(useModel)) outputConfig.effort = effort;
     if (schema) outputConfig.format = { type: 'json_schema', schema };
     if (Object.keys(outputConfig).length) body.output_config = outputConfig;
 
-    const entry = { label, model: this.model, at: Date.now(), request: body, status: 'pending' };
+    const entry = { label, model: useModel, at: Date.now(), request: body, status: 'pending' };
     this.log.push(entry);
+    while (this.log.length > this.maxLog) this.log.shift();
     this.#emit(entry);
 
-    const started = performance.now();
+    const started = now();
     let lastErr = null;
     for (let attempt = 0; attempt <= 3; attempt++) {
       if (attempt > 0) await sleep(1000 * 2 ** (attempt - 1) + Math.random() * 400);
@@ -75,7 +92,7 @@ export class LlmClient {
         const type = data?.error?.type || `http_${res.status}`;
         const msg = data?.error?.message || res.statusText || '본문 없음';
         if (res.status === 429 || res.status >= 500) { lastErr = new Error(`${type}: ${msg}`); continue; }
-        entry.status = 'error'; entry.error = `${type}: ${msg}`; entry.ms = performance.now() - started;
+        entry.status = 'error'; entry.error = `${type}: ${msg}`; entry.ms = now() - started;
         this.#emit(entry);
         if (res.status === 401) throw new Error('API 키가 틀렸다. 본부 인증 실패!');
         throw new Error(`${type}: ${msg}`);
@@ -83,14 +100,9 @@ export class LlmClient {
       if (!data) { lastErr = new Error('응답 본문 파싱 불가'); continue; }
 
       // 사용량은 재시도되는 호출까지 전부 집계한다 (실제 과금 기준)
-      entry.ms = performance.now() - started;
+      entry.ms = now() - started;
       entry.response = data;
-      this.usage.calls += 1;
-      const u = data.usage || {};
-      this.usage.inputTokens += u.input_tokens || 0;
-      this.usage.outputTokens += u.output_tokens || 0;
-      const p = PRICES[data.model] || PRICES[this.model] || [5, 25];
-      this.usage.cost += ((u.input_tokens || 0) * p[0] + (u.output_tokens || 0) * p[1]) / 1e6;
+      this.#account(data, useModel);
 
       // max_tokens에 잘리면 상한을 키워 재시도
       if (data.stop_reason === 'max_tokens' && body.max_tokens < 32000) {
@@ -98,10 +110,9 @@ export class LlmClient {
         lastErr = new Error('출력이 잘림 (max_tokens)');
         continue;
       }
-
       if (data.stop_reason === 'refusal') {
         entry.status = 'refusal'; this.#emit(entry);
-        throw new RefusalError();
+        throw new RefusalError(data.stop_details?.explanation);
       }
 
       const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();
@@ -118,9 +129,27 @@ export class LlmClient {
       entry.status = 'ok'; this.#emit(entry);
       return text;
     }
-    entry.status = 'error'; entry.error = lastErr?.message || '원인불명'; entry.ms = performance.now() - started;
+    entry.status = 'error'; entry.error = lastErr?.message || '원인불명'; entry.ms = now() - started;
     this.#emit(entry);
     throw lastErr || new Error('LLM 호출 실패');
+  }
+
+  #account(data, useModel) {
+    const u = data.usage || {};
+    const inTok = u.input_tokens || 0;
+    const outTok = u.output_tokens || 0;
+    const cw = u.cache_creation_input_tokens || 0;
+    const cr = u.cache_read_input_tokens || 0;
+    const p = PRICES[data.model] || PRICES[useModel] || [5, 25];
+
+    this.usage.calls += 1;
+    this.usage.inputTokens += inTok;
+    this.usage.outputTokens += outTok;
+    this.usage.cacheWrite += cw;
+    this.usage.cacheRead += cr;
+    this.usage.cost += (inTok * p[0] + outTok * p[1] + cw * p[0] * CACHE_WRITE_MULT + cr * p[0] * CACHE_READ_MULT) / 1e6;
+    // 캐시가 없었다면 정가로 냈을 금액과의 차액 (콘솔에 절감액으로 표시)
+    this.usage.saved += (cr * p[0] * (1 - CACHE_READ_MULT) - cw * p[0] * (CACHE_WRITE_MULT - 1)) / 1e6;
   }
 
   // 부팅 시 키 검증용 초소형 호출
@@ -129,10 +158,10 @@ export class LlmClient {
       label: '본부 인증',
       system: '한 단어로만 답하라.',
       messages: [{ role: 'user', content: '통신 상태 확인. "이상무"라고만 답하라.' }],
-      maxTokens: 2000,
-      effort: 'low',
+      maxTokens: 1000, effort: 'low',
     });
   }
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function now() { return typeof performance !== 'undefined' ? performance.now() : Date.now(); }
