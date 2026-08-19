@@ -56,6 +56,34 @@ test('40명 전원에게 살아온 내력이 있다', () => {
   }
 });
 
+// ── 인물의 하자 ─────────────────────────────────────────
+// 라이브에서 두 에이전트가 너무 말을 잘했다. 준비를 개판으로 해도 상대가 듣고 싶어할 말을 정확히 골랐다.
+// 원인은 준 정보가 '자기 사연 + 상대가 좋아하는 것' 둘뿐이라, 상대 맞추기가 유일한 목적이 됐기 때문이다.
+test('40명 전원에게 자기 욕구와 하자가 있다', () => {
+  const READS = ['none', 'some', 'well'], ATT = ['self', 'mixed', 'other'], COMP = ['obeys', 'argues', 'drifts'];
+  for (const c of COUPLES) {
+    for (const who of ['client', 'target']) {
+      const f = c[who].flaw;
+      assert.ok(f, `${c.id}.${who}: 하자 블록이 없다`);
+      assert.ok(f.want && f.want.length > 8, `${c.id}.${who}: want이 없거나 너무 짧다`);
+      assert.ok(f.fixation && f.fixation.length > 5, `${c.id}.${who}: fixation이 없다`);
+      assert.ok(READS.includes(f.reads), `${c.id}.${who}: reads=${f.reads}`);
+      assert.ok(ATT.includes(f.attention), `${c.id}.${who}: attention=${f.attention}`);
+      assert.ok(COMP.includes(f.compliance), `${c.id}.${who}: compliance=${f.compliance}`);
+    }
+  }
+});
+
+test('공기를 못 읽는 인물과 관심 없는 인물이 실제로 존재한다', () => {
+  const all = COUPLES.flatMap(c => [c.client.flaw, c.target.flaw]);
+  const blind = all.filter(f => f.reads === 'none').length;
+  const selfish = all.filter(f => f.attention === 'self').length;
+  // 전원이 눈치 빠르고 전원이 상대에게 관심이 많으면 그건 사람이 아니라 상담사 40명이다
+  assert.ok(blind >= 8, `공기를 아예 못 읽는 인물이 ${blind}명뿐이다`);
+  assert.ok(selfish >= 8, `상대에게 관심 없는 인물이 ${selfish}명뿐이다`);
+  assert.ok(all.filter(f => f.reads === 'well').length >= 4, '반대로 눈치 빠른 인물도 있어야 한다');
+});
+
 test('난이도 세 종류가 모두 실제로 쓰인다', () => {
   const used = new Set(COUPLES.map(c => c.difficulty));
   assert.deepEqual([...used].sort(), ['보통', '쉬움', '헬'].sort());
@@ -167,12 +195,29 @@ test('등급이 취향 목록 때문에 눌리는 게이트가 없다', () => {
 // ── 새로 드러난 것 / 공기 ────────────────────────────────
 test('드러난 것은 중복 없이 쌓이고 점수와 무관하다', () => {
   const d = diffOf('보통');
-  let s = applyTurn(initialState(d), d, J('nudge', { revealed: '밤에 별을 본다' }));
-  const first = s.lastDelta.love;
-  s = applyTurn(s, d, J('nudge', { revealed: '밤에 별을 본다' }));
-  assert.deepEqual(s.revealed, ['밤에 별을 본다'], '같은 서술을 두 번 세지 않는다');
-  assert.equal(s.lastDelta.love, first, '드러났다고 해서 보너스가 붙지 않는다');
-  assert.equal(s.lastDelta.revealed, '', '중복은 이번 턴의 발견으로 치지 않는다');
+  const base = initialState(d);
+  // 같은 출발 상태에서 발견이 있는 턴과 없는 턴을 비교한다.
+  // (연속 두 턴으로 비교하면 호감 포화분이 섞여 들어와 엉뚱한 걸 재게 된다)
+  const withFind = applyTurn(base, d, J('nudge', { revealed: '밤에 별을 본다' }));
+  const without = applyTurn(base, d, J('nudge'));
+  assert.equal(withFind.lastDelta.love, without.lastDelta.love, '드러났다고 해서 보너스가 붙지 않는다');
+  assert.equal(withFind.lastDelta.mood, without.lastDelta.mood);
+  assert.deepEqual(withFind.revealed, ['밤에 별을 본다']);
+
+  const again = applyTurn(withFind, d, J('nudge', { revealed: '밤에 별을 본다' }));
+  assert.deepEqual(again.revealed, ['밤에 별을 본다'], '같은 서술을 두 번 세지 않는다');
+  assert.equal(again.lastDelta.revealed, '', '중복은 이번 턴의 발견으로 치지 않는다');
+});
+
+test('호감도 포화한다 — 이미 높으면 같은 판정이 덜 오른다', () => {
+  const d = diffOf('보통');
+  const lo = applyTurn({ ...initialState(d), love: 5, mood: 60 }, d, J('warm'));
+  const hi = applyTurn({ ...initialState(d), love: 85, mood: 60 }, d, J('warm'));
+  assert.ok(lo.lastDelta.love > hi.lastDelta.love * 1.5, '천장 근처에서는 같은 warm이 훨씬 덜 오른다');
+  // 하락에는 포화가 걸리지 않는다
+  const loDown = applyTurn({ ...initialState(d), love: 5, mood: 60 }, d, J('chill'));
+  const hiDown = applyTurn({ ...initialState(d), love: 85, mood: 60 }, d, J('chill'));
+  assert.equal(loDown.lastDelta.love, hiDown.lastDelta.love, '떨어질 땐 위치와 무관하게 그대로 떨어진다');
 });
 
 test('공기는 심판이 갱신하고, 안 주면 직전 값이 유지된다', () => {
@@ -327,6 +372,58 @@ test('히스토리는 증감과 누적을 둘 다 남긴다', () => {
 });
 
 // ── 프롬프트: 주입은 되고, 규칙은 안 된다 ────────────────
+// ── 자기 성향이 먼저다 ───────────────────────────────────
+test('대화 프롬프트가 상대 맞추기가 아니라 자기 욕구에서 출발한다', () => {
+  const c = COUPLE_BY_ID['os-war'];
+  const client = P.clientAgentSystem(c, { coaching: '', speech: '' }, 'text', AGENT);
+  const target = P.targetAgentSystem(c, 'text', '');
+  for (const [name, sys, person] of [['client', client, c.client], ['target', target, c.target]]) {
+    assert.ok(sys.includes(person.flaw.want), `${name}: 자기 욕구가 프롬프트에 없다`);
+    assert.ok(sys.includes(person.flaw.fixation), `${name}: 관심사가 프롬프트에 없다`);
+    assert.ok(sys.includes('저 사람을 위해서가 아니라 너를 위해서다'), `${name}: 욕구의 방향이 명시되지 않았다`);
+    // 자기 욕구가 상대 정보보다 먼저 나와야 한다
+    assert.ok(sys.indexOf('[네가 이 자리에서 원하는 것]') < sys.indexOf('[네가 저 사람에 대해 아는 것]'),
+      `${name}: 상대 정보가 자기 욕구보다 먼저 나온다`);
+  }
+});
+
+// 사용자 요구: 프롬프트 어디에도 "상대에게 맞춰라"라고 쓰지 않는다.
+// 배려·이상적 응답이 기본값이 되는 순간 40명이 전부 같은 사람이 된다.
+test('어느 프롬프트에도 상대에게 맞추라는 지시가 없다', () => {
+  const BANNED = ['맞춰', '맞추라', '맞추어', '배려하', '상대가 원하는 것을', '상대가 듣고 싶',
+    '호감을 사', '잘 보이려', '마음에 들도록', '기분을 맞'];
+  for (const c of COUPLES) {
+    const prompts = {
+      client: P.clientAgentSystem(c, { coaching: '', speech: '' }, 'text', AGENT),
+      target: P.targetAgentSystem(c, 'talk', '평상복'),
+    };
+    for (const [who, sys] of Object.entries(prompts)) {
+      for (const w of BANNED) {
+        assert.ok(!sys.includes(w), `${c.id}.${who} 프롬프트에 "${w}"가 있다`);
+      }
+    }
+  }
+});
+
+// 관심 없는 사람에게 상대 정보를 주면, "관심 없는 사람"이 아니라 "정보를 가진 사람"이 된다.
+test('상대에 대한 정보가 관심도에 따라 차등 지급된다', () => {
+  const selfish = COUPLES.find(c => c.client.flaw.attention === 'self');
+  const caring = COUPLES.find(c => c.client.flaw.attention === 'other');
+  assert.ok(selfish && caring, '테스트 전제: 두 종류 인물이 다 있어야 한다');
+
+  const s1 = P.clientAgentSystem(selfish, { coaching: '', speech: '' }, 'text', AGENT);
+  assert.ok(s1.includes(selfish.target.appearance[0]), '겉모습은 누구나 본다');
+  assert.ok(!s1.includes(selfish.target.personality.join(', ')), 'attention=self인데 상대 성격을 안다');
+  for (const v of selfish.target.visiblePrefs) {
+    assert.ok(!s1.includes(v), `attention=self인데 상대 취향을 안다: ${v}`);
+  }
+  assert.ok(s1.includes('굳이 알아본 적이 없다'));
+
+  const s2 = P.clientAgentSystem(caring, { coaching: '', speech: '' }, 'text', AGENT);
+  assert.ok(s2.includes(caring.target.personality.join(', ')), 'attention=other면 성격은 안다');
+  assert.ok(s2.includes(caring.target.visiblePrefs[0]), 'attention=other면 알려진 취향도 안다');
+});
+
 test('요원이 쓴 지침/연설이 클라이언트 시스템 프롬프트에 그대로 들어간다', () => {
   const coaching = '절대로 마늘 얘기를 먼저 꺼내지 마라';
   const speech = '412년을 기다렸으면 오늘 하루는 아무것도 아니다';
@@ -336,6 +433,27 @@ test('요원이 쓴 지침/연설이 클라이언트 시스템 프롬프트에 �
   assert.ok(sys.includes(speech));
   assert.ok(sys.includes('검정 망토'));
   assert.ok(sys.includes('박큐피드'), '요원 이름이 지침의 출처로 명시된다');
+});
+
+// 지시가 잘 안 먹었다. 부탁이 아니라 명령으로 바꾸되, 명령 밖의 판단은 남겨둔다.
+test('요원의 지침은 참고사항이 아니라 명령으로 주입된다', () => {
+  const c = COUPLE_BY_ID['politics'];
+  const sys = P.clientAgentSystem(c, { coaching: '선거 얘기는 꺼내지 마라', speech: '' }, 'text', AGENT);
+  assert.ok(sys.includes('[본부 명령'), '명령으로 표시되지 않는다');
+  assert.ok(sys.includes('조언이나 참고사항이 아니다'), '구속력이 명시되지 않는다');
+  assert.ok(sys.includes('이행한다'), '이행 의무가 없다');
+  // 자율 판단을 통째로 뺏지는 않는다
+  assert.ok(sys.includes('명령이 다루지 않은 상황에서는 네 판단대로 한다'), '자율 판단이 남아 있어야 한다');
+});
+
+test('명령의 결이 인물마다 다르다 — 다만 셋 다 이행한다', () => {
+  const seen = new Set();
+  for (const c of COUPLES) {
+    const sys = P.clientAgentSystem(c, { coaching: '아무 지시', speech: '' }, 'text', AGENT);
+    assert.ok(sys.includes('이행한다'), `${c.id}: 이행 의무가 빠졌다`);
+    seen.add(c.client.flaw.compliance);
+  }
+  assert.ok(seen.size >= 2, '전원이 같은 결이면 인물 차이가 없는 것이다');
 });
 
 test('준비를 비우면 그 사실이 프롬프트에 사실로 적힌다', () => {
@@ -362,6 +480,24 @@ test('대화 에이전트 프롬프트에 대화 규칙·연출 지시가 없다
       assert.ok(!sys.includes(word), `${who} 프롬프트에 대화 규칙이 남아 있다: "${word}"`);
     }
   }
+});
+
+// 이 게임에 남은 유일한 게임성은 정보 비대칭이다.
+// 접촉 금지 항목은 요원의 의뢰서에만 인쇄되어 있고, 지침으로 넘겨줘야 의뢰인에게 도달한다.
+// 이걸 의뢰인 프롬프트에 직접 넣었더니 준비를 안 해도 알아서 다 피해서
+// 준비 유무가 점수를 전혀 못 갈랐다(라이브 실측 lazy 65~69 vs ace 61~76).
+test('클라이언트는 상대의 접촉 금지 항목을 모른다 — 요원이 알려줘야 안다', () => {
+  const c = COUPLE_BY_ID['politics'];
+  const bare = P.clientAgentSystem(c, { coaching: '', speech: '' }, 'text', AGENT);
+  for (const r of c.target.redLines) {
+    assert.ok(!bare.includes(r), `지침 없이도 지뢰를 알고 있다: ${r}`);
+  }
+  // 요원이 지침에 적어 넘기면 그때 도달한다
+  const told = P.clientAgentSystem(c, { coaching: `${c.target.redLines[0]}은 절대 꺼내지 마라`, speech: '' }, 'text', AGENT);
+  assert.ok(told.includes(c.target.redLines[0]));
+  // 심판과 상대 본인은 당연히 안다
+  assert.ok(P.judgeSystem(c).includes(c.target.redLines[0]));
+  assert.ok(P.targetAgentSystem(c, 'text', '').includes(c.target.redLines[0]));
 });
 
 test('클라이언트는 상대의 감춰둔 이야기를 모른다', () => {
@@ -490,6 +626,27 @@ test('준비 단계 반응 프롬프트가 두 장소를 구분한다', () => {
   assert.ok(interro.includes(c.client.background[0]), '반응하려면 자기가 누군지 알아야 한다');
   assert.deepEqual(P.PREP_REACT_SCHEMA.required.sort(), ['face', 'note', 'reaction']);
   assert.ok(P.prepReactUser('speech', '', AGENT).includes('아무 말도 없었다'), '빈 입력도 장면이 된다');
+});
+
+// ── 구조화 출력 스키마 가드 ─────────────────────────────
+// 지원되지 않는 키워드 검사는 tests/schema.test.mjs가 전담한다 (스키마를 자동으로 훑는다).
+// 여기서는 그쪽이 안 보는 것만 본다 — 구조화 출력은 객체마다
+// additionalProperties:false와 '모든 속성이 required'를 요구한다. 빠지면 응답이 조용히 새거나 400이 난다.
+test('스키마의 모든 객체가 구조화 출력 요건을 지킨다', () => {
+  const schemas = Object.entries(P).filter(([k, v]) => k.endsWith('_SCHEMA') && v && typeof v === 'object');
+  assert.ok(schemas.length >= 6, `스키마가 ${schemas.length}개뿐이다 — 목록이 어긋났다`);
+  const walk = (node, where) => {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) return node.forEach((n, i) => walk(n, `${where}[${i}]`));
+    if (node.type === 'object') {
+      assert.equal(node.additionalProperties, false, `${where}: additionalProperties:false가 없다`);
+      assert.deepEqual([...(node.required || [])].sort(), Object.keys(node.properties || {}).sort(),
+        `${where}: required가 properties와 일치하지 않는다`);
+      for (const [k, v] of Object.entries(node.properties || {})) walk(v, `${where}.${k}`);
+    }
+    if (node.items) walk(node.items, `${where}.items`);
+  };
+  for (const [name, sch] of schemas) walk(sch, name);
 });
 
 // ── 테스트 예산 가드 ────────────────────────────────────

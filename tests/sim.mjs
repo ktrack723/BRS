@@ -33,15 +33,21 @@ const pad = (s, n) => String(s).padEnd(n);
 const TORDER = ['breakthrough', 'warm', 'nudge', 'flat', 'chill', 'disaster'];
 
 // ══════════ 몬테카를로 ══════════════════════════════════════════
-// 프로필별 등급 분포 가정치. 새 등급은 "상대가 얼마나 움직였는가"의 눈금이므로
-// 준비가 부실할수록 flat/chill 쪽으로 쏠린다는 형태로 잡았다.
+// 프로필별 등급 분포. **가정치가 아니라 라이브 실측이다** —
+// Sonnet으로 커플 3종(쉬움/보통/헬) × 프로필 4종 = 12판, 프로필당 판정 30건을 돌려 얻었다.
+//
+// 인물 하자 시스템을 넣은 뒤로 프로필이 실제로 갈린다. 갈리는 지점은 chill 꼬리다:
+//   ace 0% · good 3.3% · lazy 6.7% · none 16.7%
+// 준비 없는 의뢰인은 상대의 지뢰를 모르고, 공기도 못 읽고, 상대에게 관심도 없어서
+// 자기 관심사로 대화를 끌고 가다 상대를 식힌다. breakthrough 쪽은 여전히 잘 안 갈린다.
 const PROFILE_DIST = {
-  ace:  { breakthrough: .12, warm: .30, nudge: .33, flat: .17, chill: .06, disaster: .02 },
-  good: { breakthrough: .05, warm: .22, nudge: .36, flat: .27, chill: .08, disaster: .02 },
-  lazy: { breakthrough: .01, warm: .08, nudge: .22, flat: .44, chill: .20, disaster: .05 },
-  none: { breakthrough: .00, warm: .04, nudge: .15, flat: .45, chill: .27, disaster: .09 },
+  ace:  { breakthrough: .133, warm: .433, nudge: .433, flat: .000, chill: .000, disaster: 0 },
+  good: { breakthrough: .067, warm: .433, nudge: .467, flat: .000, chill: .033, disaster: 0 },
+  lazy: { breakthrough: .133, warm: .367, nudge: .367, flat: .067, chill: .067, disaster: 0 },
+  none: { breakthrough: .067, warm: .300, nudge: .467, flat: .000, chill: .167, disaster: 0 },
 };
-const TIER_MOOD = { breakthrough: 6, warm: 4, nudge: 2, flat: 0, chill: -4, disaster: -7 };
+// 심판이 실제로 뱉은 moodDelta 평균을 등급별로 정리한 값
+const TIER_MOOD = { breakthrough: 6, warm: 3, nudge: 1, flat: 0, chill: -2, disaster: -7 };
 
 // 재현 가능해야 하므로 Math.random을 쓰지 않는다
 function makeRng(seed) {
@@ -51,7 +57,7 @@ function makeRng(seed) {
 
 function monteCarlo(n = 2500, seed = 20770819) {
   console.log(`\n════════ 몬테카를로 (판당 ${n}회 표본) ════════`);
-  console.log('⚠ 실측이 아니라 등급 분포를 가정한 추정이다. 라이브 로그가 생기면 리플레이 모드를 쓸 것.\n');
+  console.log('등급 분포는 라이브 12판 실측값이다. 판정 스트림 자체를 다시 흘리려면 리플레이 모드를 쓸 것.\n');
   console.log(pad('난이도', 8) + pad('성공선', 8) + pad('프로필', 8) + pad('성사율', 9) +
     pad('호감 p10/중앙/p90', 22) + '파탄율');
   for (const dn of Object.keys(DIFFICULTIES)) {
@@ -89,7 +95,8 @@ function monteCarlo(n = 2500, seed = 20770819) {
     }
     console.log('');
   }
-  console.log('기준선: ace는 넘고(쉬움 80%+ / 보통 60%+ / 헬 35%+), lazy·none은 5% 미만이어야 한다.');
+  console.log('기준선: 난이도가 오를수록 성사율이 떨어지고, 같은 난이도 안에서 none이 ace보다 확실히 낮아야 한다.');
+  console.log('(ace↔none 격차가 20%p 밑으로 내려가면 준비가 의미를 잃은 것이다 — scoring.js 밸런싱 주석 참조)');
 }
 
 if (flag('montecarlo')) {

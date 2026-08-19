@@ -50,7 +50,9 @@ export class Engine {
     this.paused = false;      // 무전 모달이 열려 있는 동안
     this.pendingRadio = null; // 다음 클라이언트 발언에 주입될 지시
     this.pendingJudge = null; // 아직 채점되지 않은 직전 발언 (판정은 한 턴 늦게 온다)
+    this.tierLog = [];        // 심판이 지금까지 매긴 등급. 심판 본인에게 되돌려줘 분포를 점검하게 한다
     this.lastVibeSent = null; // 클라이언트에게 마지막으로 알려준 공기 (바뀔 때만 다시 알려준다)
+    this.vibeBeats = 0;       // 공기가 갱신된 횟수. 눈치가 반쯤인 인물은 이 중 절반만 받는다
     this.radioLeft = 0;
     this.phase = 'text';
   }
@@ -103,10 +105,21 @@ export class Engine {
     else hist.push({ role: 'user', content: text });
   }
 
-  // 공기가 바뀌었을 때만 클라이언트에게 알린다. 같은 문장을 매 턴 반복하면 로그만 불어난다.
+  // 공기는 **읽을 줄 아는 사람에게만** 간다.
+  //
+  // 분위기 못 읽는 인물에게 "지금 상대가 식었다"고 알려주면 그 인물은 더 이상 그 인물이 아니다.
+  // 프롬프트로 "너는 눈치가 없다"고 지시해봐야 안 먹는다(실측) — 그러니 정보를 아예 안 준다.
+  //   none : 평생 못 받는다. 상대가 시계를 봐도 모른다.
+  //   some : 갱신 두 번에 한 번만 닿는다. 뒤늦게, 띄엄띄엄 알아챈다.
+  //   well : 바뀔 때마다 받는다.
+  // (같은 문장을 매 턴 반복하지 않는 것은 캐시·로그 문제이기도 하다)
   #injectVibe() {
+    const reads = this.couple.client.flaw?.reads || 'well';
+    if (reads === 'none') return;
     const v = (this.state.vibe || '').trim();
     if (!v || v === this.lastVibeSent) return;
+    this.vibeBeats += 1;
+    if (reads === 'some' && this.vibeBeats % 2 === 0) return;  // 이번 갱신은 그냥 지나간다
     this.lastVibeSent = v;
     this.#pushUser(this.clientHist, `[지금 이 자리의 공기] ${v}`);
   }
@@ -176,7 +189,7 @@ export class Engine {
       fi = await this.llm.call({
         label: '첫인상 판정',
         system: P.judgeSystem(this.couple), cache: true,
-        messages: [{ role: 'user', content: P.firstImpressionUser(this.couple, this.prep.outfitDesc, sit.outfitReaction) }],
+        messages: [{ role: 'user', content: P.firstImpressionUser(this.couple, this.prep.outfitDesc, sit.outfitReaction, this.tierLog) }],
         schema: P.JUDGE_SCHEMA, effort: 'low', maxTokens: 3000,
       });
     } catch { fi = this.#neutralJudge('(첫인상 판정 불능)'); }
@@ -212,6 +225,7 @@ export class Engine {
   // 나머지를 다 반영한 뒤에 그 핸들러가 돌려준 대기(읽는 시간)를 마지막에 기다린다.
   async #reportJudge(judge, extra = {}) {
     const dl = this.state.lastDelta;
+    this.tierLog.push(dl.tier);
     const shown = this.h.judge?.({
       mood: dl.mood, love: dl.love,
       rawMood: dl.rawMood, rawLove: dl.rawLove, mult: dl.mult, tier: dl.tier,
@@ -231,7 +245,7 @@ export class Engine {
   #judgeCall(pending, tag) {
     return this.llm.call({
       label: `판정 ${tag}`, system: P.judgeSystem(this.couple), cache: true,
-      messages: [{ role: 'user', content: P.judgeUser(pending.history, pending.clientMsg, pending.reaction) }],
+      messages: [{ role: 'user', content: P.judgeUser(pending.history, pending.clientMsg, pending.reaction, this.tierLog) }],
       schema: P.JUDGE_SCHEMA, effort: 'low', maxTokens: 3000,
     }).catch(() => this.#neutralJudge('(심판이 잠시 졸았다)'));
   }
@@ -273,7 +287,8 @@ export class Engine {
 
       // 무전 지시 주입 (상대에게는 안 들린다)
       if (this.pendingRadio) {
-        this.#pushUser(this.clientHist, `[본부 무전 - 상대에게는 안 들림] ${this.pendingRadio}`);
+        this.#pushUser(this.clientHist,
+          `[본부 명령 — 지금 이 한 마디로 즉시 이행하라. 상대에게는 안 들린다]\n${this.pendingRadio}`);
         this.pendingRadio = null;
       }
       // 갱신된 공기 주입

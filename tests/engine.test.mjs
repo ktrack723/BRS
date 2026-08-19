@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Engine, prepReaction } from '../js/engine.js';
-import { COUPLE_BY_ID } from '../js/couples.js';
+import { COUPLES, COUPLE_BY_ID } from '../js/couples.js';
 import { diffOf } from '../js/scoring.js';
 
 const couple = COUPLE_BY_ID['os-war'];
@@ -57,7 +57,7 @@ class FakeLlm {
 async function playFull(llm, opts = {}) {
   const events = { judge: [], bubbles: [], vibes: [], emotes: [] };
   const engine = new Engine(llm, {
-    couple, agent: AGENT,
+    couple: opts.couple || couple, agent: AGENT,
     prep: opts.prep || { outfitDesc: '테스트 착장', coaching: '테스트 지침', speech: '테스트 연설' },
     handlers: {
       judge: j => events.judge.push(j),
@@ -179,28 +179,56 @@ test('에이전트·심판 시스템 프롬프트에는 캐시 breakpoint가 걸
 });
 
 // ── 공기(텍스트 분위기) ─────────────────────────────────
-test('심판이 갱신한 공기가 클라이언트에게 그대로 전달된다', async () => {
+// 공기는 읽을 줄 아는 인물에게만 간다. 못 읽는 인물에게 알려주면 그 인물이 아니게 된다.
+const VIBE_JUDGE = () => {
   let n = 0;
-  const llm = new FakeLlm({
-    judge: () => ({
-      tier: 'nudge', moodDelta: 1, loveDelta: 2, reason: 'r',
-      vibe: `공기 상태 ${++n}`, revealed: '', clientEmote: 'talk', targetEmote: 'talk',
-    }),
+  return () => ({
+    tier: 'nudge', moodDelta: 1, loveDelta: 2, reason: 'r',
+    vibe: `공기 상태 ${++n}`, revealed: '', clientEmote: 'talk', targetEmote: 'talk',
   });
-  const { events, engine } = await playFull(llm);
-  assert.ok(events.vibes.length >= 3, '공기가 UI로 흘러야 한다');
-  assert.match(engine.state.vibe, /공기 상태 \d+/);
+};
+const injectedVibes = (llm) => llm.byLabel('대면 발언')
+  .flatMap(c => c.messages.map(m => String(m.content)))
+  .filter(t => t.includes('[지금 이 자리의 공기]'));
 
-  const injected = llm.byLabel('대면 발언')
-    .flatMap(c => c.messages.map(m => String(m.content)))
-    .filter(t => t.includes('[지금 이 자리의 공기]'));
+test('눈치 빠른 의뢰인에게는 갱신된 공기가 그대로 전달된다', async () => {
+  const sharp = COUPLES.find(c => c.client.flaw.reads === 'well');
+  assert.ok(sharp, '테스트 전제: 공기를 잘 읽는 의뢰인이 있어야 한다');
+  const llm = new FakeLlm({ judge: VIBE_JUDGE() });
+  const { events, engine } = await playFull(llm, { couple: sharp });
+  assert.ok(events.vibes.length >= 3, '공기가 UI로는 항상 흘러야 한다 (요원은 본다)');
+  assert.match(engine.state.vibe, /공기 상태 \d+/);
+  const injected = injectedVibes(llm);
   assert.ok(injected.length >= 1, '공기가 클라이언트 프롬프트에 주입되지 않았다');
   assert.ok(injected.some(t => /공기 상태 \d+/.test(t)));
 });
 
+test('공기를 못 읽는 의뢰인에게는 한 번도 전달되지 않는다', async () => {
+  const blind = COUPLES.find(c => c.client.flaw.reads === 'none');
+  assert.ok(blind, '테스트 전제: 공기를 못 읽는 의뢰인이 있어야 한다');
+  const llm = new FakeLlm({ judge: VIBE_JUDGE() });
+  const { events } = await playFull(llm, { couple: blind });
+  assert.equal(injectedVibes(llm).length, 0, '눈치 없는 인물이 분위기를 알고 있으면 안 된다');
+  // 요원(UI)에게는 여전히 보인다 — 못 읽는 건 의뢰인이지 요원이 아니다
+  assert.ok(events.vibes.length >= 3, '요원 화면에는 공기가 떠야 한다');
+});
+
+test('눈치가 반쯤인 의뢰인은 갱신을 띄엄띄엄 받는다', async () => {
+  const half = COUPLES.find(c => c.client.flaw.reads === 'some');
+  const sharp = COUPLES.find(c => c.client.flaw.reads === 'well');
+  const runOne = async (couple) => {
+    const llm = new FakeLlm({ judge: VIBE_JUDGE() });
+    await playFull(llm, { couple });
+    return injectedVibes(llm).length;
+  };
+  const [halfN, sharpN] = [await runOne(half), await runOne(sharp)];
+  assert.ok(halfN < sharpN, `반쯤(${halfN})이 잘 읽는 쪽(${sharpN})보다 적게 받아야 한다`);
+});
+
 test('같은 공기를 매 턴 반복해서 주입하지 않는다', async () => {
+  const sharp = COUPLES.find(c => c.client.flaw.reads === 'well');
   const llm = new FakeLlm();   // 항상 같은 vibe를 돌려준다
-  await playFull(llm);
+  await playFull(llm, { couple: sharp });
   const last = llm.byLabel('대면 발언').at(-1).messages
     .map(m => String(m.content)).join('\n');
   const times = (last.match(/\[지금 이 자리의 공기\]/g) || []).length;
@@ -250,9 +278,10 @@ test('무전은 다음 발언 프롬프트에 주입되고 배급량을 넘지 �
   // 주입 확인: 무전을 보낸 직후 발언 호출의 메시지에 그 문구가 들어 있다
   const injected = llm.byLabel('문자 발언')
     .flatMap(c => c.messages.map(m => String(m.content)))
-    .filter(t => t.includes('본부 무전'));
+    .filter(t => t.includes('[본부 명령'));
   assert.ok(injected.length >= 1, '무전이 클라이언트 프롬프트에 주입되지 않았다');
-  assert.ok(injected.some(t => t.includes('상대에게는 안 들림')));
+  assert.ok(injected.some(t => t.includes('상대에게는 안 들린다')));
+  assert.ok(injected.some(t => t.includes('즉시 이행하라')), '무전은 부탁이 아니라 명령으로 들어가야 한다');
 });
 
 test('무전은 그 자체로 게이지를 바꾸지 않는다 (채점 대상이 아니다)', async () => {
@@ -276,7 +305,7 @@ test('페이즈가 바뀌면 미주입 무전은 폐기된다', async () => {
   await engine.runTalking({ place: 'p', intro: 'i', outfitReaction: 'r', vibe: 'v' });
   const leaked = llm.byLabel('대면 발언')
     .flatMap(c => c.messages.map(m => String(m.content)))
-    .some(t => t.includes('[본부 무전 - 상대에게는 안 들림] 문자 막판 지시'));
+    .some(t => t.includes('문자 막판 지시'));
   assert.equal(leaked, false, '문자 페이즈에서 못 쓴 지시가 대면 맥락으로 새어나가면 안 된다');
 });
 

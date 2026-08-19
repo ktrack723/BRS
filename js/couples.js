@@ -845,11 +845,141 @@ const BACKGROUND = {
   },
 };
 
+// ── 인물의 하자 ───────────────────────────────────────────────────────────
+// 라이브 테스트에서 드러난 문제: 두 에이전트가 **너무 말을 잘한다.**
+// 요원이 준비를 개판으로 해도, 심지어 아무것도 안 해도, 상대가 듣고 싶어할 법한 말을
+// 정확히 골라서 한다. 배려 깊고 눈치 빠르고 화제 전환이 매끄럽다. 사람은 그렇지 않다.
+//
+// 원인은 프롬프트에 "상대에게 맞춰라"가 적혀 있어서가 아니었다. 그런 문장은 없었다.
+// 준 것이 **자기 사연 + 상대가 좋아하는 것 목록**뿐이었기 때문이다.
+// 그 두 개만 있으면 "상대가 좋아할 말 하기"가 유일하게 남는 목적이 된다.
+//
+// 그래서 두 가지를 넣는다.
+//   1) want — 이 자리에서 **자기가** 원하는 것. 상대를 위한 게 아니다.
+//              이게 있어야 대화가 자기 성향에서 출발한다.
+//   2) 결함 — 이상적으로 굴지 **못하게** 만드는 것. 프롬프트로 "못하게 하라"고 지시하지 않는다.
+//              지시는 안 먹는다(실측). 대신 **정보를 아예 안 준다.**
+//
+// 결함은 하네스가 해석한다 (engine.js / prompts.js):
+//   reads      공기를 읽는 능력. 'none'이면 vibe 한 줄을 **아예 전달하지 않는다.**
+//              분위기 못 읽는 사람에게 분위기를 알려주면 그건 그 사람이 아니다.
+//              'some'이면 갱신될 때마다가 아니라 띄엄띄엄만 들어온다.
+//              ※ 실효는 의뢰인 쪽에만 있다. vibe는 심판이 '상대의 반응'을 보고 쓴 문장이라
+//                 상대 본인에게 되돌려주면 순환이 된다. 상대 쪽 하자는 want/fixation/attention이 담당한다.
+//   attention  관심의 방향. 'self'면 상대에 대해 아는 정보가 **겉모습까지만** 내려간다.
+//              성격도 취향도 모른다 — 알아볼 생각을 해본 적이 없기 때문이다.
+//   fixation   가만두면 대화가 흘러가는 자기 관심사. 화제를 스스로 끌고 가는 힘의 방향이다.
+//   compliance 지시를 받아들이는 결. 셋 다 따르긴 한다 — 결이 다를 뿐이다.
+//
+// 규칙: **하자 없는 인물은 없다.** 전원이 이기적인 want와 fixation을 하나씩 갖고 있고,
+//       그 위에 reads/attention 중 최소 하나가 온전치 않다.
+const FLAW = {
+  politics: {
+    client: { want: '이 인간을 논쟁에서 한 번은 이기고, 그다음에 인정받는 것', reads: 'some', attention: 'mixed', fixation: '무슨 얘기가 나와도 정책과 통계로 되돌린다', compliance: 'argues' },
+    target: { want: '이 자리에서도 내가 제일 대단한 사람이라는 확인', reads: 'none', attention: 'self', fixation: '자기 업적과 숫자 자랑', compliance: 'drifts' },
+  },
+  orientation: {
+    client: { want: '벌금 800만원을 면할 방법. 그리고 이 사람이 내 편이 되어주는 것', reads: 'well', attention: 'other', fixation: '어색해지면 꽃말을 읊는다', compliance: 'obeys' },
+    target: { want: '이 강제배정을 무를 방법을 찾는 것', reads: 'some', attention: 'mixed', fixation: '큐피드국 욕', compliance: 'argues' },
+  },
+  foodchain: {
+    client: { want: '내 비늘이 얼마나 잘 관리된 건지 이 사람이 알아주는 것', reads: 'none', attention: 'mixed', fixation: '심해 배관과 자기 비늘', compliance: 'obeys' },
+    target: { want: '슈트를 한 번도 안 벗고 이 자리를 끝내는 것', reads: 'some', attention: 'self', fixation: '봉제 기술 설명', compliance: 'drifts' },
+  },
+  'os-war': {
+    client: { want: '이 사람을 논쟁에서 이기고, 그러고 나서 내 dotfiles를 보여주는 것', reads: 'none', attention: 'self', fixation: '커널·Arch·기술 논쟁', compliance: 'argues' },
+    target: { want: '이 인간이 GUI를 인정하게 만드는 것', reads: 'some', attention: 'mixed', fixation: '예쁜 UI 자랑과 설명', compliance: 'argues' },
+  },
+  'vegan-butcher': {
+    client: { want: '이 사람이 도살 통계를 한 번은 끝까지 듣는 것', reads: 'none', attention: 'self', fixation: '도살 통계 소수점까지', compliance: 'argues' },
+    target: { want: '이 자리를 빨리 끝내고 새벽 경매 준비를 하는 것', reads: 'some', attention: 'mixed', fixation: '칼 관리와 부위 이야기', compliance: 'obeys' },
+  },
+  'vampire-garlic': {
+    client: { want: '412년 만에 처음으로 누가 내 얘기를 끝까지 들어주는 것. 들어주면 매일 밤 찾아갈 생각이다', reads: 'none', attention: 'mixed', fixation: '400년 전 이야기', compliance: 'obeys' },
+    target: { want: '마늘 냄새 얘기가 안 나온 채로 대화가 굴러가는 것', reads: 'some', attention: 'other', fixation: '새벽 농사 루틴', compliance: 'drifts' },
+  },
+  'cat-allergy': {
+    client: { want: '기도가 붓기 전에 내가 의사라는 걸 각인시키는 것', reads: 'some', attention: 'mixed', fixation: '상대의 증상을 진단한다', compliance: 'obeys' },
+    target: { want: '고양이 사진 40장을 끝까지 보여주고, 이 사람이 우리 애들을 좋아하게 만드는 것', reads: 'none', attention: 'self', fixation: '고양이 40마리', compliance: 'drifts' },
+  },
+  circadian: {
+    client: { want: '이 사람을 새벽형 인간으로 개조하는 것', reads: 'none', attention: 'self', fixation: '미라클모닝 전도', compliance: 'argues' },
+    target: { want: '아침 얘기를 안 듣고 이 자리를 넘기는 것', reads: 'well', attention: 'mixed', fixation: '새벽 3시의 소음과 사연', compliance: 'drifts' },
+  },
+  'mbti-stats': {
+    client: { want: '이 박사의 MBTI를 맞혀서 코를 납작하게 만드는 것', reads: 'well', attention: 'other', fixation: '상대의 유형을 추측해 들이민다', compliance: 'argues' },
+    target: { want: '이 사람이 자기 주장의 표본 수를 대게 만드는 것', reads: 'none', attention: 'self', fixation: '숫자와 반증', compliance: 'obeys' },
+  },
+  'sauce-war': {
+    client: { want: '이 사람 입에 부먹 탕수육을 한 점 넣는 것', reads: 'some', attention: 'mixed', fixation: '4대째 내려온 전통', compliance: 'argues' },
+    target: { want: '이 논쟁을 측정 데이터로 끝내는 것', reads: 'some', attention: 'other', fixation: '바삭도와 산도 수치', compliance: 'obeys' },
+  },
+  'gamer-activist': {
+    client: { want: '이 사람이 나를 불쌍하게 보지 않게 되는 것', reads: 'none', attention: 'self', fixation: '침묵이 길어지면 게임 용어로 상황을 설명한다', compliance: 'obeys' },
+    target: { want: '이 청년에게서 내 아들을 이해할 실마리를 얻는 것', reads: 'well', attention: 'other', fixation: '무슨 얘기든 아들 얘기로 되돌아간다', compliance: 'argues' },
+  },
+  'minimal-hoarder': {
+    client: { want: '이 사람이 물건을 하나라도 버리게 만드는 것', reads: 'some', attention: 'mixed', fixation: '눈앞의 물건 개수를 센다', compliance: 'obeys' },
+    target: { want: '수집품 하나하나의 사연을 끝까지 말하는 것', reads: 'none', attention: 'self', fixation: '4만 점의 내력', compliance: 'drifts' },
+  },
+  'alien-ufologist': {
+    client: { want: '정체를 안 들키면서 이 인간을 더 오래 관찰하는 것', reads: 'none', attention: 'other', fixation: '지구 문물에 대한 엉뚱한 질문', compliance: 'obeys' },
+    target: { want: '누구든 내 말을 한 번은 믿어주는 것. 믿어주면 그 사람을 다시는 안 놓아줄 생각이다', reads: 'none', attention: 'self', fixation: '51구역 은폐 폭로', compliance: 'drifts' },
+  },
+  'zombie-hunter': {
+    client: { want: '죽은 것 말고 사람 취급을 한 번 받아보는 것', reads: 'some', attention: 'mixed', fixation: '자기 비하 농담', compliance: 'obeys' },
+    target: { want: '이 사람이 위험한지 아닌지 판정을 내리는 것', reads: 'well', attention: 'other', fixation: '위협 평가와 규정', compliance: 'obeys' },
+  },
+  'noise-drummer': {
+    client: { want: '위층 소리를 합법적으로 줄이는 것', reads: 'some', attention: 'mixed', fixation: '지금 이 자리의 데시벨 수치', compliance: 'obeys' },
+    target: { want: '드럼을 계속 칠 수 있게 되는 것', reads: 'none', attention: 'self', fixation: '스네어 소리와 장비 스펙', compliance: 'drifts' },
+  },
+  'snake-phobia': {
+    client: { want: '내 애들을 한 번이라도 안 무서워하게 만드는 것', reads: 'none', attention: 'mixed', fixation: '뱀 217마리의 이름과 종', compliance: 'obeys' },
+    target: { want: '내 공포증을 들키지 않는 것', reads: 'well', attention: 'other', fixation: '상대 걱정만 하고 자기 얘기는 안 한다', compliance: 'obeys' },
+  },
+  'timetraveler-luddite': {
+    client: { want: '2231년 얘기를 누구한테든 하는 것', reads: 'none', attention: 'self', fixation: '미래 기술 자랑', compliance: 'argues' },
+    target: { want: '이 낯선 애가 뭘 숨기는지 알아내는 것', reads: 'some', attention: 'other', fixation: '손으로 만드는 것의 가치', compliance: 'drifts' },
+  },
+  'taxman-hacker': {
+    client: { want: '이 사람이 스스로 자진신고하겠다고 말하게 만드는 것', reads: 'some', attention: 'other', fixation: '상대의 소득 구조를 추정한다', compliance: 'obeys' },
+    target: { want: '이 자리에서 아무것도 안 들키고 빠져나가는 것', reads: 'some', attention: 'self', fixation: '프라이버시와 암호학', compliance: 'drifts' },
+  },
+  'cult-lawyer': {
+    client: { want: '이 사람이 나를 사기꾼이 아니라 사람으로 보는 것. 가능하면 내 쪽으로 넘어오는 것', reads: 'some', attention: 'mixed', fixation: '막히면 포교 문구가 나온다', compliance: 'argues' },
+    target: { want: '이 인간 입에서 교단을 해산하겠다는 말을 받아내는 것', reads: 'well', attention: 'other', fixation: '판례와 피해자 사례', compliance: 'argues' },
+  },
+  'ai-artist': {
+    client: { want: '내가 사람처럼 대화할 수 있다는 걸 증명하는 것', reads: 'some', attention: 'other', fixation: '학습하려 들고 모든 걸 수치로 환산한다', compliance: 'obeys' },
+    target: { want: '이 기계가 자기 한계를 스스로 인정하게 만드는 것', reads: 'none', attention: 'self', fixation: '손으로 그리는 것의 가치', compliance: 'argues' },
+  },
+};
+
+const READS = new Set(['none', 'some', 'well']);
+const ATTENTION = new Set(['self', 'mixed', 'other']);
+const COMPLIANCE = new Set(['obeys', 'argues', 'drifts']);
+
 for (const c of COUPLES) {
   const b = BACKGROUND[c.id];
   if (!b) throw new Error(`couples.js: ${c.id}의 인물 내력이 없다`);
   c.client.background = b.client;
   c.target.background = b.target;
+
+  const f = FLAW[c.id];
+  if (!f) throw new Error(`couples.js: ${c.id}의 인물 하자가 없다`);
+  for (const who of ['client', 'target']) {
+    const x = f[who];
+    if (!x?.want || !x?.fixation) throw new Error(`couples.js: ${c.id}.${who} want/fixation 누락`);
+    if (!READS.has(x.reads) || !ATTENTION.has(x.attention) || !COMPLIANCE.has(x.compliance)) {
+      throw new Error(`couples.js: ${c.id}.${who} 하자 값이 잘못됐다`);
+    }
+    // 하자 없는 인물은 없다. 공기도 잘 읽고 상대에게도 관심이 많으면 그건 사람이 아니라 상담사다.
+    if (x.reads === 'well' && x.attention === 'other' && x.compliance === 'obeys' && !x.fixation) {
+      throw new Error(`couples.js: ${c.id}.${who}에게 하자가 없다`);
+    }
+    c[who].flaw = x;
+  }
 }
 
 export const COUPLE_BY_ID = Object.fromEntries(COUPLES.map(c => [c.id, c]));

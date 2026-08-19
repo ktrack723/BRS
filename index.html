@@ -154,8 +154,8 @@
           </div>
           <div class="panel95 prep-card" data-title="지침 하달 · 대화 지침">
             <p class="prep-sub">의뢰인 시스템 프롬프트에 직접 주입된다.</p>
-            <p class="prep-hint">여기 쓴 문장이 <b>그대로</b> 그 인간의 머릿속에 들어간다. 채점은 없다.<br>
-            비워두면 그 인간은 <b>아무 준비 없이</b> 나간다. 점수가 깎이는 게 아니라, 알아서 망한다.</p>
+            <p class="prep-hint">여기 쓴 문장이 <b>명령</b>으로 그 인간의 머릿속에 들어간다. 참고사항이 아니다. 채점도 없다.<br>
+            비워두면 그 인간은 <b>제 성향대로만</b> 나간다. 점수가 깎이는 게 아니라, 알아서 망한다.</p>
             <textarea id="coaching-input" rows="5" placeholder="예: 지난 선거 얘기는 절대 꺼내지 마라. 상대가 말을 흐리면 그냥 넘어가지 말고 파고들어라. 네 이론 설명은 두 문장 안에 끝내라"></textarea>
             <button id="btn-coaching" class="btn95" type="button">지침 하달 · 반응 확인</button>
             <div id="coaching-inject" class="eval-result"></div>
@@ -200,8 +200,8 @@
           </div>
           <div class="panel95 prep-card" data-title="현장 권한 · 무전 개입">
             <p class="prep-sub">배급: <span class="prep-tag" id="radio-budget">문자 1회 / 대면 2회</span></p>
-            <p class="prep-hint">대화 중 의뢰인에게만 들리는 지시. <b>이것도 채점 안 한다.</b><br>
-            대화에 규칙이 없으므로 저 둘은 아무 데로나 흘러간다. 무전은 그 흐름에 끼어드는 유일한 손잡이다.</p>
+            <p class="prep-hint">대화 중 의뢰인에게만 들리는 <b>명령</b>. 이것도 채점 안 한다.<br>
+            저 둘은 각자 원하는 게 따로 있어서 아무 데로나 흘러간다. 무전은 그 흐름에 끼어드는 유일한 손잡이다.</p>
           </div>
           <div id="prep-status" class="prep-warning"></div>
           <div class="prep-nav">
@@ -298,9 +298,10 @@
 
   <!-- 무전 모달 -->
   <div id="modal-radio" class="modal hidden">
-    <div class="panel95 modal-box" data-title="본부 → 의뢰인 단방향 무전"><span class="win-status">송신 대기</span>
+    <div class="panel95 modal-box" data-title="본부 → 의뢰인 단방향 명령"><span class="win-status">송신 대기</span>
       <p class="dim">상대에게는 안 들린다. 대화는 송신할 때까지 멈춰 있다.<br>
-      <b>이 지시는 채점되지 않는다.</b> 다음 발언에 그대로 주입될 뿐이고, 결과는 그 발언의 판정으로 돌아온다.</p>
+      <b>이 명령은 채점되지 않는다.</b> 다음 한 마디에 그대로 주입될 뿐이고, 결과는 그 발언의 판정으로 돌아온다.<br>
+      의뢰인은 이걸 참고사항이 아니라 <b>지시</b>로 받는다. 다만 그 인간이 어떻게 이행할지까지는 정할 수 없다.</p>
       <div id="radio-context" class="radio-context"></div>
       <textarea id="radio-input" rows="3" placeholder="예: 지금 상대가 갈기 손질 얘기 꺼냈다. 그거 물고 늘어져서 슈트 만들 때 제일 힘든 게 뭔지 물어봐"></textarea>
       <div class="modal-btns">

@@ -154,6 +154,40 @@ page.on('requestfailed', r => {
   if (u.startsWith(`http://127.0.0.1:${PORT}`)) pageErrors.push(`요청 실패(로컬): ${u}`);
 });
 
+// 프록시 뒤에서 --live를 돌리기 위한 다리.
+// 게임은 브라우저에서 api.anthropic.com으로 직접 fetch한다. 컨테이너/CI처럼 나가는 길이
+// 프록시로만 열려 있는 환경에서는 그 요청이 "Failed to fetch"로 죽는다.
+// 그래서 그 요청만 가로채 Node가 대신 보낸다 — Node는 환경의 프록시·CA 설정을 그대로 쓰므로
+// TLS 검증을 끌 필요가 없고, 게임 코드도 손대지 않는다.
+if (LIVE) {
+  const PASS = ['content-type', 'x-api-key', 'anthropic-version', 'anthropic-dangerous-direct-browser-access'];
+  const CORS = {
+    'access-control-allow-origin': '*',
+    'access-control-allow-headers': '*',
+    'access-control-allow-methods': 'POST, OPTIONS',
+  };
+  await page.route('https://api.anthropic.com/**', async (route) => {
+    const req = route.request();
+    if (req.method() === 'OPTIONS') return route.fulfill({ status: 204, headers: CORS, body: '' });
+    const src = req.headers();
+    const headers = Object.fromEntries(PASS.filter(h => src[h]).map(h => [h, src[h]]));
+    try {
+      const res = await fetch(req.url(), { method: req.method(), headers, body: req.postData() ?? undefined });
+      const body = await res.text();
+      await route.fulfill({
+        status: res.status,
+        headers: { ...CORS, 'content-type': res.headers.get('content-type') || 'application/json' },
+        body,
+      });
+    } catch (e) {
+      await route.fulfill({
+        status: 502, headers: { ...CORS, 'content-type': 'application/json' },
+        body: JSON.stringify({ error: { type: 'proxy_bridge_failed', message: String(e.message) } }),
+      });
+    }
+  });
+}
+
 try {
   console.log(`\n🌐 부팅 (${LIVE ? '실제 API' : '가짜 LLM'} 모드)`);
   // 재생 속도는 기본적으로 꺼 둔다(?pace=instant). 사람 읽는 속도로 돌리면 E2E가 몇 분씩 걸린다.
@@ -378,8 +412,18 @@ try {
   check('착장 묘사가 생성됐다 (대면 첫인상 판정의 입력값)', outfit.length > 10, outfit.slice(0, 50));
 
   const salonReact = await page.textContent('#styling-result');
-  check('가위손 박의 소감이 표시된다', /책임은 안 진다|시공/.test(salonReact), salonReact.slice(0, 40));
-  check('거울 본 의뢰인 본인의 반응이 표시된다', /이러라고요|따르겠/.test(salonReact));
+  const salonSpeakers = await page.evaluate(() =>
+    [...document.querySelectorAll('#styling-result .react-line')].map(el => ({
+      who: el.querySelector('.react-who')?.textContent || '',
+      body: (el.textContent || '').replace(el.querySelector('.react-who')?.textContent || '', '').trim(),
+    })));
+  const clientName = await page.evaluate(() => window.__game.state.couple.client.name);
+  check('가위손 박의 소감이 표시된다',
+    salonSpeakers.some(x => x.who.includes('가위손 박') && x.body.length > 4),
+    salonSpeakers.map(x => x.who).join(' / '));
+  check('거울 본 의뢰인 본인의 반응이 표시된다',
+    salonSpeakers.some(x => x.who.includes(clientName) && x.body.length > 4),
+    salonSpeakers.find(x => x.who.includes(clientName))?.body.slice(0, 40) || '(없음)');
 
   // 무대 캔버스가 실제로 픽셀을 뱉는지
   const stageOpaque = await page.evaluate(() => {
@@ -402,8 +446,14 @@ try {
   // 빈 상태 안내문도 길이가 있으므로 글자 수로 기다리면 즉시 통과해버린다. 실제 반응 줄이 생길 때까지 기다린다.
   await page.waitForSelector('#coaching-result .react-line', { timeout: ms(120000) });
   const interroReact = await page.textContent('#coaching-result');
-  check('취조실에서 의뢰인의 개인적 반응이 표시된다', /알겠습니다|이상해 보이/.test(interroReact), interroReact.slice(0, 50));
-  check('기록관 관찰 기록이 함께 표시된다', /기록관/.test(interroReact));
+  const interroLine = await page.evaluate(() => {
+    const el = document.querySelector('#coaching-result .react-line');
+    return { who: el?.querySelector('.react-who')?.textContent || '', len: (el?.textContent || '').length };
+  });
+  check('취조실에서 의뢰인의 개인적 반응이 표시된다',
+    interroLine.who.includes(clientName) && interroLine.len > 12, JSON.stringify(interroLine));
+  check('기록관 관찰 기록이 함께 표시된다',
+    (await page.locator('#coaching-result .react-note').count()) === 1, interroReact.slice(0, 40));
   await checkContrast('취조실 화면');
   await page.screenshot({ path: `${SHOTS}/5-interro.png`, fullPage: true });
 
@@ -414,7 +464,14 @@ try {
   await page.click('#btn-speech');
   await page.waitForSelector('#speech-result .react-line', { timeout: ms(120000) });
   const gateReact = await page.textContent('#speech-result');
-  check('정문에서 의뢰인의 개인적 반응이 표시된다', /어떻게 아셨어요|문고리/.test(gateReact), gateReact.slice(0, 50));
+  const gateLine = await page.evaluate(() => {
+    const el = document.querySelector('#speech-result .react-line');
+    return { who: el?.querySelector('.react-who')?.textContent || '', len: (el?.textContent || '').length };
+  });
+  check('정문에서 의뢰인의 개인적 반응이 표시된다',
+    gateLine.who.includes(clientName) && gateLine.len > 12, gateReact.slice(0, 50));
+  check('정문에도 기록관 기록이 남는다',
+    (await page.locator('#speech-result .react-note').count()) === 1);
   check('준비 상태 요약이 세 항목을 모두 기재됨으로 본다',
     /세 항목 모두 기재/.test(await page.textContent('#prep-status')));
   await checkContrast('정문 화면');
