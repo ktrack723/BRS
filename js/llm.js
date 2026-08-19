@@ -1,5 +1,6 @@
-// harness.js — 브라우저용 Claude LLM 하네스.
-// 이 게임의 모든 로직은 이 하네스를 통과한다. API 키가 없으면 게임은 1도 안 돌아간다.
+// llm.js — Claude Messages API의 브라우저용 클라이언트 래퍼.
+// 역할은 딱 여기까지다: 요청 전송, 재시도/백오프, 구조화 출력 파싱, 거절 처리, 사용량 집계, 호출 로그.
+// 에이전트를 턴마다 물려 돌리는 '하네스'는 engine.js다.
 
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const API_VERSION = '2023-06-01';
@@ -17,7 +18,7 @@ export class RefusalError extends Error {
   constructor() { super('LLM이 이 요청을 정중히 거절했다'); this.name = 'RefusalError'; }
 }
 
-export class Harness {
+export class LlmClient {
   constructor() {
     this.apiKey = null;
     this.model = 'claude-opus-5';

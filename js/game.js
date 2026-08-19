@@ -1,62 +1,52 @@
-// game.js — 연애조작단 2077: 오퍼레이션 큐피드. 게임 상태 머신 + UI.
-// 모든 콘텐츠는 harness(LLM)를 통해 생성된다. 키가 없으면 아무것도 안 나온다.
-import { Harness, RefusalError } from './harness.js';
+// game.js — 화면/입력 계층. 대화 오케스트레이션은 engine.js, 규칙은 scoring.js, API는 llm.js.
+import { LlmClient, RefusalError } from './llm.js';
 import * as P from './prompts.js';
+import { Engine } from './engine.js';
+import { DIFFICULTIES, diffOf } from './scoring.js';
 import { AvatarViewer, sanitizeSpec } from './avatar.js';
 import { sfx, startBgm, toggleBgm, unlockAudio } from './audio.js';
 
-const $ = sel => document.querySelector(sel);
-const $$ = sel => [...document.querySelectorAll(sel)];
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const escapeHtml = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
-const params = new URLSearchParams(location.search);
-const CONFIG = {
-  textTurns: params.get('fast') ? 2 : 5,
-  talkTurns: params.get('fast') ? 2 : 6,
-  textInterventions: 1,
-  talkInterventions: 2,
-};
-
-const harness = new Harness();
+const llm = new LlmClient();
 
 const state = {
   screen: 'boot',
   clients: [], clientSpecs: [], targetSpecs: [],
-  chosen: -1, client: null,
-  clientSpec: null, targetSpec: null,
-  outfitDesc: '', styleScore: 0, courage: 2, coaching: '',
-  mood: 50, love: 20, phase: 'text',
-  interventionsLeft: 0, pendingRadio: null, radioOpen: false,
-  transcript: [], clientHist: [], targetHist: [],
-  intel: [], aborted: false, busy: false,
+  client: null, clientSpec: null, targetSpec: null, diff: null,
+  prep: { styleScore: null, coachScore: null, courageScore: null, outfitDesc: '', coaching: '' },
+  engine: null, result: null,
 };
-window.__game = { state, harness, CONFIG }; // 자동 테스트용 후크
+window.__game = { state, llm, DIFFICULTIES }; // 자동 테스트 후크
 
-// 미니 뷰어(스크리닝 카드)는 캔버스와 함께 버려지므로 매번 dispose,
-// 무대 뷰어는 캔버스가 DOM에 상주하므로 WebGL 컨텍스트를 재사용한다 (컨텍스트 고갈 방지).
+// ── 뷰어 관리 (무대 캔버스는 컨텍스트 재사용) ───────────
 let miniViewers = [];
 const stageViewers = new Map();
-function clearMinis() { miniViewers.forEach(v => v.dispose()); miniViewers = []; }
+const clearMinis = () => { miniViewers.forEach(v => v.dispose()); miniViewers = []; };
 function newMiniViewer(canvas, opts) { const v = new AvatarViewer(canvas, opts); miniViewers.push(v); return v; }
-function getStageViewer(canvasId) {
-  let v = stageViewers.get(canvasId);
-  if (!v) { v = new AvatarViewer($('#' + canvasId), {}); stageViewers.set(canvasId, v); }
+function getStageViewer(id) {
+  let v = stageViewers.get(id);
+  if (!v) { v = new AvatarViewer($('#' + id), {}); stageViewers.set(id, v); }
   v.reset();
   return v;
 }
 
-// ── 공용 UI 유틸 ────────────────────────────────────────
+// ── 공용 UI ─────────────────────────────────────────────
 function show(screen) {
   state.screen = screen;
   $$('.screen').forEach(s => s.classList.toggle('hidden', s.id !== `screen-${screen}`));
+  window.scrollTo(0, 0);
 }
 
 const TIPS = [
-  '팁: 도람푸 3세는 하루 3회 연애 성공 보고를 받는다.',
-  '팁: 무전 개입은 아껴 쓰자. 클라이언트는 생각보다 말을 잘 안 듣는다.',
-  '팁: 숨겨진 취향을 저격하면 러브 게이지가 폭발한다.',
-  '팁: 무드가 바닥나면 상대는 그냥 집에 간다.',
-  '팁: 격려 연설이 후지면 클라이언트 멘탈도 후져진다.',
-  '팁: 2077년에도 삼겹살은 진리다.',
+  '팁: 무전은 미확인 취향을 캐낼 유일한 수단이다. 아끼다 못 쓰면 그냥 손해다.',
+  '팁: 용기가 바닥나면 클라이언트는 패닉에 빠져 분위기를 스스로 깎아먹는다.',
+  '팁: 분위기가 낮으면 아무리 취향을 저격해도 호감이 잘 안 오른다.',
+  '팁: 착장은 대면 첫인상에서 한 번 더 크게 작용한다.',
+  '팁: 헬 난이도는 준비 4종 중 하나만 부실해도 성공선에 못 닿는다.',
+  '팁: 코칭은 응원이 아니라 행동 지시다. 구체적일수록 점수가 높다.',
 ];
 function loading(on, label = '') {
   $('#loading-overlay').classList.toggle('hidden', !on);
@@ -79,13 +69,13 @@ function toast(msg, ms = 5000) {
 }
 
 function errMsg(e) {
-  if (e instanceof RefusalError) return '⚠ LLM이 이 내용은 못 다루겠다며 파업했다. 다시 시도하거나 내용을 바꿔보자.';
+  if (e instanceof RefusalError) return '⚠ LLM이 이 내용은 못 다루겠다며 파업했다. 내용을 바꿔 다시 시도하라.';
   return `⚠ 통신 사고: ${e.message}`;
 }
 
-async function typeText(el, text, cps = 40) {
+async function typeText(el, text, cps = 55) {
   el.textContent = '';
-  const step = Math.max(1, Math.round(text.length / 400)); // 너무 길면 뭉텅이로
+  const step = Math.max(1, Math.round(text.length / 400));
   for (let i = 0; i < text.length; i += step) {
     el.textContent += text.slice(i, i + step);
     if (i % 4 === 0) sfx.type();
@@ -94,27 +84,46 @@ async function typeText(el, text, cps = 40) {
   el.textContent = text;
 }
 
-// ── 하네스 콘솔 ─────────────────────────────────────────
-harness.onLog((entry, usage) => {
+// 스토리지 차단 환경에서도 죽지 않게
+const sget = (store, k) => { try { return window[store].getItem(k); } catch { return null; } };
+const sset = (store, k, v) => { try { v === null ? window[store].removeItem(k) : window[store].setItem(k, v); } catch { } };
+
+// ── 요원 전적 (로컬 저장) ───────────────────────────────
+function loadRecord() {
+  try { return JSON.parse(sget('localStorage', 'cupid_record') || '{"runs":[]}'); }
+  catch { return { runs: [] }; }
+}
+function saveRun(entry) {
+  const rec = loadRecord();
+  rec.runs.unshift(entry);
+  rec.runs = rec.runs.slice(0, 30);
+  sset('localStorage', 'cupid_record', JSON.stringify(rec));
+}
+const GRADE_ORDER = ['F', 'E', 'D', 'C', 'B', 'A', 'S'];
+function renderRecord() {
+  const runs = loadRecord().runs;
+  const el = $('#agent-record');
+  if (!el) return;
+  if (!runs.length) { el.innerHTML = '<span class="dim">첫 공작을 기다리는 중. 전적 없음.</span>'; return; }
+  const wins = runs.filter(r => r.accepted).length;
+  const best = runs.reduce((b, r) => GRADE_ORDER.indexOf(r.grade) > GRADE_ORDER.indexOf(b) ? r.grade : b, 'F');
+  const hell = runs.filter(r => r.difficulty === '헬' && r.accepted).length;
+  el.innerHTML =
+    `<b>요원 전적</b> · 공작 ${runs.length}회 · 성사 ${wins}회 (${Math.round(wins / runs.length * 100)}%) · 최고 등급 <b>${best}</b>${hell ? ` · 헬 클리어 ${hell}회` : ''}` +
+    `<div class="record-chips">${runs.slice(0, 8).map(r =>
+      `<span class="record-chip ${r.accepted ? 'win' : 'lose'} diff-${r.diffKey}" title="${escapeHtml(r.client)} (${escapeHtml(r.difficulty)}) 호감 ${r.love}/${r.threshold}">${escapeHtml(r.grade)}</span>`).join('')}</div>`;
+}
+
+// ── LLM 콘솔 ────────────────────────────────────────────
+llm.onLog((entry, usage) => {
   const box = $('#console-log');
   let el = entry._el;
-  if (!el) {
-    el = document.createElement('details');
-    entry._el = el;
-    box.prepend(el);
-    while (box.children.length > 60) box.lastChild.remove();
-  }
+  if (!el) { el = document.createElement('details'); entry._el = el; box.prepend(el); while (box.children.length > 60) box.lastChild.remove(); }
   const st = { pending: '📡', ok: '✅', error: '💥', refusal: '🙅' }[entry.status] || '❓';
   const u = entry.response?.usage;
   el.innerHTML = `<summary>${st} <b>${escapeHtml(entry.label)}</b> · ${escapeHtml(entry.model)} · ${entry.ms ? Math.round(entry.ms) + 'ms' : '...'}${u ? ` · ${u.input_tokens}→${u.output_tokens}tok` : ''}${entry.error ? ` · ${escapeHtml(entry.error)}` : ''}</summary><pre>${escapeHtml(JSON.stringify({ request: entry.request, response: entry.response ?? null }, null, 1).slice(0, 8000))}</pre>`;
-  $('#console-usage').textContent =
-    `호출 ${usage.calls} · in ${usage.inputTokens.toLocaleString()} · out ${usage.outputTokens.toLocaleString()} · 약 $${usage.cost.toFixed(3)}`;
+  $('#console-usage').textContent = `호출 ${usage.calls} · in ${usage.inputTokens.toLocaleString()} · out ${usage.outputTokens.toLocaleString()} · 약 $${usage.cost.toFixed(3)}`;
 });
-function escapeHtml(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
-
-// 스토리지 차단 환경(쿠키 전면 차단 등)에서도 게임이 죽지 않게 감싼다
-function sget(store, k) { try { return window[store].getItem(k); } catch { return null; } }
-function sset(store, k, v) { try { v === null ? window[store].removeItem(k) : window[store].setItem(k, v); } catch { /* 저장 불가 환경 */ } }
 
 // ── 부팅 ────────────────────────────────────────────────
 function initBoot() {
@@ -126,21 +135,23 @@ function initBoot() {
   $('#btn-boot').addEventListener('click', async () => {
     unlockAudio(); sfx.click();
     const key = $('#key-input').value.trim();
-    if (!key.startsWith('sk-ant-')) { bootError('그건 API 키가 아니라 그냥 문자열이다. sk-ant-... 형식의 키를 내놔라.'); return; }
-    harness.apiKey = key;
-    harness.model = $('#model-select').value;
-    sset('localStorage', 'cupid_model', harness.model);
+    if (!key.startsWith('sk-ant-')) return bootError('그건 API 키가 아니라 그냥 문자열이다. sk-ant-... 형식의 키를 내놔라.');
+    llm.apiKey = key;
+    llm.model = $('#model-select').value;
+    sset('localStorage', 'cupid_model', llm.model);
     sset('sessionStorage', 'cupid_key', key);
     sset('localStorage', 'cupid_key', $('#remember-key').checked ? key : null);
     try {
-      await withLoading('본부 회선 연결 중... (키 인증)', () => harness.ping());
+      await withLoading('본부 회선 연결 중... (키 인증)', () => llm.ping());
       startBgm();
-      await gotoBriefing();
+      startPrefetch();          // 의뢰서 생성을 백그라운드로 던지고
+      showIntro();              // 그 사이 교육 슬라이드를 본다
     } catch (e) {
-      show('boot'); // 브리핑 도중 실패해도 에러가 보이는 화면으로 복귀
+      show('boot');
       bootError(errMsg(e));
     }
   });
+  $('#key-input').addEventListener('keydown', e => { if (e.key === 'Enter') $('#btn-boot').click(); });
 }
 function bootError(msg) {
   const el = $('#boot-error');
@@ -149,39 +160,186 @@ function bootError(msg) {
   sfx.bad();
 }
 
+// ── 프리페치: 슬라이드를 보는 동안 본부 데이터를 만든다 ──
+const pending = { briefing: null, roster: null };
+
+function difficultySpec() {
+  return Object.entries(DIFFICULTIES)
+    .map(([name, d]) => `  · ${name}: visiblePrefs ${d.visiblePrefs}개, hiddenPrefs ${d.hiddenPrefs}개`)
+    .join('\n');
+}
+
+function startPrefetch() {
+  pending.briefing = llm.call({
+    label: '국장 브리핑', system: P.BRIEFING_SYSTEM,
+    messages: [{ role: 'user', content: P.BRIEFING_USER }], effort: 'low',
+  }).catch(e => ({ __error: e }));
+
+  pending.roster = (async () => {
+    const data = await llm.call({
+      label: '의뢰서 3건 생성', system: P.clientsSystem(difficultySpec()),
+      messages: [{ role: 'user', content: P.CLIENTS_USER }],
+      schema: P.CLIENTS_SCHEMA, effort: 'medium', maxTokens: 14000,
+    });
+    const clients = (data.clients || []).slice(0, 3);
+    if (clients.length < 3) throw new Error('의뢰서 수신 불량 (3건 미만)');
+    const specs = await llm.call({
+      label: '아바타 스펙 변환', system: P.AVATARS_SYSTEM,
+      messages: [{ role: 'user', content: P.avatarsUser(clients) }],
+      schema: P.AVATARS_SCHEMA, effort: 'low', maxTokens: 12000,
+    });
+    const cs = (specs.clientSpecs || []).map(sanitizeSpec);
+    const ts = (specs.targetSpecs || []).map(sanitizeSpec);
+    while (cs.length < 3) cs.push(sanitizeSpec({}));
+    while (ts.length < 3) ts.push(sanitizeSpec({}));
+    return { clients, clientSpecs: cs, targetSpecs: ts };
+  })().catch(e => ({ __error: e }));
+
+  pending.roster.then(r => {
+    const el = $('#intro-prefetch');
+    if (!el) return;
+    if (r?.__error) { el.textContent = '⚠ 의뢰서 수신 실패 — 교육을 마치면 재시도한다.'; el.classList.add('bad'); }
+    else { el.textContent = '✅ 오늘자 의뢰서 3건 수신 완료. 교육을 마치면 열람 가능.'; el.classList.add('ok'); }
+  });
+}
+
+// ── 신입 교육 슬라이드 ──────────────────────────────────
+const SLIDES = [
+  {
+    art: '🏛️💘🏛️',
+    title: '큐피드국에 온 걸 환영한다',
+    body: `2077년. 출산율 0.008. 국가비상사태.<br>
+    너는 <b>연애 공작 요원</b>이다. 직접 연애하는 게 아니라, 연애 경험 0인 국민(<b>클라이언트</b>)이
+    짝사랑 상대(<b>타겟</b>)에게 고백하도록 <b>뒤에서 조작</b>하는 일이다.<br>
+    대화는 클라이언트가 한다. 너는 준비시키고, 결정적일 때 무전을 넣는다.`,
+  },
+  {
+    art: '📚 → 👔🎧🔥 → 📱 → 💬 → 💌',
+    title: '작전은 이렇게 흘러간다',
+    body: `<b>①의뢰서 선택</b> → <b>②작전 준비</b>(스타일링·코칭·격려) → <b>③문자 공작</b> → <b>④대면 공작</b> → <b>⑤결과 편지</b><br>
+    문자와 대면에서 두 사람은 <b>알아서 대화한다</b>. 너는 지켜보다가 <b>무전 개입</b>으로만 끼어들 수 있다.<br>
+    그래서 <b>②준비 단계에서 승부의 8할이 결정된다.</b>`,
+  },
+  {
+    art: '💗 호감 &nbsp; 😊 분위기 &nbsp; 🔥 용기',
+    title: '게이지 3개만 이해하면 된다',
+    body: `<b>💗 호감</b> — 승리 조건. 성공선을 넘겨야 고백이 받아들여진다.<br>
+    <b>😊 분위기</b> — 호감 획득 <b>배율</b>. 분위기가 낮으면 취향을 저격해도 호감이 찔끔 오른다.<br>
+    <b>🔥 용기</b> — 스태미나. <b>턴마다 닳는다.</b> 바닥나면 클라이언트가 패닉에 빠져 분위기를 스스로 깎는다.`,
+  },
+  {
+    art: '👔 ×배율 &nbsp; 🎧 비대칭 &nbsp; 🔥 스태미나 &nbsp; 📻 구조',
+    title: '네 가지 레버, 하나라도 빠지면 진다',
+    body: `<b>👔 스타일링</b> → 호감 출발선 + <b>획득 배율</b>. 대면 첫인상에서 한 번 더 크게 작용.<br>
+    <b>🎧 코칭</b> → 분위기 출발선 + 증감 비대칭. 클라이언트의 <b>약점</b>을 봉인하는 구체적 행동 지시여야 한다.<br>
+    <b>🔥 격려 연설</b> → 용기 스태미나. 사연의 디테일을 짚을수록 높다.<br>
+    <b>📻 무전 개입</b> → 용기 회복 + 흐름 전환. 정확하면 크게 먹고, 막연한 응원이면 분위기를 깎는다.`,
+  },
+  {
+    art: '🎯 ？？？',
+    title: '취향은 절반만 알려준다',
+    body: `타겟의 취향 중 일부만 의뢰서에 적혀 있다. 나머지는 <b>미확인</b>이며 <b>개수만</b> 통보된다.<br>
+    미확인 취향은 대화 중에만 드러나고, 적중하면 호감이 크게 뛴다. 무전으로 화제를 끌어 캐내라.<br>
+    <b>난이도가 오를수록 알려주는 취향이 줄고, 성공선은 높아진다.</b><br>
+    <span class="slide-warn">헬 난이도는 준비 4종 중 하나만 부실해도 성공선에 닿지 못한다.</span>`,
+  },
+];
+
+let slideIdx = 0;
+function showIntro() {
+  show('intro');
+  slideIdx = 0;
+  $('#intro-dots').innerHTML = SLIDES.map((_, i) => `<span class="dot" data-i="${i}"></span>`).join('');
+  $$('#intro-dots .dot').forEach(d => d.addEventListener('click', () => { slideIdx = +d.dataset.i; renderSlide(); }));
+  renderSlide();
+}
+
+function renderSlide() {
+  const s = SLIDES[slideIdx];
+  $('#intro-slides').innerHTML =
+    `<div class="slide"><div class="slide-art">${s.art}</div><h3>${s.title}</h3><p>${s.body}</p></div>`;
+  $('#intro-step').textContent = `신입 교육 ${slideIdx + 1} / ${SLIDES.length}`;
+  $('#btn-intro-prev').disabled = slideIdx === 0;
+  $('#btn-intro-next').textContent = slideIdx === SLIDES.length - 1 ? '교육 수료 ▶' : '다음 ▶';
+  $$('#intro-dots .dot').forEach((d, i) => d.classList.toggle('on', i === slideIdx));
+}
+
+function initIntro() {
+  $('#btn-intro-next').addEventListener('click', () => {
+    sfx.click();
+    if (slideIdx < SLIDES.length - 1) { slideIdx++; renderSlide(); }
+    else gotoBriefing();
+  });
+  $('#btn-intro-prev').addEventListener('click', () => { sfx.click(); if (slideIdx > 0) { slideIdx--; renderSlide(); } });
+  $('#btn-intro-skip').addEventListener('click', () => { sfx.click(); gotoBriefing(); });
+  document.addEventListener('keydown', e => {
+    if (state.screen !== 'intro') return;
+    if (e.key === 'ArrowRight' || e.key === 'Enter') $('#btn-intro-next').click();
+    if (e.key === 'ArrowLeft') $('#btn-intro-prev').click();
+  });
+}
+
 // ── 브리핑 ──────────────────────────────────────────────
 async function gotoBriefing() {
   show('briefing');
-  const text = await withLoading('국장님 등판 중...', () =>
-    harness.call({ label: '국장 브리핑', system: P.BRIEFING_SYSTEM, messages: [{ role: 'user', content: P.BRIEFING_USER }], effort: 'low' }));
-  await typeText($('#briefing-text'), text, 60);
+  $('#btn-to-screening').classList.add('hidden');
+  let text;
+  try {
+    text = await withLoading('국장님 등판 중...', () => pending.briefing);
+    if (text?.__error) throw text.__error;
+  } catch (e) {
+    text = '(국장이 회선 저편에서 뭐라고 소리쳤지만 잡음뿐이었다. 아무튼 가라는 뜻이다.)';
+    toast(errMsg(e));
+  }
+  await typeText($('#briefing-text'), text);
   $('#btn-to-screening').classList.remove('hidden');
 }
 
-// ── 의뢰서 스크리닝 ─────────────────────────────────────
+// ── 의뢰서 ──────────────────────────────────────────────
 function screeningFail(e) {
   toast(errMsg(e));
-  $('#screening-error').classList.remove('hidden'); // 재시도 버튼 노출 (데드엔드 방지)
+  $('#screening-error').classList.remove('hidden');
 }
 
-async function gotoScreening() {
+async function gotoScreening(forceRefetch = false) {
   clearMinis();
   show('screening');
   $('#screening-error').classList.add('hidden');
   $('#client-cards').innerHTML = '';
-  const data = await withLoading('오늘자 의뢰서 수신 중... (병맛 인간 3명 생성)', () =>
-    harness.call({ label: '의뢰서 3건 생성', system: P.CLIENTS_SYSTEM, messages: [{ role: 'user', content: P.CLIENTS_USER }], schema: P.CLIENTS_SCHEMA, effort: 'medium', maxTokens: 12000 }));
-  state.clients = (data.clients || []).slice(0, 3);
-  if (state.clients.length < 3) throw new Error('의뢰서 수신 불량 (3건 미만)');
+  renderRecord();
 
-  const specs = await withLoading('3D 몽타주 렌더링 중... (외모 태그 → 블록 캐릭터)', () =>
-    harness.call({ label: '아바타 스펙 변환', system: P.AVATARS_SYSTEM, messages: [{ role: 'user', content: P.avatarsUser(state.clients) }], schema: P.AVATARS_SCHEMA, effort: 'low', maxTokens: 12000 }));
-  state.clientSpecs = (specs.clientSpecs || []).map(sanitizeSpec);
-  state.targetSpecs = (specs.targetSpecs || []).map(sanitizeSpec);
-  while (state.clientSpecs.length < 3) state.clientSpecs.push(sanitizeSpec({}));
-  while (state.targetSpecs.length < 3) state.targetSpecs.push(sanitizeSpec({}));
+  if (forceRefetch || !pending.roster) {
+    pending.roster = (async () => {
+      const data = await llm.call({
+        label: '의뢰서 3건 생성', system: P.clientsSystem(difficultySpec()),
+        messages: [{ role: 'user', content: P.CLIENTS_USER }],
+        schema: P.CLIENTS_SCHEMA, effort: 'medium', maxTokens: 14000,
+      });
+      const clients = (data.clients || []).slice(0, 3);
+      if (clients.length < 3) throw new Error('의뢰서 수신 불량 (3건 미만)');
+      const specs = await llm.call({
+        label: '아바타 스펙 변환', system: P.AVATARS_SYSTEM,
+        messages: [{ role: 'user', content: P.avatarsUser(clients) }],
+        schema: P.AVATARS_SCHEMA, effort: 'low', maxTokens: 12000,
+      });
+      const cs = (specs.clientSpecs || []).map(sanitizeSpec);
+      const ts = (specs.targetSpecs || []).map(sanitizeSpec);
+      while (cs.length < 3) cs.push(sanitizeSpec({}));
+      while (ts.length < 3) ts.push(sanitizeSpec({}));
+      return { clients, clientSpecs: cs, targetSpecs: ts };
+    })();
+  }
+
+  const roster = await withLoading('의뢰서 열람 중...', () => pending.roster);
+  pending.roster = null; // 소비했으니 다음 판은 새로 뽑는다
+  if (roster?.__error) throw roster.__error;
+
+  state.clients = roster.clients;
+  state.clientSpecs = roster.clientSpecs;
+  state.targetSpecs = roster.targetSpecs;
 
   state.clients.forEach((c, i) => {
+    const d = diffOf(c.difficulty);
     const card = document.createElement('div');
     card.className = 'dossier';
     card.innerHTML = `
@@ -191,10 +349,15 @@ async function gotoScreening() {
       <p class="story">${escapeHtml(c.story)}</p>
       <p><b>외모:</b> ${c.appearance.map(escapeHtml).join(', ')}</p>
       <p><b>성격:</b> ${c.personality.map(escapeHtml).join(', ')}</p>
+      <p class="weakness"><b>⚠ 약점:</b> ${escapeHtml(c.weakness)}</p>
       <p><b>타겟:</b> ${escapeHtml(c.target.name)} (${c.target.age}, ${escapeHtml(c.target.job)})</p>
-      <p><b>확인된 타겟 취향:</b> ${c.target.visiblePrefs.map(escapeHtml).join(', ')} <span class="redacted">+ ██████(기밀 ${c.target.hiddenPrefs.length}건)</span></p>
+      <p><b>알려진 취향:</b> ${c.target.visiblePrefs.map(escapeHtml).join(', ')}</p>
+      <p class="unknown-prefs">🎯 미확인 취향 <b>${c.target.hiddenPrefs.length}건</b> — 내용은 대화로 직접 캐내야 한다</p>
       <p class="quote">“${escapeHtml(c.quote)}”</p>
-      <div class="difficulty diff-${{ '쉬움': 'easy', '보통': 'normal', '헬': 'hell' }[c.difficulty] || 'normal'}">난이도: ${c.difficulty}</div>
+      <div class="diff-box diff-${d.key}">
+        <span class="diff-name">난이도 ${escapeHtml(c.difficulty)}</span>
+        <span class="diff-detail">성공선 호감 ${d.threshold} · 무전 ${d.radioText}+${d.radioTalk}회 · 턴 ${d.textTurns + d.talkTurns}</span>
+      </div>
       <button class="btn-select btn95">이 인간을 돕는다</button>`;
     $('#client-cards').appendChild(card);
     const v = newMiniViewer(card.querySelector('canvas'), { spin: true, cameraZ: 3.4 });
@@ -204,13 +367,12 @@ async function gotoScreening() {
 }
 
 function chooseClient(i) {
-  state.chosen = i;
   state.client = state.clients[i];
   state.clientSpec = state.clientSpecs[i];
   state.targetSpec = state.targetSpecs[i];
-  state.outfitDesc = ''; state.styleScore = 0; state.courage = 2; state.coaching = '';
-  state.intel = []; state.transcript = []; state.aborted = false;
-  state.pendingRadio = null; state.radioOpen = false; // 이전 판의 무전 잔재 제거
+  state.diff = diffOf(state.client.difficulty);
+  state.prep = { styleScore: null, coachScore: null, courageScore: null, outfitDesc: '', coaching: '' };
+  state.engine = null; state.result = null;
   gotoConsult();
 }
 
@@ -219,317 +381,341 @@ let consultViewer = null;
 function gotoConsult() {
   clearMinis();
   show('consult');
-  const c = state.client;
+  const c = state.client, d = state.diff;
   consultViewer = getStageViewer('stage-consult');
   consultViewer.setDuo(state.clientSpec, state.targetSpec, 'camera');
-  $('#consult-title').textContent = `작전명: ${c.name} 구출 작전`;
+
+  $('#consult-title').innerHTML = `작전명: ${escapeHtml(c.name)} 구출 작전 <span class="diff-inline diff-${d.key}">난이도 ${escapeHtml(c.difficulty)}</span>`;
   $('#consult-dossier').innerHTML = `
-    <p><b>클라이언트:</b> ${escapeHtml(c.name)} — ${c.personality.map(escapeHtml).join(', ')}</p>
-    <p><b>타겟:</b> ${escapeHtml(c.target.name)} — 확인된 취향: ${c.target.visiblePrefs.map(escapeHtml).join(', ')}</p>
-    <p class="redacted">숨겨진 취향 ${c.target.hiddenPrefs.length}건은 대화 중 직접 캐내야 한다.</p>`;
-  $('#styling-result').textContent = '';
-  $('#speech-result').textContent = '';
-  $('#styling-input').value = '';
-  $('#coaching-input').value = '';
-  $('#speech-input').value = '';
+    <h3>📄 의뢰 요약</h3>
+    <p class="story">${escapeHtml(c.story)}</p>
+    <p><b>성격:</b> ${c.personality.map(escapeHtml).join(', ')}</p>
+    <p class="weakness"><b>⚠ 약점:</b> ${escapeHtml(c.weakness)} <span class="dim">— 코칭으로 봉인하라</span></p>
+    <hr>
+    <p><b>타겟:</b> ${escapeHtml(c.target.name)} (${c.target.age}, ${escapeHtml(c.target.job)}) — ${c.target.personality.map(escapeHtml).join(', ')}</p>
+    <p><b>알려진 취향:</b> ${c.target.visiblePrefs.map(escapeHtml).join(', ')}</p>
+    <p class="unknown-prefs">🎯 <b>취향 총 ${c.target.visiblePrefs.length + c.target.hiddenPrefs.length}건</b> 중 알려진 것 ${c.target.visiblePrefs.length}건 · <b>미확인 ${c.target.hiddenPrefs.length}건</b> (내용 비공개)</p>
+    <p class="dim small">성공선: 호감 <b>${d.threshold}</b> 이상 · 분위기 <b>${d.moodFloor}</b> 이상 · 총 ${d.textTurns + d.talkTurns}턴</p>`;
 
-  $('#btn-styling').onclick = async () => {
-    sfx.click();
-    const tags = $('#styling-input').value.trim();
-    if (!tags) { toast('스타일링 태그를 입력하라. 예: 빨간 턱시도, 카우보이 부츠'); return; }
-    try {
-      const r = await withLoading('가위손 박 작업 중... (스타일링 반영)', () =>
-        harness.call({ label: '스타일링', system: P.STYLING_SYSTEM, messages: [{ role: 'user', content: P.stylingUser(state.client, state.clientSpec, tags) }], schema: P.STYLING_SCHEMA, effort: 'low' }));
-      state.clientSpec = sanitizeSpec(r.spec);
-      state.styleScore = Math.max(0, Math.min(10, r.styleScore | 0));
-      state.outfitDesc = r.outfitDesc || tags;
-      consultViewer.updateLeft(state.clientSpec);
-      consultViewer.burst('sparkle', 'left');
-      sfx.love();
-      $('#styling-result').innerHTML = `<b>스타일 점수 ${state.styleScore}/10</b> — ${escapeHtml(r.comment)}`;
-    } catch (e) { toast(errMsg(e)); }
-  };
+  $('#radio-budget').textContent = `문자 ${d.radioText}회 / 대면 ${d.radioTalk}회`;
+  for (const [id, txt] of [['#score-styling', '미실시'], ['#score-coaching', '미실시'], ['#score-speech', '미실시']]) {
+    $(id).textContent = txt; $(id).className = 'prep-score';
+  }
+  ['#styling-result', '#coaching-result', '#speech-result'].forEach(s => { $(s).textContent = ''; });
+  ['#styling-input', '#coaching-input', '#speech-input'].forEach(s => { $(s).value = ''; });
+  updatePrepWarning();
 
-  $('#btn-speech').onclick = async () => {
-    sfx.click();
-    const speech = $('#speech-input').value.trim();
-    try {
-      const r = await withLoading('클라이언트가 연설을 듣는 중...', () =>
-        harness.call({ label: '격려 연설 평가', system: P.SPEECH_SYSTEM, messages: [{ role: 'user', content: P.speechUser(state.client, speech) }], schema: P.SPEECH_SCHEMA, effort: 'low' }));
-      state.courage = Math.max(0, Math.min(10, r.courage | 0));
-      if (state.courage >= 6) { consultViewer.burst('love', 'left'); sfx.fanfare(); } else if (state.courage <= 2) sfx.bad();
-      $('#speech-result').innerHTML = `<b>용기 게이지 ${state.courage}/10</b> — ${escapeHtml(r.comment)}`;
-    } catch (e) { toast(errMsg(e)); }
-  };
-
-  $('#btn-start-op').onclick = () => {
-    state.coaching = $('#coaching-input').value.trim(); // 코칭은 여기서 확정되어 에이전트 시스템 프롬프트에 들어간다
-    sfx.radio();
-    startTexting();
-  };
+  $('#btn-styling').onclick = () => runPrep('styling');
+  $('#btn-coaching').onclick = () => runPrep('coaching');
+  $('#btn-speech').onclick = () => runPrep('speech');
+  $('#btn-start-op').onclick = () => { sfx.radio(); startOperation(); };
 }
 
-// ── 대화 엔진 공용 ──────────────────────────────────────
-function meterUpdate() {
-  $('#meter-mood-fill').style.width = state.mood + '%';
-  $('#meter-love-fill').style.width = state.love + '%';
-  $('#meter-mood-num').textContent = state.mood;
-  $('#meter-love-num').textContent = state.love;
+function setScore(id, score) {
+  const el = $(id);
+  el.textContent = `${score}/10`;
+  el.className = 'prep-score ' + (score >= 7 ? 'good' : score >= 4 ? 'mid' : 'bad');
+}
+
+async function runPrep(kind) {
+  sfx.click();
+  const c = state.client;
+  try {
+    if (kind === 'styling') {
+      const tags = $('#styling-input').value.trim();
+      if (!tags) return toast('스타일링 태그를 입력하라. 예: 빨간 턱시도, 카우보이 부츠');
+      const r = await withLoading('가위손 박 작업 중...', () => llm.call({
+        label: '스타일링', system: P.STYLING_SYSTEM,
+        messages: [{ role: 'user', content: P.stylingUser(c, state.clientSpec, tags) }],
+        schema: P.STYLING_SCHEMA, effort: 'low',
+      }));
+      state.clientSpec = sanitizeSpec(r.spec);
+      state.prep.styleScore = Math.max(0, Math.min(10, r.styleScore | 0));
+      state.prep.outfitDesc = r.outfitDesc || tags;
+      consultViewer.updateLeft(state.clientSpec);
+      consultViewer.burst('sparkle', 'left');
+      setScore('#score-styling', state.prep.styleScore);
+      $('#styling-result').textContent = r.comment;
+      state.prep.styleScore >= 7 ? sfx.love() : state.prep.styleScore <= 2 ? sfx.bad() : sfx.stamp();
+    } else if (kind === 'coaching') {
+      const text = $('#coaching-input').value.trim();
+      if (!text) return toast('대화 지침을 입력하라. 약점을 막고 취향으로 화제를 끄는 구체적 지시가 좋다.');
+      const r = await withLoading('말빨 소령 검토 중...', () => llm.call({
+        label: '코칭 채점', system: P.COACHING_SYSTEM,
+        messages: [{ role: 'user', content: P.coachingUser(c, text) }],
+        schema: P.COACHING_SCHEMA, effort: 'low',
+      }));
+      state.prep.coachScore = Math.max(0, Math.min(10, r.coachScore | 0));
+      state.prep.coaching = text;
+      setScore('#score-coaching', state.prep.coachScore);
+      $('#coaching-result').textContent = r.comment;
+      state.prep.coachScore >= 7 ? sfx.love() : state.prep.coachScore <= 2 ? sfx.bad() : sfx.stamp();
+    } else {
+      const text = $('#speech-input').value.trim();
+      if (!text) return toast('연설을 입력하라. 사연의 디테일을 짚을수록 용기가 오른다.');
+      const r = await withLoading('클라이언트가 연설을 듣는 중...', () => llm.call({
+        label: '격려 연설 채점', system: P.SPEECH_SYSTEM,
+        messages: [{ role: 'user', content: P.speechUser(c, text) }],
+        schema: P.SPEECH_SCHEMA, effort: 'low',
+      }));
+      state.prep.courageScore = Math.max(0, Math.min(10, r.courageScore | 0));
+      setScore('#score-speech', state.prep.courageScore);
+      $('#speech-result').textContent = r.comment;
+      if (state.prep.courageScore >= 7) { consultViewer.burst('love', 'left'); sfx.fanfare(); }
+      else if (state.prep.courageScore <= 2) sfx.bad(); else sfx.stamp();
+    }
+  } catch (e) { toast(errMsg(e)); }
+  updatePrepWarning();
+}
+
+function updatePrepWarning() {
+  const p = state.prep, d = state.diff;
+  const missing = [];
+  if (p.styleScore === null) missing.push('스타일링');
+  if (p.coachScore === null) missing.push('코칭');
+  if (p.courageScore === null) missing.push('격려 연설');
+  const weak = [];
+  if (p.styleScore !== null && p.styleScore < 4) weak.push('스타일링');
+  if (p.coachScore !== null && p.coachScore < 4) weak.push('코칭');
+  if (p.courageScore !== null && p.courageScore < 4) weak.push('격려 연설');
+
+  const el = $('#prep-warning');
+  if (!missing.length && !weak.length) {
+    el.className = 'prep-warning ok';
+    el.textContent = '✅ 준비 완료. 네 레버 모두 살아 있다.';
+    return;
+  }
+  const parts = [];
+  if (missing.length) parts.push(`<b>미실시:</b> ${missing.join(', ')}`);
+  if (weak.length) parts.push(`<b>부실(4점 미만):</b> ${weak.join(', ')}`);
+  const fatal = d.key === 'hell' || (d.key === 'normal' && (missing.length + weak.length) >= 2);
+  el.className = 'prep-warning ' + (fatal ? 'fatal' : 'warn');
+  el.innerHTML = `${parts.join(' · ')}<br>${fatal
+    ? `⛔ 난이도 <b>${state.client.difficulty}</b>에서는 이 상태로 성공선(호감 ${d.threshold})에 도달할 수 없다.`
+    : `⚠ 난이도 ${state.client.difficulty}라 버틸 수는 있지만 확실히 불리하다.`}`;
+}
+
+// ── 대화 ────────────────────────────────────────────────
+let stageViewer = null;
+let currentTurn = { turn: 0, turns: 0, phase: '' };
+
+function meterUpdate(s) {
+  $('#meter-love-fill').style.width = s.love + '%';
+  $('#meter-mood-fill').style.width = s.mood + '%';
+  $('#meter-courage-fill').style.width = s.courage + '%';
+  $('#meter-love-num').textContent = s.love;
+  $('#meter-mood-num').textContent = s.mood;
+  $('#meter-courage-num').textContent = s.courage;
+  $('#meter-threshold').style.left = s.threshold + '%';
+  $('#hud-style').textContent = `👔 매력 ×${s.styleMult}`;
+  $('#meter-courage-fill').classList.toggle('danger', s.courage < 25);
+  $('#btn-intervene').textContent = `📻 무전 개입 (${s.radioLeft})`;
+  $('#btn-intervene').disabled = s.radioLeft <= 0;
+  $('#intel-count').textContent = `${s.visibleTotal + s.foundCount} / ${s.visibleTotal + s.hiddenTotal}건 파악`;
+  $('#intel-list').innerHTML =
+    state.client.target.visiblePrefs.map(p => `<li class="known">✔ ${escapeHtml(p)}</li>`).join('') +
+    Array.from({ length: s.hiddenTotal }, (_, i) => i < s.foundCount
+      ? `<li class="found">🔓 미확인 취향 적중 (내용은 종료 후 공개)</li>`
+      : `<li class="unknown">🔒 미확인 취향</li>`).join('');
+  document.body.classList.toggle('panic', !!s.panic);
 }
 
 function addBubble(who, text) {
   const w = $('#chat-window');
   const div = document.createElement('div');
   div.className = `bubble ${who}`;
-  const name = who === 'client' ? state.client.name : who === 'target' ? state.client.target.name : who === 'radio' ? '📻 본부 무전' : '나레이션';
+  const name = who === 'client' ? state.client.name : who === 'target' ? state.client.target.name
+    : who === 'radio' ? '📻 본부 무전' : '나레이션';
   div.innerHTML = `<span class="who">${escapeHtml(name)}</span>${escapeHtml(text)}`;
   w.appendChild(div);
   w.scrollTop = w.scrollHeight;
+  if (who === 'client') { stageViewer?.say('left'); sfx.send(); }
+  else if (who === 'target') { stageViewer?.say('right'); sfx.send(); }
+  else if (who === 'radio') sfx.radio();
 }
 
-function floatDelta(mood, love, reason) {
+function addJudge(j) {
   const w = $('#judge-feed');
   const div = document.createElement('div');
-  const cls = love > 0 ? 'good' : love < 0 ? 'bad' : 'meh';
+  const cls = j.love > 0 ? 'good' : j.love < 0 ? 'bad' : 'meh';
+  const tags = [
+    j.hiddenHit ? '<span class="tag hit">🔓 미확인 적중</span>' : '',
+    j.choke ? '<span class="tag choke">🥶 용기 부족으로 감쇠</span>' : '',
+    j.firstImpression ? '<span class="tag first">👔 첫인상</span>' : '',
+  ].join('');
   div.className = `judge-line ${cls}`;
-  div.innerHTML = `<b>MOOD ${mood >= 0 ? '+' : ''}${mood} · LOVE ${love >= 0 ? '+' : ''}${love}</b> ${escapeHtml(reason)}`;
+  div.innerHTML = `<b>분위기 ${j.mood >= 0 ? '+' : ''}${j.mood} · 호감 ${j.love >= 0 ? '+' : ''}${j.love}</b> ${escapeHtml(j.reason)}${tags}`;
   w.prepend(div);
   while (w.children.length > 8) w.lastChild.remove();
+  if (j.love > 0) { stageViewer?.burst('love', 'right'); sfx.love(); }
+  else if (j.love < 0) { stageViewer?.burst('bad', 'right'); sfx.bad(); }
 }
 
-function transcriptText(limit = 0) {
-  const lines = state.transcript.map(t =>
-    t.who === 'client' ? `클라이언트: ${t.text}` : t.who === 'target' ? `타겟: ${t.text}` : t.who === 'radio' ? `[본부 무전]: ${t.text}` : `[상황]: ${t.text}`);
-  return (limit ? lines.slice(-limit) : lines).join('\n');
-}
-
-function pushUser(hist, text) {
-  const last = hist[hist.length - 1];
-  if (last && last.role === 'user') last.content += '\n' + text;
-  else hist.push({ role: 'user', content: text });
-}
-
-const waitWhile = cond => new Promise(res => {
-  const iv = setInterval(() => { if (!cond()) { clearInterval(iv); res(); } }, 200);
-});
-
-async function runConversation(phase) {
-  const c = state.client;
-  const turns = phase === 'text' ? CONFIG.textTurns : CONFIG.talkTurns;
-  const label = phase === 'text' ? '문자' : '대면';
-  const clientSystem = P.clientAgentSystem(c, state.coaching, state.courage, state.outfitDesc, phase);
-  const targetSystem = P.targetAgentSystem(c, phase, state.outfitDesc);
-  const judgeSys = P.judgeSystem(c);
-
-  for (let i = 0; i < turns; i++) {
-    await waitWhile(() => state.radioOpen);
-    if (state.pendingRadio) {
-      const advice = state.pendingRadio; state.pendingRadio = null;
-      pushUser(state.clientHist, `[본부 무전 - 상대에게는 안 들림] ${advice}`);
-      state.transcript.push({ who: 'radio', text: advice });
-      addBubble('radio', advice);
-      sfx.radio();
-    }
-
-    // 1) 클라이언트 발언
-    const clientMsg = await harness.call({ label: `${label} 발언 ${i + 1} (클라)`, system: clientSystem, messages: state.clientHist, effort: 'low', maxTokens: 4000 });
-    const historyForJudge = transcriptText(14); // 판정 대상 발언이 이력에 중복되지 않도록 push 전에 캡처
-    state.clientHist.push({ role: 'assistant', content: clientMsg });
-    state.transcript.push({ who: 'client', text: clientMsg });
-    addBubble('client', clientMsg);
-    stageViewer.say('left'); sfx.send();
-
-    // 2) 심판 판정
-    let judge;
-    try {
-      judge = await harness.call({ label: `판정 ${i + 1}`, system: judgeSys, messages: [{ role: 'user', content: P.judgeUser(historyForJudge, clientMsg) }], schema: P.JUDGE_SCHEMA, effort: 'low', maxTokens: 4000 });
-    } catch (e) {
-      judge = { moodDelta: 0, loveDelta: 0, reason: '(심판이 잠시 졸았다)', hiddenPrefHit: '' };
-    }
-    const md = Math.max(-10, Math.min(10, judge.moodDelta | 0));
-    state.mood = Math.max(0, Math.min(100, state.mood + md));
-    const mult = 0.5 + state.mood / 100;
-    const la = Math.round(Math.max(-10, Math.min(10, judge.loveDelta | 0)) * mult);
-    state.love = Math.max(0, Math.min(100, state.love + la));
-    meterUpdate();
-    floatDelta(md, la, judge.reason || '');
-    if (la > 0) { stageViewer.burst('love', 'right'); sfx.love(); }
-    else if (la < 0) { stageViewer.burst('bad', 'right'); sfx.bad(); }
-    if (judge.hiddenPrefHit && !state.intel.includes(judge.hiddenPrefHit)) {
-      state.intel.push(judge.hiddenPrefHit);
-      renderIntel();
-      toast(`🕵 기밀 취향 입수: "${judge.hiddenPrefHit}"`, 6000);
-    }
-
-    if (state.mood <= 0 || state.love <= 0) {
-      state.aborted = true;
-      addBubble('sys', phase === 'text' ? '...읽씹당했다. 프로필 사진도 강아지로 바뀌었다.' : '...상대가 "화장실 좀"이라며 나가더니 돌아오지 않았다.');
-      sfx.trombone();
-      return;
-    }
-
-    // 3) 타겟 응답
-    pushUser(state.targetHist, `[${c.name}의 ${phase === 'text' ? '문자' : '말'}] ${clientMsg}`);
-    const targetMsg = await harness.call({ label: `${label} 응답 ${i + 1} (타겟)`, system: targetSystem, messages: state.targetHist, effort: 'low', maxTokens: 4000 });
-    state.targetHist.push({ role: 'assistant', content: targetMsg });
-    state.transcript.push({ who: 'target', text: targetMsg });
-    addBubble('target', targetMsg);
-    stageViewer.say('right'); sfx.send();
-    pushUser(state.clientHist, `[${c.target.name}의 ${phase === 'text' ? '답장' : '말'}] ${targetMsg}`);
-  }
-}
-
-function renderIntel() {
-  $('#intel-list').innerHTML = state.intel.length
-    ? state.intel.map(x => `<li>🔓 ${escapeHtml(x)}</li>`).join('')
-    : '<li class="dim">아직 입수한 기밀 없음</li>';
-}
-
-function setupChatScreen(phaseTitle, interventions) {
+function setupChatScreen(title) {
   show('chat');
   $('#chat-window').innerHTML = '';
   $('#judge-feed').innerHTML = '';
-  $('#chat-phase-label').textContent = phaseTitle;
-  state.interventionsLeft = interventions;
-  $('#btn-intervene').textContent = `📻 무전 개입 (${state.interventionsLeft})`;
-  $('#btn-intervene').disabled = false;
-  renderIntel();
-  meterUpdate();
+  $('#chat-phase-label').textContent = title;
+  $('#hud-diff').textContent = `난이도 ${state.client.difficulty} · 성공선 ${state.diff.threshold}`;
+  $('#hud-diff').className = `hud-chip diff-${state.diff.key}`;
 }
 
-// ── 페이즈 1: 문자 ──────────────────────────────────────
-let stageViewer = null;
-async function startTexting() {
-  state.phase = 'text';
-  state.mood = Math.min(100, 40 + state.courage * 2);
-  state.love = Math.min(100, 15 + state.styleScore);
-  state.clientHist = [{ role: 'user', content: `[상황] 드디어 용기를 냈다. ${state.client.target.name}에게 먼저 보낼 첫 문자를 지금 작성해서 전송하라.` }];
-  state.targetHist = [];
-  setupChatScreen('📱 작전 1단계: 문자 공작', CONFIG.textInterventions);
+async function startOperation() {
+  const handlers = {
+    bubble: addBubble,
+    judge: addJudge,
+    meters: meterUpdate,
+    turn: t => {
+      currentTurn = t;
+      $('#turn-badge').textContent = `${t.phase === 'text' ? '📱 문자' : '💬 대면'} ${t.turn}/${t.turns}턴`;
+    },
+    phase: p => { $('#turn-badge').textContent = `${p.phase === 'text' ? '📱 문자' : '💬 대면'} 0/${p.turns}턴`; },
+    intel: i => { toast(`🔓 미확인 취향 적중! (${i.found}/${i.total}건) — 내용은 작전 종료 후 공개된다`, 6000); sfx.fanfare(); },
+    panic: () => { toast('🥶 용기 소진! 클라이언트가 패닉에 빠졌다 — 무전으로 기를 살려라', 7000); sfx.trombone(); },
+    radioResult: r => {
+      const cls = r.aim >= 7 ? 'good' : r.aim >= 4 ? 'meh' : 'bad';
+      const w = $('#judge-feed');
+      const div = document.createElement('div');
+      div.className = `judge-line ${cls}`;
+      div.innerHTML = `<b>📻 무전 정확도 ${r.aim}/10</b> ${escapeHtml(r.comment)}<span class="tag radio">용기 ${r.delta.courage >= 0 ? '+' : ''}${r.delta.courage} · 분위기 ${r.delta.mood >= 0 ? '+' : ''}${r.delta.mood}${r.delta.love ? ` · 호감 ${r.delta.love >= 0 ? '+' : ''}${r.delta.love}` : ''}</span>`;
+      w.prepend(div);
+      r.aim >= 7 ? sfx.fanfare() : r.aim <= 2 ? sfx.bad() : sfx.stamp();
+    },
+  };
+
+  const engine = new Engine(llm, {
+    client: state.client, difficulty: state.client.difficulty,
+    prep: {
+      styleScore: state.prep.styleScore ?? 0,
+      coachScore: state.prep.coachScore ?? 0,
+      courageScore: state.prep.courageScore ?? 0,
+      outfitDesc: state.prep.outfitDesc, coaching: state.prep.coaching,
+    },
+    handlers,
+  });
+  state.engine = engine;
+
+  setupChatScreen('📱 작전 1단계: 문자 공작');
   stageViewer = getStageViewer('stage-chat');
   stageViewer.setDuo(state.clientSpec, state.targetSpec, 'camera');
   document.body.classList.add('phase-text');
   document.body.classList.remove('phase-talk');
+  meterUpdate(engine.snapshot());
 
   try {
-    await runConversation('text');
+    const alive = await engine.runTexting();
+    if (alive) {
+      const sit = await withLoading('데이트 장소 섭외 중...', () => engine.situation());
+      setupChatScreen(`💬 작전 2단계: 대면 공작 @ ${sit.place}`);
+      stageViewer = getStageViewer('stage-chat');
+      stageViewer.setDuo(state.clientSpec, state.targetSpec, 'each');
+      stageViewer.setParty(true);
+      document.body.classList.remove('phase-text');
+      document.body.classList.add('phase-talk');
+      meterUpdate(engine.snapshot());
+      await engine.runTalking(sit);
+    }
   } catch (e) {
-    toast(errMsg(e)); state.aborted = true;
+    toast(errMsg(e));
     addBubble('sys', '(전파 방해로 공작이 중단되었다...)');
+    engine.aborted = true;
   }
-  if (state.aborted) return gotoResult();
-  await startTalking();
-}
-
-// ── 페이즈 2: 대면 ──────────────────────────────────────
-async function startTalking() {
-  state.phase = 'talk';
-  let situation = { place: '2077 만남의 광장', intro: '어찌저찌 만나기로 했다.' };
-  try {
-    situation = await withLoading('데이트 장소 섭외 중...', () =>
-      harness.call({ label: '대면 상황 생성', system: P.situationSystem(), messages: [{ role: 'user', content: P.situationUser(state.client, transcriptText(20)) }], schema: P.SITUATION_SCHEMA, effort: 'low' }));
-  } catch (e) { /* 상황 생성 실패해도 대면은 진행 */ }
-
-  state.clientHist = [{ role: 'user', content: `[상황] 문자 작전 끝에 드디어 만났다. 장소: ${situation.place}. ${situation.intro}\n먼저 첫 마디를 건네라.` }];
-  state.targetHist = [{ role: 'user', content: `[상황] ${situation.place}에서 ${state.client.name}을(를) 만나기로 해서 나왔다. 곧 상대가 말을 걸 것이다.` }];
-  setupChatScreen(`💬 작전 2단계: 대면 공작 @ ${situation.place}`, CONFIG.talkInterventions);
-  stageViewer = getStageViewer('stage-chat');
-  stageViewer.setDuo(state.clientSpec, state.targetSpec, 'each');
-  stageViewer.setParty(true);
-  document.body.classList.remove('phase-text');
-  document.body.classList.add('phase-talk');
-  addBubble('sys', `[${situation.place}] ${situation.intro}`);
-
-  try {
-    await runConversation('talk');
-  } catch (e) {
-    toast(errMsg(e)); state.aborted = true;
-    addBubble('sys', '(요원의 이어폰에서 지직 소리만 났다...)');
-  }
-  gotoResult();
+  await gotoResult();
 }
 
 // ── 결과 ────────────────────────────────────────────────
 function closeRadioModal() {
-  state.radioOpen = false;
-  state.pendingRadio = null;
+  state.engine?.setPaused(false);
   $('#modal-radio').classList.add('hidden');
 }
 
 async function gotoResult() {
-  closeRadioModal(); // 대화 종료 시점에 모달이 열려 있으면 결과 화면을 덮어버린다
-  let r;
-  try {
-    r = await withLoading('며칠 뒤... 결과 정산 중...', () =>
-      harness.call({ label: '최종 정산', system: P.resultSystem(), messages: [{ role: 'user', content: P.resultUser(state.client, state.mood, state.love, transcriptText(), state.aborted) }], schema: P.RESULT_SCHEMA, effort: 'medium', maxTokens: 8000 }));
-  } catch (e) {
-    r = { accepted: false, grade: 'F', letter: '(편지가 오지 않았다. 본부와의 통신도 끊겼다. 그것이 2077년의 인터넷이다.)', epilogue: '통신 두절.' };
-  }
-  document.body.classList.remove('phase-text', 'phase-talk');
+  closeRadioModal();
+  document.body.classList.remove('phase-text', 'phase-talk', 'panic');
+  const r = await withLoading('며칠 뒤... 결과 정산 중...', () => state.engine.finish());
+  state.result = r;
+
   show('result');
   $('#btn-restart').classList.add('hidden');
   $('#result-epilogue').textContent = '';
+  $('#result-mvp').textContent = '';
+
   const v = getStageViewer('stage-result');
-  v.setDuo(state.clientSpec, state.targetSpec, r.accepted ? 'each' : 'camera');
-  v.setParty(r.accepted);
+  v.setDuo(state.clientSpec, state.targetSpec, r.verdict.accepted ? 'each' : 'camera');
+  v.setParty(r.verdict.accepted);
+
   const stamp = $('#result-stamp');
-  stamp.textContent = r.accepted ? '커플 성사' : '고백 반려';
-  stamp.className = `result-stamp ${r.accepted ? 'ok' : 'fail'}`;
-  $('#result-grade').textContent = `공작 등급: ${r.grade}`;
-  $('#result-score').textContent = `최종 수치 — MOOD ${state.mood} / LOVE ${state.love}`;
+  stamp.textContent = r.verdict.accepted ? '커플 성사' : r.aborted ? '작전 파탄' : '고백 반려';
+  stamp.className = `result-stamp ${r.verdict.accepted ? 'ok' : 'fail'}`;
+  $('#result-grade').textContent = `공작 등급: ${r.verdict.grade}`;
+  $('#result-score').textContent =
+    `호감 ${r.verdict.love}/${r.difficulty.threshold} · 분위기 ${r.verdict.mood}/${r.difficulty.moodFloor} · 난이도 ${r.difficulty.badge}`;
+
+  $('#debrief-summary').textContent = r.debrief.summary;
+  $('#debrief-list').innerHTML = r.debrief.items.map(it =>
+    `<li class="${it.ok ? 'ok' : it.weak ? 'weak' : 'mid'}"><b>${escapeHtml(it.name)}</b> <span class="dscore">${it.score}/10</span> — ${escapeHtml(it.verdictText)}</li>`).join('');
+  $('#debrief-prefs').innerHTML =
+    r.visiblePrefs.map(p => `<li class="known">✔ ${escapeHtml(p)} <span class="dim">(알려진 취향)</span></li>`).join('') +
+    r.foundPrefs.map(p => `<li class="found">🔓 ${escapeHtml(p)} <span class="dim">(작전 중 적중)</span></li>`).join('') +
+    r.missedPrefs.map(p => `<li class="missed">❌ ${escapeHtml(p)} <span class="dim">(끝내 못 건드림)</span></li>`).join('');
+
+  saveRun({
+    client: state.client.name, difficulty: state.client.difficulty, diffKey: r.difficulty.key,
+    grade: r.verdict.grade, accepted: r.verdict.accepted, love: r.verdict.love, threshold: r.difficulty.threshold,
+    style: state.prep.styleScore ?? 0, coach: state.prep.coachScore ?? 0, courage: state.prep.courageScore ?? 0,
+  });
+
   sfx.stamp();
   setTimeout(() => {
-    if (r.accepted) {
+    if (r.verdict.accepted) {
       sfx.fanfare(); v.burst('love');
-      const iv = setInterval(() => {
-        if (state.screen !== 'result') { clearInterval(iv); return; }
-        v.burst('love');
-      }, 2500);
+      const iv = setInterval(() => { if (state.screen !== 'result') return clearInterval(iv); v.burst('love'); }, 2500);
     } else { sfx.trombone(); v.burst('rain'); }
   }, 600);
-  await typeText($('#result-letter'), r.letter, 50);
-  $('#result-epilogue').textContent = `— 에필로그: ${r.epilogue}`;
+
+  await typeText($('#result-letter'), r.letter.letter, 55);
+  $('#result-mvp').textContent = `📌 승패를 가른 것: ${r.letter.mvp}`;
+  $('#result-epilogue').textContent = `— 에필로그: ${r.letter.epilogue}`;
   $('#btn-restart').classList.remove('hidden');
 }
 
-// ── 무전 개입 모달 ──────────────────────────────────────
+// ── 무전 모달 ───────────────────────────────────────────
 function initRadio() {
   $('#btn-intervene').addEventListener('click', () => {
-    if (state.interventionsLeft <= 0) return;
+    const e = state.engine;
+    if (!e || e.radioLeft <= 0) return;
     sfx.radio();
-    state.radioOpen = true;
+    e.setPaused(true);                       // 대화를 멈춰두고 천천히 쓰게 한다
     $('#modal-radio').classList.remove('hidden');
     $('#radio-input').value = '';
     $('#radio-input').focus();
   });
-  $('#btn-radio-send').addEventListener('click', () => {
+  const send = async () => {
     const text = $('#radio-input').value.trim();
     if (!text) return;
-    state.pendingRadio = text;
-    state.interventionsLeft--;
-    $('#btn-intervene').textContent = `📻 무전 개입 (${state.interventionsLeft})`;
-    $('#btn-intervene').disabled = state.interventionsLeft <= 0;
-    state.radioOpen = false;
     $('#modal-radio').classList.add('hidden');
-  });
-  $('#btn-radio-cancel').addEventListener('click', () => {
-    state.radioOpen = false;
-    $('#modal-radio').classList.add('hidden');
-  });
+    const e = state.engine;
+    try { await withLoading('무전 송신 중...', () => e.submitRadio(text)); }
+    catch (err) { toast(errMsg(err)); }
+    e.setPaused(false);
+  };
+  $('#btn-radio-send').addEventListener('click', send);
+  $('#radio-input').addEventListener('keydown', ev => { if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) send(); });
+  $('#btn-radio-cancel').addEventListener('click', () => { sfx.click(); closeRadioModal(); });
 }
 
-// ── 전역 초기화 ─────────────────────────────────────────
+// ── 초기화 ──────────────────────────────────────────────
 function init() {
   initBoot();
+  initIntro();
   initRadio();
   $('#btn-to-screening').addEventListener('click', () => { sfx.click(); gotoScreening().catch(screeningFail); });
-  $('#btn-restart').addEventListener('click', () => { sfx.click(); gotoScreening().catch(screeningFail); });
-  $('#btn-retry-screening').addEventListener('click', () => { sfx.click(); gotoScreening().catch(screeningFail); });
-  $('#console-toggle').addEventListener('click', () => $('#console-panel').classList.toggle('collapsed'));
-  $('#btn-bgm').addEventListener('click', () => {
-    const on = toggleBgm();
-    $('#btn-bgm').textContent = on ? '🔊 BGM' : '🔇 BGM';
-  });
+  $('#btn-restart').addEventListener('click', () => { sfx.click(); gotoScreening(true).catch(screeningFail); });
+  $('#btn-retry-screening').addEventListener('click', () => { sfx.click(); gotoScreening(true).catch(screeningFail); });
+  const toggleConsole = () => $('#console-panel').classList.toggle('hidden');
+  $('#console-toggle').addEventListener('click', toggleConsole);
+  $('#btn-console').addEventListener('click', toggleConsole);
+  $('#btn-bgm').addEventListener('click', () => { $('#btn-bgm').textContent = toggleBgm() ? '🔊 BGM' : '🔇 BGM'; });
   document.addEventListener('click', () => unlockAudio(), { once: true });
 }
 init();
