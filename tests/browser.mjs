@@ -272,6 +272,13 @@ try {
     slideTexts.some(t => /대화 규칙이 없다|전부 폐지/.test(t)));
   check('교육이 준비 3장소를 안내한다',
     slideTexts.some(t => /미용실/.test(t) && /취조실/.test(t) && /정문/.test(t)));
+  // 교육이 거짓말을 하면 그 뒤의 모든 판단이 틀어진다
+  check('교육이 지뢰 목록은 의뢰인에게 안 넘어간다고 가르친다',
+    slideTexts.some(t => /넘어가지 않는다|전달되지 않/.test(t)));
+  check('교육에 "의뢰인도 그 정도는 안다"는 거짓말이 없다',
+    !slideTexts.some(t => /의뢰인도 그 정도는 안다/.test(t)));
+  check('교육이 심리 감정 열람처를 알려준다',
+    slideTexts.some(t => /심리 감정/.test(t) && /의뢰서/.test(t)));
   await page.screenshot({ path: `${SHOTS}/2-slides.png` });
 
   console.log('\n📠 브리핑 (LLM 호출 없음)');
@@ -340,6 +347,27 @@ try {
   check('의뢰서 상세에 인물 내력이 노출된다', shown.bg.every(b => dossier.includes(b)));
   check('의뢰서 상세에 감춰둔 이야기는 노출되지 않는다 (개수만)',
     shown.hidden.every(h => !dossier.includes(h)) && dossier.includes(String(shown.hidden.length)));
+
+  // 결함이 화면에 안 나가면 플레이어에게는 그냥 불공정한 랜덤이다
+  const psych = await page.evaluate(() => {
+    const name = document.querySelector('#dossier-box h3').textContent;
+    const c = window.__game.COUPLES.find(x => name.includes(x.client.name));
+    const box = document.querySelector('#dossier-box .flaw-box');
+    return {
+      exists: !!box, text: box?.textContent || '',
+      tags: [...(box?.querySelectorAll('.flaw-tag') || [])].length,
+      want: c.client.flaw.want, fixation: c.client.flaw.fixation,
+      targetWant: c.target.flaw.want,
+    };
+  });
+  check('의뢰서에 의뢰인 심리 감정이 공개된다', psych.exists && psych.tags >= 4, `배지 ${psych.tags}개`);
+  check('의뢰인이 원하는 것과 화제 회귀가 명시된다',
+    psych.text.includes(psych.want) && psych.text.includes(psych.fixation));
+  check('상대 쪽 심리 감정은 작전 전에 공개되지 않는다', !dossier.includes(psych.targetWant));
+  check('지뢰 목록이 의뢰인에게 자동 전달되지 않음을 경고한다',
+    /전달되지 않았다|넘어가지 않는다/.test(dossier), dossier.match(/전달되지 않았다[^.]{0,20}/)?.[0] || '없음');
+  // 의뢰서는 이제 게임에서 정보가 가장 빽빽한 화면이다. 눈으로도 확인할 수 있게 남긴다.
+  await page.locator('#dossier-box').screenshot({ path: `${SHOTS}/3b-dossier.png` });
   await page.click('#dossier-close');
 
   console.log('\n💇 준비 ① 미용실');
@@ -496,6 +524,34 @@ try {
   check('게이지 바가 수치와 함께 갱신된다',
     meters.loveW === meters.love + '%' && meters.thrLeft !== '', JSON.stringify({ ...meters, vibe: undefined, intel: undefined }));
   check('공기가 판정에 따라 갱신된다', /공기 갱신|앉자마자|커피|컵/.test(meters.vibe) || LIVE, meters.vibe.slice(0, 40));
+
+  // 계기판이 숨기고 있던 것들
+  const gauges = await page.evaluate(() => ({
+    sat: document.querySelector('#hud-sat').textContent,
+    turns: document.querySelector('#hud-turns').textContent,
+    reach: document.querySelector('#vibe-reach').textContent,
+    reachCls: document.querySelector('#vibe-bar').className,
+    reads: window.__game.state.engine.snapshot().reads,
+    intelCount: document.querySelector('#intel-count').textContent,
+    secretTotal: window.__game.state.engine.snapshot().secretTotal,
+    secretLeft: window.__game.state.engine.snapshot().secretLeft,
+  }));
+  check('호감 포화 계수가 계기판에 뜬다', /×[0-9.]+/.test(gauges.sat), gauges.sat);
+  check('남은 턴이 계기판에 뜬다', /\d+\/\d+/.test(gauges.turns), gauges.turns);
+  check('미확인 잔여 건수가 뜬다', /미확인 \d+건/.test(gauges.intelCount), gauges.intelCount);
+  // 라이브에서 잡힌 버그: 계기판이 "미확인 0건"인데 사후 보고는 "비밀 1/3"이었다.
+  check('계기판의 미확인 건수가 실제 감춘 취향 수를 넘지 않는다',
+    +gauges.intelCount.match(/미확인 (\d+)건/)[1] <= gauges.secretTotal,
+    `${gauges.intelCount} / 전체 ${gauges.secretTotal}`);
+  check('공기가 의뢰인에게 닿는지가 표시된다',
+    gauges.reach.length > 0 && gauges.reachCls.includes('reach-'),
+    `${gauges.reads} → "${gauges.reach}"`);
+  check('공기를 못 읽는 의뢰인이면 전달 안 됨으로 표시된다',
+    gauges.reads !== 'none' || gauges.reach.includes('안 됨'), `${gauges.reads}/${gauges.reach}`);
+
+  // 문자 페이즈 판정이 대면 중에도 남아 있어야 뭘 잘못했는지 되짚을 수 있다
+  const feedKept = await page.locator('.judge-sep').count();
+  check('페이즈가 바뀌어도 판정 기록이 구분선과 함께 남는다', feedKept >= 1, `${feedKept}개`);
   await checkContrast('대면 공작 화면');
   await page.screenshot({ path: `${SHOTS}/8-talking.png`, fullPage: true });
 
@@ -510,13 +566,15 @@ try {
       threshold: r.difficulty.threshold, turns: r.state.history.length,
       tiers: r.state.history.map(h => h.tier),
       revealed: r.state.revealed.length, secretTotal: r.couple.target.hiddenPrefs.length,
-      surfaced: r.debrief.surfaced.length, radio: r.state.radioUsed,
+      surfaced: r.debrief.surfaced.length, missed: r.debrief.missed.length, radio: r.state.radioUsed,
       agent: r.agent?.name,
       letter: (document.querySelector('#result-letter').textContent || '').length,
       stamp: document.querySelector('#result-stamp').textContent,
       mvp: document.querySelector('#result-mvp').textContent,
       debriefRows: document.querySelectorAll('.turn-table tr').length,
       prefRows: document.querySelectorAll('#debrief-prefs li').length,
+      targetWant: r.couple.target.flaw.want,
+      flawReveal: document.querySelector('#debrief-flaw')?.textContent || '',
       usage: window.__game.llm.usage,
       mock: window.__mock ? { calls: window.__mock.calls.length, maxInFlight: window.__mock.maxInFlight } : null,
     };
@@ -531,6 +589,12 @@ try {
   check('디브리핑 원장이 턴 수와 일치한다', result.debriefRows === result.turns + 1, `${result.debriefRows}행`);
   check('상대의 실제 속마음이 종료 후 전면 공개된다',
     result.prefRows >= result.secretTotal, `${result.prefRows}줄`);
+  check('계기판의 미확인 건수와 사후 보고의 비밀 집계가 일치한다',
+    result.missed === result.secretTotal - result.surfaced,
+    `계기판 미확인 ${result.missed} · 보고 ${result.surfaced}/${result.secretTotal}`);
+  // 작전 중엔 감췄던 상대 결함을 사후에 깐다. 안 그러면 재착수가 그냥 재시도다.
+  check('종료 후 상대 심리 감정이 기밀 해제된다',
+    result.flawReveal.includes(result.targetWant), result.flawReveal.slice(0, 50));
   check('요원 정보가 결과까지 따라간다', result.agent === AGENT_NAME || LIVE, result.agent);
   if (result.mock) {
     check('판정과 타겟 응답이 동시에 발사됐다 (턴당 왕복 2회)', result.mock.maxInFlight >= 2, `동시 최대 ${result.mock.maxInFlight}`);

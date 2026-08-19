@@ -131,6 +131,12 @@ export function moodMultiplier(mood) {
   return TUNING.moodMultFloor + (clamp(mood, 0, 100) / 100) * TUNING.moodMultSpan;
 }
 
+// 호감 → 호감 획득 포화. 이미 높으면 같은 판정이라도 덜 오른다.
+// 계기판이 이 값을 그대로 띄운다 — 후반에 점수가 안 오르는 이유를 숨길 이유가 없다.
+export function loveSaturation(love) {
+  return Math.max(0.2, 1 - clamp(love, 0, 100) / TUNING.loveSaturation);
+}
+
 export function initialState(d) {
   return {
     love: d.startLove,
@@ -175,7 +181,7 @@ export function applyTurn(state, d, judge, opts = {}) {
   // 2) 호감: 판정 × 난이도 스케일 × 분위기 배율 × 호감 포화.
   //    배율과 포화는 둘 다 '발언 시점'의 값을 쓴다. 이득 쪽만 포화시킨다 — 떨어질 땐 그대로 떨어진다.
   const mult = moodMultiplier(before.mood);
-  const loveSat = Math.max(0.2, 1 - before.love / TUNING.loveSaturation);
+  const loveSat = loveSaturation(before.love);
   const scaled = (ld >= 0 ? ld * d.gainScale * loveSat : ld * d.lossScale) * weight;
   const loveChange = scaled * mult - d.loveDecay;
 

@@ -450,3 +450,59 @@ test('snapshot이 UI가 필요한 값을 모두 담는다', async () => {
   assert.equal(s.secretTotal, couple.target.hiddenPrefs.length);
   assert.equal(s.visibleTotal, couple.target.visiblePrefs.length);
 });
+
+// ── 계기판이 받는 정보 ────────────────────────────────────────────────
+// 화면에 띄우려면 snapshot이 먼저 알아야 한다.
+
+test('snapshot은 계기판이 필요한 것을 전부 담는다', async () => {
+  const llm = new FakeLlm();
+  const couple = COUPLES.find(c => c.client.flaw.reads === 'none');
+  const engine = new Engine(llm, { couple, prep: {}, agent: AGENT, handlers: {} });
+  await engine.runTexting();
+  const s = engine.snapshot();
+
+  for (const k of ['loveSat', 'turnsLeft', 'turnsTotal', 'reads', 'secretLeft']) {
+    assert.ok(k in s, `snapshot에 ${k}가 없다 — 계기판이 이걸 못 띄운다`);
+  }
+  assert.equal(s.reads, 'none', '공기를 못 읽는 의뢰인이면 계기판도 그렇게 알아야 한다');
+  assert.ok(s.loveSat > 0 && s.loveSat <= 1, `포화 계수가 범위 밖: ${s.loveSat}`);
+  assert.equal(s.turnsTotal, engine.d.textTurns);
+  // 계기판의 '미확인 n건'은 디브리핑의 '비밀 n/3'과 같은 함수에서 나와야 한다.
+  // 뺄셈으로 때우면 심판의 자유 문장 개수가 그대로 새서 두 화면이 다른 말을 한다.
+  const S = await import('../js/scoring.js');
+  const expected = S.surfacedSecrets(couple, engine.fullTranscript(), [...engine.state.revealed]).missed.length;
+  assert.equal(s.secretLeft, expected, '계기판과 사후 보고의 비밀 집계가 어긋난다');
+  assert.ok(s.secretLeft <= couple.target.hiddenPrefs.length);
+});
+
+test('남은 턴이 실제로 줄어든다', async () => {
+  const llm = new FakeLlm();
+  const seen = [];
+  const couple = COUPLES.find(c => c.client.flaw.reads === 'well');
+  const engine = new Engine(llm, {
+    couple, prep: {}, agent: AGENT,
+    handlers: { turn: () => seen.push(engine.snapshot().turnsLeft) },
+  });
+  await engine.runTexting();
+  assert.ok(seen.length >= 2, '턴 핸들러가 안 불렸다');
+  assert.ok(seen[0] > seen[seen.length - 1], `남은 턴이 안 줄었다: ${seen.join(',')}`);
+  assert.equal(seen[0], engine.d.textTurns, '첫 턴에는 전부 남아 있어야 한다');
+});
+
+test('페이즈가 바뀌는 즉시 잔여 턴이 새 페이즈 기준으로 갱신된다', async () => {
+  const llm = new FakeLlm();
+  const couple = COUPLES.find(c => c.client.flaw.reads === 'well');
+  const snaps = [];
+  const engine = new Engine(llm, {
+    couple, prep: {}, agent: AGENT,
+    handlers: { meters: s => snaps.push({ phase: s.phase, left: s.turnsLeft, total: s.turnsTotal }) },
+  });
+  await engine.runTexting();
+  const sit = await engine.situation();
+  snaps.length = 0;
+  await engine.runTalking(sit);
+  const first = snaps[0];
+  assert.equal(first.phase, 'talk', '대면 첫 계기판 갱신이 아직 문자 페이즈로 표시된다');
+  assert.equal(first.total, engine.d.talkTurns, `대면 총 턴이 ${first.total}로 잘못 나온다`);
+  assert.equal(first.left, engine.d.talkTurns, '대면 시작인데 남은 턴이 0으로 보인다');
+});

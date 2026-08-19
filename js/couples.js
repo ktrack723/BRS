@@ -982,6 +982,47 @@ for (const c of COUPLES) {
   }
 }
 
+// ── 표시용 라벨 ────────────────────────────────────────────────────────
+// flaw는 게임을 지배하는 데이터인데 지금까지 화면에 한 글자도 안 나갔다.
+// 결함의 존재를 모르면 그건 개성이 아니라 그냥 불공정한 랜덤이다.
+// 지뢰를 알려주는 것과 같은 이유로, 의뢰인 쪽 결함은 요원에게 공개한다.
+// (상대 쪽 결함은 공개하지 않는다. 상대는 끝까지 모르는 존재여야 한다.)
+export const FLAW_LABELS = {
+  reads: {
+    well: { tag: '눈치 있음', desc: '화면 위의 공기가 갱신될 때마다 그대로 전달된다.' },
+    some: { tag: '눈치 절반', desc: '공기가 갱신돼도 두 번에 한 번만 전달된다. 나머지는 그냥 지나간다.' },
+    none: { tag: '눈치 없음', desc: '화면 위의 공기는 이 사람에게 전달되지 않는다. 한 글자도.' },
+  },
+  attention: {
+    other: { tag: '상대를 봄', desc: '상대의 성격도, 알려진 취향도 알고 나간다.' },
+    mixed: { tag: '반쯤 봄', desc: '상대 성격은 아는데 뭘 좋아하는지는 모른다.' },
+    self: { tag: '자기만 봄', desc: '상대가 어떤 사람인지 알아본 적이 없다. 겉모습밖에 모른다.' },
+  },
+  compliance: {
+    obeys: { tag: '지침 이행', desc: '시킨 대로 한다. 지침에 없는 상황만 제 판단으로 움직인다.' },
+    argues: { tag: '토 달고 이행', desc: '하기는 한다. 속으로 토를 달 뿐이다.' },
+    drifts: { tag: '한 번만 이행', desc: '한 번 하고 나면 원래 하던 얘기로 돌아간다. 같은 지침을 다시 쓸 각오를 해라.' },
+  },
+};
+
+// 결함 축의 심각도. 로스터 카드에서 색으로 구분하는 데 쓴다.
+export const FLAW_SEVERITY = {
+  reads: { well: 'ok', some: 'mid', none: 'bad' },
+  attention: { other: 'ok', mixed: 'mid', self: 'bad' },
+  compliance: { obeys: 'ok', argues: 'mid', drifts: 'bad' },
+};
+
+// 의뢰인 결함을 화면에 뿌릴 수 있는 형태로 정리한다.
+export function flawReport(person) {
+  const f = person.flaw;
+  if (!f) return [];
+  return [
+    { key: 'reads', axis: '분위기 파악', ...FLAW_LABELS.reads[f.reads], level: FLAW_SEVERITY.reads[f.reads] },
+    { key: 'attention', axis: '상대 관심', ...FLAW_LABELS.attention[f.attention], level: FLAW_SEVERITY.attention[f.attention] },
+    { key: 'compliance', axis: '지침 수용', ...FLAW_LABELS.compliance[f.compliance], level: FLAW_SEVERITY.compliance[f.compliance] },
+  ];
+}
+
 export const COUPLE_BY_ID = Object.fromEntries(COUPLES.map(c => [c.id, c]));
 
 // 난이도별 개수 (UI 필터용)

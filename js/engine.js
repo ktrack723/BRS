@@ -49,6 +49,7 @@ export class Engine {
     this.vibeBeats = 0;       // 공기가 갱신된 횟수. 눈치가 반쯤인 인물은 이 중 절반만 받는다
     this.radioLeft = 0;
     this.phase = 'text';
+    this.phaseTurn = 0;   // 현재 페이즈에서 소화한 턴 수. 남은 턴을 계기판에 띄우려면 필요하다
   }
 
   // ── 외부 제어 ────────────────────────────────────────
@@ -69,15 +70,26 @@ export class Engine {
 
   snapshot() {
     const s = this.state, t = this.couple.target;
+    const turnsTotal = this.phase === 'text' ? this.d.textTurns : this.d.talkTurns;
     return {
       mood: Math.round(s.mood), love: Math.round(s.love),
       threshold: this.d.threshold, moodFloor: this.d.moodFloor,
       mult: S.round1(S.moodMultiplier(s.mood)),
+      // 후반에 같은 등급인데 호감이 덜 오르는 이유. 지금까지 계기판에 안 나갔다.
+      loveSat: S.round1(S.loveSaturation(s.love)),
       radioLeft: this.radioLeft, radioUsed: s.radioUsed,
       revealed: [...s.revealed], revealedCount: s.revealed.length,
       secretTotal: t.hiddenPrefs.length, visibleTotal: t.visiblePrefs.length,
+      // 심판이 보고하는 revealed는 자유 문장이라 감춘 취향과 1:1이 아니다.
+      // 개수를 뺄셈으로 때우면 계기판이 디브리핑과 다른 말을 한다 (실측으로 잡았다).
+      // 사후 보고와 같은 함수를 쓴다.
+      secretLeft: S.surfacedSecrets(this.couple, this.#history(), s.revealed).missed.length,
       vibe: s.vibe,
+      // 화면 위의 공기가 실제로 의뢰인에게 닿는가. 안 닿는 사람이 있다.
+      reads: this.couple.client.flaw?.reads || 'well',
+      vibeDelivered: this.lastVibeSent,
       turn: s.turns, phase: this.phase,
+      turnsTotal, turnsLeft: Math.max(0, turnsTotal - this.phaseTurn),
     };
   }
 
@@ -166,6 +178,10 @@ export class Engine {
     const c = this.couple;
     this.phase = 'talk';
     this.radioLeft = this.d.radioTalk;
+    // 페이즈가 바뀌는 즉시 계기판을 갱신한다. 안 하면 대면 초반에 문자 페이즈의
+    // 잔여 턴("0/4")과 잔여 무전이 그대로 남아 거짓 수치가 보인다 (라이브에서 잡았다).
+    this.phaseTurn = 0;
+    this.h.meters?.(this.snapshot());
     this.pendingRadio = null;   // 문자 페이즈 막판에 보낸 지시는 대면 맥락에 맞지 않는다
 
     this.transcript.push({ who: 'sys', text: `[${sit.place}] ${sit.intro}` });
@@ -269,10 +285,13 @@ export class Engine {
     let pending = this.pendingJudge || null;   // 아직 채점되지 않은 직전 발언
     this.pendingJudge = null;
 
+    this.phaseTurn = 0;
+
     for (let i = 0; i < turns; i++) {
       await this.#gate();
+      this.phaseTurn = i;
       // turn 핸들러는 await한다 — 자동 플레이 하네스가 이 시점에 무전을 끼워 넣을 수 있게.
-      await this.h.turn?.({ phase, turn: i + 1, turns });
+      await this.h.turn?.({ phase, turn: i + 1, turns, turnsLeft: turns - i });
       await this.#gate();
 
       // 무전 지시 주입 (상대에게는 안 들린다)
@@ -325,6 +344,8 @@ export class Engine {
     }
     // 페이즈 마지막 발언은 아직 채점되지 않았다. 문자 페이즈면 대면으로 넘겨 이어서 처리한다.
     this.pendingJudge = pending;
+    this.phaseTurn = turns;   // 페이즈를 다 소화했다. 남은 턴 표시가 1에서 멈추면 안 된다
+
   }
 
   // 남은 판정을 정산 전에 반드시 비운다

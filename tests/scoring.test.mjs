@@ -681,3 +681,82 @@ test('라이브 하네스 두 개가 모두 모델 게이트를 통과한다', a
     assert.ok(!/['"]claude-opus-5['"]/.test(src), `${f}: Opus가 하드코딩되어 있다`);
   }
 });
+
+// ── 정보 공개층 ───────────────────────────────────────────────────────
+// flaw는 게임을 지배하는 데이터다. 화면에 안 나가면 그건 개성이 아니라 불공정한 랜덤이다.
+
+test('모든 의뢰인의 결함이 사람이 읽을 수 있는 형태로 나온다', async () => {
+  const { COUPLES, flawReport, FLAW_LABELS } = await import('../js/couples.js');
+  for (const c of COUPLES) {
+    const rows = flawReport(c.client);
+    assert.equal(rows.length, 3, `${c.id}: 감정 항목이 세 개여야 한다`);
+    for (const r of rows) {
+      assert.ok(r.axis && r.tag && r.desc, `${c.id}/${r.key}: 라벨이 비었다`);
+      assert.ok(['ok', 'mid', 'bad'].includes(r.level), `${c.id}/${r.key}: 심각도가 이상하다`);
+      assert.ok(r.desc.length > 10, `${c.id}/${r.key}: 설명이 너무 짧다`);
+    }
+    // 축마다 모든 값에 라벨이 있어야 한다 — 하나라도 비면 화면이 빈칸으로 나간다
+    for (const axis of ['reads', 'attention', 'compliance']) {
+      assert.ok(FLAW_LABELS[axis][c.client.flaw[axis]], `${c.id}: ${axis}=${c.client.flaw[axis]} 라벨 없음`);
+      assert.ok(FLAW_LABELS[axis][c.target.flaw[axis]], `${c.id}: 상대 ${axis} 라벨 없음`);
+    }
+  }
+});
+
+test('공기를 못 읽는 의뢰인은 그 사실이 라벨에 박혀 있다', async () => {
+  const { FLAW_LABELS } = await import('../js/couples.js');
+  // reads=none 라벨은 "전달되지 않는다"는 사실을 말해야 한다. 안 그러면 분위기 바가 거짓말이 된다.
+  assert.match(FLAW_LABELS.reads.none.desc, /전달되지 않는|안 간다|한 글자도/);
+  assert.match(FLAW_LABELS.reads.some.desc, /두 번에 한 번|절반/);
+  // compliance=drifts는 "다시 써야 한다"는 실전 정보를 담아야 한다
+  assert.match(FLAW_LABELS.compliance.drifts.desc, /돌아간다|다시/);
+});
+
+test('호감 포화 계수는 계기판이 쓸 수 있게 함수로 노출된다', async () => {
+  const S = await import('../js/scoring.js');
+  assert.equal(typeof S.loveSaturation, 'function');
+  assert.equal(S.loveSaturation(0), 1, '호감 0이면 감쇠 없음');
+  assert.ok(S.loveSaturation(60) < S.loveSaturation(20), '호감이 높을수록 덜 오른다');
+  assert.ok(S.loveSaturation(100) >= 0.2, '바닥 아래로는 안 내려간다');
+  // 계기판에 뜨는 값과 실제 적용값이 같은 함수에서 나와야 한다
+  const src = (await import('node:fs')).readFileSync('js/scoring.js', 'utf8');
+  assert.ok(!/1 - before\.love \/ TUNING\.loveSaturation/.test(src), '포화식이 두 군데로 갈라졌다');
+});
+
+test('요원이 아는 것과 의뢰인이 아는 것의 경계가 화면에 명시된다', async () => {
+  const fs = await import('node:fs');
+  const game = fs.readFileSync('js/game.js', 'utf8');
+  const html = fs.readFileSync('index.html', 'utf8');
+  // 지뢰 목록은 요원에게만 공개된다. 이 사실을 안 알려주면 플레이어는 의뢰인도 안다고 착각한다.
+  assert.match(game, /의뢰인에게 전달되지 않았다|자동으로 넘어가지 않는다/, '지뢰 인계 경고가 없다');
+  assert.match(html, /질색」 목록은 의뢰인이 모른다|의뢰인은 지침으로 들은 것만 안다/, '취조실/계기판 안내가 없다');
+  // 계기판에 포화·잔여 턴이 있어야 한다
+  assert.match(html, /id="hud-sat"/, '호감 포화 칩이 없다');
+  assert.match(html, /id="hud-turns"/, '잔여 턴 칩이 없다');
+  assert.match(html, /id="vibe-reach"/, '공기 도달 배지가 없다');
+});
+
+test('화면 문구가 엔진과 모순되지 않는다', async () => {
+  const fs = await import('node:fs');
+  // 공기는 reads에 따라 안 갈 수도 있다. "그대로 전달된다"는 단정은 거짓말이 된다.
+  // README는 옛 문구를 "이게 거짓말이었다"고 인용하므로 화면에 실제로 나가는 텍스트만 본다.
+  for (const f of ['js/game.js', 'index.html']) {
+    const src = fs.readFileSync(f, 'utf8');
+    assert.ok(!/공기[^.\n]{0,20}그대로 의뢰인에게 전달된다/.test(src),
+      `${f}: 공기가 항상 전달된다고 단정하고 있다 (reads에 따라 안 간다)`);
+    assert.ok(!/의뢰인도 그 정도는 안다/.test(src),
+      `${f}: 지뢰를 의뢰인이 안다고 단정하고 있다 (프롬프트에 안 들어간다)`);
+  }
+  // README는 단정하지 않고 조건을 밝혀야 한다
+  const readme = fs.readFileSync('README.md', 'utf8');
+  assert.match(readme, /reads: none.{0,40}한 글자도 안 가고|전달 안 됨/,
+    'README가 공기 전달의 조건을 설명하지 않는다');
+  // 지뢰가 실제로 의뢰인 프롬프트에 없는지 — 문구의 근거를 코드에서 확인한다
+  const P = await import('../js/prompts.js');
+  const { COUPLE_BY_ID } = await import('../js/couples.js');
+  const c = COUPLE_BY_ID['politics'];
+  const sys = P.clientAgentSystem(c, { outfitDesc: '', coaching: '', speech: '' }, 'text', { name: '요원', gender: '기밀' });
+  for (const r of c.target.redLines) {
+    assert.ok(!sys.includes(r), `의뢰인 프롬프트에 상대의 지뢰가 새고 있다: ${r}`);
+  }
+});

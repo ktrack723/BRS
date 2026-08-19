@@ -3,7 +3,7 @@ import { LlmClient, RefusalError } from './llm.js';
 import * as P from './prompts.js';
 import { Engine, prepReaction } from './engine.js';
 import { DIFFICULTIES, diffOf } from './scoring.js';
-import { COUPLES } from './couples.js';
+import { COUPLES, flawReport, FLAW_LABELS } from './couples.js';
 import { AvatarViewer, sanitizeSpec, renderThumb } from './avatar.js';
 import { sfx, startBgm, toggleBgm, unlockAudio } from './audio.js';
 
@@ -47,8 +47,10 @@ const TIPS = [
   '참고 · 무전은 흐름에 끼어드는 유일한 손잡이다. 아끼면 그냥 소멸한다.',
   '참고 · 착장은 대면 첫 순간에 상대가 직접 보고 판정한다.',
   '참고 · 지침에 "무엇을 하지 마라"와 "무엇을 하라"를 같이 써라.',
-  '참고 · 대화창 위의 "공기" 한 줄은 그대로 의뢰인에게 전달된다.',
+  '참고 · 공기 옆 배지가 "전달 안 됨"이면 그 문장은 의뢰인에게 안 간다. 무전으로 직접 말해라.',
   '참고 · 가위손 박은 거절하지 않는다. 폭탄을 붙이라면 붙인다.',
+  '참고 · 의뢰서의 「심리 감정」이 그 인간의 하자를 전부 적어둔다. 고르기 전에 읽어라.',
+  '참고 · 요원 화면에 떴다고 의뢰인이 아는 게 아니다. 지뢰 목록도 마찬가지다.',
 ];
 function loading(on, label = '') {
   $('#loading-overlay').classList.toggle('hidden', !on);
@@ -237,7 +239,18 @@ const SLIDES = [
     body: `상대의 취향 중 일부만 의뢰서에 인쇄되어 있다. 나머지는 <b>미확인</b>이며 <b>개수만</b> 통보된다.<br>
     이건 캐내야 하는 <b>수집품이 아니다.</b> 화제가 거기까지 흘러가면 나오고, 아니면 안 나온다.
     나온다고 보너스 점수가 붙지도 않는다 — 다만 그런 얘기가 나올 만큼 대화가 열렸다는 뜻이고, 그건 보통 좋은 신호다.<br>
-    반대로 <b>상대가 질색하는 것</b>은 전부 공개된다. 의뢰인도 그 정도는 안다. 그런데도 밟는다면 그건 요원 책임이다.`,
+    반대로 <b>상대가 질색하는 것</b>은 요원에게 전부 공개된다. 의뢰서에도, 취조실에도, 계기판에도 떠 있다.<br>
+    <span class="slide-warn">그런데 그 목록은 <b>의뢰인에게 넘어가지 않는다.</b> 취조실에서 직접 불러주지 않으면 그 인간은 모르는 채로 나가서 밟는다.</span>`,
+  },
+  {
+    art: '의뢰서 &nbsp;·&nbsp; 심리 감정 &nbsp;·&nbsp; 작전 계기판',
+    title: '요원이 아는 것과 의뢰인이 아는 것은 다르다',
+    body: `이 게임에서 정보는 두 겹이다. <b>요원이 보는 것</b>과 <b>의뢰인 머릿속에 실제로 든 것</b>.<br>
+    <b>의뢰서</b>에 「심리 감정」이 붙어 있다. 그 인간이 이 자리에서 뭘 원하는지, 분위기를 읽는지,
+    상대를 어디까지 아는지, 지침을 어떻게 받아들이는지 — 넷 다 인쇄되어 있다. <b>고르기 전에 읽어라.</b><br>
+    대화 중에는 계기판이 나머지를 말해준다. 공기 옆의 배지가 <b>「전달 안 됨」</b>이면
+    그 문장은 의뢰인에게 한 글자도 안 간다 — 그때는 무전으로 직접 말해야 한다.<br>
+    <span class="slide-warn">요원 화면에 떴다고 의뢰인이 아는 게 아니다. 이 경계가 이 게임의 전부다.</span>`,
   },
 ];
 
@@ -333,6 +346,8 @@ function renderRosterCards() {
         <li>금지 <b>${c.target.redLines.length}</b></li>
         <li>결승선 <b>${escapeHtml(c.endingKind)}</b></li>
       </ul>
+      <div class="cc-flaws" title="의뢰인 심리 감정">${flawReport(c.client)
+        .map(r => `<span class="flaw-tag lv-${r.level}">${escapeHtml(r.tag)}</span>`).join('')}</div>
       <div class="cc-btns">
         <button class="btn95 tiny cc-detail" type="button">의뢰서</button>
         <button class="btn95 cc-take" type="button">이 조합을 맡는다</button>
@@ -354,6 +369,7 @@ function dossierHtml(c, { full = false } = {}) {
     <p><b>내력:</b> ${c.client.background.map(escapeHtml).join(' · ')}</p>
     <p class="weakness"><b>취약점:</b> ${escapeHtml(c.client.weakness)} <span class="dim">— 지침으로 봉인해야 한다</span></p>
     <p class="quote">“${escapeHtml(c.client.quote)}”</p>
+    ${flawHtml(c.client)}
     <hr>
     <h3>상대 · ${escapeHtml(c.target.name)} <small>(${c.target.age}, ${escapeHtml(c.target.job)})</small></h3>
     <p><b>외모:</b> ${c.target.appearance.map(escapeHtml).join(', ')}</p>
@@ -361,7 +377,9 @@ function dossierHtml(c, { full = false } = {}) {
     <p><b>내력:</b> ${c.target.background.map(escapeHtml).join(' · ')}</p>
     <p><b>알려진 취향:</b> ${c.target.visiblePrefs.map(escapeHtml).join(', ')}</p>
     <p class="unknown-prefs"><b>미확인 취향 ${c.target.hiddenPrefs.length}건</b> — 내용 비공개. 대화가 거기까지 흘러가야만 나온다</p>
-    <p class="redline-box"><b>접촉 금지 항목:</b> ${c.target.redLines.map(escapeHtml).join(' / ')}</p>
+    <p class="redline-box"><b>접촉 금지 항목:</b> ${c.target.redLines.map(escapeHtml).join(' / ')}
+      <br><span class="handoff-warn">이 목록은 <b>의뢰인에게 전달되지 않았다.</b> 취조실에서 직접 불러주지 않으면 그 인간은 모르는 채로 나간다.</span></p>
+    <p class="unknown-prefs"><b>상대 심리 감정:</b> 미실시 — 상대는 우리 국민이 아니다. 저 사람이 뭘 원하고 뭘 못 읽는지는 대화로만 드러난다</p>
     <hr>
     <p class="clash-line"><b>이 매칭이 지옥인 이유:</b> ${escapeHtml(c.clash)}</p>
     <div class="diff-box diff-${d.key}">
@@ -371,13 +389,46 @@ function dossierHtml(c, { full = false } = {}) {
     ${full ? `<div class="modal-btns"><button class="btn95 big" id="dossier-take">이 조합을 맡는다</button><button class="btn95" id="dossier-close">닫기</button></div>` : ''}`;
 }
 
+// 의뢰인 심리 감정. flaw 데이터를 그대로 요원에게 보여준다.
+// 이걸 숨겨두면 지침이 왜 씹히는지, 공기를 왜 못 읽는지 플레이어가 영영 알 수 없다.
+function flawHtml(person) {
+  const rows = flawReport(person);
+  if (!rows.length) return '';
+  return `<div class="flaw-box">
+    <h4>심리 감정 <span class="dim">— 사전 면담 기록</span></h4>
+    <p class="flaw-want"><b>이 자리에서 원하는 것:</b> ${escapeHtml(person.flaw.want)}
+      <br><span class="dim">상대를 위해서가 아니다. 이 사람 입에서 나오는 말은 전부 여기서 출발한다.</span></p>
+    <ul class="flaw-list">
+      ${rows.map(r => `<li class="lv-${r.level}"><span class="flaw-axis">${escapeHtml(r.axis)}</span>
+        <span class="flaw-tag lv-${r.level}">${escapeHtml(r.tag)}</span>
+        <span class="flaw-desc">${escapeHtml(r.desc)}</span></li>`).join('')}
+      <li class="lv-mid"><span class="flaw-axis">화제 회귀</span>
+        <span class="flaw-tag lv-mid">고정</span>
+        <span class="flaw-desc">${escapeHtml(person.flaw.fixation)}</span></li>
+    </ul>
+  </div>`;
+}
+
 // 취조실·정문에서 곁눈질할 상대 요약. 의뢰서 전문을 다시 깔면 화면이 무거워진다.
 function targetBriefHtml(c) {
+  const f = c.client.flaw || {};
+  const rows = flawReport(c.client);
+  const comply = rows.find(r => r.key === 'compliance');
+  // 의뢰인이 상대에 대해 실제로 아는 범위. 요원이 아는 것과 다르다 — 이걸 안 알려주면 지침이 헛돈다.
+  const knows = f.attention === 'self'
+    ? '겉모습뿐. <b>성격도 취향도 모른다.</b>'
+    : f.attention === 'mixed'
+      ? '겉모습과 성격. <b>뭘 좋아하는지는 모른다.</b>'
+      : '겉모습·성격·알려진 취향까지.';
   return `<h3>상대 · ${escapeHtml(c.target.name)}</h3>
     <p><b>성격:</b> ${c.target.personality.map(escapeHtml).join(', ')}</p>
     <p><b>알려진 취향:</b> ${c.target.visiblePrefs.map(escapeHtml).join(' / ')}</p>
     <p class="redline-box"><b>질색:</b> ${c.target.redLines.map(escapeHtml).join(' / ')}</p>
-    <p class="weakness"><b>의뢰인 취약점:</b> ${escapeHtml(c.client.weakness)}</p>`;
+    <p class="handoff-warn"><b>이 화면의 정보는 의뢰인에게 자동으로 넘어가지 않는다.</b>
+      의뢰인이 아는 것: ${knows} 나머지는 <b>지침에 직접 적어야</b> 그 인간 머릿속에 들어간다.</p>
+    <p class="weakness"><b>의뢰인 취약점:</b> ${escapeHtml(c.client.weakness)}</p>
+    ${comply ? `<p class="brief-flaw lv-${comply.level}"><b>의뢰인 지침 수용:</b>
+      ${escapeHtml(comply.tag)} — ${escapeHtml(comply.desc)}</p>` : ''}`;
 }
 
 function openDossier(c) {
@@ -575,17 +626,43 @@ function meterUpdate(s) {
   $('#meter-moodfloor').style.left = s.moodFloor + '%';
   $('#hud-mult').textContent = `분위기 배율 ×${s.mult}`;
   $('#hud-mult').className = 'hud-chip ' + (s.mult >= 1.2 ? 'good' : s.mult >= 0.8 ? '' : 'bad');
+  // 후반에 같은 판정인데 호감이 덜 오르는 이유. 여태 화면 어디에도 없었다.
+  $('#hud-sat').textContent = `호감 포화 ×${s.loveSat}`;
+  $('#hud-sat').className = 'hud-chip ' + (s.loveSat >= 0.8 ? '' : s.loveSat >= 0.5 ? 'warn' : 'bad');
+  $('#hud-sat').title = `이미 호감 ${s.love}. 여기서부터는 같은 판정이라도 ${Math.round(s.loveSat * 100)}%만 오른다.`;
+  $('#hud-turns').textContent = `남은 턴 ${s.turnsLeft}/${s.turnsTotal}`;
+  // 페이즈 길이에 비례해서 경고한다. 절대값으로 재면 4턴짜리 문자 페이즈는 내내 빨갛다.
+  const left = s.turnsTotal ? s.turnsLeft / s.turnsTotal : 1;
+  $('#hud-turns').className = 'hud-chip ' + (left <= 0.25 ? 'bad' : left <= 0.5 ? 'warn' : '');
   $('#meter-mood-fill').classList.toggle('danger', s.mood < s.moodFloor);
   $('#btn-intervene').textContent = `무전 개입 (잔여 ${s.radioLeft})`;
   $('#btn-intervene').disabled = s.radioLeft <= 0;
+  markVibeReach(s.reads);
 
   const t = state.couple.target;
-  $('#intel-count').textContent = `대화 중 ${s.revealedCount}건`;
+  $('#intel-count').textContent = `대화 중 ${s.revealedCount}건 · 미확인 ${s.secretLeft}건 남음`;
   $('#intel-list').innerHTML =
     t.visiblePrefs.map(p => `<li class="known">${escapeHtml(p)} <span class="dim">(사전 통보)</span></li>`).join('') +
     s.revealed.map(p => `<li class="found">${escapeHtml(p)}</li>`).join('') +
-    (s.revealedCount === 0 ? '<li class="unknown">아직 새로 드러난 것 없음</li>' : '');
+    (s.revealedCount === 0 ? '<li class="unknown">아직 새로 드러난 것 없음</li>' : '') +
+    (s.secretLeft > 0 ? `<li class="unknown">감춰둔 취향 ${s.secretLeft}건 미확인 — 대화가 거기까지 흘러가야 나온다</li>` : '');
   $('#redline-list').innerHTML = t.redLines.map(p => `<li class="mine">${escapeHtml(p)}</li>`).join('');
+}
+
+// 화면 위의 공기가 의뢰인에게 실제로 닿는지. 안 닿는 사람에게 공기 바를 그냥 띄워두면
+// 플레이어는 "분위기만 잡으면 알아서 맞춰가겠지"라고 믿는다. 그건 거짓말이다.
+const VIBE_REACH = {
+  well: { cls: 'reach-ok', tag: '전달됨', note: '이 공기가 매번 의뢰인에게 그대로 넘어간다' },
+  some: { cls: 'reach-half', tag: '절반만 전달', note: '공기가 바뀌어도 두 번에 한 번만 넘어간다' },
+  none: { cls: 'reach-none', tag: '전달 안 됨', note: '이 사람은 공기를 못 읽는다. 이 문장은 의뢰인에게 한 글자도 안 간다 — 무전으로 직접 말해야 한다' },
+};
+function markVibeReach(reads) {
+  const r = VIBE_REACH[reads] || VIBE_REACH.well;
+  const bar = $('#vibe-bar');
+  bar.classList.remove('reach-ok', 'reach-half', 'reach-none');
+  bar.classList.add(r.cls);
+  const el = $('#vibe-reach');
+  if (el) { el.textContent = r.tag; el.title = r.note; }
 }
 
 function setVibe(text) {
@@ -648,7 +725,7 @@ function addJudge(j) {
   div.className = `judge-line ${fx.cls}`;
   div.innerHTML = `<b>분위기 ${j.mood >= 0 ? '+' : ''}${j.mood} · 호감 ${j.love >= 0 ? '+' : ''}${j.love}</b> ${escapeHtml(j.reason)}${tags}`;
   w.prepend(div);
-  while (w.children.length > 10) w.lastChild.remove();
+  while (w.children.length > 24) w.lastChild.remove();
   if (fx.burst) stageViewer?.burst(fx.burst, 'right');
   if (j.tier === 'breakthrough') sfx.fanfare();
   else if (j.love > 0) sfx.love();
@@ -656,10 +733,19 @@ function addJudge(j) {
   else if (j.love < 0) sfx.bad();
 }
 
-function setupChatScreen(title) {
+function setupChatScreen(title, { keepFeed = false } = {}) {
   show('chat');
   $('#chat-window').innerHTML = '';
-  $('#judge-feed').innerHTML = '';
+  // 문자 페이즈의 판정을 대면 중에 되짚어볼 수 없으면, 뭘 잘못했는지 알 길이 없다.
+  // 화면은 갈아엎되 판정 기록은 구분선만 긋고 이어간다.
+  if (keepFeed) {
+    const sep = document.createElement('div');
+    sep.className = 'judge-sep';
+    sep.textContent = `── 여기까지 ${$('#chat-phase-label').textContent || '이전 단계'} ──`;
+    $('#judge-feed').prepend(sep);
+  } else {
+    $('#judge-feed').innerHTML = '';
+  }
   $('#turn-badge').textContent = '';   // 페이즈가 바뀌는 순간 직전 페이즈의 턴 수가 남아 있으면 안 된다
   $('#chat-phase-label').textContent = title;
   $('#hud-diff').textContent = `난이도 ${state.couple.difficulty} · 성공선 ${state.diff.threshold}`;
@@ -696,7 +782,7 @@ async function startOperation() {
     const alive = await engine.runTexting();
     if (alive) {
       const sit = await withLoading('만날 장소 섭외 중...', () => engine.situation());
-      setupChatScreen(`작전 2단계 · 대면 공작 — ${sit.place}`);
+      setupChatScreen(`작전 2단계 · 대면 공작 — ${sit.place}`, { keepFeed: true });
       stageViewer = getStageViewer('stage-chat');
       stageViewer.setDuo(state.clientSpec, state.targetSpec, 'each');
       stageViewer.setParty(true);
@@ -753,6 +839,13 @@ async function gotoResult() {
     c.target.visiblePrefs.map(p => `<li class="known">${escapeHtml(p)} <span class="dim">(사전 통보)</span></li>`).join('') +
     r.debrief.surfaced.map(p => `<li class="found">${escapeHtml(p)} <span class="dim">(대화에서 화제에 올랐다)</span></li>`).join('') +
     r.debrief.missed.map(p => `<li class="missed">${escapeHtml(p)} <span class="dim">(끝내 안 나왔다)</span></li>`).join('');
+  // 상대 쪽 심리 감정은 작전 중엔 못 본다. 끝났으니 이제 깐다 —
+  // 왜 그 지침이 안 먹혔는지 알아야 재착수가 의미를 가진다.
+  $('#debrief-flaw').innerHTML = `
+    <h4>상대는 이런 사람이었다 <span class="dim small">(작전 중 비공개였던 항목)</span></h4>
+    ${flawHtml(c.target)}
+    <p class="dim">의뢰인 쪽 감정 결과는 의뢰서에 처음부터 나와 있었다. 재착수 전에 다시 읽어라.</p>`;
+
   $('#debrief-turns').innerHTML =
     '<div class="turn-table-wrap"><table class="turn-table"><tr><th>턴</th><th>분위기</th><th>호감</th><th>누적 호감/분위기</th><th>해설</th></tr>' +
     r.state.history.map(h =>
@@ -794,10 +887,23 @@ function initRadio() {
     sfx.radio();
     e.setPaused(true);
     const t = state.couple.target;
+    const snap = e.snapshot();
+    const reach = VIBE_REACH[snap.reads] || VIBE_REACH.well;
+    const f = state.couple.client.flaw || {};
+    const comply = FLAW_LABELS.compliance[f.compliance] || FLAW_LABELS.compliance.obeys;
     $('#radio-context').innerHTML =
-      `<b>지금 공기:</b> ${escapeHtml(e.state.vibe || '(아직 아무 일도 없다)')}<br>` +
+      `<div class="radio-stat">` +
+      `<span class="hud-chip">남은 턴 ${snap.turnsLeft}/${snap.turnsTotal}</span>` +
+      `<span class="hud-chip">잔여 무전 ${snap.radioLeft}</span>` +
+      `<span class="hud-chip">호감 ${snap.love}/${snap.threshold}</span>` +
+      `<span class="hud-chip">분위기 ${snap.mood}</span>` +
+      `</div>` +
+      `<b>지금 공기:</b> ${escapeHtml(e.state.vibe || '(아직 아무 일도 없다)')} ` +
+      `<span class="reach-chip ${reach.cls}">의뢰인에게 ${escapeHtml(reach.tag)}</span><br>` +
+      `<span class="dim">${escapeHtml(reach.note)}.</span><br>` +
+      `<span class="dim"><b>이 명령은 ${escapeHtml(comply.tag)}:</b> ${escapeHtml(comply.desc)}</span><br>` +
       `<span class="dim">저 둘은 각자 원하는 게 따로 있다. 흐름을 바꾸고 싶으면 여기서 바꿔야 한다.</span><br>` +
-      `<span class="dim">상대가 질색: ${t.redLines.map(escapeHtml).join(' / ')}</span>`;
+      `<span class="dim">상대가 질색: ${t.redLines.map(escapeHtml).join(' / ')} — 의뢰인은 지침으로 들은 것만 안다.</span>`;
     $('#modal-radio').classList.remove('hidden');
     $('#radio-input').value = '';
     $('#radio-input').focus();

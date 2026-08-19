@@ -1011,6 +1011,92 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 }
 
 /* 인쇄 (기밀문서를 출력하려는 요원을 위해) */
+/* ══════════════════════════════════════════════════════════
+   정보 공개층 — 심리 감정 · 인계 경고 · 공기 도달 여부
+   flaw는 게임을 지배하는 데이터인데 여태 화면에 한 글자도 없었다.
+   ══════════════════════════════════════════════════════════ */
+.flaw-box {
+  margin: var(--s3) 0 0; padding: var(--s3);
+  background: #eef1e9; border: 1px solid var(--dlg-edge); border-left: 4px solid var(--file);
+}
+.flaw-box h4 { margin: 0 0 var(--s2); font-size: var(--fs-sm); letter-spacing: .04em; }
+.flaw-want { margin: 0 0 var(--s2); font-size: var(--fs-sm); line-height: 1.6; }
+.flaw-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.flaw-list li {
+  display: grid; grid-template-columns: 6em auto; gap: 4px var(--s2);
+  align-items: baseline; font-size: var(--fs-sm); line-height: 1.5;
+  padding-left: var(--s2); border-left: 3px solid var(--dlg-edge);
+}
+.flaw-list li.lv-mid { border-left-color: var(--warn); }
+.flaw-list li.lv-bad { border-left-color: var(--stamp); }
+.flaw-axis { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-mid); }
+.flaw-desc { grid-column: 1 / -1; color: var(--ink-mid); }
+.flaw-tag {
+  display: inline-block; justify-self: start;   /* 그리드 칸을 가득 채우면 배지가 아니라 띠가 된다 */
+  font-family: var(--font-mono); font-size: var(--fs-xs);
+  padding: 1px 6px; border: 1px solid var(--ok); background: #e5eade; color: #24401f;
+  white-space: nowrap;
+}
+.flaw-tag.lv-mid { border-color: var(--warn); background: #efe9d5; color: #4d3d10; }
+.flaw-tag.lv-bad { border-color: var(--stamp); background: #f0e0dd; color: #6b1519; }
+
+/* 로스터 카드 하단 결함 배지 — 조합을 고르기 전에 보여야 한다 */
+.cc-flaws { display: flex; flex-wrap: wrap; gap: 4px; margin: var(--s2) 0 0; }
+
+/* 요원은 아는데 의뢰인은 모르는 정보. 이 경계가 이 게임의 핵심이다 */
+.handoff-warn {
+  margin: var(--s2) 0 0; padding: var(--s2);
+  background: #f6efdc; border: 1px solid var(--warn); border-left-width: 4px;
+  font-size: var(--fs-sm); line-height: 1.55; color: #4d3d10;
+}
+.hint-key { color: var(--stamp-deep); }
+.brief-flaw {
+  margin: var(--s2) 0 0; font-size: var(--fs-sm); line-height: 1.5;
+  padding-left: var(--s2); border-left: 3px solid var(--dlg-edge);
+}
+.brief-flaw.lv-mid { border-left-color: var(--warn); }
+.brief-flaw.lv-bad { border-left-color: var(--stamp); }
+
+/* 공기가 의뢰인에게 실제로 닿는가 */
+.vibe-reach {
+  flex: none; margin-left: auto; font-family: var(--font-mono); font-size: var(--fs-xs);
+  letter-spacing: .06em; padding: 1px 7px; border: 1px solid currentColor; white-space: nowrap;
+}
+.vibe-bar.reach-ok    .vibe-reach { color: var(--crt-fg); }
+.vibe-bar.reach-half  .vibe-reach { color: #d8c47a; }
+.vibe-bar.reach-none  .vibe-reach { color: #e08a86; }
+.vibe-bar.reach-none  { border-left-color: #e08a86; opacity: .82; }
+.vibe-bar.reach-none  #vibe-text { text-decoration: underline dotted rgba(224,138,134,.7); text-underline-offset: 4px; }
+
+.hud-chip.warn { border-color: var(--warn); background: #efe9d5; color: #4d3d10; }
+
+/* 무전 모달 계기 요약 */
+.radio-stat { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: var(--s2); }
+.reach-chip {
+  display: inline-block; font-family: var(--font-mono); font-size: var(--fs-xs);
+  padding: 1px 6px; border: 1px solid var(--dlg-edge); white-space: nowrap;
+}
+.reach-chip.reach-ok   { border-color: var(--ok); background: #e5eade; color: #24401f; }
+.reach-chip.reach-half { border-color: var(--warn); background: #efe9d5; color: #4d3d10; }
+.reach-chip.reach-none { border-color: var(--stamp); background: #f0e0dd; color: #6b1519; }
+
+/* 페이즈 경계에도 판정 기록은 남는다 */
+.judge-sep {
+  margin: var(--s2) 0; padding: 3px 0; text-align: center;
+  font-family: var(--font-mono); font-size: var(--fs-xs); letter-spacing: .08em;
+  color: var(--ink-soft); border-top: 1px dashed var(--dlg-edge); border-bottom: 1px dashed var(--dlg-edge);
+}
+.debrief-flaw { margin-top: var(--s3); }
+.debrief-flaw h4 { margin: 0 0 var(--s2); }
+.debrief-flaw .flaw-box { border-left-color: var(--stamp); }
+
+/* 계기판 소제목의 부연은 제목 옆이 아니라 아래로. 옆에 두면 좌우로 찢어진다 */
+.hud-intel h4 { flex-wrap: wrap; align-items: baseline; }
+.hud-intel h4 .dim {
+  flex-basis: 100%; font-weight: 400; font-size: var(--fs-xs);
+  line-height: 1.4; margin-top: 2px;
+}
+
 @media print {
   #crt, #topbar, #console-panel, #toast, .modal { display: none !important; }
   body { background: #fff; color: #000; }
