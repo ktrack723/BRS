@@ -5,9 +5,10 @@
   "type": "module",
   "description": "연애조작단 2077 — three.js + Claude API B급 병맛 LLM 데이팅 공작 게임 (GitHub Pages 정적 사이트)",
   "scripts": {
-    "test": "node --test tests/",
-    "sim": "node tests/sim.mjs",
+    "test": "node --test tests/scoring.test.mjs tests/engine.test.mjs",
+    "browser": "node tests/browser.mjs",
     "live": "node tests/live.mjs",
+    "sim": "node tests/sim.mjs",
     "serve": "python3 -m http.server 8000"
   }
 }

@@ -6,7 +6,7 @@
 //   node tests/sim.mjs /tmp/live-results.json --grid     성공선 후보를 훑어 추천값을 뽑는다
 
 import fs from 'node:fs';
-import { DIFFICULTIES, diffOf, initialState, applyTurn, failureReason, verdict } from '../js/scoring.js';
+import { DIFFICULTIES, TIER_BANDS, TUNING, diffOf, initialState, applyTurn, failureReason, verdict } from '../js/scoring.js';
 import { COUPLE_BY_ID } from '../js/couples.js';
 
 const file = process.argv[2];
@@ -118,5 +118,63 @@ if (GRID) {
       console.log(`   성공선 ${pad(t, 4)} ace ${pad(w('ace'), 6)} good ${pad(w('good'), 6)} lazy ${pad(w('lazy'), 6)} none ${w('none')}`);
     }
     console.log('');
+  }
+}
+
+
+// ── 상수 탐색 ────────────────────────────────────────────
+// TIER_BANDS / TUNING은 모듈 상수 객체라 속성을 갈아끼우면 리플레이에 그대로 반영된다.
+if (process.argv.includes('--tune')) {
+  const snapshot = { bands: structuredClone(TIER_BANDS), tuning: { ...TUNING } };
+  const restore = () => {
+    for (const [k, v] of Object.entries(snapshot.bands)) TIER_BANDS[k] = [...v];
+    Object.assign(TUNING, snapshot.tuning);
+  };
+
+  const SKILLED = new Set(['ace', 'good']);
+  const byDiff = {};
+  for (const r of runs) (byDiff[r.difficulty] ||= []).push(r);
+
+  // 분리도: 잘한 플레이의 최저 호감 - 대충한 플레이의 최고 호감. 클수록 성공선을 놓을 자리가 넓다.
+  function separation(diff, cfg) {
+    restore();
+    TIER_BANDS.ok = cfg.ok;
+    TIER_BANDS.empty = cfg.empty;
+    Object.assign(TUNING, cfg.tuning || {});
+    const rows = byDiff[diff].map(r => ({
+      profile: r.profile,
+      love: replay(r, { threshold: 0, loveDecay: cfg.decay }).love,
+    }));
+    const sk = rows.filter(r => SKILLED.has(r.profile)).map(r => r.love);
+    const sl = rows.filter(r => !SKILLED.has(r.profile)).map(r => r.love);
+    if (!sk.length || !sl.length) return null;
+    const lo = Math.min(...sk), hi = Math.max(...sl);
+    return { gap: lo - hi, lo, hi, mid: Math.round((lo + hi) / 2), sk: sk.sort((a, b) => a - b), sl: sl.sort((a, b) => b - a) };
+  }
+
+  const OK_CANDS = [[2, 4], [1, 3], [1, 2], [0, 2]];
+  const EMPTY_CANDS = [[-1, 1], [-1, 0], [-2, 0]];
+  const DECAYS = { '쉬움': [0, 0.8, 1.6, 2.4], '보통': [0.5, 1.2, 2.0, 2.8], '헬': [1.0, 1.8, 2.6, 3.4] };
+
+  console.log('\n════════ 상수 탐색 (분리도 = 잘한 최저 − 대충한 최고) ════════');
+  const best = {};
+  for (const diff of Object.keys(byDiff)) {
+    const cands = [];
+    for (const ok of OK_CANDS) for (const empty of EMPTY_CANDS) for (const decay of DECAYS[diff] || [1]) {
+      const sep = separation(diff, { ok, empty, decay });
+      if (sep) cands.push({ ok, empty, decay, ...sep });
+    }
+    cands.sort((a, b) => b.gap - a.gap);
+    console.log(`\n[${diff}] 상위 5개 (n=${byDiff[diff].length}판)`);
+    for (const c of cands.slice(0, 5)) {
+      console.log(`  ok[${c.ok}] empty[${c.empty}] decay ${c.decay}  →  분리도 ${String(c.gap).padStart(4)}` +
+        `  성공선 후보 ${String(c.mid).padStart(3)}  잘한 ${c.sk.join(',')} | 대충한 ${c.sl.join(',')}`);
+    }
+    best[diff] = cands[0];
+  }
+  restore();
+  console.log('\n권장값:');
+  for (const [d, c] of Object.entries(best)) {
+    if (c) console.log(`  ${d}: threshold ${c.mid}, loveDecay ${c.decay}  (공통 ok[${c.ok}] empty[${c.empty}])`);
   }
 }

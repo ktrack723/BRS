@@ -272,11 +272,15 @@ ${targetCard(couple, { withHidden: true })}
 ■ reason: 중계 심판st 병맛 한 줄. 어느 tier인지 근거를 반드시 한 조각 담을 것.`;
 }
 
-export function judgeUser(history, clientMsg) {
+export function judgeUser(history, clientMsg, reaction) {
   return `[지금까지의 대화]
 ${history || '(첫 마디)'}
 
 [판정 대상 — 클라이언트의 이번 발언] ${clientMsg}
+[그 발언에 대한 ${'상대의 실제 반응'}] ${reaction || '(아직 반응이 없다)'}
+
+반응을 반드시 근거로 삼아라. 상대가 감췄던 것을 털어놓기 시작했다면 그 발언이 실마리를 캔 것이고,
+반응이 짧아지거나 싸늘해졌다면 그 발언이 잘못 들어간 것이다. 반응이 미지근하면 tier도 미지근하다.
 판정하라.`;
 }
 
@@ -284,9 +288,9 @@ ${history || '(첫 마디)'}
 export function firstImpressionUser(couple, outfitDesc, reaction) {
   return `[판정 대상 — 대면 첫 순간]
 클라이언트가 이런 모습으로 나타났다: ${outfitDesc || '평소 입던 옷 그대로, 전혀 꾸미지 않았다'}
-그것을 본 ${couple.target.name}의 첫 반응: ${reaction}
+[그 모습에 대한 상대의 실제 반응] ${reaction}
 
-이 첫인상이 타겟의 취향/지뢰에 얼마나 부합했는지로 판정하라.
+이 첫인상이 타겟의 취향/지뢰에 얼마나 부합했는지로 판정하라. 반응이 판정의 근거다.
 꾸미지 않았거나 타겟과 무관한 착장이면 loveDelta는 0 이하로 내려간다.
 취향을 정면으로 저격한 착장이면 크게 준다. hiddenPrefHit도 착장으로 저격 가능하다.`;
 }

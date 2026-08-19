@@ -34,6 +34,7 @@ export class Engine {
 
     this.paused = false;      // 무전 모달이 열려 있는 동안
     this.pendingRadio = null; // 다음 클라이언트 발언에 주입될 지시
+    this.pendingJudge = null; // 아직 채점되지 않은 직전 발언 (판정은 한 턴 늦게 온다)
     this.radioLeft = 0;
     this.phase = 'text';
   }
@@ -138,6 +139,10 @@ export class Engine {
     this.transcript.push({ who: 'target', text: sit.outfitReaction });
     this.h.bubble?.('target', sit.outfitReaction);
 
+    // 문자 페이즈 마지막 발언의 미결 판정을 먼저 정산한다 (대면 첫 반응이 그 발언의 결과이기도 하다)
+    await this.#flushJudge('text');
+    if (this.aborted) return false;
+
     // 첫인상 판정 — 스타일링이 실제로 효력을 발휘하는 지점. 준비 단계가 아니라 '만남'에서 채점된다.
     let fi;
     try {
@@ -165,6 +170,7 @@ export class Engine {
     ];
     this.h.phase?.({ phase: 'talk', turns: this.d.talkTurns, radioLeft: this.radioLeft, place: sit.place });
     await this.#runTurns('talk', this.d.talkTurns);
+    await this.#flushJudge('talk');
     return !this.aborted;
   }
 
@@ -181,13 +187,49 @@ export class Engine {
     this.h.meters?.(this.snapshot());
   }
 
+  // 심판 호출 하나. 반드시 '상대가 실제로 어떻게 반응했는지'까지 같이 넘긴다 —
+  // 그게 없으면 실마리를 물고 늘어진 발언이 무엇을 캐냈는지 심판이 알 방법이 없다.
+  #judgeCall(pending, tag) {
+    return this.llm.call({
+      label: `판정 ${tag}`, system: P.judgeSystem(this.couple), cache: true,
+      messages: [{ role: 'user', content: P.judgeUser(pending.history, pending.clientMsg, pending.reaction) }],
+      schema: P.JUDGE_SCHEMA, effort: 'low', maxTokens: 3000,
+    }).catch(() => ({
+      tier: 'empty', moodDelta: 0, loveDelta: 0,
+      visiblePrefHit: '', hiddenPrefHit: '', redLineHit: false, reason: '(심판이 잠시 졸았다)',
+    }));
+  }
+
+  // 판정 하나를 상태에 반영. 분위기 파탄이면 true를 돌려준다.
+  #applyJudge(judge, pending, opts = {}) {
+    const c = this.couple;
+    this.state = S.applyTurn(this.state, this.d, judge, {
+      knownHidden: c.target.hiddenPrefs, knownVisible: c.target.visiblePrefs, ...opts,
+    });
+    this.#reportJudge(judge, { turn: pending?.turn, ...(opts.firstImpression ? { firstImpression: true } : {}) });
+    return !!S.failureReason(this.state);
+  }
+
+  #breakdown(phase) {
+    const msg = phase === 'text'
+      ? '...읽씹당했다. 프로필 사진도 강아지로 바뀌었다.'
+      : '...상대가 "화장실 좀"이라며 나가더니 돌아오지 않았다.';
+    this.aborted = true; this.abortReason = 'mood';
+    this.transcript.push({ who: 'sys', text: msg });
+    this.h.bubble?.('sys', msg);
+  }
+
   // ── 턴 루프 ──────────────────────────────────────────
+  // 판정을 한 턴 늦춘다. 그래야 심판이 "그 발언에 상대가 실제로 어떻게 반응했는가"를 보고 채점할 수 있고,
+  // 동시에 [직전 턴 판정 ∥ 이번 턴 타겟 응답]을 한 배치로 묶어 턴당 순차 왕복 2회를 유지한다.
   async #runTurns(phase, turns) {
     const c = this.couple;
     const clientSystem = P.clientAgentSystem(c, this.prep, phase);
     const targetSystem = P.targetAgentSystem(c, phase, this.prep.outfitDesc);
-    const judgeSys = P.judgeSystem(c);
     const label = phase === 'text' ? '문자' : '대면';
+    const said = phase === 'text' ? '문자' : '말';
+    let pending = this.pendingJudge || null;   // 아직 채점되지 않은 직전 발언
+    this.pendingJudge = null;
 
     for (let i = 0; i < turns; i++) {
       await this.#gate();
@@ -202,66 +244,60 @@ export class Engine {
       }
 
       // 1) 클라이언트 발언 — 이것만은 순차적으로 나와야 한다
+      const historyBefore = this.#history(HISTORY_WINDOW);
       const clientMsg = await this.llm.call({
         label: `${label} 발언 ${i + 1}`,
         system: clientSystem, cache: true,
         messages: this.clientHist, effort: 'low', maxTokens: 3000,
       });
-      const historyForJudge = this.#history(HISTORY_WINDOW);
       this.clientHist.push({ role: 'assistant', content: clientMsg });
       this.transcript.push({ who: 'client', text: clientMsg });
       this.h.bubble?.('client', clientMsg);
 
-      // 2) 심판과 타겟 응답은 서로 독립이다 → 동시 발사
-      this.#pushUser(this.targetHist, `[${c.client.name}의 ${phase === 'text' ? '문자' : '말'}] ${clientMsg}`);
-      const isLastTextTurn = phase === 'text' && i === turns - 1;
-
+      // 2) [직전 턴 판정] ∥ [이번 턴 타겟 응답] — 서로 독립이므로 동시 발사
+      this.#pushUser(this.targetHist, `[${c.client.name}의 ${said}] ${clientMsg}`);
       const jobs = [
-        this.llm.call({
-          label: `판정 ${i + 1}`, system: judgeSys, cache: true,
-          messages: [{ role: 'user', content: P.judgeUser(historyForJudge, clientMsg) }],
-          schema: P.JUDGE_SCHEMA, effort: 'low', maxTokens: 3000,
-        }).catch(() => ({ tier: 'empty', moodDelta: 0, loveDelta: 0, visiblePrefHit: '', hiddenPrefHit: '', redLineHit: false, reason: '(심판이 잠시 졸았다)' })),
         this.llm.call({
           label: `${label} 응답 ${i + 1}`,
           system: targetSystem, cache: true,
           messages: this.targetHist, effort: 'low', maxTokens: 3000,
         }).catch(() => '...(상대가 답이 없다)'),
+        pending ? this.#judgeCall(pending, `${pending.turn}`) : Promise.resolve(null),
       ];
       // 문자 마지막 턴이면 대면 상황 생성까지 같은 배치에 태운다
-      if (isLastTextTurn) {
-        this.situationPromise = this.#callSituation(this.#history() + `\n${c.client.name}: ${clientMsg}`);
+      if (phase === 'text' && i === turns - 1) {
+        this.situationPromise = this.#callSituation(this.#history());
       }
 
-      const [judge, targetMsg] = await Promise.all(jobs);
+      const [targetMsg, judge] = await Promise.all(jobs);
 
-      // 3) 판정 반영
-      this.state = S.applyTurn(this.state, this.d, judge, {
-        knownHidden: c.target.hiddenPrefs, knownVisible: c.target.visiblePrefs,
-      });
-      this.#reportJudge(judge);
+      // 3) 직전 턴 판정 반영
+      if (judge && this.#applyJudge(judge, pending)) { this.#breakdown(phase); return; }
 
-      const fail = S.failureReason(this.state);
-      if (fail) {
-        this.aborted = true; this.abortReason = fail;
-        const msg = phase === 'text'
-          ? '...읽씹당했다. 프로필 사진도 강아지로 바뀌었다.'
-          : '...상대가 "화장실 좀"이라며 나가더니 돌아오지 않았다.';
-        this.transcript.push({ who: 'sys', text: msg });
-        this.h.bubble?.('sys', msg);
-        return;
-      }
-
-      // 4) 타겟 응답 반영
+      // 4) 타겟 응답 반영 — 이게 이번 발언의 '반응'이 되어 다음 배치에서 채점된다
       this.targetHist.push({ role: 'assistant', content: targetMsg });
       this.transcript.push({ who: 'target', text: targetMsg });
       this.h.bubble?.('target', targetMsg);
       this.#pushUser(this.clientHist, `[${c.target.name}의 ${phase === 'text' ? '답장' : '말'}] ${targetMsg}`);
+
+      pending = { history: historyBefore, clientMsg, reaction: targetMsg, turn: `${label} ${i + 1}` };
     }
+    // 페이즈 마지막 발언은 아직 채점되지 않았다. 문자 페이즈면 대면으로 넘겨 이어서 처리한다.
+    this.pendingJudge = pending;
+  }
+
+  // 남은 판정을 정산 전에 반드시 비운다
+  async #flushJudge(phase) {
+    const pending = this.pendingJudge;
+    this.pendingJudge = null;
+    if (!pending) return;
+    const judge = await this.#judgeCall(pending, `${pending.turn} (최종)`);
+    if (this.#applyJudge(judge, pending)) this.#breakdown(phase);
   }
 
   // ── 정산 ─────────────────────────────────────────────
   async finish() {
+    if (this.pendingJudge && !this.aborted) await this.#flushJudge(this.phase);
     const v = S.verdict(this.state, this.d, { aborted: this.aborted });
     const db = S.debrief(this.state, this.d, v, this.couple);
 

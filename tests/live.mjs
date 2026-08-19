@@ -74,7 +74,8 @@ const AGENT_SYSTEM = `너는 큐피드국의 베테랑 공작요원이다. 의�
 그러니 "잘 보이게 쓰는 글"이 아니라 "그 인간이 실제로 그렇게 행동하게 만드는 명령"을 써라.
 - styling: 타겟의 알려진 취향을 저격하는 착장 태그 3~5개. 지뢰를 건드리는 착장은 금지.
 - coaching: 반드시 (a) 클라이언트의 약점을 봉인하는 금지 조항, (b) 타겟 취향으로 화제를 끄는 실행 조항,
-  (c) 지뢰 회피 조항을 모두 포함. 6문장 이내, 명령형.
+  (c) 지뢰 회피 조항, (d) **상대가 말끝을 흐리거나 하려던 말을 삼키면 반드시 그걸 물고 늘어져 캐물으라는 조항**을
+  모두 포함. (d)가 없으면 클라이언트는 상대가 흘리는 실마리를 전부 놓친다. 8문장 이내, 명령형.
 - speech: 클라이언트 사연 속 구체적 장면을 짚어 자부심으로 뒤집는 연설. 4문장 이내.
 한국어로 쓴다.`;
 
@@ -169,7 +170,8 @@ async function playOne(coupleId, profile) {
           : turn === 2
             ? '상대가 방금 뭔가 말하려다 삼킨 것 같다. 그거 뭐였냐고 물고 늘어져라.'
             : `지금 흐름 그대로 이어가면서 ${c.target.visiblePrefs[turn % c.target.visiblePrefs.length]} 이야기를 꺼내고, 상대에게 그 얘기를 더 해달라고 물어봐라.`;
-        if (order) engine.submitRadio(order);
+        // LLM이 드물게 반복 붕괴한 문자열을 뱉는다. 그걸 무전으로 주입하면 판이 통째로 망가진다.
+        if (order && !/(.{2,8})\1{4,}/.test(order) && order.length > 10) engine.submitRadio(order);
       },
     },
   });
@@ -186,6 +188,21 @@ async function playOne(coupleId, profile) {
     engine.aborted = true;
   }
   const res = await engine.finish();
+
+  // 온전한 판인지 검증한다. LLM이 죽으면 판정이 전부 중립(empty)으로 흘러 그럴듯한 숫자가 나오므로
+  // 이걸 걸러내지 않으면 밸런싱 데이터가 조용히 오염된다.
+  const expected = res.difficulty.textTurns + res.difficulty.talkTurns + 1;
+  const neutral = res.state.history.filter(h => h.tier === 'empty' && h.rawMood === 0 && h.rawLove === 0).length;
+  const degenerate = llm.usage.calls < 10
+    || (!res.aborted && res.state.history.length < expected)
+    || neutral > expected / 2;
+  if (degenerate) {
+    return {
+      coupleId, profile, difficulty: c.difficulty,
+      error: `불완전한 판 (호출 ${llm.usage.calls}회, 판정 ${res.state.history.length}/${expected}, 중립 ${neutral})`,
+      usage: { ...llm.usage },
+    };
+  }
 
   return {
     coupleId, profile, difficulty: c.difficulty, endingKind: c.endingKind,
