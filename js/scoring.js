@@ -222,26 +222,26 @@ export function debrief(state, d, v, couple) {
 
   const notes = [];
   notes.push({
-    key: 'hidden', label: '미확인 취향 발굴',
+    key: 'hidden', label: '미확인 취향 확보',
     value: `${state.hits.length} / ${hidden.length}건`,
     ok: state.hits.length >= Math.ceil(hidden.length / 2),
     text: state.hits.length === 0
-      ? '끝내 하나도 못 캤다. 무전으로 화제를 끌지 않으면 상대는 먼저 말하지 않는다.'
+      ? '끝내 하나도 확보하지 못했다. 무전으로 화제를 지정하지 않으면 상대는 먼저 말하지 않는다.'
       : state.hits.length === hidden.length ? '전부 캐냈다. 이건 요원의 실력이다.'
         : '절반은 건드렸다. 나머지는 화제 자체가 나오지 않았다.',
   });
   notes.push({
-    key: 'redline', label: '지뢰 접촉',
+    key: 'redline', label: '접촉 금지 위반',
     value: `${state.redLines}회`,
     ok: state.redLines === 0,
-    text: state.redLines === 0 ? '지뢰는 한 번도 안 밟았다.'
-      : `${state.redLines}번 밟았다. 지뢰 한 번이 잘한 두 턴을 지운다.`,
+    text: state.redLines === 0 ? '금지 항목 접촉 없음.'
+      : `${state.redLines}회 위반. 위반 한 번이 잘한 두 턴을 지운다.`,
   });
   notes.push({
     key: 'radio', label: '무전 개입',
     value: `${state.radioUsed} / ${d.radioText + d.radioTalk}회`,
     ok: state.radioUsed > 0,
-    text: state.radioUsed === 0 ? '한 번도 개입하지 않았다. 무전은 아껴봐야 소멸할 뿐이다.'
+    text: state.radioUsed === 0 ? '개입 기록 없음. 무전은 아껴봐야 소멸할 뿐이다.'
       : state.radioUsed >= d.radioText + d.radioTalk ? '주어진 개입권을 전부 썼다.' : '개입권이 남은 채로 끝났다.',
   });
   notes.push({

@@ -339,3 +339,36 @@ test('결승선 종류마다 호감의 의미가 다르게 주입된다', () => 
   assert.ok(sys.includes('연애가 물리적으로 불가능'));
   assert.ok(P.frameOf('동맹').meterName.includes('전우애'));
 });
+
+// ── 테스트 예산 가드 ────────────────────────────────────
+// Opus로 밸런싱 한 라운드가 $6.6다. 실수로 비싼 모델이 기본값이 되는 걸 막는다.
+test('라이브 테스트는 Sonnet만 쓴다', async () => {
+  const { resolveTestModel, TEST_MODEL, OVERRIDE_FLAG } = await import('./test-model.mjs');
+  assert.match(TEST_MODEL, /^claude-sonnet-/, '기본 테스트 모델은 소넷이어야 한다');
+  assert.equal(resolveTestModel(undefined, []), TEST_MODEL, '미지정이면 소넷');
+  assert.equal(resolveTestModel('claude-sonnet-5', []), 'claude-sonnet-5', '소넷은 통과');
+
+  // 비싼 모델은 명시적 승인 없이는 통과하지 못한다 (process.exit 호출을 잡아낸다)
+  const realExit = process.exit, realErr = console.error;
+  let exited = null;
+  process.exit = c => { exited = c; throw new Error('__exit__'); };
+  console.error = () => { };
+  try { resolveTestModel('claude-opus-5', []); } catch (e) { if (e.message !== '__exit__') throw e; }
+  process.exit = realExit; console.error = realErr;
+  assert.equal(exited, 1, 'Opus 요청은 종료코드 1로 막혀야 한다');
+
+  // 탈출구를 명시하면 통과한다
+  const realWarn = console.warn;
+  console.warn = () => { };
+  assert.equal(resolveTestModel('claude-opus-5', [OVERRIDE_FLAG]), 'claude-opus-5');
+  console.warn = realWarn;
+});
+
+test('라이브 하네스 두 개가 모두 모델 게이트를 통과한다', async () => {
+  const fs = await import('node:fs');
+  for (const f of ['tests/live.mjs', 'tests/browser.mjs']) {
+    const src = fs.readFileSync(f, 'utf8');
+    assert.match(src, /resolveTestModel\(/, `${f}: 모델 게이트를 우회하고 있다`);
+    assert.ok(!/['"]claude-opus-5['"]/.test(src), `${f}: Opus가 하드코딩되어 있다`);
+  }
+});

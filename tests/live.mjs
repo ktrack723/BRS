@@ -4,7 +4,7 @@
 //   ANTHROPIC_API_KEY=sk-... node tests/live.mjs [옵션]
 //     --couples=politics,os-war      돌릴 커플 id (기본: 난이도별 대표 3건)
 //     --profiles=ace,good,lazy,none  플레이 수준 (기본: 전부)
-//     --model=claude-opus-5
+//     --model=...                    Sonnet 계열만 허용 (기본 {TEST_MODEL} → tests/test-model.mjs)
 //     --concurrency=4
 //     --out=/tmp/live.json
 //
@@ -19,16 +19,17 @@ import { LlmClient } from '../js/llm.js';
 import { Engine } from '../js/engine.js';
 import { COUPLES, COUPLE_BY_ID } from '../js/couples.js';
 import { diffOf } from '../js/scoring.js';
+import { resolveTestModel, TEST_MODEL } from './test-model.mjs';
 import fs from 'node:fs';
 
 const args = Object.fromEntries(process.argv.slice(2)
   .filter(a => a.startsWith('--'))
   .map(a => { const [k, ...v] = a.slice(2).split('='); return [k, v.join('=') || 'true']; }));
 
+const MODEL = resolveTestModel(args.model);   // 테스트는 Sonnet 고정 (tests/test-model.mjs)
+
 const KEY = process.env.ANTHROPIC_API_KEY;
 if (!KEY) { console.error('ANTHROPIC_API_KEY 없음'); process.exit(1); }
-
-const MODEL = args.model || 'claude-opus-5';
 const CONCURRENCY = Number(args.concurrency || 4);
 const PROFILES = (args.profiles || 'ace,good,lazy,none').split(',');
 const DEFAULT_COUPLES = ['sauce-war', 'os-war', 'politics']; // 쉬움/보통/헬 대표

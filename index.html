@@ -4,44 +4,50 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>연애조작단 2077: 오퍼레이션 큐피드</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💘</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%232b2f2b'/><text x='50' y='72' font-size='62' text-anchor='middle' fill='%239d2a2a' font-family='serif' font-weight='bold'>&#x5F41;</text></svg>">
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gugi&display=swap" media="print" onload="this.media='all'">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- IBM Plex: 기관용으로 설계된 서체. Sans KR이 한글을, Mono가 수치·터미널을 담당한다.
+       차단되면 Malgun Gothic / Apple SD Gothic Neo로 떨어진다 (css/style.css의 폴백 스택). -->
+  <link rel="stylesheet" media="print" onload="this.media='all'"
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 </head>
 <body>
   <div id="crt"></div>
 
   <header id="topbar">
-    <div class="marquee"><span>★★★ 미연방 비밀기관 큐피드局 공식 공작 단말기 ★★★ 출산율 0.008 국가비상사태 ★★★ 테크노킹 도람푸 3세 특명 제77호 ★★★ 상설 의뢰 20건 전부 "이어질 리 없는 조합"임 ★★★ 본 단말기는 LLM으로 구동됩니다 ★★★</span></div>
-    <button id="btn-console" class="btn95" type="button" title="LLM 호출 로그">🛰 LLM</button>
-    <button id="btn-bgm" class="btn95" type="button">🔊 BGM</button>
+    <span class="classif">극비 / SCI-CUPID</span>
+    <div class="marquee"><span>큐피드局 공작단말 v2.0 · 특명 제77호(테크노킹 도람푸 3세) · 출산율 0.008 국가비상사태 · 상설 의뢰 20건 전부 "이어질 리 없는 조합" 분류 · 본 단말은 대규모언어모형으로 구동됨 · 무단 열람 시 국가보안법 제77조</span></div>
+    <button id="btn-console" class="btn95 tiny" type="button" title="LLM 호출 로그">통신기록</button>
+    <button id="btn-bgm" class="btn95 tiny" type="button">음향 ON</button>
   </header>
 
   <main>
     <!-- 부팅 -->
     <section id="screen-boot" class="screen">
-      <h1 class="title-main"><span class="blink">💘</span> 연애조작단 2077 <span class="blink">💘</span><br><small>OPERATION: CUPID</small></h1>
-      <p class="subtitle">국가공인 <b>불가능 매칭</b> 공작 시뮬레이터 (B급) — 재미없으면 도람푸 3세에게 항의 바람</p>
+      <h1 class="title-main">연애조작단 2077<br><small>OPERATION CUPID · 큐피드局</small></h1>
+      <p class="subtitle">국가공인 <b>불가능 매칭</b> 공작 단말기 — 열람 권한 없는 자의 접속은 기록됩니다</p>
       <div class="panel95 boot-panel">
-        <h2>■ 공작 단말기 부팅</h2>
-        <p class="warn">이 게임은 <b>전부</b> LLM(Claude)으로 돌아간다. API 키가 없으면 시작조차 못 한다.<br>
-        의뢰인 20쌍은 고정 데이터지만, <b>그들이 실제로 무슨 말을 하고 어떻게 판정되는지는 100% 실시간 LLM</b>이다.<br>
-        키는 브라우저에서 <code>api.anthropic.com</code>으로만 전송된다. 그 외 어디에도 안 보낸다.</p>
+        <h2>단말기 인증</h2>
+        <p class="warn">본 단말은 <b>전부</b> 대규모언어모형(Claude)으로 구동된다. 인증키 없이는 개방되지 않는다.<br>
+        의뢰인 20쌍은 고정 대장이지만, <b>그들이 실제로 무슨 말을 하고 어떻게 판정되는지는 전량 실시간 연산</b>이다.<br>
+        인증키는 본 단말에서 <code>api.anthropic.com</code>으로만 송신된다. 그 외 어디에도 송신하지 않는다.</p>
         <label>ANTHROPIC API KEY
           <input id="key-input" type="password" placeholder="sk-ant-api03-..." autocomplete="off">
         </label>
-        <label>공작 두뇌 (모델)
+        <label>판정 연산 모형
           <select id="model-select">
-            <option value="claude-opus-5" selected>claude-opus-5 (국장님 추천)</option>
-            <option value="claude-sonnet-5">claude-sonnet-5</option>
-            <option value="claude-haiku-4-5">claude-haiku-4-5 (예산 절감형)</option>
+            <option value="claude-opus-5" selected>claude-opus-5 (본부 권장)</option>
+            <option value="claude-sonnet-5">claude-sonnet-5 (표준)</option>
+            <option value="claude-haiku-4-5">claude-haiku-4-5 (예산 절감)</option>
           </select>
         </label>
-        <label class="chk"><input id="remember-key" type="checkbox"> 이 브라우저에 키 저장 (공용 PC에서 체크하면 간첩죄)</label>
-        <button id="btn-boot" class="btn95 big" type="button">▶ 요원 착임 (부팅)</button>
+        <label class="chk"><input id="remember-key" type="checkbox"> 이 단말에 인증키 보관 (공용 단말에서 체크 시 보안규정 위반)</label>
+        <button id="btn-boot" class="btn95 big" type="button">요원 착임 · 단말 개방</button>
         <p id="boot-error" class="error hidden"></p>
       </div>
-      <p class="dim small">GitHub Pages 정적 사이트 · 서버 없음 · 키는 당신 브라우저에만</p>
+      <p class="dim small">정적 배포 · 중계 서버 없음 · 인증키는 본 단말에만 상주</p>
     </section>
 
     <!-- 신입 교육 슬라이드 -->
@@ -49,7 +55,7 @@
       <div class="panel95 intro-panel">
         <div class="intro-head">
           <span id="intro-step" class="intro-step"></span>
-          <button id="btn-intro-skip" class="btn95 tiny" type="button">건너뛰기 ▶▶</button>
+          <button id="btn-intro-skip" class="btn95 tiny" type="button">교육 면제</button>
         </div>
         <div id="intro-slides"></div>
         <div class="intro-nav">
@@ -57,23 +63,23 @@
           <div id="intro-dots" class="intro-dots"></div>
           <button id="btn-intro-next" class="btn95 big" type="button">다음 ▶</button>
         </div>
-        <p id="intro-prefetch" class="intro-prefetch">📡 국장 브리핑 수신 중...</p>
+        <p id="intro-prefetch" class="intro-prefetch">국장 브리핑 수신 중...</p>
       </div>
     </section>
 
     <!-- 국장 브리핑 -->
     <section id="screen-briefing" class="screen hidden">
       <div class="panel95 briefing-panel">
-        <h2>📠 착신: 국장 왕큐피드</h2>
+        <h2>착신 전문 · 발신 국장 왕큐피드</h2>
         <pre id="briefing-text" class="briefing-text"></pre>
-        <button id="btn-to-roster" class="btn95 big hidden" type="button">상설 의뢰 대장 열람 ▶</button>
+        <button id="btn-to-roster" class="btn95 big hidden" type="button">상설 의뢰 대장 열람</button>
       </div>
     </section>
 
     <!-- 의뢰 대장 (20쌍) -->
     <section id="screen-roster" class="screen hidden">
-      <h2 class="section-title">📚 상설 의뢰 대장 — 20건</h2>
-      <p class="section-sub">전부 <b>이어질 리 없는 조합</b>이다. 큐피드국은 반려를 모른다. 한 건 골라라.</p>
+      <h2 class="section-title">상설 의뢰 대장 <span class="doc-no">문서 CUP-2077-020</span></h2>
+      <p class="section-sub">접수 20건 전부 <b>이어질 리 없는 조합</b>으로 분류됨. 본국은 반려 절차를 보유하지 않는다. 한 건을 선택하라.</p>
       <div id="agent-record" class="agent-record"></div>
       <div class="roster-filters" id="roster-filters"></div>
       <div id="roster-cards" class="roster"></div>
@@ -93,43 +99,43 @@
         </div>
         <div class="consult-forms">
           <div class="panel95 notice-card">
-            <h3>❗ 준비 단계는 채점하지 않는다</h3>
+            <h3>고지 · 준비 단계는 채점 대상이 아니다</h3>
             <p>아래 세 칸에 뭘 쓰든 <b>점수는 나오지 않는다.</b> 전부 클라이언트 AI의 프롬프트로 그대로 주입될 뿐이다.<br>
             평가는 오직 <b>실제 문자·대면에서 클라이언트가 뱉은 말</b>로만 이루어진다.
             준비를 대충 하면 점수가 깎이는 게 아니라 — <b>그 인간이 대화에서 알아서 망한다.</b></p>
           </div>
 
           <div class="panel95 prep-card" id="card-styling">
-            <h3>① 👔 스타일링 <small>(태그 콤마 구분)</small></h3>
+            <h3><span class="fld">항목 1</span> 착장 지시 <small>태그, 콤마 구분</small></h3>
             <p class="prep-hint">3D 모델과 <b>착장 묘사</b>가 바뀐다. 이 착장은 <b>대면 첫 순간에 타겟이 직접 보고 반응</b>한다. 거기서 판정이 붙는다.</p>
             <input id="styling-input" type="text" placeholder="예: 금색 이름표 박힌 넥타이, 골프 장갑">
-            <button id="btn-styling" class="btn95" type="button">가위손 박 호출 (모델 갱신)</button>
+            <button id="btn-styling" class="btn95" type="button">스타일리스트 호출 · 모델 갱신</button>
             <p id="styling-result" class="eval-result"></p>
           </div>
 
           <div class="panel95 prep-card" id="card-coaching">
-            <h3>② 🎧 대화 코칭 <small>(클라이언트 시스템 프롬프트에 직접 주입)</small></h3>
+            <h3><span class="fld">항목 2</span> 대화 지침 <small>클라이언트 시스템 프롬프트에 직접 주입</small></h3>
             <p class="prep-hint">여기 쓴 문장이 <b>그대로</b> 클라이언트 AI의 행동 규칙이 된다. 비워두면 그 인간은 약점대로 행동한다.</p>
             <textarea id="coaching-input" rows="4" placeholder="예: 지난 선거 얘기는 절대 꺼내지 마라. 상대가 뭘 말하든 먼저 골프 핸디캡을 물어보고, 상대가 자랑을 시작하면 끝까지 들어라"></textarea>
             <p id="coaching-result" class="eval-result"></p>
           </div>
 
           <div class="panel95 prep-card" id="card-speech">
-            <h3>③ 🔥 격려 연설 <small>(출동 직전 한마디로 주입)</small></h3>
+            <h3><span class="fld">항목 3</span> 사기 진작 <small>출동 직전 한마디로 주입</small></h3>
             <p class="prep-hint">클라이언트가 이 말을 곱씹으며 대화한다. <b>사연의 디테일을 짚었는지는 그 인간이 판단</b>한다. 뻔한 응원이면 겉으로만 웃는다. 비워두면 겁에 질린 채로 나간다.</p>
             <textarea id="speech-input" rows="4" placeholder="클라이언트 사연 속 구체적인 장면을 짚어라. 채점은 없다. 그 인간이 실제로 기가 사는지가 전부다"></textarea>
             <p id="speech-result" class="eval-result"></p>
           </div>
 
           <div class="panel95 prep-card">
-            <h3>④ 📻 무전 개입 <span class="prep-tag" id="radio-budget">문자 1회 / 대면 2회</span></h3>
+            <h3><span class="fld">항목 4</span> 무전 개입 <span class="prep-tag" id="radio-budget">문자 1회 / 대면 2회</span></h3>
             <p class="prep-hint">대화 중 클라이언트에게만 들리는 지시. <b>이것도 채점 안 한다.</b> 다음 발언에 주입될 뿐이고, 결과는 그 발언의 판정으로 돌아온다.<br>
             <b>미확인 취향을 캐낼 유일한 수단</b>이다. 무전이 없는 턴에 클라이언트는 새 화제를 열지 못한다.</p>
           </div>
 
           <div id="prep-status" class="prep-warning"></div>
-          <button id="btn-start-op" class="btn95 big danger" type="button">🚨 작전 개시 🚨</button>
-          <button id="btn-back-roster" class="btn95" type="button">◀ 다른 의뢰 보기</button>
+          <button id="btn-start-op" class="btn95 big danger" type="button">작전 개시</button>
+          <button id="btn-back-roster" class="btn95" type="button">대장으로 복귀</button>
         </div>
       </div>
     </section>
@@ -145,12 +151,12 @@
           </div>
           <div class="panel95 hud">
             <div class="meter">
-              <span class="meter-name" id="meter-love-name">💗 호감</span>
+              <span class="meter-name" id="meter-love-name">호감</span>
               <div class="meter-bar"><div id="meter-love-fill" class="meter-fill love"></div><div id="meter-threshold" class="meter-threshold"></div></div>
               <span id="meter-love-num" class="meter-num">0</span>
             </div>
             <div class="meter">
-              <span class="meter-name">😊 분위기</span>
+              <span class="meter-name">분위기</span>
               <div class="meter-bar"><div id="meter-mood-fill" class="meter-fill mood"></div><div id="meter-moodfloor" class="meter-threshold mf"></div></div>
               <span id="meter-mood-num" class="meter-num">0</span>
             </div>
@@ -158,11 +164,11 @@
               <span id="hud-mult" class="hud-chip">분위기 배율 ×1.0</span>
               <span id="hud-diff" class="hud-chip">난이도</span>
             </div>
-            <button id="btn-intervene" class="btn95 danger" type="button">📻 무전 개입</button>
+            <button id="btn-intervene" class="btn95 danger" type="button">무전 개입</button>
             <div class="hud-intel">
-              <h4>🎯 타겟 취향 <span id="intel-count"></span></h4>
+              <h4>타겟 취향 <span id="intel-count"></span></h4>
               <ul id="intel-list"></ul>
-              <h4>💣 지뢰 <span id="redline-count"></span></h4>
+              <h4>접촉 금지 항목 <span id="redline-count"></span></h4>
               <ul id="redline-list"></ul>
             </div>
           </div>
@@ -183,24 +189,24 @@
             <div id="result-stamp" class="result-stamp"></div>
           </div>
           <div class="panel95" id="debrief-panel">
-            <h3>🗂 작전 디브리핑</h3>
+            <h3>작전 사후 검토</h3>
             <p id="debrief-summary" class="debrief-summary"></p>
             <ul id="debrief-list" class="debrief-list"></ul>
-            <h4>🎯 타겟의 실제 취향 (작전 종료 후 전면 공개)</h4>
+            <h4>타겟 취향 전문 <span class="dim small">(작전 종료 후 기밀 해제)</span></h4>
             <ul id="debrief-prefs" class="debrief-prefs"></ul>
-            <details id="debrief-log"><summary>📈 턴별 판정 원장</summary><div id="debrief-turns"></div></details>
+            <details id="debrief-log"><summary>턴별 판정 원장 (열람)</summary><div id="debrief-turns"></div></details>
           </div>
         </div>
         <div class="panel95 result-panel">
-          <h2>💌 며칠 뒤 도착한 편지</h2>
+          <h2>사후 보고 · 클라이언트 친전</h2>
           <p id="result-grade" class="result-grade"></p>
           <p id="result-score" class="dim"></p>
           <pre id="result-letter" class="letter"></pre>
           <p id="result-mvp" class="mvp"></p>
           <p id="result-epilogue" class="epilogue"></p>
           <div class="result-btns">
-            <button id="btn-retry" class="btn95 big hidden" type="button">🔁 같은 의뢰 재도전</button>
-            <button id="btn-restart" class="btn95 big hidden" type="button">다음 의뢰 접수 ▶</button>
+            <button id="btn-retry" class="btn95 big hidden" type="button">동일 의뢰 재착수</button>
+            <button id="btn-restart" class="btn95 big hidden" type="button">차기 의뢰 접수</button>
           </div>
         </div>
       </div>
@@ -210,13 +216,13 @@
   <!-- 무전 모달 -->
   <div id="modal-radio" class="modal hidden">
     <div class="panel95 modal-box">
-      <h3>📻 본부 → 클라이언트 긴급 무전</h3>
+      <h3>본부 → 클라이언트 단방향 무전</h3>
       <p class="dim">상대에게는 안 들린다. 대화는 송신할 때까지 멈춰 있다.<br>
       <b>이 지시는 채점되지 않는다.</b> 다음 발언에 그대로 주입될 뿐이고, 결과는 그 발언의 판정으로 돌아온다.</p>
       <div id="radio-context" class="radio-context"></div>
       <textarea id="radio-input" rows="3" placeholder="예: 지금 상대가 갈기 손질 얘기 꺼냈다. 그거 물고 늘어져서 슈트 만들 때 제일 힘든 게 뭔지 물어봐"></textarea>
       <div class="modal-btns">
-        <button id="btn-radio-send" class="btn95 danger" type="button">송신 (Ctrl+Enter)</button>
+        <button id="btn-radio-send" class="btn95 danger" type="button">송신 · Ctrl+Enter</button>
         <button id="btn-radio-cancel" class="btn95" type="button">취소</button>
       </div>
     </div>
@@ -230,7 +236,7 @@
   <!-- 로딩 -->
   <div id="loading-overlay" class="modal hidden">
     <div class="loading-box">
-      <div class="loading-spinner">📡</div>
+      <div class="loading-spinner">■</div>
       <div id="loading-text" class="loading-text"></div>
       <div id="loading-tip" class="loading-tip"></div>
     </div>
@@ -239,7 +245,7 @@
   <div id="toast" class="hidden"></div>
 
   <div id="console-panel" class="hidden">
-    <button id="console-toggle" type="button">🛰 LLM 콘솔 — 닫기 ✕</button>
+    <button id="console-toggle" type="button">통신 기록 — 닫기</button>
     <div id="console-usage" class="console-usage">호출 0</div>
     <div id="console-log"></div>
   </div>

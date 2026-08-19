@@ -39,13 +39,13 @@ function show(screen) {
 }
 
 const TIPS = [
-  '팁: 준비 3종은 채점되지 않는다. 점수는 실제 대화에서만 나온다.',
-  '팁: 무전이 없는 턴에 클라이언트는 새 화제를 열지 못한다. 아끼면 그냥 소멸한다.',
-  '팁: 분위기가 낮으면 취향을 저격해도 호감이 찔끔 오른다.',
-  '팁: 지뢰 한 번이 잘한 두 턴을 통째로 지운다.',
-  '팁: 착장은 대면 첫 순간에 타겟이 직접 보고 판정한다.',
-  '팁: 코칭에 "무엇을 하지 마라"와 "무엇을 하라"를 같이 써라.',
-  '팁: 미확인 취향은 무전으로 화제를 끌어야만 드러난다.',
+  '참고 · 준비 3종은 채점되지 않는다. 점수는 실제 대화에서만 나온다.',
+  '참고 · 무전이 없는 턴에 클라이언트는 새 화제를 열지 못한다. 아끼면 그냥 소멸한다.',
+  '참고 · 분위기가 낮으면 취향을 저격해도 호감이 찔끔 오른다.',
+  '참고 · 금지 항목 접촉 한 번이 잘한 두 턴을 통째로 지운다.',
+  '참고 · 착장은 대면 첫 순간에 타겟이 직접 보고 판정한다.',
+  '참고 · 코칭에 "무엇을 하지 마라"와 "무엇을 하라"를 같이 써라.',
+  '참고 · 미확인 취향은 무전으로 화제를 끌어야만 드러난다.',
 ];
 function loading(on, label = '') {
   $('#loading-overlay').classList.toggle('hidden', !on);
@@ -68,8 +68,8 @@ function toast(msg, ms = 5000) {
 }
 
 function errMsg(e) {
-  if (e instanceof RefusalError) return '⚠ LLM이 이 내용은 못 다루겠다며 파업했다. 표현을 바꿔 다시 시도하라.';
-  return `⚠ 통신 사고: ${e.message}`;
+  if (e instanceof RefusalError) return '판정 연산 모형이 본 내용의 처리를 거부했다. 표현을 바꿔 재시도하라.';
+  return `통신 사고 — ${e.message}`;
 }
 
 async function typeText(el, text, cps = 60) {
@@ -120,12 +120,12 @@ llm.onLog((entry, usage) => {
   const box = $('#console-log');
   let el = entry._el;
   if (!el) { el = document.createElement('details'); entry._el = el; box.prepend(el); while (box.children.length > 60) box.lastChild.remove(); }
-  const st = { pending: '📡', ok: '✅', error: '💥', refusal: '🙅' }[entry.status] || '❓';
+  const st = { pending: '···', ok: 'OK ', error: 'ERR', refusal: 'REF' }[entry.status] || '  ?';
   const u = entry.response?.usage;
-  const cacheTag = u?.cache_read_input_tokens ? ` · 🧊캐시 ${u.cache_read_input_tokens}` : '';
+  const cacheTag = u?.cache_read_input_tokens ? ` · 캐시 ${u.cache_read_input_tokens}` : '';
   el.innerHTML = `<summary>${st} <b>${escapeHtml(entry.label)}</b> · ${escapeHtml(entry.model)} · ${entry.ms ? Math.round(entry.ms) + 'ms' : '...'}${u ? ` · ${u.input_tokens}→${u.output_tokens}tok${cacheTag}` : ''}${entry.error ? ` · ${escapeHtml(entry.error)}` : ''}</summary><pre>${escapeHtml(JSON.stringify({ request: entry.request, response: entry.response ?? null }, null, 1).slice(0, 8000))}</pre>`;
   $('#console-usage').textContent =
-    `호출 ${usage.calls} · in ${usage.inputTokens.toLocaleString()} · out ${usage.outputTokens.toLocaleString()} · 🧊캐시적중 ${usage.cacheRead.toLocaleString()} · 약 $${usage.cost.toFixed(3)}${usage.saved > 0 ? ` (캐시로 $${usage.saved.toFixed(3)} 절감)` : ''}`;
+    `호출 ${usage.calls} · in ${usage.inputTokens.toLocaleString()} · out ${usage.outputTokens.toLocaleString()} · 캐시적중 ${usage.cacheRead.toLocaleString()} · 약 $${usage.cost.toFixed(3)}${usage.saved > 0 ? ` (캐시 절감 $${usage.saved.toFixed(3)})` : ''}`;
 });
 
 // ── 부팅 ────────────────────────────────────────────────
@@ -173,15 +173,15 @@ function prefetchBriefing() {
   pending.briefing.then(r => {
     const el = $('#intro-prefetch');
     if (!el) return;
-    if (r?.__error) { el.textContent = '⚠ 국장 회선 잡음. 교육을 마치면 재시도한다.'; el.classList.add('bad'); }
-    else { el.textContent = '✅ 국장 브리핑 수신 완료. 교육을 마치면 재생된다.'; el.classList.add('ok'); }
+    if (r?.__error) { el.textContent = '국장 회선 잡음 — 교육 종료 후 재시도한다.'; el.classList.add('bad'); }
+    else { el.textContent = '국장 브리핑 수신 완료 — 교육 종료 후 재생된다.'; el.classList.add('ok'); }
   });
 }
 
 // ── 신입 교육 슬라이드 ──────────────────────────────────
 const SLIDES = [
   {
-    art: '🏛️💘🏛️',
+    art: '큐피드局 / 공작요원 배속 통지',
     title: '큐피드국에 온 걸 환영한다',
     body: `2077년. 출산율 0.008. 국가비상사태.<br>
     너는 <b>연애 공작 요원</b>이다. 직접 연애하는 게 아니라, 연애 경험 0인 국민(<b>클라이언트</b>)이
@@ -189,7 +189,7 @@ const SLIDES = [
     대화는 클라이언트가 한다. 너는 그를 준비시키고, 결정적일 때 무전을 넣는다.`,
   },
   {
-    art: '🐟 × 🦁 &nbsp; 🧛 × 🧄 &nbsp; 🐧 × 🪟',
+    art: '어인 × 사자퍼리 &nbsp;│&nbsp; 뱀파이어 × 마늘농장 &nbsp;│&nbsp; 리눅스 × 윈도우',
     title: '우리 대장에는 정상적인 조합이 없다',
     body: `상설 의뢰 <b>20건</b>. 전부 이어질 리 없는 조합이다.<br>
     어인과 사자 퍼리, 뱀파이어와 마늘 농장주, 리눅스 신봉자와 윈도우 강사,
@@ -197,14 +197,14 @@ const SLIDES = [
     <b>조합에 따라 "성공"의 정의가 다르다.</b> 연애가 불가능한 쌍에는 <b>동맹</b>이나 <b>휴전</b>이 결승선이다.`,
   },
   {
-    art: '💗 호감 &nbsp;&nbsp; × &nbsp;&nbsp; 😊 분위기',
+    art: '호감 &nbsp;×&nbsp; 분위기 = 획득',
     title: '게이지는 딱 두 개다',
-    body: `<b>💗 호감</b> — 승리 조건. 성공선을 넘겨야 고백이 받아들여진다.<br>
-    <b>😊 분위기</b> — 호감 획득 <b>배율</b>(×0.3 ~ ×1.6). 분위기가 낮으면 취향을 저격해도 호감이 찔끔 오른다.<br>
+    body: `<b>호감</b> — 승리 조건. 성공선을 넘겨야 고백이 받아들여진다.<br>
+    <b>분위기</b> — 호감 획득 <b>배율</b>(×0.3 ~ ×1.6). 분위기가 낮으면 취향을 저격해도 호감이 찔끔 오른다.<br>
     분위기가 <b>0</b>이 되면 상대가 자리를 뜬다. 그 자리에서 작전 종료.`,
   },
   {
-    art: '✍️ 프롬프트 &nbsp;→&nbsp; 🗣️ 실제 발언 &nbsp;→&nbsp; ⚖️ 판정',
+    art: '프롬프트 &nbsp;→&nbsp; 실제 발언 &nbsp;→&nbsp; 판정',
     title: '준비는 채점하지 않는다',
     body: `<b>스타일링·코칭·격려 연설·무전 — 전부 점수가 없다.</b> 이건 시험이 아니라 프롬프팅이다.<br>
     네가 쓴 문장은 클라이언트 AI의 시스템 프롬프트에 <b>그대로 주입</b>될 뿐이다.<br>
@@ -212,11 +212,12 @@ const SLIDES = [
     <span class="slide-warn">그러니 준비를 대충 하면 점수가 깎이는 게 아니라 — 그 인간이 대화에서 알아서 망한다.</span>`,
   },
   {
-    art: '🎯 ？？？ &nbsp;&nbsp; 💣',
-    title: '취향은 절반, 지뢰는 전부 알려준다',
-    body: `타겟의 취향 중 일부만 의뢰서에 적혀 있다. 나머지는 <b>미확인</b>이며 <b>개수만</b> 통보된다.<br>
-    미확인 취향은 대화 중에만 드러나고, 적중하면 호감이 크게 뛴다. <b>무전으로 화제를 끌어야만</b> 캘 수 있다.<br>
-    반대로 <b>💣 지뢰</b>는 전부 공개된다. 밟으면 분위기와 호감이 동시에 폭락한다. 알려줬는데 밟으면 그건 네 탓이다.`,
+    art: '취향 ？／？ &nbsp;&nbsp; 접촉금지 전면공개',
+    title: '취향은 절반만, 금지 항목은 전부 통보한다',
+    body: `타겟의 취향 중 일부만 의뢰서에 인쇄되어 있다. 나머지는 <b>미확인</b>이며 <b>개수만</b> 통보된다.<br>
+    미확인 취향은 대화 중에만 드러나고, 확보하면 호감이 크게 뛴다. <b>무전으로 화제를 지정해야만</b> 캐낼 수 있다.<br>
+    반대로 <b>접촉 금지 항목</b>(현장 용어로 "지뢰")은 전부 공개된다. 접촉하면 분위기와 호감이 동시에 폭락한다.
+    통보받고도 밟으면 그건 요원 책임이다.`,
   },
 ];
 
@@ -312,9 +313,9 @@ function renderRosterCards() {
         <figure><img alt="${escapeHtml(c.target.name)}" src="${renderThumb(c.target.spec, c.id + ':t')}"><figcaption>${escapeHtml(c.target.name)}</figcaption></figure>
       </div>
       <p class="cc-clash">${escapeHtml(c.clash)}</p>
-      <p class="cc-meta">성공선 호감 <b>${d.threshold}</b> · 미확인 취향 <b>${c.target.hiddenPrefs.length}</b>건 · 지뢰 <b>${c.target.redLines.length}</b>개 · 결승선 <b>${escapeHtml(c.endingKind)}</b></p>
+      <p class="cc-meta">성공선 <b>${d.threshold}</b> · 미확인 <b>${c.target.hiddenPrefs.length}</b> · 금지 <b>${c.target.redLines.length}</b> · 결승선 <b>${escapeHtml(c.endingKind)}</b></p>
       <div class="cc-btns">
-        <button class="btn95 tiny cc-detail" type="button">📄 의뢰서</button>
+        <button class="btn95 tiny cc-detail" type="button">의뢰서</button>
         <button class="btn95 cc-take" type="button">이 조합을 맡는다</button>
       </div>`;
     box.appendChild(card);
@@ -331,15 +332,15 @@ function dossierHtml(c, { full = false } = {}) {
     <p class="story">${escapeHtml(c.client.story)}</p>
     <p><b>외모:</b> ${c.client.appearance.map(escapeHtml).join(', ')}</p>
     <p><b>성격:</b> ${c.client.personality.map(escapeHtml).join(', ')}</p>
-    <p class="weakness"><b>⚠ 약점:</b> ${escapeHtml(c.client.weakness)} <span class="dim">— 코칭으로 봉인해야 한다</span></p>
+    <p class="weakness"><b>취약점:</b> ${escapeHtml(c.client.weakness)} <span class="dim">— 코칭으로 봉인해야 한다</span></p>
     <p class="quote">“${escapeHtml(c.client.quote)}”</p>
     <hr>
-    <h3>🎯 ${escapeHtml(c.target.name)} <small>(${c.target.age}, ${escapeHtml(c.target.job)})</small></h3>
+    <h3>타겟 · ${escapeHtml(c.target.name)} <small>(${c.target.age}, ${escapeHtml(c.target.job)})</small></h3>
     <p><b>외모:</b> ${c.target.appearance.map(escapeHtml).join(', ')}</p>
     <p><b>성격:</b> ${c.target.personality.map(escapeHtml).join(', ')}</p>
     <p><b>알려진 취향:</b> ${c.target.visiblePrefs.map(escapeHtml).join(', ')}</p>
-    <p class="unknown-prefs">🎯 <b>미확인 취향 ${c.target.hiddenPrefs.length}건</b> — 내용 비공개. 대화 중 무전으로 화제를 끌어야만 드러난다</p>
-    <p class="redline-box"><b>💣 지뢰:</b> ${c.target.redLines.map(escapeHtml).join(' / ')}</p>
+    <p class="unknown-prefs"><b>미확인 취향 ${c.target.hiddenPrefs.length}건</b> — 내용 비공개. 대화 중 무전으로 화제를 끌어야만 드러난다</p>
+    <p class="redline-box"><b>접촉 금지 항목:</b> ${c.target.redLines.map(escapeHtml).join(' / ')}</p>
     <hr>
     <p class="clash-line"><b>이 매칭이 지옥인 이유:</b> ${escapeHtml(c.clash)}</p>
     <div class="diff-box diff-${d.key}">
@@ -411,8 +412,8 @@ function gotoConsult() {
 function injectionPreview(sel, text, label, emptyNote) {
   const el = $(sel);
   const t = (text || '').trim();
-  if (!t) { el.innerHTML = `<span class="inject-empty">\u26a0 ${emptyNote}</span>`; return; }
-  el.innerHTML = `<span class="inject-label">\u21b3 ${escapeHtml(label)} (${t.length}\uc790)</span>`
+  if (!t) { el.innerHTML = `<span class="inject-empty">미기재 — ${emptyNote}</span>`; return; }
+  el.innerHTML = `<span class="inject-label">${escapeHtml(label)} · ${t.length}자</span>`
     + `<code class="inject-code">"""\n${escapeHtml(t)}\n"""</code>`;
 }
 
@@ -431,7 +432,7 @@ async function runStyling() {
     consultViewer.updateLeft(state.clientSpec);
     consultViewer.burst('sparkle', 'left');
     $('#styling-result').innerHTML =
-      `<span class="outfit">👔 착장: ${escapeHtml(state.prep.outfitDesc)}</span><br><span class="dim">✂ ${escapeHtml(r.comment)}</span>`;
+      `<span class="outfit">착장: ${escapeHtml(state.prep.outfitDesc)}</span><br><span class="dim">시공 소견 — ${escapeHtml(r.comment)}</span>`;
     sfx.stamp();
   } catch (e) { toast(errMsg(e)); }
   updatePrepStatus();
@@ -446,12 +447,12 @@ function updatePrepStatus() {
   const el = $('#prep-status');
   if (!missing.length) {
     el.className = 'prep-warning ok';
-    el.innerHTML = '✅ 세 칸 모두 채워졌다. 이게 좋은 프롬프트인지는 <b>대화가 판정한다.</b>';
+    el.innerHTML = '세 항목 모두 기재됨. 이것이 좋은 프롬프트인지는 <b>대화가 판정한다.</b>';
     return;
   }
   el.className = 'prep-warning warn';
   el.innerHTML = `<b>비어 있음:</b> ${missing.join(', ')}<br>` +
-    `⚠ 비워도 작전은 개시된다. 대신 그 인간은 ${missing.includes('코칭') ? '<b>약점대로 행동하고</b> ' : ''}` +
+    `비워도 작전은 개시된다. 대신 그 인간은 ${missing.includes('코칭') ? '<b>약점대로 행동하고</b> ' : ''}` +
     `${missing.includes('격려 연설') ? '<b>겁에 질린 채로</b> ' : ''}${missing.includes('스타일링') ? '<b>평상복 차림으로</b> ' : ''}나간다.`;
 }
 
@@ -460,7 +461,7 @@ let stageViewer = null;
 
 function meterUpdate(s) {
   const f = P.frameOf(state.couple.endingKind);
-  $('#meter-love-name').textContent = `💗 ${f.meterName}`;
+  $('#meter-love-name').textContent = f.meterName;
   $('#meter-love-fill').style.width = s.love + '%';
   $('#meter-mood-fill').style.width = s.mood + '%';
   $('#meter-love-num').textContent = s.love;
@@ -470,18 +471,18 @@ function meterUpdate(s) {
   $('#hud-mult').textContent = `분위기 배율 ×${s.mult}`;
   $('#hud-mult').className = 'hud-chip ' + (s.mult >= 1.2 ? 'good' : s.mult >= 0.8 ? '' : 'bad');
   $('#meter-mood-fill').classList.toggle('danger', s.mood < s.moodFloor);
-  $('#btn-intervene').textContent = `📻 무전 개입 (${s.radioLeft})`;
+  $('#btn-intervene').textContent = `무전 개입 (잔여 ${s.radioLeft})`;
   $('#btn-intervene').disabled = s.radioLeft <= 0;
 
   const t = state.couple.target;
   $('#intel-count').textContent = `${s.visibleTotal + s.foundCount} / ${s.visibleTotal + s.hiddenTotal}건 파악`;
   $('#intel-list').innerHTML =
-    t.visiblePrefs.map(p => `<li class="known">✔ ${escapeHtml(p)}</li>`).join('') +
+    t.visiblePrefs.map(p => `<li class="known">${escapeHtml(p)}</li>`).join('') +
     Array.from({ length: s.hiddenTotal }, (_, i) => i < s.foundCount
-      ? '<li class="found">🔓 미확인 취향 적중 (내용은 종료 후 공개)</li>'
-      : '<li class="unknown">🔒 미확인 취향</li>').join('');
-  $('#redline-count').textContent = s.redLines ? `${s.redLines}회 밟음` : '무사고';
-  $('#redline-list').innerHTML = t.redLines.map(p => `<li class="mine">💣 ${escapeHtml(p)}</li>`).join('');
+      ? '<li class="found">미확인 취향 — 적중 (종료 후 기밀 해제)</li>'
+      : '<li class="unknown">미확인 취향 — 미파악</li>').join('');
+  $('#redline-count').textContent = s.redLines ? `위반 ${s.redLines}회` : '위반 없음';
+  $('#redline-list').innerHTML = t.redLines.map(p => `<li class="mine">${escapeHtml(p)}</li>`).join('');
 }
 
 function addBubble(who, text) {
@@ -489,7 +490,7 @@ function addBubble(who, text) {
   const div = document.createElement('div');
   div.className = `bubble ${who}`;
   const name = who === 'client' ? state.couple.client.name : who === 'target' ? state.couple.target.name
-    : who === 'radio' ? '📻 본부 무전' : '나레이션';
+    : who === 'radio' ? '본부 무전' : '상황';
   div.innerHTML = `<span class="who">${escapeHtml(name)}</span>${escapeHtml(text)}`;
   w.appendChild(div);
   w.scrollTop = w.scrollHeight;
@@ -503,9 +504,9 @@ function addJudge(j) {
   const div = document.createElement('div');
   const cls = j.love > 0 ? 'good' : j.love < 0 ? 'bad' : 'meh';
   const tags = [
-    j.hit ? '<span class="tag hit">🔓 미확인 적중</span>' : '',
-    j.red ? '<span class="tag red">💣 지뢰 접촉</span>' : '',
-    j.firstImpression ? '<span class="tag first">👔 대면 첫인상</span>' : '',
+    j.hit ? '<span class="tag hit">미확인 취향 적중</span>' : '',
+    j.red ? '<span class="tag red">금지항목 접촉</span>' : '',
+    j.firstImpression ? '<span class="tag first">대면 첫인상</span>' : '',
     `<span class="tag calc">판정 ${j.rawLove >= 0 ? '+' : ''}${j.rawLove} × 분위기 ${j.mult}</span>`,
   ].join('');
   div.className = `judge-line ${cls}`;
@@ -534,16 +535,16 @@ async function startOperation() {
     bubble: addBubble,
     judge: addJudge,
     meters: meterUpdate,
-    turn: t => { $('#turn-badge').textContent = `${t.phase === 'text' ? '📱 문자' : '💬 대면'} ${t.turn}/${t.turns}턴`; },
-    phase: p => { $('#turn-badge').textContent = `${p.phase === 'text' ? '📱 문자' : '💬 대면'} 0/${p.turns}턴`; },
-    intel: i => { toast(`🔓 미확인 취향 적중! (${i.found}/${i.total}건) — 내용은 작전 종료 후 공개된다`, 6000); sfx.fanfare(); },
-    redline: r => { toast(`💣 지뢰를 밟았다! (${r.count}회째) — 분위기와 호감이 동시에 폭락한다`, 6000); },
+    turn: t => { $('#turn-badge').textContent = `${t.phase === 'text' ? '문자' : '대면'} ${t.turn}/${t.turns}턴`; },
+    phase: p => { $('#turn-badge').textContent = `${p.phase === 'text' ? '문자' : '대면'} 0/${p.turns}턴`; },
+    intel: i => { toast(`미확인 취향 적중 (${i.found}/${i.total}건) — 내용은 작전 종료 후 기밀 해제`, 6000); sfx.fanfare(); },
+    redline: r => { toast(`접촉 금지 항목 위반 ${r.count}회 — 분위기·호감 동시 하락`, 6000); },
   };
 
   const engine = new Engine(llm, { couple: state.couple, prep: state.prep, handlers });
   state.engine = engine;
 
-  setupChatScreen('📱 작전 1단계: 문자 공작');
+  setupChatScreen('작전 1단계 · 문자 공작');
   stageViewer = getStageViewer('stage-chat');
   stageViewer.setDuo(state.clientSpec, state.targetSpec, 'camera');
   document.body.classList.add('phase-text');
@@ -554,7 +555,7 @@ async function startOperation() {
     const alive = await engine.runTexting();
     if (alive) {
       const sit = await withLoading('데이트 장소 섭외 중...', () => engine.situation());
-      setupChatScreen(`💬 작전 2단계: 대면 공작 @ ${sit.place}`);
+      setupChatScreen(`작전 2단계 · 대면 공작 — ${sit.place}`);
       stageViewer = getStageViewer('stage-chat');
       stageViewer.setDuo(state.clientSpec, state.targetSpec, 'each');
       stageViewer.setParty(true);
@@ -605,14 +606,14 @@ async function gotoResult() {
   $('#debrief-list').innerHTML = r.debrief.notes.map(n =>
     `<li class="${n.ok ? 'ok' : 'weak'}"><b>${escapeHtml(n.label)}</b> <span class="dscore">${escapeHtml(n.value)}</span><br><span class="dim">${escapeHtml(n.text)}</span></li>`).join('');
   $('#debrief-prefs').innerHTML =
-    c.target.visiblePrefs.map(p => `<li class="known">✔ ${escapeHtml(p)} <span class="dim">(처음부터 알려준 취향)</span></li>`).join('') +
-    r.debrief.found.map(p => `<li class="found">🔓 ${escapeHtml(p)} <span class="dim">(작전 중 캐냄)</span></li>`).join('') +
-    r.debrief.missed.map(p => `<li class="missed">❌ ${escapeHtml(p)} <span class="dim">(끝내 못 건드림)</span></li>`).join('');
+    c.target.visiblePrefs.map(p => `<li class="known">${escapeHtml(p)} <span class="dim">(사전 통보)</span></li>`).join('') +
+    r.debrief.found.map(p => `<li class="found">${escapeHtml(p)} <span class="dim">(작전 중 확보)</span></li>`).join('') +
+    r.debrief.missed.map(p => `<li class="missed">${escapeHtml(p)} <span class="dim">(미확보)</span></li>`).join('');
   $('#debrief-turns').innerHTML =
-    '<table class="turn-table"><tr><th>턴</th><th>분위기</th><th>호감</th><th>누적 💗/😊</th><th>판정</th></tr>' +
+    '<table class="turn-table"><tr><th>턴</th><th>분위기</th><th>호감</th><th>누적 호감/분위기</th><th>판정</th></tr>' +
     r.state.history.map(h =>
       `<tr class="${h.dLove > 0 ? 'good' : h.dLove < 0 ? 'bad' : ''}">` +
-      `<td>${h.turn}${h.firstImpression ? '👔' : ''}${h.hit ? '🔓' : ''}${h.red ? '💣' : ''}</td>` +
+      `<td>${h.turn}${h.firstImpression ? '·착장' : ''}${h.hit ? '·적중' : ''}${h.red ? '·위반' : ''}</td>` +
       `<td>${h.dMood >= 0 ? '+' : ''}${h.dMood}</td>` +
       `<td>${h.dLove >= 0 ? '+' : ''}${h.dLove} <span class="dim">[${escapeHtml(h.tier)}] ${h.rawLove >= 0 ? '+' : ''}${h.rawLove}×${h.mult}</span></td>` +
       `<td>${h.love} / ${h.mood}</td>` +
@@ -635,7 +636,7 @@ async function gotoResult() {
   }, 600);
 
   await typeText($('#result-letter'), r.letter.letter, 60);
-  $('#result-mvp').textContent = `📌 승패를 가른 순간: ${r.letter.mvp}`;
+  $('#result-mvp').textContent = `승패를 가른 순간 — ${r.letter.mvp}`;
   $('#result-epilogue').textContent = `— 에필로그: ${r.letter.epilogue}`;
   $('#btn-retry').classList.remove('hidden');
   $('#btn-restart').classList.remove('hidden');
@@ -650,8 +651,8 @@ function initRadio() {
     e.setPaused(true);
     const t = state.couple.target;
     $('#radio-context').innerHTML =
-      `<b>남은 미확인 취향 ${t.hiddenPrefs.length - e.state.hits.length}건.</b> 화제를 끌지 않으면 클라이언트는 스스로 캐지 못한다.<br>` +
-      `<span class="dim">💣 지뢰: ${t.redLines.map(escapeHtml).join(' / ')}</span>`;
+      `<b>미확인 취향 잔여 ${t.hiddenPrefs.length - e.state.hits.length}건.</b> 화제를 지정하지 않으면 클라이언트는 스스로 캐내지 못한다.<br>` +
+      `<span class="dim">접촉 금지: ${t.redLines.map(escapeHtml).join(' / ')}</span>`;
     $('#modal-radio').classList.remove('hidden');
     $('#radio-input').value = '';
     $('#radio-input').focus();
@@ -679,7 +680,7 @@ function init() {
   const toggleConsole = () => $('#console-panel').classList.toggle('hidden');
   $('#console-toggle').addEventListener('click', toggleConsole);
   $('#btn-console').addEventListener('click', toggleConsole);
-  $('#btn-bgm').addEventListener('click', () => { $('#btn-bgm').textContent = toggleBgm() ? '🔊 BGM' : '🔇 BGM'; });
+  $('#btn-bgm').addEventListener('click', () => { $('#btn-bgm').textContent = toggleBgm() ? '음향 ON' : '음향 OFF'; });
   document.addEventListener('click', () => unlockAudio(), { once: true });
 }
 init();

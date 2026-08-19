@@ -3,13 +3,15 @@
 //
 //   node tests/browser.mjs                        기본: 가짜 LLM 모드 (API 키·크레딧 불필요, 결정적)
 //   ANTHROPIC_API_KEY=sk-... node tests/browser.mjs --live    실제 API로 (크레딧 소모)
-//   추가 옵션: --couple=os-war --shots=/tmp/shots --headed
+//   추가 옵션: --couple=os-war --shots=/tmp/shots --headed --model=claude-sonnet-5
+//   (모델은 Sonnet 계열만 허용된다 — tests/test-model.mjs)
 //
 // 가짜 LLM 모드는 window.__game.llm.call을 페이지 안에서 바꿔치기한다.
 // DOM·CSS·three.js·게임 흐름은 전부 진짜로 돌아가고 LLM만 결정적으로 대체된다.
 
 import http from 'node:http';
 import { createRequire } from 'node:module';
+import { resolveTestModel } from './test-model.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -18,6 +20,7 @@ const args = Object.fromEntries(process.argv.slice(2)
   .map(a => { const [k, ...v] = a.slice(2).split('='); return [k, v.join('=') || 'true']; }));
 
 const LIVE = args.live === 'true';
+const MODEL = resolveTestModel(args.model);   // 테스트는 Sonnet 고정 (tests/test-model.mjs)
 const KEY = LIVE ? process.env.ANTHROPIC_API_KEY : 'sk-ant-fake-key-for-mock-mode';
 if (LIVE && !KEY) { console.error('--live 모드인데 ANTHROPIC_API_KEY가 없다'); process.exit(1); }
 
@@ -144,11 +147,61 @@ try {
   await page.waitForFunction(() => window.__game && window.__game.COUPLES);
   check('모듈이 로드되고 의뢰 대장이 노출된다', true);
 
+  // 대비 가드: 팔레트를 손볼 때마다 어두운 배경 위에 어두운 글자가 남는 사고가 난다.
+  // 보이는 텍스트마다 실제 배경을 거슬러 찾아 명암비를 계산한다 (WCAG AA 본문 4.5:1 / 큰 글자 3:1).
+  await page.addInitScript(() => { });
+  await page.evaluate(() => {
+    window.__contrast = () => {
+      const lum = (r, g, b) => {
+        const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+        return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+      };
+      const parse = c => (c.match(/[\d.]+/g) || []).map(Number);
+      // 그라데이션/이미지 배경은 단일 색으로 환산할 수 없으므로 null을 돌려 평가에서 제외한다.
+      const bgOf = el => {
+        for (let n = el; n && n !== document.documentElement; n = n.parentElement) {
+          const st = getComputedStyle(n);
+          if (st.backgroundImage !== 'none') return null;
+          const c = parse(st.backgroundColor);
+          if (c.length >= 3 && (c[3] === undefined || c[3] > 0.5)) return c;
+        }
+        return [52, 56, 47]; // body 배경
+      };
+      const bad = [];
+      for (const el of document.querySelectorAll(
+        'p, span, li, td, th, h1, h2, h3, h4, label, summary, button, figcaption, b, code')) {
+        if (!el.offsetParent) continue;
+        const txt = [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join('');
+        if (txt.length < 2) continue;
+        const st = getComputedStyle(el);
+        if (st.visibility === 'hidden' || +st.opacity < 0.5) continue;
+        const bg = bgOf(el);
+        if (!bg) continue;
+        const fg = parse(st.color);
+        const l1 = lum(...fg.slice(0, 3)), l2 = lum(...bg.slice(0, 3));
+        const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+        const big = parseFloat(st.fontSize) >= 24 || (parseFloat(st.fontSize) >= 18.66 && +st.fontWeight >= 600);
+        if (ratio < (big ? 3 : 4.5)) bad.push({ txt: txt.slice(0, 24), ratio: +ratio.toFixed(2), color: st.color });
+      }
+      return bad;
+    };
+  });
+  const checkContrast = async (where) => {
+    const bad = await page.evaluate(() => window.__contrast());
+    check(`${where} 텍스트 명암비 WCAG AA`, bad.length === 0,
+      bad.slice(0, 3).map(b => `"${b.txt}" ${b.ratio}:1 ${b.color}`).join(' / '));
+  };
+  await checkContrast('부팅 화면');
+
   if (!LIVE) {
     const hidden = await page.evaluate(id => window.__game.COUPLES.find(c => c.id === id).target.hiddenPrefs, COUPLE);
     await page.evaluate(installMockLlm, hidden);
   }
   await page.fill('#key-input', KEY);
+  // 실제 API 모드에서도 테스트는 Sonnet만 쓴다
+  await page.selectOption('#model-select', MODEL);
+  check(`모델이 테스트용으로 고정됐다 (${MODEL})`,
+    await page.inputValue('#model-select') === MODEL);
   await page.click('#btn-boot');
   await page.waitForSelector('#screen-intro:not(.hidden)', { timeout: ms(90000) });
   check('키 인증 후 신입 교육 진입', true);
@@ -161,8 +214,8 @@ try {
     if (i < 4) await page.click('#btn-intro-next');
   }
   check('신입 교육 5장이 모두 다른 내용으로 그려진다', new Set(slideTexts).size === 5);
-  check('교육에 "준비는 채점하지 않는다"가 명시된다',
-    slideTexts.some(t => t.includes('채점하지 않는다')));
+  check('교육에 준비 단계가 채점되지 않음이 명시된다',
+    slideTexts.some(t => /채점(하지 않는다|되지 않는다|\s*대상이 아니다)/.test(t)));
   await page.screenshot({ path: `${SHOTS}/2-slides.png` });
 
   console.log('\n📠 브리핑');
@@ -197,6 +250,7 @@ try {
   check('아바타 썸네일 40장 생성', thumb.count === 40, `${thumb.count}장`);
   check('썸네일이 빈 이미지가 아니다 (three.js가 실제로 그렸다)', thumb.minOpaque > 500, `최소 불투명 픽셀 ${thumb.minOpaque}`);
   check('인물마다 썸네일이 다르다', thumb.uniq > 34, `고유 ${thumb.uniq}/${thumb.count}`);
+  await checkContrast('의뢰 대장');
   check('WebGL 컨텍스트 고갈 없음 (오프스크린 1개 재사용)',
     !pageErrors.some(e => /context|WebGL/i.test(e)), pageErrors.filter(e => /context|WebGL/i.test(e))[0] || '');
 
@@ -216,9 +270,16 @@ try {
   await page.locator('.couple-card .cc-detail').first().click();
   await page.waitForSelector('#modal-dossier:not(.hidden)');
   const dossier = await page.textContent('#dossier-box');
-  check('의뢰서 상세에 지뢰가 전부 공개된다', dossier.includes('지뢰'));
-  check('의뢰서 상세에 미확인 취향은 개수만 나온다',
-    dossier.includes('미확인 취향') && dossier.includes('내용 비공개'));
+  const shown = await page.evaluate(() => {
+    const name = document.querySelector('#dossier-box h3').textContent;
+    const c = window.__game.COUPLES.find(x => name.includes(x.client.name));
+    return { red: c.target.redLines, hidden: c.target.hiddenPrefs, visible: c.target.visiblePrefs };
+  });
+  check('의뢰서 상세에 접촉 금지 항목이 전부 공개된다',
+    shown.red.every(r => dossier.includes(r)), `${shown.red.length}건`);
+  check('의뢰서 상세에 알려진 취향이 노출된다', shown.visible.every(v => dossier.includes(v)));
+  check('의뢰서 상세에 미확인 취향 내용은 노출되지 않는다 (개수만)',
+    shown.hidden.every(h => !dossier.includes(h)) && dossier.includes(String(shown.hidden.length)));
   await page.click('#dossier-close');
 
   console.log('\n👔 컨설팅 + 스타일링');
@@ -233,7 +294,7 @@ try {
   // 준비 3종이 "주입 미리보기"를 보여주는지 (점수가 아니라)
   const consultText = await page.textContent('#screen-consult');
   check('준비 단계에 점수 UI가 없다', !/\/10/.test(consultText), consultText.match(/\S{0,12}\/10/)?.[0] || '');
-  check('준비 단계가 "채점하지 않는다"고 명시한다', consultText.includes('채점하지 않는다'));
+  check('준비 단계가 채점 대상이 아님을 명시한다', /채점(하지 않는다|\s*대상이 아니다|\s*안 한다)/.test(consultText));
   await page.fill('#coaching-input', '상대가 말끝을 흐리면 반드시 물고 늘어져라. 아치 얘기는 금지.');
   const previewText = await page.textContent('#coaching-result');
   check('코칭이 주입될 원문 그대로 미리보기된다', previewText.includes('물고 늘어져라'), previewText.slice(0, 50));
@@ -263,6 +324,7 @@ try {
   });
   check('컨설팅 3D 무대가 WebGL 컨텍스트를 잡고 그려진다',
     stageOpaque.hasGl && stageOpaque.w > 0, JSON.stringify(stageOpaque));
+  await checkContrast('작전 준비 화면');
   await page.screenshot({ path: `${SHOTS}/4-consult.png`, fullPage: true });
 
   console.log('\n🚨 작전 개시');
@@ -277,7 +339,9 @@ try {
   await page.click('#btn-intervene');
   await page.waitForSelector('#modal-radio:not(.hidden)');
   const radioCtx = await page.textContent('#radio-context');
-  check('무전 모달이 남은 미확인 취향과 지뢰를 알려준다', /미확인 취향/.test(radioCtx) && /지뢰/.test(radioCtx));
+  const redOf = await page.evaluate(() => window.__game.state.couple.target.redLines);
+  check('무전 모달이 잔여 미확인 취향 수를 알려준다', /미확인 취향 잔여 \d+건/.test(radioCtx), radioCtx.slice(0, 40));
+  check('무전 모달이 접촉 금지 항목을 다시 보여준다', redOf.every(r => radioCtx.includes(r)));
   check('무전 모달이 대화를 멈춰둔다', await page.evaluate(() => window.__game.state.engine.paused === true));
   await page.fill('#radio-input', '지금 상대가 말하다 말았다. 그게 뭐였냐고 물고 늘어져라.');
   await page.click('#btn-radio-send');
@@ -314,6 +378,7 @@ try {
   }));
   check('게이지 바가 수치와 함께 갱신된다',
     meters.loveW === meters.love + '%' && meters.thrLeft !== '', JSON.stringify(meters));
+  await checkContrast('대면 공작 화면');
   await page.screenshot({ path: `${SHOTS}/6-talking.png`, fullPage: true });
 
   console.log('   ...결과 대기');
@@ -357,6 +422,7 @@ try {
     ` · 취향 ${result.hits}/${result.hiddenTotal} · 지뢰 ${result.red} · 무전 ${result.radio}`);
   console.log(`  🧾 tier: ${result.tiers.join(' ')}`);
   if (LIVE) console.log(`  💰 ${result.usage.calls}콜 · $${result.usage.cost.toFixed(3)} · 캐시 ${result.usage.cacheRead.toLocaleString()}tok`);
+  await checkContrast('결과 화면');
   await page.screenshot({ path: `${SHOTS}/7-result.png`, fullPage: true });
 
   // 재도전 / 다음 의뢰 버튼

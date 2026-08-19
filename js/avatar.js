@@ -3,7 +3,7 @@ import * as THREE from '../vendor/three.module.min.js';
 
 export const DEFAULT_SPEC = {
   skin: '#ffcc99', hair: '#3a2a1a', hairStyle: 'short',
-  top: '#ff2d95', bottom: '#2d7dff', shoes: '#222222',
+  top: '#5a6472', bottom: '#3c4450', shoes: '#26282a',
   heightScale: 1, widthScale: 1,
   accessory: 'none', accessoryColor: '#ffee00',
   expression: 'neutral', aura: 'none', species: 'human',
@@ -314,25 +314,38 @@ function addSpecies(g, headG, spec, parts) {
 }
 
 // ── 이모지 스프라이트 ───────────────────────────────────
+// 이모지 대신 단색 활자 기호를 쓴다. 관찰실 계측 표시처럼 보여야 하기 때문이다.
 const texCache = new Map();
-function emojiTexture(ch) {
-  if (texCache.has(ch)) return texCache.get(ch);
+function glyphTexture(ch, color) {
+  const key = ch + color;
+  if (texCache.has(key)) return texCache.get(key);
   const cv = document.createElement('canvas'); cv.width = cv.height = 64;
   const ctx = cv.getContext('2d');
-  ctx.font = '48px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(ch, 32, 36);
+  ctx.font = 'bold 46px "IBM Plex Mono", ui-monospace, monospace';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillStyle = color;
+  ctx.fillText(ch, 32, 34);
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
-  texCache.set(ch, tex);
+  texCache.set(key, tex);
   return tex;
 }
-function emojiSprite(ch, size = 0.3) {
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: emojiTexture(ch), transparent: true, depthWrite: false }));
+function glyphSprite(ch, color, size = 0.3) {
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: glyphTexture(ch, color), transparent: true, depthWrite: false,
+  }));
   sp.scale.set(size, size, 1);
   return sp;
 }
 
-const AURA_EMOJI = { sparkle: '✨', hearts: '💖', fire: '🔥', gloom: '💧', money: '💸' };
+// [기호, 색] — 캐릭터 분위기를 계측 표시로 환산한다
+const AURA_MARK = {
+  sparkle: ['+', '#cdd6c0'],
+  hearts:  ['\u2661', '#b0566c'],
+  fire:    ['\u25b2', '#b5713a'],
+  gloom:   ['\u25bc', '#6d7a86'],
+  money:   ['\u20a9', '#8a7f45'],
+};
 
 // ── 썸네일 렌더러 ───────────────────────────────────────
 // 의뢰 대장에 20쌍 = 40명이 깔린다. 카드마다 WebGL 컨텍스트를 잡으면 브라우저 상한(보통 16개)에서 터진다.
@@ -349,7 +362,7 @@ function initThumb() {
   thumbScene = new THREE.Scene();
   thumbScene.add(new THREE.AmbientLight(0xffffff, 1.1));
   const sun = new THREE.DirectionalLight(0xffffff, 1.3); sun.position.set(2, 5, 4);
-  const rim = new THREE.PointLight(0xff33cc, 14, 12); rim.position.set(-2, 2, 2);
+  const rim = new THREE.PointLight(0x9fb4c8, 10, 12); rim.position.set(-2, 2, 2);
   thumbScene.add(sun, rim);
   thumbCam = new THREE.PerspectiveCamera(38, 320 / 400, 0.1, 40);
   thumbCam.position.set(0.9, 1.35, 3.2);
@@ -387,15 +400,16 @@ export class AvatarViewer {
     this.scene.add(new THREE.AmbientLight(0xffffff, 1.0));
     const sun = new THREE.DirectionalLight(0xffffff, 1.2); sun.position.set(2, 5, 4);
     this.scene.add(sun);
-    this.discoA = new THREE.PointLight(0xff33cc, 22, 14); this.discoA.position.set(2.5, 2.6, 1.5);
-    this.discoB = new THREE.PointLight(0x33ddff, 22, 14); this.discoB.position.set(-2.5, 2.6, 1.5);
+    // 관찰실 형광등. 성사 연출('party') 때만 살짝 따뜻해진다.
+    this.discoA = new THREE.PointLight(0xd8e0e8, 16, 14); this.discoA.position.set(2.5, 2.8, 1.5);
+    this.discoB = new THREE.PointLight(0xb8c4b0, 14, 14); this.discoB.position.set(-2.5, 2.8, 1.5);
     this.scene.add(this.discoA, this.discoB);
 
     // 체커보드 병맛 무대
     this.tiles = [];
     const floor = new THREE.Group();
     for (let x = -4; x < 4; x++) for (let z = -3; z < 3; z++) {
-      const t = box(0.78, 0.08, 0.78, (x + z) % 2 ? '#ff2d95' : '#2dfff2');
+      const t = box(0.78, 0.08, 0.78, (x + z) % 2 ? '#5c6355' : '#666d5f');
       t.position.set(x * 0.8 + 0.4, -0.06, z * 0.8 + 0.4);
       this.tiles.push(t); floor.add(t);
     }
@@ -448,11 +462,19 @@ export class AvatarViewer {
   say(slot) { const a = this.avatars[slot]; if (a) a.userData.jump = 1; }
 
   burst(kind, slot = null) {
-    const ch = { love: '💖', bad: '💢', sparkle: '✨', rain: '💧', money: '💸', ok: '⭐' }[kind] || '❓';
+    // 판정 피드백 표식. 붉은 관인색은 호감 상승, 청색은 하락, 인광색은 승인.
+    const [ch, color] = {
+      love:    ['\u2665', '#8a2b3a'],
+      bad:     ['\u2715', '#3a4f6b'],
+      sparkle: ['+', '#d8d2c0'],
+      rain:    ['\u00b7', '#6d7a86'],
+      money:   ['\u20a9', '#8a7f45'],
+      ok:      ['\u25c6', '#4e6b4e'],
+    }[kind] || ['?', '#888888'];
     const x = slot === 'left' ? -0.9 : slot === 'right' ? 0.9 : 0;
-    const n = kind === 'rain' ? 18 : 12;
+    const n = kind === 'rain' ? 10 : 6;
     for (let i = 0; i < n; i++) {
-      const sp = emojiSprite(ch, 0.26 + Math.random() * 0.2);
+      const sp = glyphSprite(ch, color, 0.16 + Math.random() * 0.09);
       sp.position.set(x + (Math.random() - 0.5) * 0.8, 1.4 + Math.random() * 0.6, 0.4);
       this.scene.add(sp);
       this.particles.push({
@@ -481,14 +503,17 @@ export class AvatarViewer {
     }
 
     // 디스코 조명 회전
-    const spd = this.party ? 3.2 : 0.7;
+    const spd = this.party ? 1.1 : 0.22;   // 디스코가 아니라 순찰 조명이다
     this.discoA.position.x = Math.cos(t * spd) * 2.8;
     this.discoA.position.z = Math.sin(t * spd) * 2.2 + 1;
     this.discoB.position.x = -Math.cos(t * spd * 0.8) * 2.8;
     this.discoB.position.z = -Math.sin(t * spd * 0.8) * 2.2 + 1;
-    if (this.party && t - this.lastTileFlash > 0.4) {
+    if (this.party && t - this.lastTileFlash > 0.9) {
+      // 성사 연출: 바닥 타일에 은은한 온기만 돈다 (채도 0.28 상한)
       this.lastTileFlash = t;
-      for (const tile of this.tiles) if (Math.random() < 0.3) tile.material.color.setHSL(Math.random(), 0.9, 0.6);
+      for (const tile of this.tiles) {
+        if (Math.random() < 0.18) tile.material.color.setHSL(0.09 + Math.random() * 0.06, 0.28, 0.42);
+      }
     }
 
     // 아바타 애니메이션 (봉제인형st 들썩임)
@@ -505,8 +530,8 @@ export class AvatarViewer {
       if (this.spin) a.rotation.y += dt * 1.2;
       // 오라 방출
       const aura = u.spec.aura;
-      if (aura !== 'none' && AURA_EMOJI[aura] && this.auraTick > 0.5) {
-        const sp = emojiSprite(AURA_EMOJI[aura], 0.18);
+      if (aura !== 'none' && AURA_MARK[aura] && this.auraTick > 0.5) {
+        const sp = glyphSprite(AURA_MARK[aura][0], AURA_MARK[aura][1], 0.17);
         sp.position.set(a.position.x + (Math.random() - 0.5) * 0.7, 0.3, 0.3);
         this.scene.add(sp);
         this.particles.push({ sp, vel: new THREE.Vector3(0, aura === 'gloom' ? 0.25 : 0.8, 0), life: 1.6 });
