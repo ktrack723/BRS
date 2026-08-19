@@ -70,7 +70,7 @@ function dossierText(c) {
 아직 아무한테도 말 안 한 것: ${c.target.hiddenPrefs.length}건 (내용 비공개)
 질색하는 것: ${c.target.redLines.join(' / ')}
 [이 매칭이 지옥인 이유] ${c.clash}
-[결승선] ${c.endingKind}`;
+[결승선] 연애`;
 }
 
 const AGENT_SYSTEM = `너는 큐피드국의 베테랑 공작요원이다. 의뢰서를 읽고 작전 준비물을 짠다.
@@ -222,7 +222,7 @@ async function playOne(coupleId, profile) {
   }
 
   return {
-    coupleId, profile, difficulty: c.difficulty, endingKind: c.endingKind,
+    coupleId, profile, difficulty: c.difficulty,
     accepted: res.verdict.accepted, grade: res.verdict.grade,
     love: res.verdict.love, mood: res.verdict.mood, threshold: res.difficulty.threshold,
     moodFloor: res.difficulty.moodFloor, aborted: res.aborted,

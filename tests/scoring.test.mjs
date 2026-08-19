@@ -31,7 +31,7 @@ test('의뢰 대장의 id가 중복되지 않고 난이도가 고루 있다', ()
 test('모든 커플이 필수 필드를 갖추고 있다', () => {
   for (const c of COUPLES) {
     assert.ok(DIFFICULTIES[c.difficulty], `${c.id}: 알 수 없는 난이도 ${c.difficulty}`);
-    assert.ok(P.ENDING_FRAME[c.endingKind], `${c.id}: 알 수 없는 결승선 ${c.endingKind}`);
+    assert.equal(c.endingKind, '연애', `${c.id}: 결승선은 연애로 통일되어 있다`);
     assert.ok(c.clash && c.winWord && c.category, `${c.id}: 메타 누락`);
     for (const who of ['client', 'target']) {
       const p = c[who];
@@ -540,15 +540,26 @@ test('심판은 판정보다 해설이 먼저라고 지시받는다', () => {
   assert.ok(sys.includes('억지로라도'), '부조리한 장면도 납득시키라는 지시가 있어야 한다');
 });
 
-test('결승선 종류마다 호감의 의미가 다르게 주입된다 — 단, 심판에게만', () => {
-  const ally = COUPLE_BY_ID['orientation'];
-  assert.equal(ally.endingKind, '동맹');
-  assert.ok(P.judgeSystem(ally).includes('연애가 물리적으로 불가능'));
-  assert.ok(P.frameOf('동맹').meterName.includes('전우애'));
-  // 목표를 대화 에이전트에게 주면 그 인물은 목표를 향해 연기하기 시작한다. 안 준다.
-  const client = P.clientAgentSystem(ally, { coaching: '', speech: '' }, 'text', AGENT);
-  assert.ok(!client.includes('[네 목표]'), '에이전트에게 결승선을 지시하면 안 된다');
-  assert.ok(client.includes('연애 말고 다른 걸로'), '대신 본인 사연에 녹아 있어야 한다');
+test('결승선은 전부 연애로 통일되어 있다', () => {
+  // 조합마다 '성공'의 뜻이 달라지면 심판도 플레이어도 같은 게이지를 다르게 읽는다.
+  for (const c of COUPLES) {
+    assert.equal(c.endingKind, '연애', `${c.id}: 결승선이 연애가 아니다`);
+  }
+  assert.equal(typeof P.ENDING_FRAME, 'undefined', '결승선 갈래 표가 남아 있다');
+  assert.equal(typeof P.frameOf, 'undefined', '결승선 분기 함수가 남아 있다');
+  assert.equal(P.ENDING.meterName, '호감');
+  // 갈래별 문구가 프롬프트에 남아 있으면 안 된다
+  const sys = P.judgeSystem(COUPLE_BY_ID['orientation']);
+  assert.ok(!/전우애|휴전 의지|물리적으로 불가능/.test(sys), '심판에게 옛 결승선 문구가 간다');
+});
+
+test('결승선을 대화 에이전트에게 지시하지 않는다', () => {
+  // 목표를 주면 그 인물은 대화가 아니라 공략을 시작한다. 사연에만 녹인다.
+  for (const c of COUPLES) {
+    const client = P.clientAgentSystem(c, { coaching: '', speech: '' }, 'text', AGENT);
+    assert.ok(!client.includes('[네 목표]'), `${c.id}: 에이전트에게 결승선을 지시하고 있다`);
+    assert.ok(!client.includes('결승선'), `${c.id}: '결승선'이라는 말이 에이전트에게 간다`);
+  }
 });
 
 // ── 표현 수위 ────────────────────────────────────────────

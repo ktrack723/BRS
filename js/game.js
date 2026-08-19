@@ -197,9 +197,9 @@ const SLIDES = [
     title: '우리 대장에는 정상적인 조합이 없다',
     body: `상설 의뢰 <b>${COUPLES.length}건</b>. 전부 이어질 리 없는 조합이다.<br>
     어인과 사자 퍼리, 뱀파이어와 마늘 농장주, 서로의 성별을 공개적으로 혐오해온 둘,
-    30년 정적끼리, 그리고 전산 오류로 배정된 게이와 레즈비언까지.<br>
-    <b>조합마다 "성공"의 정의가 다르다.</b> 연애가 물리적으로 불가능한 쌍에는
-    <b>동맹</b>이나 <b>휴전</b>이 결승선이다. 의뢰서에 뭐가 결승선인지 찍혀 있으니 확인하고 나가라.`,
+    30년 정적끼리, 그리고 전산 오류로 3년째 부부인 남남까지.<br>
+    <b>결승선은 전부 같다 — 저 둘이 연인이 되는 것.</b> 예외는 없다.
+    성립할 리 없는 조합이라는 걸 본국도 안다. 그래서 자네를 붙이는 것이다.`,
   },
   {
     art: '미용실 &nbsp;→&nbsp; 취조실 &nbsp;→&nbsp; 정문',
@@ -350,7 +350,6 @@ function renderRosterCards() {
         <li>성공선 <b>${d.threshold}</b></li>
         <li>미확인 <b>${c.target.hiddenPrefs.length}</b></li>
         <li>금지 <b>${c.target.redLines.length}</b></li>
-        <li>결승선 <b>${escapeHtml(c.endingKind)}</b></li>
       </ul>
       <div class="cc-flaws" title="의뢰인 심리 감정">${flawReport(c.client)
         .map(r => `<span class="flaw-tag lv-${r.level}">${escapeHtml(r.tag)}</span>`).join('')}</div>
@@ -368,7 +367,7 @@ function dossierHtml(c, { full = false } = {}) {
   const d = diffOf(c.difficulty);
   return `
     <div class="stamp">극비</div>
-    <h3>${escapeHtml(c.client.name)} <small>(${c.client.age}, ${escapeHtml(c.client.job)})</small></h3>
+    <h3>${escapeHtml(c.client.name)} <small>(${escapeHtml(P.ageOf(c.client))}, ${escapeHtml(c.client.job)})</small></h3>
     <p class="story">${escapeHtml(c.client.story)}</p>
     <p><b>외모:</b> ${c.client.appearance.map(escapeHtml).join(', ')}</p>
     <p><b>성격:</b> ${c.client.personality.map(escapeHtml).join(', ')}</p>
@@ -377,7 +376,7 @@ function dossierHtml(c, { full = false } = {}) {
     <p class="quote">“${escapeHtml(c.client.quote)}”</p>
     ${flawHtml(c.client)}
     <hr>
-    <h3>상대 · ${escapeHtml(c.target.name)} <small>(${c.target.age}, ${escapeHtml(c.target.job)})</small></h3>
+    <h3>상대 · ${escapeHtml(c.target.name)} <small>(${escapeHtml(P.ageOf(c.target))}, ${escapeHtml(c.target.job)})</small></h3>
     <p><b>외모:</b> ${c.target.appearance.map(escapeHtml).join(', ')}</p>
     <p><b>성격:</b> ${c.target.personality.map(escapeHtml).join(', ')}</p>
     <p><b>내력:</b> ${c.target.background.map(escapeHtml).join(' · ')}</p>
@@ -389,7 +388,7 @@ function dossierHtml(c, { full = false } = {}) {
     <hr>
     <p class="clash-line"><b>이 매칭이 지옥인 이유:</b> ${escapeHtml(c.clash)}</p>
     <div class="diff-box diff-${d.key}">
-      <span class="diff-name">난이도 ${escapeHtml(c.difficulty)} · 결승선 ${escapeHtml(c.endingKind)}</span>
+      <span class="diff-name">난이도 ${escapeHtml(c.difficulty)}</span>
       <span class="diff-detail">성공선 호감 ${d.threshold} (분위기 ${d.moodFloor} 이상) · 무전 ${d.radioText}+${d.radioTalk}회 · 총 ${d.textTurns + d.talkTurns}턴</span>
     </div>
     ${full ? `<div class="modal-btns"><button class="btn95 big" id="dossier-take">이 조합을 맡는다</button><button class="btn95" id="dossier-close">닫기</button></div>` : ''}`;
@@ -622,8 +621,7 @@ function updatePrepStatus() {
 let stageViewer = null;
 
 function meterUpdate(s) {
-  const f = P.frameOf(state.couple.endingKind);
-  $('#meter-love-name').textContent = f.meterName;
+  $('#meter-love-name').textContent = P.ENDING.meterName;
   $('#meter-love-fill').style.width = s.love + '%';
   $('#meter-mood-fill').style.width = s.mood + '%';
   $('#meter-love-num').textContent = s.love;
@@ -856,7 +854,7 @@ async function gotoResult() {
   stamp.className = `result-stamp ${r.verdict.accepted ? 'ok' : 'fail'}`;
   $('#result-grade').textContent = `공작 등급: ${r.verdict.grade}`;
   $('#result-score').textContent =
-    `호감 ${r.verdict.love}/${r.difficulty.threshold} · 분위기 ${r.verdict.mood}/${r.difficulty.moodFloor} · 난이도 ${r.difficulty.badge} · 결승선 ${c.endingKind}`;
+    `호감 ${r.verdict.love}/${r.difficulty.threshold} · 분위기 ${r.verdict.mood}/${r.difficulty.moodFloor} · 난이도 ${r.difficulty.badge}`;
 
   $('#debrief-summary').textContent = r.debrief.summary;
   $('#debrief-list').innerHTML = r.debrief.notes.map(n =>

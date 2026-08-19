@@ -38,27 +38,19 @@ B급 감성, 과장, 밈, 어이없는 디테일을 적극 사용할 것.
 // 커플별 '성공'의 정의. 로맨스가 불가능한 조합에는 다른 결승선을 준다.
 // 주의: 이 프레임은 심판과 결과 편지에만 들어간다. 대화 에이전트에게는 넣지 않는다 —
 // "너의 목표는 X다"는 순간 그 인물은 대화가 아니라 공략을 시작한다.
-export const ENDING_FRAME = {
-  '연애': {
-    meterName: '호감',
-    goal: '두 사람이 연인이 되는 것',
-    note: '여기서 "호감"은 말 그대로 연애 감정이다.',
-  },
-  '동맹': {
-    meterName: '호감(전우애)',
-    goal: '연애가 아니라, 둘이 서로를 진짜 편으로 인정하는 것',
-    note: '이 조합은 연애가 물리적으로 불가능하다. 여기서 "호감"은 로맨스가 아니라 신뢰와 전우애다. ' +
-      '진심 어린 작업 멘트는 오히려 역효과이며, 서로의 처지를 알아주는 말이 점수다.',
-  },
-  '휴전': {
-    meterName: '호감(휴전 의지)',
-    goal: '서로를 적대하는 두 사람이 무기를 내려놓는 것',
-    note: '여기서 "호감"은 적대감의 해제다. 상대의 입장을 진짜로 이해했다는 신호가 점수다.',
-  },
+// 결승선은 전부 연애다. 예전에는 동맹·휴전 갈래가 있었지만,
+// 조합마다 '성공'의 뜻이 달라지면 심판도 플레이어도 같은 게이지를 다르게 읽게 된다.
+export const ENDING = {
+  meterName: '호감',
+  goal: '두 사람이 연인이 되는 것',
+  note: '여기서 "호감"은 말 그대로 연애 감정이다.',
 };
-export const frameOf = kind => ENDING_FRAME[kind] || ENDING_FRAME['연애'];
 
 // 요원(플레이어) 표기. 이름·성별은 착임 때 주관식으로 받는다.
+// 인물 나이 표기. 사람이 아닌 인물은 숫자만으로 오독된다 —
+// 그레이 7호의 "3세"는 지구 나이고 본국 기준 성인이다. ageNote가 그걸 붙인다.
+export const ageOf = (p) => p.ageNote ? `${p.age}세(${p.ageNote})` : `${p.age}세`;
+
 export const agentLabel = (agent) => {
   const name = (agent?.name || '').trim() || '무명';
   const gender = (agent?.gender || '').trim();
@@ -213,7 +205,7 @@ export const STYLING_SYSTEM = `${WORLD}
 
 export function stylingUser(couple, currentSpec, tags, agent) {
   const c = couple.client;
-  return `[의뢰인] ${c.name} (${c.age}세, ${c.job})
+  return `[의뢰인] ${c.name} (${ageOf(c)}, ${c.job})
 · 생김새: ${c.appearance.join(', ')}
 · 성격: ${c.personality.join(', ')}
 [현재 아바타 스펙] ${JSON.stringify(currentSpec)}
@@ -265,7 +257,7 @@ export function prepReactSystem(couple, scene) {
 [장소] ${s.place}
 ${s.setting}
 
-너는 "${c.name}"(${c.age}세, ${c.job})이다.
+너는 "${c.name}"(${ageOf(c)}, ${c.job})이다.
 · 생김새: ${c.appearance.join(', ')}
 · 성격: ${c.personality.join(', ')}
 · 살아온 내력: ${c.background.join(' / ')}
@@ -299,7 +291,7 @@ ${text && text.trim() ? `"""\n${text.trim()}\n"""` : '(아무 말도 없었다. 
 // 관심이 'self'인 사람은 상대의 성격도 취향도 모른다 — 알아볼 생각을 해본 적이 없기 때문이다.
 // "상대를 신경 쓰지 마라"라고 지시하는 대신, 신경 쓸 재료를 안 준다. 지시는 안 먹고 이건 먹는다.
 function knownAbout(p, attention, extraLine = '') {
-  const lines = [`${p.name} · ${p.age}세 · ${p.job}`, `· 겉모습: ${p.appearance.join(', ')}`];
+  const lines = [`${p.name} · ${ageOf(p)} · ${p.job}`, `· 겉모습: ${p.appearance.join(', ')}`];
   if (attention !== 'self') lines.push(`· 성격이라고 들은 것: ${p.personality.join(', ')}`);
   if (attention === 'other' && p.visiblePrefs) lines.push(`· 좋아한다고 알려진 것: ${p.visiblePrefs.join(' / ')}`);
   if (extraLine) lines.push(extraLine);
@@ -351,7 +343,7 @@ ${f.want}
 저 사람을 위해서가 아니라 너를 위해서다. 네 입에서 나오는 말은 전부 여기서 출발한다.
 
 [너]
-${c.name} · ${c.age}세 · ${c.job}
+${c.name} · ${ageOf(c)} · ${c.job}
 · 생김새: ${c.appearance.join(', ')}
 · 성격: ${c.personality.join(', ')}
 · 살아온 내력: ${c.background.join(' / ')}
@@ -402,7 +394,7 @@ ${f.want}
 저 사람을 위해서가 아니라 너를 위해서다. 네 입에서 나오는 말은 전부 여기서 출발한다.
 
 [너]
-${t.name} · ${t.age}세 · ${t.job}
+${t.name} · ${ageOf(t)} · ${t.job}
 · 생김새: ${t.appearance.join(', ')}
 · 성격: ${t.personality.join(', ')}
 · 살아온 내력: ${t.background.join(' / ')}
@@ -466,7 +458,7 @@ export const JUDGE_SCHEMA = {
 };
 
 export function judgeSystem(couple) {
-  const f = frameOf(couple.endingKind);
+  const f = ENDING;
   const t = couple.target;
   return `${WORLD}
 
@@ -494,7 +486,7 @@ export function judgeSystem(couple) {
 상대의 반응이 판정의 유일한 증거다. 상대가 풀어졌으면 통한 것이고, 짧아졌으면 틀어진 것이다.
 
 ■ 상대는 어떤 사람인가 (반응을 읽을 때 참고한다. 점수표가 아니다)
-${t.name} (${t.age}세, ${t.job})
+${t.name} (${ageOf(t)}, ${t.job})
 · 성격: ${t.personality.join(', ')}
 · 알려진 취향: ${t.visiblePrefs.join(' / ')}
 · 아직 아무한테도 말한 적 없는 것: ${t.hiddenPrefs.join(' / ')}
@@ -626,7 +618,7 @@ export function situationSystem(couple) {
 
 너는 이 공작의 나레이터다. 문자 공작 끝에 성사된 첫 만남 장면을 만든다.
 
-[상대] ${t.name} (${t.age}세, ${t.job})
+[상대] ${t.name} (${ageOf(t)}, ${t.job})
 · 생김새: ${t.appearance.join(', ')}
 · 성격: ${t.personality.join(', ')}
 · 알려진 취향: ${t.visiblePrefs.join(' / ')}
@@ -666,7 +658,7 @@ export const RESULT_SCHEMA = {
 };
 
 export function resultSystem(couple, agent) {
-  const f = frameOf(couple.endingKind);
+  const f = ENDING;
   return `${WORLD}
 
 너는 공작 결과 기록관이다. 이미 확정된 판정 결과를 받아, 클라이언트가 요원에게 보낸 손편지를 쓴다.
