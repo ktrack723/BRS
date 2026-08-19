@@ -313,7 +313,12 @@ function renderRosterCards() {
         <figure><img alt="${escapeHtml(c.target.name)}" src="${renderThumb(c.target.spec, c.id + ':t')}"><figcaption>${escapeHtml(c.target.name)}</figcaption></figure>
       </div>
       <p class="cc-clash">${escapeHtml(c.clash)}</p>
-      <p class="cc-meta">성공선 <b>${d.threshold}</b> · 미확인 <b>${c.target.hiddenPrefs.length}</b> · 금지 <b>${c.target.redLines.length}</b> · 결승선 <b>${escapeHtml(c.endingKind)}</b></p>
+      <ul class="cc-meta">
+        <li>성공선 <b>${d.threshold}</b></li>
+        <li>미확인 <b>${c.target.hiddenPrefs.length}</b></li>
+        <li>금지 <b>${c.target.redLines.length}</b></li>
+        <li>결승선 <b>${escapeHtml(c.endingKind)}</b></li>
+      </ul>
       <div class="cc-btns">
         <button class="btn95 tiny cc-detail" type="button">의뢰서</button>
         <button class="btn95 cc-take" type="button">이 조합을 맡는다</button>
@@ -610,7 +615,7 @@ async function gotoResult() {
     r.debrief.found.map(p => `<li class="found">${escapeHtml(p)} <span class="dim">(작전 중 확보)</span></li>`).join('') +
     r.debrief.missed.map(p => `<li class="missed">${escapeHtml(p)} <span class="dim">(미확보)</span></li>`).join('');
   $('#debrief-turns').innerHTML =
-    '<table class="turn-table"><tr><th>턴</th><th>분위기</th><th>호감</th><th>누적 호감/분위기</th><th>판정</th></tr>' +
+    '<div class="turn-table-wrap"><table class="turn-table"><tr><th>턴</th><th>분위기</th><th>호감</th><th>누적 호감/분위기</th><th>판정</th></tr>' +
     r.state.history.map(h =>
       `<tr class="${h.dLove > 0 ? 'good' : h.dLove < 0 ? 'bad' : ''}">` +
       `<td>${h.turn}${h.firstImpression ? '·착장' : ''}${h.hit ? '·적중' : ''}${h.red ? '·위반' : ''}</td>` +
@@ -618,7 +623,7 @@ async function gotoResult() {
       `<td>${h.dLove >= 0 ? '+' : ''}${h.dLove} <span class="dim">[${escapeHtml(h.tier)}] ${h.rawLove >= 0 ? '+' : ''}${h.rawLove}×${h.mult}</span></td>` +
       `<td>${h.love} / ${h.mood}</td>` +
       `<td>${escapeHtml(h.reason)}</td></tr>`).join('') +
-    '</table>';
+    '</table></div>';
 
   saveRun({
     id: c.id, client: c.client.name, target: c.target.name,

@@ -175,6 +175,8 @@ try {
         if (txt.length < 2) continue;
         const st = getComputedStyle(el);
         if (st.visibility === 'hidden' || +st.opacity < 0.5) continue;
+      // 비활성 컨트롤은 WCAG 1.4.3 명암비 요건에서 면제된다
+      if (el.disabled || el.closest('[disabled]')) continue;
         const bg = bgOf(el);
         if (!bg) continue;
         const fg = parse(st.color);

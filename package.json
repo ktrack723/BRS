@@ -7,6 +7,7 @@
   "scripts": {
     "test": "node --test tests/scoring.test.mjs tests/engine.test.mjs",
     "browser": "node tests/browser.mjs",
+    "responsive": "node tests/responsive.mjs",
     "live": "node tests/live.mjs",
     "sim": "node tests/sim.mjs",
     "serve": "python3 -m http.server 8000"
