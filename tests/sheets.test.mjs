@@ -138,3 +138,55 @@ test('테스트 파일이 npm test에서 빠지지 않는다', async () => {
     assert.ok(script.includes(`tests/${f}`), `tests/${f}가 npm test에 없다 — 아무도 모르게 안 돌고 있다`);
   }
 });
+
+// ── 몸이 원하는 것 ────────────────────────────────────────────────────
+test('60명 전원에게 urge가 있다', () => {
+  for (const { at, p } of people) {
+    assert.ok(p.flaw.urge, `${at}: 몸이 원하는 것이 없다`);
+    assert.ok(p.flaw.urge.length > 15, `${at}: urge가 너무 짧다 — 구체적이어야 한다`);
+    assert.notEqual(p.flaw.urge, p.flaw.want, `${at}: urge와 want가 같다`);
+  }
+});
+
+test('urge가 전부 성욕으로 도배되지 않았다', () => {
+  // 60명을 전부 성욕으로 채우면 그것도 '전원 상담사'만큼이나 거짓말이다.
+  // 술·잠·허기·접촉결핍이 섞여 있어야 성욕도 사람의 것으로 보인다.
+  const urges = people.map(x => x.p.flaw.urge);
+  const carnal = urges.filter(u => /자|잠자|안|만지|벗|몸|입술|체온|손을 잡/.test(u)).length;
+  assert.ok(carnal >= 15, `몸을 향한 욕구가 ${carnal}명뿐 — 너무 점잖다`);
+  assert.ok(carnal <= urges.length * 0.9, `${carnal}/${urges.length}명이 전부 같은 결이다`);
+  // 문구를 돌려쓰면 60명이 한 사람이 된다
+  assert.equal(new Set(urges).size, urges.length, 'urge 문구가 중복된다');
+});
+
+test('수위는 허가지 지시가 아니다', async () => {
+  const P = await import('../js/prompts.js');
+  const w = P.WORLD;
+  // 허가가 열려 있어야 한다
+  assert.match(w, /검열하지 않는다|전부 허용된다/, '수위가 안 열려 있다');
+  assert.match(w, /수작|유혹|성적 긴장/, '어디까지 되는지가 안 적혀 있다');
+  // 그런데 강제하면 안 된다 — 그러면 60명이 전부 똑같이 들이댄다
+  assert.match(w, /지시가 아니라 \*\*허가\*\*|억지로 야하게 만들지 마라/, '허가가 지시로 읽힌다');
+  // 성인만 나온다는 선은 어떤 경우에도 남아 있어야 한다
+  assert.match(w, /전원 성인/, '성인 한정 문구가 사라졌다');
+  assert.match(w, /미성년으로 읽힐 수 있는 묘사는 어떤 맥락에서도 쓰지 않는다/, '미성년 금지선이 사라졌다');
+  assert.match(w, /실존 인물·실존 단체/, '실존 인물 금지선이 사라졌다');
+
+  // 에이전트 프롬프트에는 '이 사람 몸이 원하는 것'으로만 들어가야 한다.
+  // "야하게 굴어라" 같은 행동 지시가 들어가면 60명이 전부 같은 사람이 된다.
+  const { COUPLE_BY_ID } = await import('../js/couples.js');
+  const c = COUPLE_BY_ID['os-war'];
+  const sys = P.clientAgentSystem(c, { outfitDesc: '', coaching: '', speech: '' }, 'talk',
+    { name: '요원', gender: '기밀' });
+  assert.ok(sys.includes(c.client.flaw.urge), 'urge가 에이전트에게 안 간다');
+  assert.match(sys, /숨길지, 흘릴지/, 'urge를 어떻게 쓸지는 인물이 정해야 한다');
+  assert.ok(!/야하게 굴어라|유혹해라|들이대라/.test(sys), '에이전트에게 성적 행동을 지시하고 있다');
+});
+
+test('심판이 야한 전개를 같은 잣대로 잰다', async () => {
+  const P = await import('../js/prompts.js');
+  const { COUPLE_BY_ID } = await import('../js/couples.js');
+  const sys = P.judgeSystem(COUPLE_BY_ID['os-war']);
+  assert.match(sys, /야하다고 감점하지 말고, 야하다고 가점하지도 마라/, '수위 편향 방지 문구가 없다');
+  assert.match(sys, /상대가 실제로 움직였는가/, '판정 기준이 흔들린다');
+});

@@ -635,7 +635,12 @@ try {
     };
   });
 
-  check('전 턴이 판정됐다 (첫인상 1 + 문자 4 + 대면 5 = 10)', result.turns === 10, `${result.turns}턴`);
+  // 첫인상 1 + 문자 4 + 대면 5 = 10턴이 기본. 케미가 좋으면 여기서 최대 +5까지 늘어난다.
+  // (라이브에서 실제로 13턴이 나왔다 — 하드코딩 10은 연장 기능 이전에 쓴 것이다.)
+  const { EXTENSION } = await import('../js/scoring.js');
+  const maxTurns = 10 + EXTENSION.maxExtra.text + EXTENSION.maxExtra.talk;
+  check('전 턴이 판정됐다 (기본 10턴 + 케미 연장)',
+    result.turns >= 10 && result.turns <= maxTurns, `${result.turns}턴 (10~${maxTurns})`);
   check('심판 등급이 한 종류로 몰리지 않았다', new Set(result.tiers).size >= 2, result.tiers.join(','));
   check('구 등급명이 남아 있지 않다',
     !result.tiers.some(t => ['critical', 'hit', 'ok', 'empty', 'backfire', 'redline'].includes(t)), result.tiers.join(','));

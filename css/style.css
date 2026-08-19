@@ -849,7 +849,10 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 .result-stamp {
   position: absolute; left: 50%; bottom: var(--s3);
   transform: translateX(-50%) rotate(-9deg);
-  max-width: calc(100% - var(--s5));
+  /* 9도 기울어 있어서 회전 후 가로 폭이 w·cos9 + h·sin9 로 늘어난다(글자 높이만큼 ~6px씩 양옆).
+     max-width를 무대 폭에 딱 맞추면 긴 winWord에서 그 여유분이 그대로 넘친다 —
+     실제로 '무기한 집행정지 커플 성사'가 아이폰 SE에서 +12px 삐져나왔다. */
+  max-width: calc(100% - var(--s5) - 16px);
   padding: 2px var(--s3);
   font-weight: 700; letter-spacing: .04em;
   font-size: clamp(14px, 5.6cqw, 34px);
