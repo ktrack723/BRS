@@ -490,22 +490,22 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 .cc-take { flex: 1; }
 
 /* ══════════════════════════════════════════════════════════
-   의뢰서 (괘선 서류) — #consult-dossier와 #dossier-box 공용
+   의뢰서 (괘선 서류) — #salon-dossier와 #dossier-box 공용
    ══════════════════════════════════════════════════════════ */
-#consult-dossier, #dossier-box {
+#salon-dossier, #dossier-box {
   background: var(--paper);
   background-image: repeating-linear-gradient(0deg, transparent 0 27px, var(--paper-rule) 27px 28px);
   font-size: var(--fs-md);
 }
-#consult-dossier h3, #dossier-box h3 {
+#salon-dossier h3, #dossier-box h3 {
   font-size: var(--fs-lg); margin: var(--s3) 0 var(--s1);
   padding-bottom: var(--s1); border-bottom: 1px solid var(--paper-rule);
 }
-#consult-dossier h3:first-of-type, #dossier-box h3:first-of-type { margin-top: 0; }
-#consult-dossier p, #dossier-box p { margin: var(--s1) 0; line-height: 1.68; }
-#consult-dossier .story, #dossier-box .story { font-style: italic; }
-#consult-dossier .quote, #dossier-box .quote { color: var(--file); font-weight: 600; }
-#consult-dossier hr, #dossier-box hr { border: none; border-top: 1px dashed var(--dlg-edge); margin: var(--s3) 0; }
+#salon-dossier h3:first-of-type, #dossier-box h3:first-of-type { margin-top: 0; }
+#salon-dossier p, #dossier-box p { margin: var(--s1) 0; line-height: 1.68; }
+#salon-dossier .story, #dossier-box .story { font-style: italic; }
+#salon-dossier .quote, #dossier-box .quote { color: var(--file); font-weight: 600; }
+#salon-dossier hr, #dossier-box hr { border: none; border-top: 1px dashed var(--dlg-edge); margin: var(--s3) 0; }
 .stamp {
   position: absolute; top: var(--s2); right: var(--s3);
   transform: rotate(11deg);
@@ -534,10 +534,76 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 .diff-inline { font-size: var(--fs-sm); padding: 1px var(--s2); border: 1px solid; }
 
 /* ══════════════════════════════════════════════════════════
-   컨설팅 (작전 준비)
+   작전 준비 — 미용실 · 취조실 · 정문 세 화면 공용
    ══════════════════════════════════════════════════════════ */
-.consult-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.04fr); gap: var(--s3); align-items: start; }
-.consult-left, .consult-forms { min-width: 0; }
+.prep-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.04fr); gap: var(--s3); align-items: start; }
+.prep-left, .prep-right { min-width: 0; }
+
+/* 화면 머리 — 몇 번째 단계이고 여기가 어디인지 */
+.prep-head { margin-bottom: var(--s2); }
+.prep-step {
+  display: inline-block; font-family: var(--font-mono);
+  font-size: var(--fs-xs); letter-spacing: .12em;
+  color: var(--paper); background: var(--ink-mid);
+  border: 1px solid #0d1b2c; padding: 2px var(--s2);
+}
+.prep-head .section-title { margin: var(--s1) 0 2px; }
+
+.prep-nav { display: flex; gap: var(--s2); align-items: stretch; margin-top: var(--s1); }
+.prep-nav .btn95 { flex: 1; margin-top: 0; }
+.prep-nav .btn95.big { flex: 2; margin-top: 0; }
+
+/* 장소별 조명. 3D는 알파로 렌더되므로 캔버스 뒤 CSS가 곧 그 방의 공기다 */
+.salon-stage .stage-canvas {
+  background:
+    radial-gradient(70% 46% at 50% 22%, rgba(255,250,235,.30), transparent 68%),
+    linear-gradient(180deg, #cfd3cd 0%, #b9beb6 54%, #9aa196 55%, #868d82 100%);
+}
+.interro-stage .stage-canvas {
+  background:
+    radial-gradient(38% 40% at 50% 16%, rgba(255,246,214,.42), transparent 72%),
+    linear-gradient(180deg, #10130f 0%, #1a1e17 52%, #262b21 55%, #14170f 100%);
+}
+.interro-stage .stage-label { color: var(--ink-mid); }
+.gate-stage .stage-canvas {
+  background:
+    radial-gradient(84% 58% at 50% 84%, rgba(255,196,120,.30), transparent 72%),
+    linear-gradient(180deg, #2c3a52 0%, #6a5f62 46%, #a4795a 62%, #4a3f36 100%);
+}
+
+/* 현장 상황 카드 — 그 방에 들어섰을 때의 첫 문단 */
+.scene-card .scene-text { margin: 0; font-size: var(--fs-sm); line-height: 1.75; }
+.scene-card.dark { background: #14170f; border-color: #05070a; }
+.scene-card.dark::after { box-shadow: inset 1px 1px 0 #2e332a, inset -1px -1px 0 #05070a; }
+.scene-card.dark .scene-text { color: #cfd6c3; }
+
+.prep-dossier summary { cursor: pointer; font-weight: 600; font-size: var(--fs-sm); }
+.prep-dossier > div { margin-top: var(--s2); }
+.target-brief { font-size: var(--fs-sm); }
+.target-brief h3 { margin: 0 0 var(--s1); font-size: var(--fs-md); }
+.target-brief p { margin: 3px 0; }
+
+/* 준비 단계의 유일한 피드백: 점수가 아니라 그 인간의 반응 */
+.react-box {
+  background: var(--paper); border: 1px solid var(--dlg-edge);
+  box-shadow: inset 1px 1px 0 rgba(0,0,0,.10);
+  padding: var(--s2) var(--s3); min-height: 26px; font-size: var(--fs-sm);
+  margin-top: var(--s2);
+}
+.react-outfit {
+  font-weight: 600; color: var(--file);
+  border-bottom: 1px dashed var(--paper-rule); padding-bottom: var(--s1); margin-bottom: var(--s2);
+}
+.react-line { margin: var(--s1) 0; line-height: 1.7; }
+.react-who {
+  display: inline-block; margin-right: 6px;
+  font-family: var(--font-mono); font-size: var(--fs-xs); letter-spacing: .02em;
+  color: var(--paper); background: var(--ink-mid); padding: 1px 7px;
+}
+.react-note {
+  margin-top: var(--s2); padding-top: var(--s1); border-top: 1px dashed var(--paper-rule);
+  font-size: var(--fs-xs); color: var(--ink-soft); font-family: var(--font-mono);
+}
 
 .stage-wrap { position: relative; padding: var(--s1); container-type: inline-size; }
 .stage-label { text-align: center; font-size: var(--fs-xs); color: var(--ink-mid); padding-bottom: 2px; }
@@ -552,10 +618,6 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
   border: 1px solid var(--dlg-edge);
   box-shadow: inset 0 0 26px rgba(0,0,0,.55);
 }
-
-.notice-card { background: #f6f1dd; border-color: var(--warn) !important; }
-.notice-card h3 { color: #6b1519; }
-.notice-card p { font-size: var(--fs-sm); line-height: 1.7; margin: 0; }
 
 .prep-sub {
   margin: 0 0 var(--s2); font-size: var(--fs-xs); color: var(--ink-soft);
@@ -595,8 +657,7 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 }
 .prep-warning.ok { border-color: var(--ok); background: #e5eade; color: #24401f; }
 .prep-warning.warn { border-color: var(--warn); background: #efe9d5; color: #4d3d10; }
-#btn-start-op { width: 100%; margin-top: var(--s2); }
-#btn-back-roster { width: 100%; margin-top: var(--s2); }
+#btn-start-op { margin-top: 0; }
 
 /* ══════════════════════════════════════════════════════════
    대화 (문자 / 대면)
@@ -706,6 +767,40 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 .tag.red { color: #fdf3f2; border-color: var(--stamp-deep); background: var(--stamp); }
 .tag.calc { color: var(--ink-mid); border-color: var(--dlg-edge); background: #fff; font-family: var(--font-mono); }
 .tag.radio { color: var(--ok); border-color: var(--ok); background: #e5eade; }
+.tag.tier { font-weight: 600; }
+.tag.tier.breakthrough { color: #fdf3f2; border-color: var(--stamp-deep); background: var(--stamp); }
+.tag.tier.warm { color: #24401f; border-color: var(--ok); background: #e5eade; }
+.tag.tier.nudge { color: #2f5230; border-color: #7d8f74; background: #eceee6; }
+.tag.tier.flat { color: var(--ink-mid); border-color: var(--dlg-edge); background: #e8e6db; }
+.tag.tier.chill { color: var(--file); border-color: var(--file); background: #e7ebf2; }
+.tag.tier.disaster { color: #fdf3f2; border-color: #3d0c0e; background: var(--stamp-deep); }
+.judge-line.big { border-left-color: var(--stamp); border-left-width: 6px; }
+
+/* 요원 등록 — 이름·성별 둘 다 주관식이다 */
+.agent-form { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); margin: var(--s3) 0 0; }
+.agent-form label { display: block; margin: 0 0 var(--s1); }
+.agent-form label small { font-weight: 400; color: var(--ink-soft); font-size: var(--fs-xs); }
+
+/* ══════════════════════════════════════════════════════════
+   텍스트로 된 분위기
+   심판이 매 턴 갱신하고, 이 문장이 그대로 의뢰인에게 전달된다.
+   대화 규칙을 걷어낸 자리를 이게 대신한다.
+   ══════════════════════════════════════════════════════════ */
+.vibe-bar {
+  display: flex; align-items: center; gap: var(--s2);
+  background: var(--crt-bg); color: var(--crt-fg);
+  border: 1px solid var(--crt-edge); border-left: 4px solid var(--crt-fg);
+  box-shadow: inset 0 0 18px rgba(0,0,0,.55);
+  padding: var(--s2) var(--s3); margin-bottom: var(--s2);
+  font-size: var(--fs-sm); line-height: 1.55; min-height: 40px;
+}
+.vibe-tag {
+  flex: none; font-family: var(--font-mono); font-size: var(--fs-xs);
+  letter-spacing: .1em; color: var(--crt-bg); background: var(--crt-fg); padding: 1px 7px;
+}
+.vibe-bar.pulse { animation: vibe-in .5s ease-out; }
+@keyframes vibe-in { from { background: #16341c; } }
+@media (prefers-reduced-motion: reduce) { .vibe-bar.pulse { animation: none; } }
 
 /* ══════════════════════════════════════════════════════════
    결과
@@ -736,7 +831,10 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 }
 .result-stamp.ok { color: var(--stamp); border-color: var(--stamp); background: rgba(242,239,227,.9); }
 .result-stamp.fail { color: var(--file); border-color: var(--file); background: rgba(242,239,227,.9); }
-@keyframes stamp-in { from { transform: translateX(-50%) rotate(-9deg) scale(2.6); opacity: 0; } }
+/* 시작 배율이 1.9인 이유 — 2.6에서는 확대된 관인이 무대를 넘어서서,
+   아이패드 Air 11" 세로(820px)에서 애니메이션이 도는 0.45초 동안 페이지에 가로 스크롤이 생겼다(+56px).
+   1.9면 가장 긴 winWord에서도 무대 안에 들어온다. */
+@keyframes stamp-in { from { transform: translateX(-50%) rotate(-9deg) scale(1.9); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .result-stamp { animation: none; } }
 
 .result-grade { font-size: var(--fs-xl); font-weight: 600; color: var(--file); letter-spacing: .04em; margin: 0; }
@@ -868,7 +966,7 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 
 /* 아이패드 세로 전반(1024 이하)에서 준비·결과 화면을 1단으로 */
 @media (max-width: 1024px) {
-  .consult-grid, .result-grid { grid-template-columns: minmax(0, 1fr); }
+  .prep-grid, .result-grid { grid-template-columns: minmax(0, 1fr); }
   .stage-canvas { aspect-ratio: 16 / 9; }
   .chat-left .stage-canvas, .result-grid .stage-canvas { aspect-ratio: 16 / 9; }
 }
@@ -884,6 +982,9 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 /* 폰 */
 @media (max-width: 540px) {
   :root { --fs-md: 13.5px; --fs-lg: 15px; }
+  .agent-form { grid-template-columns: minmax(0, 1fr); }
+  .prep-nav { flex-wrap: wrap; }
+  .prep-nav .btn95, .prep-nav .btn95.big { flex: 1 1 140px; }
   main { padding: var(--s2) var(--s2) var(--s5); }
   .panel95 { padding: var(--s2) var(--s3); }
   .panel95[data-title] { padding-top: calc(30px + var(--s2)); }

@@ -1,14 +1,16 @@
 // node --test tests/  — 하네스(engine.js) 통합 테스트. 가짜 LLM으로 돌리므로 API 키가 필요 없다.
-// 판정을 한 턴 늦춰 '타겟의 실제 반응'까지 보고 채점하는 구조가 깨지지 않았는지 검증한다.
+// 판정을 한 턴 늦춰 '타겟의 실제 반응'까지 보고 채점하는 구조와,
+// 대화 내역 이월 · 공기(vibe) 주입이 깨지지 않았는지 검증한다.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Engine } from '../js/engine.js';
+import { Engine, prepReaction } from '../js/engine.js';
 import { COUPLE_BY_ID } from '../js/couples.js';
 import { diffOf } from '../js/scoring.js';
 
 const couple = COUPLE_BY_ID['os-war'];
 const D = diffOf(couple.difficulty);
 const TOTAL_TURNS = D.textTurns + D.talkTurns;
+const AGENT = { name: '박큐피드', gender: '기밀' };
 
 // ── 가짜 LLM ─────────────────────────────────────────────
 // label로 어떤 호출인지 구분해 결정적인 응답을 돌려준다. 동시성도 관측한다.
@@ -18,8 +20,9 @@ class FakeLlm {
     this.inFlight = 0;
     this.maxInFlight = 0;
     this.judgeFn = judge || (() => ({
-      tier: 'ok', moodDelta: 2, loveDelta: 3,
-      visiblePrefHit: '', hiddenPrefHit: '', redLineHit: false, reason: '무난',
+      tier: 'nudge', moodDelta: 2, loveDelta: 2,
+      reason: '무난', vibe: '대화는 굴러간다', revealed: '',
+      clientEmote: 'talk', targetEmote: 'nod',
     }));
   }
 
@@ -31,14 +34,15 @@ class FakeLlm {
     await new Promise(r => setTimeout(r, 5)); // 병렬성이 관측되도록 살짝 지연
     this.inFlight--;
 
-    if (label.startsWith('판정')) {
+    if (label.startsWith('판정') || label.startsWith('첫인상')) {
       rec.judgeUser = messages[0].content;
       return this.judgeFn(rec, this.calls.filter(c => c.label.startsWith('판정')).length);
     }
     if (label.includes('상황 생성')) {
-      return { place: '테스트 광장', intro: '만났다.', outfitReaction: '차림새가 그렇군요.' };
+      return { place: '테스트 광장', intro: '만났다.', outfitReaction: '차림새가 그렇군요.', vibe: '자리에 앉았다' };
     }
     if (label === '결과 편지') return { letter: '편지', epilogue: '근황', mvp: '결정타' };
+    if (label.includes('반응')) return { reaction: '알겠습니다만', face: 'cringe', note: '피조사자 동요 없음' };
     if (label.includes('발언')) return `클라이언트 발언 #${this.count('발언')}`;
     if (label.includes('응답')) return `타겟 응답 #${this.count('응답')}`;
     return '기타';
@@ -51,12 +55,15 @@ class FakeLlm {
 }
 
 async function playFull(llm, opts = {}) {
-  const events = { judge: [], bubbles: [] };
+  const events = { judge: [], bubbles: [], vibes: [], emotes: [] };
   const engine = new Engine(llm, {
-    couple, prep: opts.prep || { outfitDesc: '테스트 착장', coaching: '테스트 지침', speech: '테스트 연설' },
+    couple, agent: AGENT,
+    prep: opts.prep || { outfitDesc: '테스트 착장', coaching: '테스트 지침', speech: '테스트 연설' },
     handlers: {
       judge: j => events.judge.push(j),
       bubble: (who, text) => events.bubbles.push({ who, text }),
+      vibe: v => events.vibes.push(v),
+      emote: (slot, kind) => events.emotes.push({ slot, kind }),
       turn: opts.onTurn ? (t => opts.onTurn(engine, t)) : undefined,
     },
   });
@@ -99,10 +106,10 @@ test('판정은 한 턴 늦게 오지만 마지막 발언까지 반드시 정산
 test('심판에게 타겟의 실제 반응이 함께 전달된다', async () => {
   const llm = new FakeLlm();
   await playFull(llm);
-  const judges = llm.byLabel('판정').filter(c => !c.label.includes('첫인상'));
+  const judges = llm.byLabel('판정');
   assert.ok(judges.length >= TOTAL_TURNS);
   for (const j of judges) {
-    assert.match(j.judgeUser, /상대의 실제 반응/, '반응 블록이 없으면 실마리를 캤는지 알 수 없다');
+    assert.match(j.judgeUser, /상대의 실제 반응/, '반응 블록이 없으면 심판이 허공에 대고 채점한다');
     assert.match(j.judgeUser, /타겟 응답 #|차림새가 그렇군요/, '반응 본문이 실제로 들어가 있다');
   }
   // 첫인상 판정에는 착장에 대한 첫 반응이 들어간다
@@ -113,10 +120,9 @@ test('심판에게 타겟의 실제 반응이 함께 전달된다', async () => 
 test('심판이 채점하는 발언과 그 반응이 실제로 짝이 맞는다', async () => {
   const llm = new FakeLlm();
   await playFull(llm);
-  const judges = llm.byLabel('판정').filter(c => !c.label.includes('첫인상'));
-  for (const j of judges) {
-    const subject = j.judgeUser.match(/이번 발언\] (클라이언트 발언 #\d+)/)?.[1];
-    const reaction = j.judgeUser.match(/실제 반응\] (타겟 응답 #\d+)/)?.[1];
+  for (const j of llm.byLabel('판정')) {
+    const subject = j.judgeUser.match(/이번 발언\]\n(클라이언트 발언 #\d+)/)?.[1];
+    const reaction = j.judgeUser.match(/실제 반응\]\n(타겟 응답 #\d+)/)?.[1];
     if (!subject || !reaction) continue; // 대면 첫 턴은 반응이 나레이션일 수 있다
     assert.equal(subject.match(/\d+/)[0], reaction.match(/\d+/)[0],
       `${subject}의 반응은 같은 번호의 타겟 응답이어야 한다 (실제: ${reaction})`);
@@ -140,9 +146,15 @@ test('턴당 순차 왕복은 2회다 (발언 → 판정∥응답)', async () =>
   assert.equal(total, TOTAL_TURNS * 2 + (TOTAL_TURNS + 1) + 2, `총 호출 ${total}`);
 });
 
+test('국장 브리핑은 LLM을 쓰지 않는다', async () => {
+  const llm = new FakeLlm();
+  await playFull(llm);
+  assert.equal(llm.calls.filter(c => /브리핑/.test(c.label)).length, 0, '브리핑 호출이 남아 있다');
+});
+
 test('대면 상황 생성은 문자 마지막 턴 배치에 미리 태워진다', async () => {
   const llm = new FakeLlm();
-  const engine = new Engine(llm, { couple, prep: {}, handlers: {} });
+  const engine = new Engine(llm, { couple, prep: {}, agent: AGENT, handlers: {} });
   await engine.runTexting();
   assert.ok(engine.situationPromise, '문자 페이즈가 끝난 시점에 이미 상황 생성이 떠 있어야 한다');
   const before = llm.count('상황 생성');
@@ -158,11 +170,68 @@ test('에이전트·심판 시스템 프롬프트에는 캐시 breakpoint가 걸
       assert.ok(c.cache, `${c.label}: 턴마다 반복되는 호출인데 캐시가 꺼져 있다`);
     }
   }
-  // 시스템 프롬프트가 턴마다 바이트 동일해야 캐시가 붙는다
+  // 시스템 프롬프트가 턴마다 바이트 동일해야 캐시가 붙는다.
+  // 공기(vibe)를 시스템이 아니라 메시지로 흘려보내는 이유가 이것이다.
   const sys = llm.byLabel('문자 발언').map(c => c.system);
   assert.equal(new Set(sys).size, 1, '문자 페이즈 클라이언트 시스템 프롬프트가 턴마다 달라지면 캐시가 깨진다');
   const jsys = llm.byLabel('판정').map(c => c.system);
   assert.equal(new Set(jsys).size, 1, '심판 시스템 프롬프트는 항상 동일해야 한다');
+});
+
+// ── 공기(텍스트 분위기) ─────────────────────────────────
+test('심판이 갱신한 공기가 클라이언트에게 그대로 전달된다', async () => {
+  let n = 0;
+  const llm = new FakeLlm({
+    judge: () => ({
+      tier: 'nudge', moodDelta: 1, loveDelta: 2, reason: 'r',
+      vibe: `공기 상태 ${++n}`, revealed: '', clientEmote: 'talk', targetEmote: 'talk',
+    }),
+  });
+  const { events, engine } = await playFull(llm);
+  assert.ok(events.vibes.length >= 3, '공기가 UI로 흘러야 한다');
+  assert.match(engine.state.vibe, /공기 상태 \d+/);
+
+  const injected = llm.byLabel('대면 발언')
+    .flatMap(c => c.messages.map(m => String(m.content)))
+    .filter(t => t.includes('[지금 이 자리의 공기]'));
+  assert.ok(injected.length >= 1, '공기가 클라이언트 프롬프트에 주입되지 않았다');
+  assert.ok(injected.some(t => /공기 상태 \d+/.test(t)));
+});
+
+test('같은 공기를 매 턴 반복해서 주입하지 않는다', async () => {
+  const llm = new FakeLlm();   // 항상 같은 vibe를 돌려준다
+  await playFull(llm);
+  const last = llm.byLabel('대면 발언').at(-1).messages
+    .map(m => String(m.content)).join('\n');
+  const times = (last.match(/\[지금 이 자리의 공기\]/g) || []).length;
+  // 9턴을 도는 동안 3회면 충분하다: 시작 공기 1회, 심판이 처음 갱신했을 때 1회,
+  // 그리고 자리가 문자→대면으로 바뀌었을 때 1회. 값이 안 바뀌면 다시 말하지 않는다.
+  assert.ok(times <= 3, `공기가 ${times}번 반복 주입됐다`);
+  assert.ok(times < TOTAL_TURNS, '턴마다 같은 문장을 다시 밀어넣고 있다');
+});
+
+test('타겟에게는 공기를 주입하지 않는다 (공기는 심판이 타겟 반응을 보고 쓴 것이다)', async () => {
+  const llm = new FakeLlm();
+  await playFull(llm);
+  const leaked = llm.byLabel('대면 응답')
+    .flatMap(c => c.messages.map(m => String(m.content)))
+    .some(t => t.includes('[지금 이 자리의 공기]'));
+  assert.equal(leaked, false);
+});
+
+// ── 대화 내역 이월 ───────────────────────────────────────
+test('대면에서 문자 대화 내역을 이어받는다', async () => {
+  const llm = new FakeLlm();
+  await playFull(llm);
+  const firstTalk = llm.byLabel('대면 발언')[0].messages;
+  const flat = firstTalk.map(m => String(m.content)).join('\n');
+  assert.ok(firstTalk.length > 2, '대면 첫 발언이 빈 컨텍스트에서 시작하면 초면처럼 군다');
+  assert.ok(flat.includes('클라이언트 발언 #1'), '자기가 보낸 첫 문자를 기억해야 한다');
+  assert.ok(flat.includes('타겟 응답 #1'), '상대의 답장도 기억해야 한다');
+  assert.ok(flat.includes('[상황 전환]'), '자리가 바뀐 사실이 명시되어야 한다');
+
+  const firstTalkTarget = llm.byLabel('대면 응답')[0].messages.map(m => String(m.content)).join('\n');
+  assert.ok(firstTalkTarget.includes('클라이언트 발언 #1'), '상대도 주고받은 문자를 기억한다');
 });
 
 // ── 무전 ─────────────────────────────────────────────────
@@ -188,7 +257,7 @@ test('무전은 다음 발언 프롬프트에 주입되고 배급량을 넘지 �
 
 test('무전은 그 자체로 게이지를 바꾸지 않는다 (채점 대상이 아니다)', async () => {
   const llm = new FakeLlm();
-  const engine = new Engine(llm, { couple, prep: {}, handlers: {} });
+  const engine = new Engine(llm, { couple, prep: {}, agent: AGENT, handlers: {} });
   engine.radioLeft = 1;
   const before = { love: engine.state.love, mood: engine.state.mood };
   engine.submitRadio('아무 지시');
@@ -200,15 +269,15 @@ test('무전은 그 자체로 게이지를 바꾸지 않는다 (채점 대상이
 
 test('페이즈가 바뀌면 미주입 무전은 폐기된다', async () => {
   const llm = new FakeLlm();
-  const engine = new Engine(llm, { couple, prep: {}, handlers: {} });
+  const engine = new Engine(llm, { couple, prep: {}, agent: AGENT, handlers: {} });
   engine.radioLeft = 1;
   engine.submitRadio('문자 막판 지시');
   assert.ok(engine.pendingRadio);
-  await engine.runTalking({ place: 'p', intro: 'i', outfitReaction: 'r' });
+  await engine.runTalking({ place: 'p', intro: 'i', outfitReaction: 'r', vibe: 'v' });
   const leaked = llm.byLabel('대면 발언')
     .flatMap(c => c.messages.map(m => String(m.content)))
-    .some(t => t.includes('문자 막판 지시'));
-  assert.equal(leaked, false, '문자 페이즈 지시가 대면 맥락으로 새어나가면 안 된다');
+    .some(t => t.includes('[본부 무전 - 상대에게는 안 들림] 문자 막판 지시'));
+  assert.equal(leaked, false, '문자 페이즈에서 못 쓴 지시가 대면 맥락으로 새어나가면 안 된다');
 });
 
 // ── 준비물 주입 ──────────────────────────────────────────
@@ -220,46 +289,70 @@ test('준비물은 채점되지 않고 프롬프트로만 들어간다', async (
   assert.ok(clientSys.includes(prep.coaching));
   assert.ok(clientSys.includes(prep.speech));
   assert.ok(clientSys.includes(prep.outfitDesc));
+  assert.ok(clientSys.includes('박큐피드'), '요원 이름이 지침의 출처로 들어간다');
   // 준비물을 채점하는 호출이 없어야 한다
   const scoring = llm.calls.filter(c => /스타일링 채점|코칭 채점|연설 채점|무전 정확도/.test(c.label));
   assert.equal(scoring.length, 0, '준비물 채점 호출이 남아 있다');
 });
 
-test('타겟 에이전트는 착장을 알고, 클라이언트는 미확인 취향을 모른다', async () => {
+test('타겟 에이전트는 착장을 알고, 클라이언트는 상대의 비밀을 모른다', async () => {
   const llm = new FakeLlm();
   await playFull(llm, { prep: { outfitDesc: '형광 주황 턱시도', coaching: '', speech: '' } });
   const targetSys = llm.byLabel('대면 응답')[0].system;
   assert.ok(targetSys.includes('형광 주황 턱시도'));
   const clientSys = llm.byLabel('대면 발언')[0].system;
   for (const h of couple.target.hiddenPrefs) {
-    assert.ok(!clientSys.includes(h), `클라이언트 프롬프트에 미확인 취향이 새어 있다: ${h}`);
+    assert.ok(!clientSys.includes(h), `클라이언트 프롬프트에 상대의 비밀이 새어 있다: ${h}`);
   }
 });
 
+// ── 준비 단계 반응 ───────────────────────────────────────
+test('취조실·정문 반응은 별도 호출이고 게이지를 건드리지 않는다', async () => {
+  const llm = new FakeLlm();
+  const r1 = await prepReaction(llm, { couple, agent: AGENT, scene: 'coaching', text: '말 짧게 해라' });
+  const r2 = await prepReaction(llm, { couple, agent: AGENT, scene: 'speech', text: '' });
+  assert.equal(r1.reaction, '알겠습니다만');
+  assert.equal(r2.face, 'cringe');
+  assert.deepEqual(llm.calls.map(c => c.label), ['취조실 반응', '정문 반응']);
+  // 지침 원문과 요원 이름이 실제로 전달됐는지
+  assert.ok(llm.calls[0].messages[0].content.includes('말 짧게 해라'));
+  assert.ok(llm.calls[0].messages[0].content.includes('박큐피드'));
+});
+
 // ── 판정 결과가 상태에 제대로 꽂히는지 ──────────────────
-test('미확인 취향 적중이 누적되고 디브리핑에 반영된다', async () => {
-  const hidden = couple.target.hiddenPrefs;
+test('새로 드러난 것이 중복 없이 누적되고 디브리핑에 반영된다', async () => {
+  const facts = ['밤에 별을 본다', '형 얘기를 못 한다', '사실 밴드를 하고 싶었다'];
   let n = 0;
   const llm = new FakeLlm({
-    judge: () => {
-      const pick = hidden[n++ % (hidden.length + 2)]; // 목록을 한 바퀴 돌고 나면 빈 값
-      return {
-        tier: pick ? 'critical' : 'ok', moodDelta: 3, loveDelta: pick ? 9 : 3,
-        visiblePrefHit: '', hiddenPrefHit: pick || '', redLineHit: false, reason: 'r',
-      };
-    },
+    judge: () => ({
+      tier: 'warm', moodDelta: 3, loveDelta: 5, reason: 'r', vibe: 'v',
+      revealed: facts[n++ % (facts.length + 2)] || '',   // 목록을 한 바퀴 돌면 빈 값
+      clientEmote: 'talk', targetEmote: 'talk',
+    }),
   });
   const { result } = await playFull(llm);
-  assert.equal(result.state.hits.length, hidden.length, '중복 없이 전부 집계된다');
-  assert.equal(result.debrief.missed.length, 0);
-  assert.ok(result.verdict.accepted, '미확인 취향을 전부 캐면 성사되어야 한다');
+  assert.deepEqual(result.state.revealed, facts, '중복 없이 순서대로 쌓인다');
+  assert.equal(result.debrief.revealed.length, facts.length);
+  const note = result.debrief.notes.find(n2 => n2.key === 'revealed');
+  assert.equal(note.value, `${facts.length}건`);
+});
+
+test('좋은 판정이 계속 나오면 성사된다', async () => {
+  const llm = new FakeLlm({
+    judge: () => ({
+      tier: 'breakthrough', moodDelta: 6, loveDelta: 9, reason: 'r', vibe: 'v', revealed: '',
+      clientEmote: 'proud', targetEmote: 'laugh',
+    }),
+  });
+  const { result } = await playFull(llm);
+  assert.ok(result.verdict.accepted, `성사되지 않았다 (호감 ${result.verdict.love}/${result.difficulty.threshold})`);
 });
 
 test('분위기가 0이면 즉시 파탄나고 남은 턴을 돌지 않는다', async () => {
   const llm = new FakeLlm({
     judge: () => ({
-      tier: 'redline', moodDelta: -10, loveDelta: -9,
-      visiblePrefHit: '', hiddenPrefHit: '', redLineHit: true, reason: '지뢰',
+      tier: 'disaster', moodDelta: -10, loveDelta: -9, reason: '정색', vibe: '얼어붙었다', revealed: '',
+      clientEmote: 'panic', targetEmote: 'angry',
     }),
   });
   const { engine, result } = await playFull(llm);
@@ -275,12 +368,12 @@ test('LLM이 죽어도 판정은 중립으로 흐르고 게임은 끝까지 간�
   const llm = new FakeLlm();
   const orig = llm.call.bind(llm);
   llm.call = async (a) => {
-    if (a.label.startsWith('판정')) throw new Error('심판 다운');
+    if (a.label.startsWith('판정') || a.label.startsWith('첫인상')) throw new Error('심판 다운');
     return orig(a);
   };
   const { result } = await playFull(llm);
   assert.equal(result.state.history.length, TOTAL_TURNS + 1, '판정이 실패해도 턴은 전부 기록된다');
-  assert.ok(result.state.history.every(h => h.tier === 'empty'), '실패 시 중립(empty) 처리');
+  assert.ok(result.state.history.every(h => h.tier === 'flat'), '실패 시 중립(flat) 처리');
 });
 
 test('대면 첫인상은 착장+반응으로 채점되며 firstImpression으로 표시된다', async () => {
@@ -306,14 +399,25 @@ test('꾸미지 않으면 첫인상 판정에 그 사실이 명시된다', async
   assert.match(llm.byLabel('첫인상')[0].messages[0].content, /전혀 꾸미지 않았다/);
 });
 
+test('감정 신호가 UI로 전달된다', async () => {
+  const llm = new FakeLlm();
+  const { events } = await playFull(llm);
+  assert.ok(events.emotes.length >= TOTAL_TURNS, '판정마다 두 사람의 표정이 나와야 한다');
+  assert.ok(events.emotes.some(e => e.slot === 'client'));
+  assert.ok(events.emotes.some(e => e.slot === 'target' && e.kind === 'nod'));
+});
+
 test('snapshot이 UI가 필요한 값을 모두 담는다', async () => {
   const llm = new FakeLlm();
-  const engine = new Engine(llm, { couple, prep: {}, handlers: {} });
+  const engine = new Engine(llm, { couple, prep: {}, agent: AGENT, handlers: {} });
   const s = engine.snapshot();
   for (const k of ['love', 'mood', 'threshold', 'moodFloor', 'mult', 'radioLeft',
-    'foundCount', 'hiddenTotal', 'visibleTotal', 'redLines']) {
+    'revealedCount', 'secretTotal', 'visibleTotal']) {
     assert.equal(typeof s[k], 'number', `snapshot.${k} 누락`);
   }
-  assert.equal(s.hiddenTotal, couple.target.hiddenPrefs.length);
+  assert.ok(Array.isArray(s.revealed));
+  assert.equal(typeof s.vibe, 'string');
+  assert.ok(s.vibe.length > 0, '판정 전에도 보여줄 공기가 있어야 한다');
+  assert.equal(s.secretTotal, couple.target.hiddenPrefs.length);
   assert.equal(s.visibleTotal, couple.target.visiblePrefs.length);
 });
