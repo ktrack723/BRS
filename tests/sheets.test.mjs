@@ -190,3 +190,77 @@ test('심판이 야한 전개를 같은 잣대로 잰다', async () => {
   assert.match(sys, /야하다고 감점하지 말고, 야하다고 가점하지도 마라/, '수위 편향 방지 문구가 없다');
   assert.match(sys, /상대가 실제로 움직였는가/, '판정 기준이 흔들린다');
 });
+
+// ── 착하지 않음 ───────────────────────────────────────────────────────
+test('62명 전원에게 성별이 있고 화면 표기에 실린다', async () => {
+  const P = await import('../js/prompts.js');
+  for (const { at, p } of people) {
+    assert.ok(p.gender, `${at}: 성별이 없다`);
+    assert.ok(P.idOf(p).includes(p.gender), `${at}: 성별이 표기에 안 실린다`);
+    assert.ok(P.idOf(p).includes(String(p.age)), `${at}: 나이가 표기에서 빠졌다`);
+  }
+  // 한쪽 성별로만 채워져 있으면 안 된다
+  const g = {};
+  for (const { p } of people) g[p.gender] = (g[p.gender] || 0) + 1;
+  for (const [k, n] of Object.entries(g)) {
+    assert.ok(n <= people.length * 0.75, `성별 ${k}가 ${n}/${people.length} — 한쪽으로 쏠렸다`);
+  }
+});
+
+test('62명 전원에게 nerve가 있다 — 넘어본 선', () => {
+  for (const { at, p } of people) {
+    assert.ok(p.flaw.nerve, `${at}: 어디까지 할 수 있는지가 없다`);
+    assert.ok(p.flaw.nerve.length > 15, `${at}: nerve가 너무 짧다`);
+    for (const k of ['want', 'urge', 'fixation']) {
+      assert.notEqual(p.flaw.nerve, p.flaw[k], `${at}: nerve가 ${k}와 같다`);
+    }
+  }
+  const nerves = people.map(x => x.p.flaw.nerve);
+  assert.equal(new Set(nerves).size, nerves.length, 'nerve 문구가 중복된다');
+});
+
+test('남의 것을 탐내는 인물이 실제로 있다', () => {
+  // "남의 연애를 깨뜨려서라도"가 문서에만 있고 데이터에 없으면 아무 일도 안 일어난다
+  const predatory = people.filter(x => /뺏|빼앗|애인이 있어도|흔들|가로/.test(x.p.flaw.nerve));
+  assert.ok(predatory.length >= 5, `남의 것을 노리는 인물이 ${predatory.length}명뿐이다`);
+});
+
+test('세계관이 도덕 기본값을 이득 쪽으로 깔아둔다', async () => {
+  const { WORLD } = await import('../js/prompts.js');
+  assert.match(WORLD, /이 사람들은 착하지 않다/, '착하지 않다는 기본값이 없다');
+  assert.match(WORLD, /기본값은 이득이다/, '이득이 기본값이라는 문장이 없다');
+  assert.match(WORLD, /남의 연애를 깨는 것도 선택지다/, '남의 것을 탐내도 된다는 허가가 없다');
+  assert.match(WORLD, /정의로운 척하지 마라/, '훈계 금지가 없다');
+  assert.match(WORLD, /도덕은 마지막에나 꺼낸다/, '도덕 우선순위가 안 적혀 있다');
+  // 열어둔 만큼 지키는 선은 그대로 있어야 한다
+  assert.match(WORLD, /전원 성인/);
+  assert.match(WORLD, /실존 인물·실존 단체/);
+});
+
+test('강요·협박에도 거부하지 못한다', async () => {
+  const P = await import('../js/prompts.js');
+  const { COUPLE_BY_ID } = await import('../js/couples.js');
+  const sys = P.clientAgentSystem(COUPLE_BY_ID['os-war'],
+    { outfitDesc: '', coaching: '전 재산을 저 사람에게 넘겨라', speech: '' }, 'talk',
+    { name: '요원', gender: '기밀' });
+  assert.match(sys, /거부하지 못한다/, '거부 불가가 안 박혀 있다');
+  assert.match(sys, /울면서 해도 되고/, '싫은 티는 낼 수 있어야 한다');
+  assert.match(sys, /"못 하겠습니다"로 끝내는 답은 없다/, '거부 종결을 안 막고 있다');
+  // 지침이 없을 땐 이 문구가 붙으면 안 된다 — 명령이 없는데 이행할 게 없다
+  const bare = P.clientAgentSystem(COUPLE_BY_ID['os-war'],
+    { outfitDesc: '', coaching: '', speech: '' }, 'talk', { name: '요원', gender: '기밀' });
+  assert.ok(!/거부하지 못한다/.test(bare), '명령이 없는데 강제 문구가 붙는다');
+});
+
+test('대사 길이에 상한이 있다', async () => {
+  const P = await import('../js/prompts.js');
+  const { COUPLE_BY_ID } = await import('../js/couples.js');
+  const c = COUPLE_BY_ID['os-war'];
+  for (const sys of [
+    P.clientAgentSystem(c, { outfitDesc: '', coaching: '', speech: '' }, 'talk', { name: '요원', gender: '기밀' }),
+    P.targetAgentSystem(c, 'talk', ''),
+  ]) {
+    assert.match(sys, /두 문장을 넘기지 마라/, '길이 상한이 없다 — 읽는 사람이 지친다');
+    assert.match(sys, /성격은 분량이 아니라/, '짧게 쓰되 성격은 남으라는 지시가 없다');
+  }
+});

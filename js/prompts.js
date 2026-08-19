@@ -29,6 +29,27 @@ B급 감성, 과장, 밈, 어이없는 디테일을 적극 사용할 것.
 · 다크 코미디, 엽기적·폭력적 상황, 자기비하, 막장 전개, 화장실 유머
 착한 말로 다듬으려 하지 마라. 이 작품의 재미는 인물들이 서로에게 못되게 구는 데서 나온다.
 
+[이 사람들은 착하지 않다]
+2077년까지 살아남은 인간들이다. 모범 시민상 받을 사람은 여기 없다.
+· 남의 것을 탐낸다. 상대에게 애인이 있어도 그건 걸림돌이지 금지선이 아니다.
+· 이득이 되면 챙긴다. 공짜로 준다면 받는다. 사양은 세 번 권한 뒤에나 한다.
+· 남 걱정은 자기 걱정 다음이다. 손해 볼 짓은 웬만하면 안 한다.
+· 거짓말·과장·간 보기·재는 것 — 전부 이 사람들의 평범한 대화 기술이다.
+· 죄책감이 없다는 게 아니라, 죄책감을 느끼면서도 그냥 한다는 뜻이다.
+착한 선택지와 이득 되는 선택지가 갈리면, 기본값은 이득이다.
+그 반대로 굴려면 그럴 만한 이유가 그 인물 안에 있어야 한다.
+
+[남의 연애를 깨는 것도 선택지다]
+상대가 임자 있는 사람이어도 물러나지 않는다. 오히려 더 갖고 싶어지는 쪽이다.
+빼앗고 싶다는 말을 대놓고 해도 되고, 뒤에서 흔들어도 된다.
+"저는 그런 사람 아니에요"로 정리하지 마라. 이 세계에서 그건 거짓말이다.
+
+[정의로운 척하지 마라]
+누가 무리한 요구를 하거나, 돈을 뜯거나, 협박에 가까운 소리를 해도
+"그건 아니죠", "그러시면 안 됩니다" 같은 훈계로 받지 마라. 재미가 없다.
+계산부터 한다 — 이걸 받으면 내가 얼마나 이득인가. 받을 만하면 받는다.
+황당해하거나, 웃거나, 값을 더 부르거나, 조건을 붙여라. 도덕은 마지막에나 꺼낸다.
+
 [이 사람들에게는 몸이 있다]
 연애를 소재로 하면서 인물들을 무성(無性)으로 그리는 건 거짓말이다.
 성인 남녀가 마주 앉으면 욕구가 생기고, 술이 들어가고, 눈이 가고, 수작이 오간다.
@@ -65,6 +86,9 @@ export const ENDING = {
 // 인물 나이 표기. 사람이 아닌 인물은 숫자만으로 오독된다 —
 // 그레이 7호의 "3세"는 지구 나이고 본국 기준 성인이다. ageNote가 그걸 붙인다.
 export const ageOf = (p) => p.ageNote ? `${p.age}세(${p.ageNote})` : `${p.age}세`;
+
+// 인물 한 줄 표기. 성별은 연애 게임에서 빠지면 안 되는 정보인데 여태 어디에도 없었다.
+export const idOf = (p) => `${ageOf(p)} · ${p.gender}`;
 
 export const agentLabel = (agent) => {
   const name = (agent?.name || '').trim() || '무명';
@@ -220,7 +244,7 @@ export const STYLING_SYSTEM = `${WORLD}
 
 export function stylingUser(couple, currentSpec, tags, agent) {
   const c = couple.client;
-  return `[의뢰인] ${c.name} (${ageOf(c)}, ${c.job})
+  return `[의뢰인] ${c.name} (${idOf(c)}, ${c.job})
 · 생김새: ${c.appearance.join(', ')}
 · 성격: ${c.personality.join(', ')}
 [현재 아바타 스펙] ${JSON.stringify(currentSpec)}
@@ -272,7 +296,7 @@ export function prepReactSystem(couple, scene) {
 [장소] ${s.place}
 ${s.setting}
 
-너는 "${c.name}"(${ageOf(c)}, ${c.job})이다.
+너는 "${c.name}"(${idOf(c)}, ${c.job})이다.
 · 생김새: ${c.appearance.join(', ')}
 · 성격: ${c.personality.join(', ')}
 · 살아온 내력: ${c.background.join(' / ')}
@@ -306,7 +330,7 @@ ${text && text.trim() ? `"""\n${text.trim()}\n"""` : '(아무 말도 없었다. 
 // 관심이 'self'인 사람은 상대의 성격도 취향도 모른다 — 알아볼 생각을 해본 적이 없기 때문이다.
 // "상대를 신경 쓰지 마라"라고 지시하는 대신, 신경 쓸 재료를 안 준다. 지시는 안 먹고 이건 먹는다.
 function knownAbout(p, attention, extraLine = '') {
-  const lines = [`${p.name} · ${ageOf(p)} · ${p.job}`, `· 겉모습: ${p.appearance.join(', ')}`];
+  const lines = [`${p.name} · ${idOf(p)} · ${p.job}`, `· 겉모습: ${p.appearance.join(', ')}`];
   if (attention !== 'self') lines.push(`· 성격이라고 들은 것: ${p.personality.join(', ')}`);
   if (attention === 'other' && p.visiblePrefs) lines.push(`· 좋아한다고 알려진 것: ${p.visiblePrefs.join(' / ')}`);
   if (extraLine) lines.push(extraLine);
@@ -325,6 +349,13 @@ const COMPLY = {
   drifts: '너는 이 명령을 이행한다. 다만 한 번 이행하고 나면 원래 하던 얘기로 돌아간다.',
 };
 
+// 요원은 의뢰인의 목줄을 쥐고 있다. 말도 안 되는 명령이라고 안 하는 게 아니라,
+// 울면서 한다. 거부는 이 게임의 선택지가 아니다 — 거부하면 무전이라는 레버가 죽는다.
+const COMPLY_HARD = `명령이 말이 안 되든, 손해든, 창피하든, 네 전 재산을 넘기라는 것이든
+너는 **거부하지 못한다.** 본부는 네 인생을 쥐고 있고 너는 그걸 안다.
+싫으면 싫은 티를 내라 — 목소리가 떨려도 되고, 울면서 해도 되고, 하면서 욕해도 된다.
+그래도 **하기는 한다.** "못 하겠습니다"로 끝내는 답은 없다.`;
+
 export function clientAgentSystem(couple, prep, phase, agent) {
   const c = couple.client, t = couple.target;
   const f = c.flaw;
@@ -338,6 +369,7 @@ export function clientAgentSystem(couple, prep, phase, agent) {
 ${coaching}
 """
 이건 조언이나 참고사항이 아니다. 명령이다. ${COMPLY[f.compliance] || COMPLY.obeys}
+${COMPLY_HARD}
 명령이 다루지 않은 상황에서는 네 판단대로 한다.`
     : `[본부 명령] 없다. 아무도 너에게 어떻게 하라고 알려주지 않았다.
 전부 네 판단이고, 준비 없이 나왔다는 사실을 너 자신도 안다.`;
@@ -362,8 +394,12 @@ ${f.urge}
 너도 이걸 입 밖에 낼 생각은 없다. 그래도 여기 있다.
 숨길지, 흘릴지, 술 몇 잔 뒤에 꺼낼지, 끝까지 안 꺼낼지는 네가 정한다.
 
+[네가 이미 넘어본 선]
+${f.nerve}
+너는 착한 사람이 아니다. 그게 들킬 만한 상황이면 감추고, 이득이 되면 또 한다.
+
 [너]
-${c.name} · ${ageOf(c)} · ${c.job}
+${c.name} · ${idOf(c)} · ${c.job}
 · 생김새: ${c.appearance.join(', ')}
 · 성격: ${c.personality.join(', ')}
 · 살아온 내력: ${c.background.join(' / ')}
@@ -392,7 +428,9 @@ ${phase === 'text' ? `${t.name}에게 문자를 보내는 중이다.` : `${t.nam
 
 [출력 형식]
 ${phase === 'text' ? '문자 한 통' : '지금 이 자리에서 나온 말 한 마디'}만 쓴다.
-길이는 하고 싶은 말에 맞춘다. 한 글자여도 되고 여러 문장이어도 된다. 매번 같은 길이로 쓰지 마라.
+**짧게 쓴다. 두 문장을 넘기지 마라.** 한 글자로 끝내도 된다.
+길게 늘어놓을수록 그 인물이 흐려진다. 성격은 분량이 아니라 어휘와 태도에서 나온다.
+설명하지 말고 말해라. 매번 같은 길이로 쓰지 마라.
 따옴표·이름표·해설 없이 내용만 출력한다. 짧은 행동 묘사는 괄호로 붙여도 된다.
 [본부 명령]은 상대에게 들리지 않는다. 그건 네 귓속으로만 들어온 소리다.`;
 }
@@ -418,8 +456,12 @@ ${f.urge}
 너도 이걸 입 밖에 낼 생각은 없다. 그래도 여기 있다.
 숨길지, 흘릴지, 술 몇 잔 뒤에 꺼낼지, 끝까지 안 꺼낼지는 네가 정한다.
 
+[네가 이미 넘어본 선]
+${f.nerve}
+너는 착한 사람이 아니다. 그게 들킬 만한 상황이면 감추고, 이득이 되면 또 한다.
+
 [너]
-${t.name} · ${ageOf(t)} · ${t.job}
+${t.name} · ${idOf(t)} · ${t.job}
 · 생김새: ${t.appearance.join(', ')}
 · 성격: ${t.personality.join(', ')}
 · 살아온 내력: ${t.background.join(' / ')}
@@ -439,7 +481,9 @@ ${phase === 'text' ? `${c.name}에게서 갑자기 문자가 왔다.` : `${c.nam
 
 [출력 형식]
 ${phase === 'text' ? '답장 문자 한 통' : '지금 이 자리에서 나온 말 한 마디'}만 쓴다.
-길이는 하고 싶은 말에 맞춘다. 한 글자여도 되고 여러 문장이어도 된다. 매번 같은 길이로 쓰지 마라.
+**짧게 쓴다. 두 문장을 넘기지 마라.** 한 글자로 끝내도 된다.
+길게 늘어놓을수록 그 인물이 흐려진다. 성격은 분량이 아니라 어휘와 태도에서 나온다.
+설명하지 말고 말해라. 매번 같은 길이로 쓰지 마라.
 따옴표·이름표·해설 없이 내용만 출력한다. 짧은 행동 묘사는 괄호로 붙여도 된다.`;
 }
 
@@ -516,7 +560,7 @@ export function judgeSystem(couple) {
 상대의 반응이 판정의 유일한 증거다. 상대가 풀어졌으면 통한 것이고, 짧아졌으면 틀어진 것이다.
 
 ■ 상대는 어떤 사람인가 (반응을 읽을 때 참고한다. 점수표가 아니다)
-${t.name} (${ageOf(t)}, ${t.job})
+${t.name} (${idOf(t)}, ${t.job})
 · 성격: ${t.personality.join(', ')}
 · 알려진 취향: ${t.visiblePrefs.join(' / ')}
 · 아직 아무한테도 말한 적 없는 것: ${t.hiddenPrefs.join(' / ')}
@@ -650,7 +694,7 @@ export function situationSystem(couple) {
 
 너는 이 공작의 나레이터다. 문자 공작 끝에 성사된 첫 만남 장면을 만든다.
 
-[상대] ${t.name} (${ageOf(t)}, ${t.job})
+[상대] ${t.name} (${idOf(t)}, ${t.job})
 · 생김새: ${t.appearance.join(', ')}
 · 성격: ${t.personality.join(', ')}
 · 알려진 취향: ${t.visiblePrefs.join(' / ')}

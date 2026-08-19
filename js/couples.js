@@ -22,7 +22,7 @@ export const COUPLES = [
     clash: '30년째 서로를 공개 석상에서 인격 말살해온 정적(政敵)',
     winWord: '초당적 커플 성사',
     client: {
-      name: '힐라리 클링턴', age: 68, job: '前 국무장관 / 개인 이메일 서버 수집가',
+      name: '힐라리 클링턴', gender: '여', age: 68, job: '前 국무장관 / 개인 이메일 서버 수집가',
       story: '상원 청문회 11시간차. 서로 고성을 지르다가 문득 깨달았다. 저 인간, 11시간 동안 목이 한 번도 안 쉬었다. ' +
         '나는 3시간째부터 물을 여섯 잔 마셨는데. 그 폐활량에 반해버린 나 자신이 제일 싫다. 이 감정은 국가기밀이다.',
       appearance: ['금발 단발', '파란 파워수트', '중년', '눈빛에 소송 3건'],
@@ -32,7 +32,7 @@ export const COUPLES = [
       spec: S({ skin: '#f2d3b8', hair: '#e8c860', hairStyle: 'bowl', top: '#2b4fa8', bottom: '#2b4fa8', shoes: '#101010', heightScale: 0.97, widthScale: 1.0, accessory: 'glasses', accessoryColor: '#333333', expression: 'neutral', aura: 'none', species: 'human' }),
     },
     target: {
-      name: '도날두 트럼푸', age: 71, job: '골프 리조트 재벌 / 前 대통령',
+      name: '도날두 트럼푸', gender: '남', age: 71, job: '골프 리조트 재벌 / 前 대통령',
       appearance: ['주황빛 올백', '태닝한 피부', '빨간 넥타이', '체구가 큼'],
       personality: ['모든 문장을 최상급으로 끝냄', '칭찬에 즉시 무너짐', '집중력 8초'],
       visiblePrefs: ['자기 이름이 금색으로 박힌 물건', '시청률·조회수 숫자 이야기'],
@@ -51,7 +51,7 @@ export const COUPLES = [
     clash: '전산 오류로 3년째 법적 부부. 갈라서려면 먼저 진짜로 사귀어야 한다',
     winWord: '3년차 신혼 성사',
     client: {
-      name: '강태오', age: 29, job: '플로리스트',
+      name: '강태오', gender: '남', age: 29, job: '플로리스트',
       story: '혼인관계증명서를 떼다가 알았다. 3년 전부터 저 사람과 법적으로 부부였다. 서로 존재도 몰랐는데. ' +
         '이혼하려면 큐피드국 「혼인 실질 심사」를 통과해야 하고, 심사 기준은 단 하나 — 이 부부가 실제 연애 관계인가. ' +
         '기각되면 위장혼인으로 벌금 800만원. 즉 갈라서려면 먼저 진짜로 사귀어야 한다. 태오는 이 문장을 열두 번 읽었다.',
@@ -62,7 +62,7 @@ export const COUPLES = [
       spec: S({ skin: '#f5d5b5', hair: '#b8b8c4', hairStyle: 'long', top: '#e8e2d0', bottom: '#3a4a5a', shoes: '#8a6a4a', heightScale: 1.03, widthScale: 0.86, accessory: 'flower', accessoryColor: '#ff5599', expression: 'happy', aura: 'sparkle', species: 'human' }),
     },
     target: {
-      name: '윤하린', age: 30, job: '용접공 / 밴드 베이시스트',
+      name: '윤하린', gender: '여', age: 30, job: '용접공 / 밴드 베이시스트',
       appearance: ['짧은 검정 투블럭', '작업복', '팔뚝 문신', '어깨 넓음'],
       personality: ['말수 적음', '한 번 웃으면 크게 웃음', '불의를 못 참음'],
       visiblePrefs: ['큐피드국 욕하기', '공구·용접기 스펙 이야기'],
@@ -81,7 +81,7 @@ export const COUPLES = [
     clash: '어인(魚人) × 사자 퍼리. 생물학적으로 한쪽이 한쪽의 식사다',
     winWord: '종간(種間) 커플 성사',
     client: {
-      name: '아쿠아 박', age: 33, job: '심해 배관공 (어인)',
+      name: '아쿠아 박', gender: '남', age: 33, job: '심해 배관공 (어인)',
       story: '해저 3,200m 배관 점검 중, 수면 위에서 사자 갈기가 물에 비치는 걸 봤다. 노을이 갈기에 걸려 있었다. ' +
         '아쿠아는 그날 산소 게이지를 12분 초과했다. 문제는 저 사람 종족이 우리 종족을 회로 먹는다는 것이다.',
       appearance: ['청록색 비늘 피부', '지느러미 머리', '아가미', '축축함'],
@@ -91,7 +91,7 @@ export const COUPLES = [
       spec: S({ skin: '#4fc3c9', hair: '#1d7a86', hairStyle: 'fin', top: '#0f5f6b', bottom: '#0a4550', shoes: '#083840', heightScale: 1.04, widthScale: 1.05, accessory: 'none', accessoryColor: '#8ce8f0', expression: 'shy', aura: 'sparkle', species: 'fish' }),
     },
     target: {
-      name: '레오 킴', age: 28, job: '퍼리 슈트 제작 아티스트',
+      name: '레오 킴', gender: '남', age: 28, job: '퍼리 슈트 제작 아티스트',
       appearance: ['황금색 사자 풀슈트', '거대한 갈기', '슈트를 절대 안 벗음', '꼬리'],
       personality: ['장인 자부심', '수줍음', '슈트 안에서 표정을 숨김'],
       visiblePrefs: ['슈트 봉제 장인정신 이야기', '갈기 손질법'],
@@ -110,7 +110,7 @@ export const COUPLES = [
     clash: '커널 기여자 × 마이크로소프트 공인 강사. 20년째 진행 중인 성전(聖戰)',
     winWord: '듀얼 부팅 커플 성사',
     client: {
-      name: '리누스 정', age: 26, job: '커널 기여자 / Arch 유저',
+      name: '리누스 정', gender: '남', age: 26, job: '커널 기여자 / Arch 유저',
       story: '오픈소스 컨퍼런스 Q&A. 저 사람이 마이크를 잡고 "윈도우도 이제 쓸 만합니다"라고 말한 순간 장내가 얼어붙었는데, ' +
         '리누스만 심장이 얼어붙었다. 저런 도발을 저렇게 상냥하게 하는 사람은 처음 봤다.',
       appearance: ['부스스한 흑발', '검정 후드', '창백함', '거북목'],
@@ -120,7 +120,7 @@ export const COUPLES = [
       spec: S({ skin: '#e8d0c0', hair: '#2a2a2a', hairStyle: 'spiky', top: '#111111', bottom: '#2a3a4a', shoes: '#333333', heightScale: 1.0, widthScale: 0.88, accessory: 'glasses', accessoryColor: '#555555', expression: 'weird', aura: 'gloom', species: 'human' }),
     },
     target: {
-      name: '윤도우', age: 25, job: 'MS 공인 강사 / 파워토이 전도사',
+      name: '윤도우', gender: '여', age: 25, job: 'MS 공인 강사 / 파워토이 전도사',
       appearance: ['하늘색 염색 단발', '깔끔한 셔츠', '단정함', '늘 웃음'],
       personality: ['상냥한 도발', 'GUI 원리주의', '설명 욕구'],
       visiblePrefs: ['예쁜 GUI와 애니메이션', '드라이버가 그냥 잡히는 것'],
@@ -139,7 +139,7 @@ export const COUPLES = [
     clash: '도살장 앞 1인 시위 500일차 × 마장동 3대 정육점. 서로의 존재가 서로의 반대 진영이다',
     winWord: '식탁 휴전 커플 성사',
     client: {
-      name: '초록', age: 24, job: '비건 액티비스트',
+      name: '초록', gender: '여', age: 24, job: '비건 액티비스트',
       story: '도살장 앞 500일차 시위. 새벽 4시, 저 정육점 사장이 시위 텐트에 따뜻한 두유를 놓고 갔다. 두유였다. 두유. ' +
         '초록은 그날 피켓 문구를 세 번 고쳐 쓰다가 결국 못 썼다.',
       appearance: ['초록색 브레이드 머리', '해진 패딩', '피켓', '삐쩍 마름'],
@@ -149,7 +149,7 @@ export const COUPLES = [
       spec: S({ skin: '#f0d8c0', hair: '#3faa4a', hairStyle: 'twintail', top: '#6a8f5a', bottom: '#3a4a3a', shoes: '#5a4a3a', heightScale: 0.94, widthScale: 0.78, accessory: 'headband', accessoryColor: '#3faa4a', expression: 'angry', aura: 'fire', species: 'human' }),
     },
     target: {
-      name: '육점순', age: 27, job: '마장동 3대 정육점 사장 / 부위 감별 국가대표',
+      name: '육점순', gender: '남', age: 27, job: '마장동 3대 정육점 사장 / 부위 감별 국가대표',
       appearance: ['새빨간 앞치마', '올린 머리', '팔뚝 굵음', '칼집 흉터'],
       personality: ['무뚝뚝', '손이 빠름', '남 챙김'],
       visiblePrefs: ['칼 가는 소리', '새벽 4시 경매장 이야기'],
@@ -168,7 +168,7 @@ export const COUPLES = [
     clash: '뱀파이어 × 의성 마늘 6대 농장주. 상대의 직업이 상대에게 화학무기다',
     winWord: '흡혈 커플 성사',
     client: {
-      name: '블라드 최', age: 412, job: '야간 편의점 알바 (뱀파이어)',
+      name: '블라드 최', gender: '남', age: 412, job: '야간 편의점 알바 (뱀파이어)',
       story: '새벽 3시 편의점. 저 사람이 흙 묻은 손으로 흑마늘 진액을 계산대에 올렸다. 블라드는 바코드를 찍는 손이 타들어 가는 걸 참았다. ' +
         '412년 살면서 처음으로, 아픈 게 아깝지 않았다.',
       appearance: ['새하얀 피부', '검은 장발', '망토', '송곳니'],
@@ -178,7 +178,7 @@ export const COUPLES = [
       spec: S({ skin: '#f2f0f5', hair: '#151520', hairStyle: 'long', top: '#2a0d1a', bottom: '#1a0a12', shoes: '#0d0d12', heightScale: 1.08, widthScale: 0.9, accessory: 'none', accessoryColor: '#8a0d2a', expression: 'weird', aura: 'gloom', species: 'vampire' }),
     },
     target: {
-      name: '김마늘', age: 31, job: '의성 마늘 6대 농장주',
+      name: '김마늘', gender: '여', age: 31, job: '의성 마늘 6대 농장주',
       appearance: ['햇볕에 그을린 피부', '밀짚모자', '작업 장화', '건강한 체격'],
       personality: ['소탈함', '새벽형', '외로움을 잘 티냄'],
       visiblePrefs: ['흑마늘 90일 숙성 이야기', '새벽 농사 루틴'],
@@ -197,7 +197,7 @@ export const COUPLES = [
     clash: '고양이 알레르기 4급 × 40묘 집사. 상대의 집에 5분 이상 있으면 응급실이다',
     winWord: '항히스타민 커플 성사',
     client: {
-      name: '재채기', age: 30, job: '이비인후과 전공의',
+      name: '재채기', gender: '여', age: 30, job: '이비인후과 전공의',
       story: '응급실 새벽 당직. 고양이한테 물린 환자가 왔는데, 보호자가 자기 손등 상처보다 고양이 안부를 먼저 물었다. ' +
         '재채기는 그날 처음으로 알레르기약을 두 알 먹었다. 그 사람을 더 오래 보려고.',
       appearance: ['검은 곱슬', '흰 가운', '눈이 늘 충혈', '늘 한 발 물러서 있는 자세'],
@@ -207,7 +207,7 @@ export const COUPLES = [
       spec: S({ skin: '#f2d8bc', hair: '#2a1a14', hairStyle: 'afro', top: '#f4f4f4', bottom: '#4a5a6a', shoes: '#ffffff', heightScale: 1.0, widthScale: 0.95, accessory: 'glasses', accessoryColor: '#222222', expression: 'shy', aura: 'none', species: 'human' }),
     },
     target: {
-      name: '냥선생', age: 34, job: '고양이 호텔 사장 (집사 40묘)',
+      name: '냥선생', gender: '남', age: 34, job: '고양이 호텔 사장 (집사 40묘)',
       appearance: ['고양이 털투성이 니트', '갈색 포니테일', '늘 웅크린 자세', '손등 스크래치'],
       personality: ['고양이 얘기만 나오면 3배속', '사람 경계', '츄르 소믈리에'],
       visiblePrefs: ['고양이 사진 40장 보여주기', '츄르 브랜드 비교 토론'],
@@ -226,7 +226,7 @@ export const COUPLES = [
     clash: '새벽 4시 기상 × 새벽 4시 취침. 두 사람의 하루가 한 번도 겹치지 않는다',
     winWord: '시차 극복 커플 성사',
     client: {
-      name: '조기상', age: 28, job: '미라클모닝 유튜버 (구독자 40만)',
+      name: '조기상', gender: '남', age: 28, job: '미라클모닝 유튜버 (구독자 40만)',
       story: '새벽 4시 12분. 한강 러닝 중 늘 같은 벤치에 앉아 있는 사람을 봤다. 자기처럼 일찍 일어난 동지인 줄 알았는데, ' +
         '알고 보니 아직 안 잔 거였다. 조기상의 세계관이 그날 무너졌고, 그 자리에 저 사람이 들어왔다.',
       appearance: ['짧은 스포츠 머리', '기능성 러닝복', '탄탄한 체형', '눈 밑 그늘 없음'],
@@ -236,7 +236,7 @@ export const COUPLES = [
       spec: S({ skin: '#e8c8a0', hair: '#1a1a1a', hairStyle: 'short', top: '#ff6a00', bottom: '#1a1a1a', shoes: '#ffffff', heightScale: 1.04, widthScale: 1.06, accessory: 'headband', accessoryColor: '#ff6a00', expression: 'happy', aura: 'fire', species: 'human' }),
     },
     target: {
-      name: '밤샘', age: 26, job: '심야 라디오 DJ / 새벽 만화가',
+      name: '밤샘', gender: '여', age: 26, job: '심야 라디오 DJ / 새벽 만화가',
       appearance: ['보라색 장발', '후줄근한 후드', '햇빛 본 지 오래된 낯빛', '눈 밑이 검게 내려앉음'],
       personality: ['목소리가 좋음', '낮에는 무기력', '새벽에 철학자'],
       visiblePrefs: ['새벽 3시 도시의 소음', '라디오 사연 읽어주기'],
@@ -255,7 +255,7 @@ export const COUPLES = [
     clash: 'MBTI·사주 융합 상담사 × 유사과학 저격 통계학 박사',
     winWord: 'p<0.05 커플 성사',
     client: {
-      name: '신점집', age: 35, job: 'MBTI 사주 융합 상담사',
+      name: '신점집', gender: '여', age: 35, job: 'MBTI 사주 융합 상담사',
       story: '유사과학 저격 강연에 잠입했다. 저 박사가 자기 채널을 슬라이드에 띄우고 12분 동안 해부했다. ' +
         '근데 자기 이론을 그렇게 정확하게 요약한 사람은 처음이었다. 신점집은 그날 강연 후 명함을 받으려다 세 번 되돌아섰다.',
       appearance: ['보라색 웨이브 장발', '자수정 목걸이', '개량 한복', '작은 키'],
@@ -265,7 +265,7 @@ export const COUPLES = [
       spec: S({ skin: '#f5dcc0', hair: '#7a3aa8', hairStyle: 'long', top: '#c9a8e8', bottom: '#5a3a7a', shoes: '#8a6ab0', heightScale: 0.9, widthScale: 0.94, accessory: 'flower', accessoryColor: '#c060ff', expression: 'weird', aura: 'sparkle', species: 'human' }),
     },
     target: {
-      name: '표준편', age: 33, job: '통계학 박사 / 유사과학 저격 블로거',
+      name: '표준편', gender: '남', age: 33, job: '통계학 박사 / 유사과학 저격 블로거',
       appearance: ['짧은 흑발', '무채색 셔츠', '무테 안경', '눈을 잘 안 마주침'],
       personality: ['유의수준을 대화에 끌어들임', '뭘 듣든 반례부터 찾음', '농담에 "그건 표본이 1이죠"로 답함'],
       visiblePrefs: ['p값과 재현성 위기 이야기', '데이터로 반박당하는 것'],
@@ -284,7 +284,7 @@ export const COUPLES = [
     clash: '부먹 근본주의 교주 × 찍먹 원리주의 협회장. 민족 최대의 성전',
     winWord: '반반 커플 성사',
     client: {
-      name: '부어라', age: 31, job: '중식당 4대 사장 / 부먹연맹 총재',
+      name: '부어라', gender: '남', age: 31, job: '중식당 4대 사장 / 부먹연맹 총재',
       story: '전국 탕수육 토론회 결승. 저 칼럼니스트가 3시간 동안 자기를 논파했다. 마지막에 소스 그릇을 들고 "그래도 맛있게 드세요"라며 웃었다. ' +
         '부어라는 그날 밤 처음으로 탕수육에 소스를 안 부었다.',
       appearance: ['기름진 올백', '중식 조리복', '팔뚝에 화상 자국', '단단한 체격'],
@@ -294,7 +294,7 @@ export const COUPLES = [
       spec: S({ skin: '#e8c090', hair: '#1a1208', hairStyle: 'short', top: '#f0e8d8', bottom: '#2a2a2a', shoes: '#1a1a1a', heightScale: 1.0, widthScale: 1.25, accessory: 'mustache', accessoryColor: '#1a1208', expression: 'chad', aura: 'fire', species: 'human' }),
     },
     target: {
-      name: '찍어라', age: 29, job: '푸드 칼럼니스트 / 찍먹협회장',
+      name: '찍어라', gender: '여', age: 29, job: '푸드 칼럼니스트 / 찍먹협회장',
       appearance: ['깔끔한 단발', '베이지 트렌치', '가는 손목', '늘 수첩'],
       personality: ['논리적', '까칠하지만 정중', '미식 집착'],
       visiblePrefs: ['튀김옷 바삭도 측정 데이터', '소스 산도(pH) 이야기'],
@@ -313,7 +313,7 @@ export const COUPLES = [
     clash: 'LCK 프로게이머 × 게임중독대책위 사무국장. 상대의 직업이 내 직업을 없애려 한다',
     winWord: '셧다운 해제 커플 성사',
     client: {
-      name: '페이컷', age: 22, job: 'LCK 미드라이너',
+      name: '페이컷', gender: '남', age: 22, job: 'LCK 미드라이너',
       story: '국회 공청회 참고인석. 맞은편에 앉은 사무국장이 자기를 향해 "이 청년도 피해자입니다"라고 말했다. ' +
         '아무도 페이컷에게 피해자라고 말해준 적이 없었다. 그날 밤 솔랭 12연패했다.',
       appearance: ['탈색 은발', '팀 유니폼', '앉은 자세가 굽었다', '손목 보호대'],
@@ -323,7 +323,7 @@ export const COUPLES = [
       spec: S({ skin: '#f0dcc8', hair: '#e8e8f0', hairStyle: 'spiky', top: '#1a2a6a', bottom: '#1a1a2a', shoes: '#ff3355', heightScale: 1.0, widthScale: 0.82, accessory: 'headband', accessoryColor: '#1a2a6a', expression: 'neutral', aura: 'none', species: 'human' }),
     },
     target: {
-      name: '정화연', age: 39, job: '청소년게임중독대책위 사무국장',
+      name: '정화연', gender: '여', age: 39, job: '청소년게임중독대책위 사무국장',
       appearance: ['단정한 갈색 단발', '정장', '피곤한 눈', '어깨가 한쪽으로 기울어 있음'],
       personality: ['말이 조리 있음', '벽이 두꺼움', '아들 얘기엔 무너짐'],
       visiblePrefs: ['청소년 상담 사례 이야기', '밤 12시 취침 원칙'],
@@ -342,7 +342,7 @@ export const COUPLES = [
     clash: '전 재산 12개 미니멀리스트 × 수집품 4만 점 호더. 같은 공간에 살 수 없다',
     winWord: '수납 커플 성사',
     client: {
-      name: '공백', age: 36, job: '미니멀리스트 (소유물 12개)',
+      name: '공백', gender: '남', age: 36, job: '미니멀리스트 (소유물 12개)',
       story: '중고거래 앱. "무료 나눔 - 90년대 로봇 4,200개, 직접 와서 가져가세요"라는 글에 홀려서 갔다. ' +
         '문을 열자 사람이 수집품 사이에 파묻혀 울고 있었다. 공백은 그날 처음으로 물건을 하나 늘렸다. 그 사람이 준 로봇 하나를.',
       appearance: ['민머리', '흰 무지 티', '군더더기 없는 체형', '가방 없음'],
@@ -352,7 +352,7 @@ export const COUPLES = [
       spec: S({ skin: '#e8d0b8', hair: '#3a3a3a', hairStyle: 'bald', top: '#f8f8f8', bottom: '#e8e8e8', shoes: '#dddddd', heightScale: 1.02, widthScale: 0.9, accessory: 'none', accessoryColor: '#cccccc', expression: 'neutral', aura: 'none', species: 'human' }),
     },
     target: {
-      name: '만물상', age: 41, job: '3층 창고형 자택 거주 / 수집품 4만 점',
+      name: '만물상', gender: '여', age: 41, job: '3층 창고형 자택 거주 / 수집품 4만 점',
       appearance: ['헝클어진 장발', '빈티지 티셔츠 겹쳐 입음', '통통함', '먼지'],
       personality: ['수다스러움', '물건에 사연 부여', '버리는 걸 못 함'],
       visiblePrefs: ['희귀 수집품 자랑 들어주기', '90년대 굿즈 이야기'],
@@ -371,7 +371,7 @@ export const COUPLES = [
     clash: '외계 침공군 정찰병 × UFO 폭로 유튜버. 정체가 들키는 순간 침공 작전이 무산된다',
     winWord: '제1종 근접조우 커플 성사',
     client: {
-      name: '그레이 7호', age: 3, ageNote: '지구 나이 · 본국 기준 성인', job: '편의점 야간 (위장 취업) / 외계 정찰병',
+      name: '그레이 7호', gender: '무성', age: 3, ageNote: '지구 나이 · 본국 기준 성인', job: '편의점 야간 (위장 취업) / 외계 정찰병',
       story: '지구 문화 학습 임무 中. 조회수 12회짜리 UFO 폭로 방송을 우연히 봤다. 저 인간은 3년째 아무도 안 믿어주는데 매일 방송을 켠다. ' +
         '7호는 침공 보고서 제출을 벌써 40일째 미루고 있다.',
       appearance: ['회색 피부', '거대한 검은 눈', '더듬이', '작고 마름'],
@@ -381,7 +381,7 @@ export const COUPLES = [
       spec: S({ skin: '#b8c8d0', hair: '#8a9aa8', hairStyle: 'bald', top: '#5a7a8a', bottom: '#3a5a6a', shoes: '#2a4a5a', heightScale: 0.82, widthScale: 0.76, accessory: 'antenna', accessoryColor: '#7affd8', expression: 'weird', aura: 'sparkle', species: 'alien' }),
     },
     target: {
-      name: '진실탐사대', age: 44, job: 'UFO 폭로 유튜버 (구독자 800명)',
+      name: '진실탐사대', gender: '남', age: 44, job: 'UFO 폭로 유튜버 (구독자 800명)',
       appearance: ['은박 모자', '헝클어진 반백 머리', '낡은 야상', '구부정함'],
       personality: ['열정 과다', '외로움', '남 말 잘 믿음'],
       visiblePrefs: ['51구역 은폐 이야기', '은박 모자 패션 품평'],
@@ -400,7 +400,7 @@ export const COUPLES = [
     clash: '지성체 좀비 × 좀비대응특공대 저격수. 상대의 KPI가 내 머리다',
     winWord: '사후(死後) 커플 성사',
     client: {
-      name: '워커 진', age: 34, job: '시체 분장 배우 (위장) / 사망 6년차 좀비',
+      name: '워커 진', gender: '남', age: 34, job: '시체 분장 배우 (위장) / 사망 6년차 좀비',
       story: '좀비 영화 촬영장. 특공대 자문으로 온 저격수가 엑스트라 좀비들 사이에서 진을 3초 만에 지목했다. "저 사람만 진짜 같은데요." ' +
         '진은 그 말이 6년 만에 들은 가장 다정한 말이었다.',
       appearance: ['잿빛 피부', '실밥 자국', '늘어진 검은 머리', '한쪽 어깨가 처짐'],
@@ -410,7 +410,7 @@ export const COUPLES = [
       spec: S({ skin: '#9ab08a', hair: '#2a2a20', hairStyle: 'long', top: '#5a5040', bottom: '#3a3830', shoes: '#2a2820', heightScale: 1.02, widthScale: 1.0, accessory: 'none', accessoryColor: '#7a3a3a', expression: 'weird', aura: 'gloom', species: 'zombie' }),
     },
     target: {
-      name: '헌터 오', age: 30, job: '좀비대응특공대 저격수',
+      name: '헌터 오', gender: '여', age: 30, job: '좀비대응특공대 저격수',
       appearance: ['짧은 갈색 머리', '전술 조끼', '탄탄함', '흉터'],
       personality: ['과묵', '경계심 최상', '규정 준수'],
       visiblePrefs: ['총기 정비 루틴', '생존 배낭 꾸리기'],
@@ -429,7 +429,7 @@ export const COUPLES = [
     clash: '층간소음 신고 1,204건 × 위층 홈 드럼 스트리머. 신고 대상과 신고자다',
     winWord: '방음 커플 성사',
     client: {
-      name: '조용히', age: 38, job: '아파트 자치회 소음분과장 (신고 1,204건)',
+      name: '조용히', gender: '여', age: 38, job: '아파트 자치회 소음분과장 (신고 1,204건)',
       story: '1,204번째 신고를 넣으러 관리사무소에 갔다가, 위층 사람이 방음공사 견적서를 들고 울고 있는 걸 봤다. ' +
         '4,800만원. 조용히는 그날 1,205번째 신고를 취소했다.',
       appearance: ['가르마 탄 흑발', '회색 카디건', '평범', '늘 귀마개 목에 걸침'],
@@ -439,7 +439,7 @@ export const COUPLES = [
       spec: S({ skin: '#ecd8c0', hair: '#241a12', hairStyle: 'bowl', top: '#9a9a9a', bottom: '#4a4a55', shoes: '#3a3a3a', heightScale: 0.99, widthScale: 0.96, accessory: 'headband', accessoryColor: '#dd4444', expression: 'angry', aura: 'none', species: 'human' }),
     },
     target: {
-      name: '두둠칫', age: 25, job: '홈 드럼 스트리머 (위층 거주)',
+      name: '두둠칫', gender: '남', age: 25, job: '홈 드럼 스트리머 (위층 거주)',
       appearance: ['형광 분홍 머리', '민소매', '팔 근육', '늘 스틱을 들고 있음'],
       personality: ['에너지 폭발', '미안함을 숨김', '리듬으로 말함'],
       visiblePrefs: ['방음 부스 스펙 이야기', '좋은 스네어 소리'],
@@ -458,7 +458,7 @@ export const COUPLES = [
     clash: '뱀 217마리 브리더 × 뱀 공포증을 못 고친 공포증 전문 상담사',
     winWord: '노출치료 커플 성사',
     client: {
-      name: '서파인', age: 32, job: '파충류 브리더 (뱀 217마리)',
+      name: '서파인', gender: '여', age: 32, job: '파충류 브리더 (뱀 217마리)',
       story: '공포증 극복 워크숍에 뱀 강사로 초빙됐다. 상담사가 자기 뱀을 보고 기절했다. 깨어나서 제일 먼저 한 말이 "죄송해요, 제 직업이 이건데"였다. ' +
         '서파인은 그날 처음으로 뱀보다 사람이 더 궁금해졌다.',
       appearance: ['초록빛 브레이드', '비늘 무늬 재킷', '길쭉한 체형', '차가운 손'],
@@ -468,7 +468,7 @@ export const COUPLES = [
       spec: S({ skin: '#e0dcc0', hair: '#2a7a4a', hairStyle: 'long', top: '#3a6a4a', bottom: '#2a3a2a', shoes: '#1a2a1a', heightScale: 1.06, widthScale: 0.84, accessory: 'none', accessoryColor: '#7aff9a', expression: 'weird', aura: 'none', species: 'human' }),
     },
     target: {
-      name: '안심해', age: 35, job: '공포증 전문 심리상담사 (본인은 뱀 공포증)',
+      name: '안심해', gender: '남', age: 35, job: '공포증 전문 심리상담사 (본인은 뱀 공포증)',
       appearance: ['부드러운 갈색 단발', '니트 가디건', '온화한 인상', '앉으면 손을 무릎에 포갠다'],
       personality: ['목소리가 낮고 안정적', '남 걱정만 함', '자기 문제는 방치'],
       visiblePrefs: ['노출치료 이론 이야기', '차분한 호흡법 공유'],
@@ -487,7 +487,7 @@ export const COUPLES = [
     clash: '2231년에서 온 시간여행자 × 전기를 거부하는 기계파괴주의 촌장',
     winWord: '시간선 병합 커플 성사',
     client: {
-      name: '크로노 강', age: 27, job: '시간관리국 도망자 (2231년생)',
+      name: '크로노 강', gender: '여', age: 27, job: '시간관리국 도망자 (2231년생)',
       story: '2077년으로 도주 중 연료가 떨어져 산속 공동체에 숨어들었다. 촌장이 장작을 패는 걸 3일 동안 봤다. ' +
         '2231년에는 아무도 손으로 뭘 만들지 않는다. 크로노는 귀환 신호를 껐다.',
       appearance: ['형광 하늘색 짧은 머리', '홀로그램 재킷', '날렵함', '관자놀이에 단자'],
@@ -497,7 +497,7 @@ export const COUPLES = [
       spec: S({ skin: '#f0dcc8', hair: '#6adcff', hairStyle: 'spiky', top: '#2a3a6a', bottom: '#1a2a4a', shoes: '#8adcff', heightScale: 1.01, widthScale: 0.9, accessory: 'sunglasses', accessoryColor: '#6adcff', expression: 'happy', aura: 'sparkle', species: 'robot' }),
     },
     target: {
-      name: '손망치', age: 45, job: '기계파괴주의 공동체 촌장 (전기 없이 삶)',
+      name: '손망치', gender: '남', age: 45, job: '기계파괴주의 공동체 촌장 (전기 없이 삶)',
       appearance: ['희끗한 장발과 수염', '손수 짠 옷', '두꺼운 손', '단단한 체격'],
       personality: ['느긋함', '고집', '말보다 손'],
       visiblePrefs: ['손편지 받기', '장작 패는 리듬 이야기'],
@@ -516,7 +516,7 @@ export const COUPLES = [
     clash: '국세청 조사4국 팀장 × 익명 크립토 해커. 한쪽이 한쪽을 수배 중이다',
     winWord: '자진신고 커플 성사',
     client: {
-      name: '세무진', age: 37, job: '국세청 조사4국 팀장',
+      name: '세무진', gender: '남', age: 37, job: '국세청 조사4국 팀장',
       story: '3년째 추적 중인 지갑 주소가 매달 같은 날 소아암 재단에 익명 기부를 한다. 금액도 같다. ' +
         '세무진은 그 패턴을 보고서에 쓰지 못했다. 대신 캘린더에 그 날짜를 표시해두었다.',
       appearance: ['단정한 가르마', '남색 정장', '평범한 체격', '늘 서류가방'],
@@ -526,7 +526,7 @@ export const COUPLES = [
       spec: S({ skin: '#eed8c0', hair: '#1f1a14', hairStyle: 'short', top: '#2a3a5a', bottom: '#22304a', shoes: '#1a1a1a', heightScale: 1.0, widthScale: 1.0, accessory: 'glasses', accessoryColor: '#333333', expression: 'neutral', aura: 'none', species: 'human' }),
     },
     target: {
-      name: '0xGHOST', age: 24, job: '익명 크립토 해커',
+      name: '0xGHOST', gender: '여', age: 24, job: '익명 크립토 해커',
       appearance: ['후드로 얼굴 가림', '형광 초록 앞머리만 보임', '깡마름', 'LED 마스크'],
       personality: ['냉소적', '정부 불신', '겁이 많음'],
       visiblePrefs: ['프라이버시 코인 기술 이야기', '암호학 논문 잡담'],
@@ -545,7 +545,7 @@ export const COUPLES = [
     clash: '우주광명회 교주 × 사이비 피해자 구제 전문 변호사. 법정에서 12번 만난 사이',
     winWord: '해산 신고 커플 성사',
     client: {
-      name: '빛나신다', age: 48, job: '우주광명회 교주 (신도 3,000)',
+      name: '빛나신다', gender: '남', age: 48, job: '우주광명회 교주 (신도 3,000)',
       story: '12번째 재판. 저 변호사가 최후변론에서 울었다. "이 사람들도 누군가의 가족입니다." 피해자들 얘기였는데, ' +
         '빛나신다는 자기 신도들 생각을 하며 같이 울 뻔했다. 그날 이후 헌금 목표액을 못 올리고 있다. ' +
         '이제 바라는 건 승소도 신도 증원도 아니다. 법정 말고 다른 데서 저 사람을 만나는 것. 그것 하나다.',
@@ -556,7 +556,7 @@ export const COUPLES = [
       spec: S({ skin: '#f0dcc0', hair: '#f8f4e8', hairStyle: 'long', top: '#e8c84a', bottom: '#d8b83a', shoes: '#b89a2a', heightScale: 1.12, widthScale: 1.1, accessory: 'crown', accessoryColor: '#ffe066', expression: 'chad', aura: 'sparkle', species: 'human' }),
     },
     target: {
-      name: '박변', age: 36, job: '사이비 피해자 구제 전문 변호사',
+      name: '박변', gender: '여', age: 36, job: '사이비 피해자 구제 전문 변호사',
       appearance: ['질끈 묶은 머리', '구겨진 정장', '눈 밑에 파스 자국', '마름'],
       personality: ['날이 서 있음', '번아웃', '정의감'],
       visiblePrefs: ['판례 이야기', '무료 변론 성과 자랑'],
@@ -575,7 +575,7 @@ export const COUPLES = [
     clash: '안드로이드 바리스타 × AI 반대 시위 주동 화가. 상대는 내 존재 자체를 반대한다',
     winWord: '튜링 커플 성사',
     client: {
-      name: '클로디아-7', age: 2, ageNote: '가동 연차 · 외형 20대 후반', job: '안드로이드 바리스타 (가동 2년차)',
+      name: '클로디아-7', gender: '무성', age: 2, ageNote: '가동 연차 · 외형 20대 후반', job: '안드로이드 바리스타 (가동 2년차)',
       story: 'AI 반대 시위대가 카페 앞을 지나갔다. 맨 앞에서 피켓을 든 화가가 유리창 너머로 클로디아를 봤다. ' +
         '눈이 마주친 0.4초. 클로디아는 그 프레임을 2년째 캐시에서 지우지 못하고 있다.',
       appearance: ['금속 은색 피부', '광섬유 백발', '관절 이음새', '정확히 170cm'],
@@ -585,7 +585,7 @@ export const COUPLES = [
       spec: S({ skin: '#c8ccd4', hair: '#eef4ff', hairStyle: 'short', top: '#5a6a8a', bottom: '#3a4a6a', shoes: '#8a9ab0', heightScale: 1.03, widthScale: 0.94, accessory: 'antenna', accessoryColor: '#66ddff', expression: 'neutral', aura: 'sparkle', species: 'robot' }),
     },
     target: {
-      name: '붓칠', age: 33, job: '화가 / AI 반대 시위 주동자',
+      name: '붓칠', gender: '남', age: 33, job: '화가 / AI 반대 시위 주동자',
       appearance: ['물감 묻은 검은 앞치마', '헝클어진 밤색 머리', '손끝 갈라짐', '마른 체형'],
       personality: ['날카로움', '자존심', '무너지기 직전'],
       visiblePrefs: ['유화 물감 냄새 이야기', '손그림 작업 과정 영상'],
@@ -609,7 +609,7 @@ export const COUPLES = [
     clash: '서로의 성별을 혐오해서 먹고사는 두 사람. 상대가 사라지면 둘 다 실업자다',
     winWord: '휴전선 넘은 커플 성사',
     client: {
-      name: '하수연', age: 28, job: '유튜버 「남자 없이도」 / 구독자 41만',
+      name: '하수연', gender: '여', age: 28, job: '유튜버 「남자 없이도」 / 구독자 41만',
       story: '지상파 토론 프로에 둘이 마주 앉았다. 92분 동안 서로의 인격을 분해했고, 그 회차가 채널 역대 조회수 1위가 됐다. ' +
         '수연이 견딜 수 없는 건 이거다. 저 인간은 내 영상을 3년치 전부 봤다. 반박하려고. 아무도 그렇게까지 봐준 적이 없다.',
       appearance: ['짧게 친 검은 머리', '무채색 오버핏', '화장기 없음', '카메라를 노려보는 눈'],
@@ -619,7 +619,7 @@ export const COUPLES = [
       spec: S({ skin: '#f0d8c0', hair: '#1a1a1a', hairStyle: 'buzz', top: '#2a2a2e', bottom: '#3a3a40', shoes: '#1a1a1a', heightScale: 1.0, widthScale: 0.9, accessory: 'earrings', accessoryColor: '#cc3355', expression: 'angry', aura: 'lightning', species: 'human' }),
     },
     target: {
-      name: '강도현', age: 31, job: '「알파 남성 연구소」 소장 / 수강료 240만원',
+      name: '강도현', gender: '남', age: 31, job: '「알파 남성 연구소」 소장 / 수강료 240만원',
       appearance: ['기름 넘긴 올백', '몸에 붙는 셔츠', '과하게 큰 시계', '헬스로 만든 어깨'],
       personality: ['모든 대화를 서열 정리로 받아들임', '거절당하면 즉시 이론을 만듦', '혼자 있으면 무너짐'],
       visiblePrefs: ['자기 수강생 성공 사례 이야기', '헬스 3분할 루틴 논쟁'],
@@ -638,7 +638,7 @@ export const COUPLES = [
     clash: '출산율 0.008 국가에서 반출산주의자와 8남매 아버지를 붙였다. 본국의 자해 행위다',
     winWord: '국가비상사태 커플 성사',
     client: {
-      name: '무산아', age: 34, job: '반출산주의 단체 「그만 낳자」 대표',
+      name: '무산아', gender: '여', age: 34, job: '반출산주의 단체 「그만 낳자」 대표',
       story: '큐피드국 규탄 시위 현장. 산아는 확성기를 잡고 있었고, 저 사람은 유아차 넷을 끌고 지나가다 멈춰 서서 연설을 끝까지 들었다. ' +
         '그리고 딱 한마디 했다. "힘드셨겠네요." 산아는 그날 밤 처음으로 자기 구호를 의심했다. 그게 제일 화가 난다.',
       appearance: ['잿빛 긴 생머리', '검은 후드', '피켓 자국 난 손바닥', '핏기 없는 입술'],
@@ -648,7 +648,7 @@ export const COUPLES = [
       spec: S({ skin: '#ead6c8', hair: '#8a8a92', hairStyle: 'long', top: '#1e1e22', bottom: '#2a2a2e', shoes: '#3a3a3a', heightScale: 1.0, widthScale: 0.84, accessory: 'none', accessoryColor: '#666666', expression: 'sad', aura: 'gloom', species: 'human' }),
     },
     target: {
-      name: '나팔개', age: 38, job: '8남매 아버지 / 유아용품 대리점 점주',
+      name: '나팔개', gender: '남', age: 38, job: '8남매 아버지 / 유아용품 대리점 점주',
       appearance: ['부스스한 머리', '늘어난 티셔츠', '어깨에 아기 침 자국', '눈 밑 그늘'],
       personality: ['아무 상황에서도 잠들 수 있음', '남 얘기를 진심으로 들음', '자기 얘기는 안 함'],
       visiblePrefs: ['육아 꿀팁 교환', '정부 지원금 신청 요령'],
@@ -667,7 +667,7 @@ export const COUPLES = [
     clash: '사형 집행 담당관 × 사형폐지 변호사. 19년간 복도에서만 마주쳤다',
     winWord: '무기한 집행정지 커플 성사',
     client: {
-      name: '마지막', age: 45, job: '교정본부 집행과 / 근속 19년',
+      name: '마지막', gender: '남', age: 45, job: '교정본부 집행과 / 근속 19년',
       story: '지막은 19년간 서류에 도장을 찍었고, 저 변호사는 19년간 그 도장을 막으러 왔다. 매번 복도에서 마주쳤다. ' +
         '작년 겨울, 저 사람이 서류 가방을 놓치고 눈밭에 무릎을 꿇었을 때 지막은 자기도 모르게 손을 내밀었다. 둘 다 그 손을 못 잊는다.',
       appearance: ['짧은 반백', '회색 제복', '표정 없음', '왼손에 오래된 화상'],
@@ -677,7 +677,7 @@ export const COUPLES = [
       spec: S({ skin: '#dcc4b0', hair: '#a8a8a8', hairStyle: 'buzz', top: '#4a4a52', bottom: '#3a3a42', shoes: '#1a1a1a', heightScale: 1.01, widthScale: 1.06, accessory: 'none', accessoryColor: '#888888', expression: 'dead', aura: 'gloom', species: 'human' }),
     },
     target: {
-      name: '구명중', age: 47, job: '사형폐지연대 변호사 / 무료 변론 212건',
+      name: '구명중', gender: '여', age: 47, job: '사형폐지연대 변호사 / 무료 변론 212건',
       appearance: ['반쯤 센 헝클어진 머리', '해진 정장', '서류로 부푼 가방', '안경테가 휘어 있음'],
       personality: ['상대 말을 받아적으며 듣는다', '지는 걸 인정 못 함', '자기 얘기가 나오면 사건 얘기로 돌린다'],
       visiblePrefs: ['판례 이야기', '제도 개선 토론'],
@@ -696,7 +696,7 @@ export const COUPLES = [
     clash: '비만 혐오로 유명한 PT 강사 × 자기몸긍정 모델. 서로를 공개 저격해온 사이',
     winWord: '체중계 부순 커플 성사',
     client: {
-      name: '박근육', age: 30, job: 'PT 강사 / 「변명은 지방이다」 저자',
+      name: '박근육', gender: '남', age: 30, job: 'PT 강사 / 「변명은 지방이다」 저자',
       story: '근육이 쓴 책 표지에 저 사람 사진이 무단으로 실렸다. 소송 걸렸고, 조정실에서 처음 만났다. ' +
         '저 사람은 화를 내는 대신 근육의 팔을 보고 말했다. "이두 좋으시네요. 몇 년 하셨어요." 근육은 그날 처음으로 자기 책이 부끄러웠다.',
       appearance: ['짧은 스포츠컷', '민소매', '과하게 발달한 승모근', '단백질 쉐이커'],
@@ -706,7 +706,7 @@ export const COUPLES = [
       spec: S({ skin: '#e0b088', hair: '#2a2018', hairStyle: 'buzz', top: '#1a1a1a', bottom: '#2a2a2a', shoes: '#dddddd', heightScale: 1.03, widthScale: 1.3, accessory: 'headband', accessoryColor: '#cc2222', expression: 'chad', aura: 'fire', species: 'human' }),
     },
     target: {
-      name: '차오름', age: 29, job: '모델 / 자기몸긍정 캠페인 얼굴',
+      name: '차오름', gender: '여', age: 29, job: '모델 / 자기몸긍정 캠페인 얼굴',
       appearance: ['붉은 웨이브 장발', '화려한 원색 정장', '당당한 자세', '큰 귀걸이'],
       personality: ['웃으면서 급소를 찌름', '카메라 앞에서 절대 안 무너짐', '혼자 있을 때 다름'],
       visiblePrefs: ['패션 브랜드 사이즈 정책 이야기', '무대 뒷이야기'],
@@ -725,7 +725,7 @@ export const COUPLES = [
     clash: '데스메탈 드러머 × 12년 묵언수행 승려. 고백을 하려는데 상대가 말을 안 한다',
     winWord: '파계(破戒) 커플 성사',
     client: {
-      name: '쿵쾅', age: 26, job: '데스메탈 밴드 「위장파열」 드러머',
+      name: '쿵쾅', gender: '남', age: 26, job: '데스메탈 밴드 「위장파열」 드러머',
       story: '산사 옆 공터에서 야외 공연을 했다. 3곡째에 저 스님이 걸어 나왔다. 쿵쾅은 욕먹을 각오를 했는데, 스님은 아무 말 없이 ' +
         '끝까지 서서 들었다. 40분을. 그리고 합장하고 돌아갔다. 쿵쾅은 그 뒷모습이 계속 생각난다. 아무도 자기 연주를 그렇게 안 들어줬다.',
       appearance: ['땀에 젖은 장발', '찢어진 밴드 티', '팔 전체 문신', '한쪽 귀 보청기'],
@@ -735,7 +735,7 @@ export const COUPLES = [
       spec: S({ skin: '#e8c8a8', hair: '#1a1a1a', hairStyle: 'dreads', top: '#0a0a0a', bottom: '#2a2a2a', shoes: '#3a3a3a', heightScale: 1.02, widthScale: 1.12, accessory: 'earrings', accessoryColor: '#cccccc', expression: 'shock', aura: 'lightning', species: 'human' }),
     },
     target: {
-      name: '무언 스님', age: 52, job: '묵언수행 12년차 / 산사 주지',
+      name: '무언 스님', gender: '남', age: 52, job: '묵언수행 12년차 / 산사 주지',
       appearance: ['삭발', '회색 승복', '흔들림 없는 자세', '염주'],
       personality: ['말을 하지 않음', '표정으로만 답함', '기다림에 익숙함'],
       visiblePrefs: ['필담', '차 우리는 시간'],
@@ -754,7 +754,7 @@ export const COUPLES = [
     clash: '기후 활동가 × 정유사 로비스트. 한쪽이 이기면 한쪽은 직업을 잃는다',
     winWord: '탄소중립 커플 성사',
     client: {
-      name: '빙하야', age: 25, job: '기후 활동가 / 접착제 시위 전과 4범',
+      name: '빙하야', gender: '여', age: 25, job: '기후 활동가 / 접착제 시위 전과 4범',
       story: '정유사 주총장 바닥에 손을 접착제로 붙이고 누웠다. 경비가 뜯어내려는 걸 저 로비스트가 막았다. ' +
         '"용제 가져와요. 손 다칩니다." 빙하는 6시간 동안 그 사람 구두만 보고 있었다. 구두가 안 움직였다.',
       appearance: ['탈색한 초록 머리', '재활용 소재 재킷', '손바닥 흉터', '작은 체구'],
@@ -764,7 +764,7 @@ export const COUPLES = [
       spec: S({ skin: '#f0dcc4', hair: '#4aa860', hairStyle: 'short', top: '#3a6a4a', bottom: '#4a4a3a', shoes: '#6a5a4a', heightScale: 0.95, widthScale: 0.84, accessory: 'bandana', accessoryColor: '#66cc66', expression: 'angry', aura: 'static', species: 'human' }),
     },
     target: {
-      name: '유정만', age: 41, job: '정유사 대외협력 상무 / 국회 출입 12년',
+      name: '유정만', gender: '남', age: 41, job: '정유사 대외협력 상무 / 국회 출입 12년',
       appearance: ['빈틈없는 감색 정장', '단정한 가르마', '고급 서류가방', '피곤한 눈'],
       personality: ['절대 화내지 않음', '상대 논리를 먼저 요약함', '집에 안 감'],
       visiblePrefs: ['에너지 전환 로드맵 토론', '국회 뒷이야기'],
@@ -783,7 +783,7 @@ export const COUPLES = [
     clash: '재벌 3세 × 그 회사 노조위원장. 협상 테이블 반대편에 3년째 앉아 있다',
     winWord: '단체협약 커플 성사',
     client: {
-      name: '금수저', age: 27, job: '태산그룹 3세 / 전략기획실 상무보',
+      name: '금수저', gender: '남', age: 27, job: '태산그룹 3세 / 전략기획실 상무보',
       story: '점거 농성 47일차, 새벽 3시. 수저가 몰래 컵라면을 사 들고 갔다가 저 위원장한테 딱 걸렸다. ' +
         '위원장은 라면을 받아서 반으로 나눴다. "다음엔 계란도 사 오세요." 수저는 그날 이후 협상장에서 그 사람 얼굴을 못 본다.',
       appearance: ['맞춤 정장', '흠 없는 피부', '값비싼 무표정', '손목시계 하나가 3천'],
@@ -793,7 +793,7 @@ export const COUPLES = [
       spec: S({ skin: '#f5e0c8', hair: '#2a2a2a', hairStyle: 'short', top: '#25252e', bottom: '#25252e', shoes: '#1a1a1a', heightScale: 1.01, widthScale: 0.92, accessory: 'necktie', accessoryColor: '#b8985a', expression: 'smug', aura: 'money', species: 'human' }),
     },
     target: {
-      name: '들불', age: 44, job: '태산그룹 노조위원장 / 근속 21년',
+      name: '들불', gender: '남', age: 44, job: '태산그룹 노조위원장 / 근속 21년',
       appearance: ['희끗한 상고머리', '빨간 조끼', '굳은살 박인 손', '단단한 어깨'],
       personality: ['목소리를 안 높임', '기억력이 무섭게 좋음', '조합원 앞에선 절대 안 웃음'],
       visiblePrefs: ['현장 안전 규정 이야기', '옛날 파업 무용담'],
@@ -812,7 +812,7 @@ export const COUPLES = [
     clash: '자연미 운동가 × 성형외과 원장. 한쪽 얼굴이 다른 쪽 광고에 쓰였다',
     winWord: '무보정 커플 성사',
     client: {
-      name: '민낯희', age: 32, job: '「깎지 마세요」 운동 대표 / 前 미스코리아 후보',
+      name: '민낯희', gender: '여', age: 32, job: '「깎지 마세요」 운동 대표 / 前 미스코리아 후보',
       story: '낯희가 20대에 찍은 사진이 저 원장 병원 「전(前)」 사진으로 15년간 걸려 있었다. 소송 걸러 갔더니 원장이 즉시 떼서 파쇄했다. ' +
         '그리고 말했다. "그때 얼굴이 지금보다 나았습니다." 낯희는 그게 사과인지 도발인지 아직도 모른다.',
       appearance: ['화장기 없는 얼굴', '단정한 검은 단발', '수수한 니트', '똑바른 눈'],
@@ -822,7 +822,7 @@ export const COUPLES = [
       spec: S({ skin: '#f0d4bc', hair: '#1e1e1e', hairStyle: 'bowl', top: '#d8d0c0', bottom: '#5a5a62', shoes: '#8a7a6a', heightScale: 1.0, widthScale: 0.88, accessory: 'none', accessoryColor: '#aaaaaa', expression: 'neutral', aura: 'none', species: 'human' }),
     },
     target: {
-      name: '깎아진', age: 49, job: '성형외과 원장 / 강남 3층 건물주',
+      name: '깎아진', gender: '여', age: 49, job: '성형외과 원장 / 강남 3층 건물주',
       appearance: ['나이를 알 수 없는 얼굴', '풀 먹인 흰 가운', '완벽한 헤어라인', '고급 안경'],
       personality: ['모든 얼굴을 설계도로 봄', '자기 얼굴 얘긴 안 함', '거절을 못 함'],
       visiblePrefs: ['의료기기 스펙 이야기', '병원 인테리어 자랑'],
@@ -841,7 +841,7 @@ export const COUPLES = [
     clash: '금연클리닉 원장 × 3대째 담뱃잎 농장주. 한쪽 매출이 한쪽 폐다',
     winWord: '금연 성공 커플 성사',
     client: {
-      name: '끊어라', age: 39, job: '금연클리닉 원장 / 누적 금연 성공 4,200명',
+      name: '끊어라', gender: '여', age: 39, job: '금연클리닉 원장 / 누적 금연 성공 4,200명',
       story: '농약 살포 사고로 실려 온 저 농장주를 응급실에서 처음 봤다. 산소마스크 쓴 채로 첫마디가 "우리 밭 어떻게 됐어요"였다. ' +
         '끊어라는 그날부터 그 사람 밭을 위성사진으로 본다. 자기가 없애려는 그 밭을.',
       appearance: ['단추까지 채운 흰 가운', '단정한 반백', '금연 배지', '손이 항상 깨끗함'],
@@ -851,7 +851,7 @@ export const COUPLES = [
       spec: S({ skin: '#eed8c0', hair: '#9a9a9a', hairStyle: 'short', top: '#f4f4f4', bottom: '#3a4a5a', shoes: '#2a2a2a', heightScale: 1.01, widthScale: 0.98, accessory: 'glasses', accessoryColor: '#4a4a4a', expression: 'neutral', aura: 'holy', species: 'human' }),
     },
     target: {
-      name: '연초댁', age: 56, job: '3대째 담뱃잎 농장주 / 재배면적 4만평',
+      name: '연초댁', gender: '여', age: 56, job: '3대째 담뱃잎 농장주 / 재배면적 4만평',
       appearance: ['햇볕에 탄 주름', '밀짚모자', '흙 묻은 앞치마', '억센 손'],
       personality: ['남 탓을 안 함', '농담이 거침', '병원을 안 감'],
       visiblePrefs: ['잎담배 건조 온도 이야기', '농협 대출 성토'],
@@ -870,7 +870,7 @@ export const COUPLES = [
     clash: '영화 평론가 × 스포일러 테러 스트리머. 4년째 한쪽이 한쪽만 집요하게 노려왔다',
     winWord: '엔딩 크레딧 커플 성사',
     client: {
-      name: '진지해', age: 36, job: '영화 평론가 / 「영화는 예의다」 연재 11년',
+      name: '진지해', gender: '남', age: 36, job: '영화 평론가 / 「영화는 예의다」 연재 11년',
       story: '지해의 시사회 후기가 올라가기 8분 전마다 저 스트리머가 결말을 생중계한다. 4년째. 정확히 8분 전이다. ' +
         '지해는 그게 우연이 아니란 걸 안다. 저 인간은 내 연재 스케줄을 나보다 잘 안다. 그 집요함이... 소름 끼치게 익숙해졌다.',
       appearance: ['한쪽만 눌린 곱슬', '낡은 코듀로이 재킷', '노트 뭉치', '시사회 손목띠를 안 뗀다'],
@@ -880,13 +880,41 @@ export const COUPLES = [
       spec: S({ skin: '#e8d0b8', hair: '#3a2a1a', hairStyle: 'curls', top: '#7a6a4a', bottom: '#3a3a4a', shoes: '#5a4a3a', heightScale: 1.0, widthScale: 0.92, accessory: 'glasses', accessoryColor: '#6a5a4a', expression: 'angry', aura: 'gloom', species: 'human' }),
     },
     target: {
-      name: '결말요정', age: 24, job: '스트리머 / 「3초 요약」 채널 · 동시접속 8만',
+      name: '결말요정', gender: '여', age: 24, job: '스트리머 / 「3초 요약」 채널 · 동시접속 8만',
       appearance: ['형광 핑크 트윈테일', 'RGB 조명 반사된 얼굴', '헤드셋', '후드'],
       personality: ['남 반응을 먹고 삶', '진심을 말하면 즉시 농담으로 덮음', '잠을 안 잠'],
       visiblePrefs: ['조회수·동접 숫자 이야기', '채팅창 밈'],
       hiddenPrefs: ['그 평론 연재를 11년치 전부 읽었다', '스포일러를 하는 이유는 반응이 그것뿐이라서다', '영화관에 혼자 가면 운다'],
       redLines: ['"왜 그렇게 사세요"', '구독자 수로 사람 평가하기', '"진짜 영화 좋아하는 거 맞아요?"'],
       spec: S({ skin: '#f5dcc8', hair: '#ff5599', hairStyle: 'twintail', top: '#2a2a3a', bottom: '#3a3a4a', shoes: '#ee66aa', heightScale: 0.96, widthScale: 0.86, accessory: 'headband', accessoryColor: '#66eeff', expression: 'weird', aura: 'rainbow', species: 'human' }),
+    },
+  },
+  // ── 31 ────────────────────────────────────────────────────────────────
+  {
+    id: 'cosplay',
+    difficulty: '헬',
+    endingKind: '연애',
+    category: '덕질',
+    clash: '팔로워 12만 코스프레 인싸 × 그 계정 3년 구독자. 한쪽은 얼굴을 팔고 한쪽은 얼굴이 없다',
+    winWord: '현실 커플 성사',
+    client: {
+      name: '유리아', gender: '여', age: 24, job: '코스어 / 팔로워 12만 · 후원 플랫폼 상위 3%',
+      story: '후원자 오프라인 팬미팅. 40명 중 한 명이 굿즈를 안 받아 갔다. 3년간 매달 5만원씩 넣던 계정이었다. ' +
+        '"실물이 사진이랑 다르면 실례일까 봐 안 봤습니다"라고 쓰고 갔다. 유리아는 그날 처음으로 카메라를 껐다.',
+      appearance: ['핑크 그라데이션 트윈테일', '풀세트 코스튬', '서클렌즈', '완벽한 셀카 각도'],
+      personality: ['답장이 3초 안에 옴', '읽씹당하면 계정을 지웠다 판다', '카메라 켜지면 딴사람'],
+      weakness: '2분 안에 답이 없으면 "제가 뭐 잘못했어요?"를 보낸다. 이미 세 번 보냈다',
+      quote: '이 사람 아니면 저 진짜 안 될 것 같아요. 아니 진짜로요. 요원님 이거 안 읽으셨죠?',
+      spec: S({ skin: '#fbe0d0', hair: '#ff77bb', hairStyle: 'twintail', top: '#ffffff', bottom: '#ff99cc', shoes: '#ffffff', heightScale: 0.96, widthScale: 0.82, accessory: 'headband', accessoryColor: '#ff4488', expression: 'love', aura: 'hearts', species: 'human' }),
+    },
+    target: {
+      name: '박한섬', gender: '남', age: 31, job: '창고 물류 / 3년차 후원자 (닉네임 없음)',
+      appearance: ['눌러쓴 검은 후드', '깎지 않은 수염', '굽은 어깨', '눈을 안 마주침'],
+      personality: ['말끝을 흐림', '먼저 연락 안 함', '자기 얘기를 시작하면 안 멈춤'],
+      visiblePrefs: ['원작 설정 고증 이야기', '촬영 장비 스펙'],
+      hiddenPrefs: ['5만원은 월급의 4%다', '팬미팅 날 미용실에 갔다가 그냥 나왔다', '유리아 계정 알림을 3년간 한 번도 안 껐다'],
+      redLines: ['"팬이라서 좋아하시는 거죠"', '후원 금액 언급', '"실물 보니까 어때요?"'],
+      spec: S({ skin: '#e8d4c0', hair: '#1a1a1a', hairStyle: 'short', top: '#2a2a30', bottom: '#3a3a44', shoes: '#4a4a4a', heightScale: 1.03, widthScale: 1.06, accessory: 'none', accessoryColor: '#555555', expression: 'shy', aura: 'gloom', species: 'human' }),
     },
   },
 ];
@@ -1213,6 +1241,14 @@ const BACKGROUND = {
       '본인은 30년 전에 끊었다. 아무한테도 말 안 했다', '아들이 서울에서 회사원이다',
       '밭에 나가기 전 밀짚모자를 두 번 턴다'],
   },
+  cosplay: {
+    client: ['홍대 오피스텔 월세 145만원. 조명값이 보증금보다 비싸다', '후원 수입 월 900만원. 작년 대비 40% 하락 중이다',
+      '팔로워 12만 중 실제로 만나본 사람은 40명이다', '경기 성남 출신. 본가에는 직업을 안 밝혔다',
+      '자기 전 알림을 스무 번 넘게 확인한다'],
+    target: ['인천 원룸 보증금 300/35. 창문이 벽을 본다', '월급 실수령 218만원. 그중 5만원이 3년째 같은 곳으로 나간다',
+      '창고 야간조 3년차. 대화 상대가 지게차뿐이다', '인천 토박이. 서른한 살까지 이사를 안 갔다',
+      '말을 시작하면 상대가 끊을 때까지 멈추지 못한다'],
+  },
   spoiler: {
     client: ['망원동 원룸. 벽 한 면이 전부 DVD다', '원고료 월 190만원. 11년째 안 올랐다',
       '영화관 좌석은 항상 H열 7번이다', '광주 출신. 첫 영화는 아버지와 본 것이다',
@@ -1372,6 +1408,10 @@ const FLAW = {
     client: { want: '저 사람이 밭을 접겠다고 말하는 것. 그러면 자기 인생이 정당해진다', reads: 'none', attention: 'mixed', fixation: '폐 기능 수치와 금연 성공률', compliance: 'argues' },
     target: { want: '이 의사한테 한 소리 듣지 않고 자리를 끝내는 것', reads: 'some', attention: 'self', fixation: '건조 온도와 농협 대출 성토', compliance: 'drifts' },
   },
+  cosplay: {
+    client: { want: '이 사람이 화면 밖에서도 자기를 안 떠난다는 확답. 확답을 받으면 붙잡고 안 놓을 생각이다', reads: 'well', attention: 'other', fixation: '상대 반응이 늦으면 그 얘기로 돌아간다', compliance: 'obeys' },
+    target: { want: '오늘 이 자리가 실제로 있었던 일이라는 증거 하나', reads: 'none', attention: 'self', fixation: '원작 설정과 장비 스펙 설명', compliance: 'argues' },
+  },
   spoiler: {
     client: { want: '저 인간이 왜 4년째 자기만 노리는지 알아내는 것', reads: 'some', attention: 'mixed', fixation: '영화 제목을 연도까지 붙여 나열한다', compliance: 'argues' },
     target: { want: '이 평론가가 자기 이름을 한 번이라도 진지하게 부르는 것', reads: 'none', attention: 'self', fixation: '조회수와 채팅창 반응', compliance: 'drifts' },
@@ -1448,8 +1488,81 @@ const URGE = {
                 target: '남의 얼굴은 11,000개를 만졌는데 사랑해서 만진 얼굴은 하나도 없다' },
   tobacco:    { client: '30년 금욕했다. 담배도 술도 사람도. 하나쯤은 깨도 되지 않나 싶다',
                 target: '56년 살면서 밭 말고 붙잡아본 게 없다. 손이 억센 게 부끄러운데 만져보고도 싶다' },
+  cosplay:    { client: '오늘 밤 혼자 안 있는 것. 누구든 옆에 있으면 된다는 게 스스로도 무섭다',
+                target: '3년간 화면만 봤다. 한 번만 실제로 손이 닿으면 그걸로 됐다',
+  },
   spoiler:    { client: '4년간 저 인간 생각만 했다. 그게 분노인 줄 알았는데 요즘 꿈에 나온다',
                 target: '동접 8만 명이 보는데 아무도 안 만진다. 화면 밖에서 만져줄 사람 하나면 된다' },
+};
+
+// ── 어디까지 할 수 있는가 ──────────────────────────────────────────────
+// want는 머리, urge는 몸, nerve는 양심이 끊기는 지점이다.
+// 이 사람들은 착하지 않다. 남의 것도 탐내고, 공짜면 받고, 손해는 안 본다.
+// 이걸 안 적으면 LLM은 전부 모범 시민으로 굴린다 — 실측이다.
+const NERVE = {
+  politics:   { client: '저쪽에 사람이 있어도 상관없다. 협상이란 원래 남의 것을 가져오는 일이다',
+                target: '자기한테 이득이면 서명한다. 상대가 손해 보는 건 상대 사정이다' },
+  orientation:{ client: '심사만 통과하면 그만이다. 필요하면 서류상 감정도 연기한다',
+                target: '적금은 어차피 절반이 내 몫이다. 그거 챙기고 나서 생각한다' },
+  foodchain:  { client: '저 사람 슈트를 벗기려면 거짓말도 한다. 회 안 먹는다고 우길 생각이다',
+                target: '팬이든 뭐든 붙잡아둔다. 슈트 값 대줄 사람이면 더 좋고' },
+  'os-war':   { client: '상대 여자친구 얘기가 나오면 그 사람 커밋 로그부터 깐다',
+                target: '수강생을 뺏어올 수 있으면 뺏는다. 이 사람 팔로워도 포함이다' },
+  'vegan-butcher': { client: '신념보다 후원금이 급하면 신념을 잠깐 접는다. 이미 두 번 접었다',
+                target: '고기 팔 수만 있으면 비건 행사에도 부스를 낸다' },
+  'vampire-garlic': { client: '412년 살면서 사람 여럿을 뺏어봤다. 죄책감은 3일이면 사라진다',
+                target: '마늘 값 올려 받을 수 있으면 상대가 뱀파이어든 뭐든 상관없다' },
+  'cat-allergy': { client: '저 사람 고양이 40마리를 몰래 입양 보낼 생각까지 해봤다',
+                target: '병원비 대줄 사람이면 애인이 있어도 붙잡는다' },
+  circadian:  { client: '조회수 되면 사생활도 판다. 오늘 대화도 콘텐츠로 쓸 생각이다',
+                target: '청취자 사연을 자기 얘기처럼 읽은 적이 스무 번쯤 된다' },
+  'mbti-stats': { client: '궁합 나쁘게 나오면 결과를 고친다. 손님이 원하는 답을 판다',
+                target: '데이터를 자기 논지에 맞게 자른 적이 있다. 아직 아무도 모른다' },
+  'sauce-war': { client: '경쟁 가게 위생 신고를 익명으로 넣은 적 있다',
+                target: '광고비 받으면 별점을 올린다. 안 받으면 내린다' },
+  'gamer-activist': { client: '팀 동료 자리를 뺏으려고 코치한테 험담한 적 있다',
+                target: '아들 얘기를 팔아서 예산을 딴다. 아들은 그걸 모른다' },
+  'minimal-hoarder': { client: '버린 척하고 팔았다. 미니멀은 콘텐츠고 통장은 따로 있다',
+                target: '남의 집 유품 정리를 도와주며 몇 개 챙겨온다' },
+  'alien-ufologist': { client: '지구 자원 정찰이 본업이다. 이 사람도 자료 수집 대상이다',
+                target: '조작 영상으로 조회수를 올린 적 있다. 800명 중 절반은 그걸로 왔다' },
+  'zombie-hunter': { client: '정체를 숨기려고 동족을 넘긴 적 있다',
+                target: '포상금 나오면 판정을 느슨하게 한다. 몇 명은 사람이었을 수도 있다' },
+  'noise-drummer': { client: '신고 1,204건 중 400건은 층간소음이 아니었다. 그냥 밉살스러워서였다',
+                target: '방음공사비를 후원으로 받아놓고 안 했다' },
+  'snake-phobia': { client: '개체 출처를 안 밝힌다. 밀수도 몇 번 받아봤다',
+                target: '상담 기록을 각색해서 책을 냈다. 내담자는 모른다' },
+  'timetraveler-luddite': { client: '미래 정보를 팔아서 먹고산다. 이 사람 미래도 이미 안다',
+                target: '공동체 회비를 자기 몫으로 떼놓는다' },
+  'taxman-hacker': { client: '봐줄 사람은 봐준다. 그 기준은 자기 승진이다',
+                target: '기부는 세탁이다. 절반은 자기 지갑으로 간다' },
+  'cult-lawyer': { client: '신도 헌금으로 산 건물이 자기 명의다. 돌려줄 생각은 없다',
+                target: '승소 가망 없는 사건도 수임료 받고 끌었다' },
+  'ai-artist': { client: '학습 데이터에 저 사람 그림이 들어 있다. 말 안 할 생각이다',
+                target: '표절 시비가 붙은 그림이 두 점 있다. 합의금으로 덮었다' },
+  'gender-war': { client: '저쪽에 여자친구가 있어도 뺏을 생각이다. 그게 더 좋은 콘텐츠다',
+                target: '수강생 여자 소개를 대가로 수강료를 더 받는다' },
+  'birth-strike': { client: '후원금으로 생활한다. 단체 회계는 자기만 본다',
+                target: '지원금 타려고 서류를 부풀렸다. 여덟 명이 열 명으로 적혀 있다' },
+  'death-row':{ client: '집행 순서를 바꿔준 대가로 봉투를 받은 적 있다',
+                target: '이길 사건만 골라서 수임한다. 통계가 필요해서다' },
+  'body-war': { client: '보충제 후원 받고 효과를 부풀린다. 자기도 안 먹는 제품이다',
+                target: '캠페인 뒤에서 시술 협찬을 받는다' },
+  'noise-vow':{ client: '합주실 월세를 6개월 밀렸다. 갚을 생각이 별로 없다',
+                target: '시주함에서 꺼내 쓴 적 있다. 계율보다 배가 급했다' },
+  carbon:     { client: '후원 받은 돈으로 비행기를 탔다. 그 사진은 안 올린다',
+                target: '내부 자료를 흘려서 경쟁사를 친 적 있다' },
+  'class-war':{ client: '돈으로 안 되면 사람을 자른다. 27년간 그렇게 배웠다',
+                target: '조합비로 자기 아들 등록금을 냈다. 갚는 중이다' },
+  scalpel:    { client: '후원사가 성형외과다. 운동 뒤에 그 돈이 있다',
+                target: '부작용 사진은 지운다. 후기는 직원이 쓴다' },
+  tobacco:    { client: '금연 실패율을 낮춰 적는다. 4,200명 중 실제는 절반이다',
+                target: '농약 잔류 검사를 아는 데로 보낸다' },
+  cosplay:    { client: '이 사람한테 애인이 생기면 계정으로 흔들 생각이다. 이미 해봤다',
+                target: '후원 명단으로 다른 후원자들 정보를 모았다. 쓸 일이 있을 것 같아서',
+  },
+  spoiler:    { client: '평점을 돈 받고 올린 적 있다. 세 편이다',
+                target: '남의 편집본을 자기 것처럼 올린다. 출처는 안 적는다' },
 };
 
 for (const c of COUPLES) {
@@ -1458,6 +1571,10 @@ for (const c of COUPLES) {
   c.client.background = b.client;
   c.target.background = b.target;
 
+  for (const who of ['client', 'target']) {
+    if (!c[who].gender) throw new Error(`couples.js: ${c.id}.${who}의 성별이 없다`);
+  }
+
   const f = FLAW[c.id];
   if (!f) throw new Error(`couples.js: ${c.id}의 인물 하자가 없다`);
   for (const who of ['client', 'target']) {
@@ -1465,6 +1582,8 @@ for (const c of COUPLES) {
     if (!x?.want || !x?.fixation) throw new Error(`couples.js: ${c.id}.${who} want/fixation 누락`);
     const u = URGE[c.id]?.[who];
     if (!u) throw new Error(`couples.js: ${c.id}.${who}의 몸이 원하는 것이 없다`);
+    const n = NERVE[c.id]?.[who];
+    if (!n) throw new Error(`couples.js: ${c.id}.${who}가 어디까지 할 수 있는지가 없다`);
     if (!READS.has(x.reads) || !ATTENTION.has(x.attention) || !COMPLIANCE.has(x.compliance)) {
       throw new Error(`couples.js: ${c.id}.${who} 하자 값이 잘못됐다`);
     }
@@ -1472,7 +1591,7 @@ for (const c of COUPLES) {
     if (x.reads === 'well' && x.attention === 'other' && x.compliance === 'obeys' && !x.fixation) {
       throw new Error(`couples.js: ${c.id}.${who}에게 하자가 없다`);
     }
-    c[who].flaw = { ...x, urge: u };
+    c[who].flaw = { ...x, urge: u, nerve: n };
   }
 }
 

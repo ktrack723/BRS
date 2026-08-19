@@ -328,7 +328,8 @@ export class Engine {
       // 무전 지시 주입 (상대에게는 안 들린다)
       if (this.pendingRadio) {
         this.#pushUser(this.clientHist,
-          `[본부 명령 — 지금 이 한 마디로 즉시 이행하라. 상대에게는 안 들린다]\n${this.pendingRadio}`);
+          `[본부 명령 — 지금 이 한 마디로 즉시 이행하라. 상대에게는 안 들린다]\n${this.pendingRadio}\n` +
+          `거부는 없다. 싫으면 싫은 티를 내되 하기는 한다.`);
         this.pendingRadio = null;
       }
       // 갱신된 공기 주입

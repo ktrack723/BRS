@@ -1135,3 +1135,11 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
   body { background: #fff; color: #000; }
   .panel95 { box-shadow: none; border: 1px solid #000; }
 }
+/* 로스터 카드의 성별 표기. 연애 게임인데 여태 어디에도 없었다 */
+.cc-sex {
+  display: inline-block; margin-left: 4px; padding: 0 4px;
+  font-family: var(--font-mono); font-size: var(--fs-xs); font-weight: 400;
+  color: var(--ink-mid); border: 1px solid var(--dlg-edge); background: #fff;
+}
+/* 넘어본 선은 나머지와 결이 다르다. 이건 자랑이 아니라 약점이다 */
+.flaw-want.dirty { border-left: 3px solid var(--stamp); padding-left: var(--s2); }

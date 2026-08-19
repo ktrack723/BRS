@@ -341,9 +341,9 @@ function renderRosterCards() {
         <span class="cc-diff diff-${d.key}">${escapeHtml(c.difficulty)}</span>
       </div>
       <div class="cc-pair">
-        <figure><img alt="${escapeHtml(c.client.name)}" src="${renderThumb(c.client.spec, c.id + ':c')}"><figcaption>${escapeHtml(c.client.name)}</figcaption></figure>
+        <figure><img alt="${escapeHtml(c.client.name)}" src="${renderThumb(c.client.spec, c.id + ':c')}"><figcaption>${escapeHtml(c.client.name)}<span class="cc-sex">${escapeHtml(c.client.gender)}</span></figcaption></figure>
         <div class="cc-vs">✕</div>
-        <figure><img alt="${escapeHtml(c.target.name)}" src="${renderThumb(c.target.spec, c.id + ':t')}"><figcaption>${escapeHtml(c.target.name)}</figcaption></figure>
+        <figure><img alt="${escapeHtml(c.target.name)}" src="${renderThumb(c.target.spec, c.id + ':t')}"><figcaption>${escapeHtml(c.target.name)}<span class="cc-sex">${escapeHtml(c.target.gender)}</span></figcaption></figure>
       </div>
       <p class="cc-clash">${escapeHtml(c.clash)}</p>
       <ul class="cc-meta">
@@ -367,7 +367,7 @@ function dossierHtml(c, { full = false } = {}) {
   const d = diffOf(c.difficulty);
   return `
     <div class="stamp">극비</div>
-    <h3>${escapeHtml(c.client.name)} <small>(${escapeHtml(P.ageOf(c.client))}, ${escapeHtml(c.client.job)})</small></h3>
+    <h3>${escapeHtml(c.client.name)} <small>(${escapeHtml(P.idOf(c.client))}, ${escapeHtml(c.client.job)})</small></h3>
     <p class="story">${escapeHtml(c.client.story)}</p>
     <p><b>외모:</b> ${c.client.appearance.map(escapeHtml).join(', ')}</p>
     <p><b>성격:</b> ${c.client.personality.map(escapeHtml).join(', ')}</p>
@@ -376,7 +376,7 @@ function dossierHtml(c, { full = false } = {}) {
     <p class="quote">“${escapeHtml(c.client.quote)}”</p>
     ${flawHtml(c.client)}
     <hr>
-    <h3>상대 · ${escapeHtml(c.target.name)} <small>(${escapeHtml(P.ageOf(c.target))}, ${escapeHtml(c.target.job)})</small></h3>
+    <h3>상대 · ${escapeHtml(c.target.name)} <small>(${escapeHtml(P.idOf(c.target))}, ${escapeHtml(c.target.job)})</small></h3>
     <p><b>외모:</b> ${c.target.appearance.map(escapeHtml).join(', ')}</p>
     <p><b>성격:</b> ${c.target.personality.map(escapeHtml).join(', ')}</p>
     <p><b>내력:</b> ${c.target.background.map(escapeHtml).join(' · ')}</p>
@@ -403,6 +403,10 @@ function flawHtml(person) {
     <h4>심리 감정 <span class="dim">— 사전 면담 기록</span></h4>
     <p class="flaw-want"><b>이 자리에서 원하는 것:</b> ${escapeHtml(person.flaw.want)}
       <br><span class="dim">상대를 위해서가 아니다. 이 사람 입에서 나오는 말은 전부 여기서 출발한다.</span></p>
+    <p class="flaw-want"><b>몸이 원하는 것:</b> ${escapeHtml(person.flaw.urge)}
+      <br><span class="dim">본인은 입 밖에 낼 생각이 없다. 술이 들어가면 모른다.</span></p>
+    <p class="flaw-want dirty"><b>이미 넘어본 선:</b> ${escapeHtml(person.flaw.nerve)}
+      <br><span class="dim">착한 사람이 아니다. 시키면 한다는 뜻이기도 하다.</span></p>
     <ul class="flaw-list">
       ${rows.map(r => `<li class="lv-${r.level}"><span class="flaw-axis">${escapeHtml(r.axis)}</span>
         <span class="flaw-tag lv-${r.level}">${escapeHtml(r.tag)}</span>
@@ -425,7 +429,7 @@ function targetBriefHtml(c) {
     : f.attention === 'mixed'
       ? '겉모습과 성격. <b>뭘 좋아하는지는 모른다.</b>'
       : '겉모습·성격·알려진 취향까지.';
-  return `<h3>상대 · ${escapeHtml(c.target.name)}</h3>
+  return `<h3>상대 · ${escapeHtml(c.target.name)} <small>(${escapeHtml(P.idOf(c.target))})</small></h3>
     <p><b>성격:</b> ${c.target.personality.map(escapeHtml).join(', ')}</p>
     <p><b>알려진 취향:</b> ${c.target.visiblePrefs.map(escapeHtml).join(' / ')}</p>
     <p class="redline-box"><b>질색:</b> ${c.target.redLines.map(escapeHtml).join(' / ')}</p>
