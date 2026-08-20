@@ -236,12 +236,56 @@ test('호감도 포화한다 — 이미 높으면 같은 판정이 덜 오른다
   const lo = applyTurn({ ...initialState(d), love: 5, mood: 60 }, d, J('warm'));
   const hi = applyTurn({ ...initialState(d), love: 85, mood: 60 }, d, J('warm'));
   assert.ok(lo.lastDelta.love > hi.lastDelta.love * 1.5, '천장 근처에서는 같은 warm이 훨씬 덜 오른다');
-  // 하락에는 포화가 걸리지 않는다
+  // 하락에는 반대로 **완충**이 붙는다. 이미 좋아하게 된 사람은 한 번 삐끗한다고 처음으로 안 간다.
+  // 이득에만 포화를 걸어두면 판이 길어질수록 (이득 ↓ / 손실 그대로)로 기울어서,
+  // 밀어붙이는 쪽이 후반에 구조적으로 손해를 본다. 실측 원판정 합이 그랬다 —
+  // ace +294/−154 · none +246/−94로 재료는 ace가 많은데 순합은 none이 앞섰다.
   const loDown = applyTurn({ ...initialState(d), love: 5, mood: 60 }, d, J('chill'));
   const hiDown = applyTurn({ ...initialState(d), love: 85, mood: 60 }, d, J('chill'));
-  // 0.1은 반올림 오차다 — 실제 하락폭은 같고, round1이 부동소수점 꼬리를 다르게 자른다
-  assert.ok(Math.abs(loDown.lastDelta.love - hiDown.lastDelta.love) < 0.2,
-    `떨어질 땐 위치와 무관하게 그대로 떨어진다 (${loDown.lastDelta.love} vs ${hiDown.lastDelta.love})`);
+  assert.ok(Math.abs(hiDown.lastDelta.love) < Math.abs(loDown.lastDelta.love),
+    `쌓인 호감이 완충 노릇을 못 한다 (${loDown.lastDelta.love} vs ${hiDown.lastDelta.love})`);
+  // 다만 완충이 손실을 지워버리면 안 된다. 천장 근처에서도 절반은 문다.
+  assert.ok(Math.abs(hiDown.lastDelta.love) > Math.abs(loDown.lastDelta.love) * 0.4,
+    `완충이 과해서 후반에는 실수가 공짜다 (${loDown.lastDelta.love} vs ${hiDown.lastDelta.love})`);
+});
+
+// ── 정체 감쇠 ────────────────────────────────────────────────────
+// 실측(하이쿠 12판): 아무 일도 안 일어난 턴의 연속이 none 36턴 대 ace 14턴으로 갈렸다.
+// 준비 안 한 판은 대화가 굴러는 가는데 아무 데도 안 닿는 구간이 길다. 거기에 값을 매긴다.
+test('아무 일도 없는 턴이 연달아 쌓이면 공기가 식는다', () => {
+  const d = diffOf('보통');
+  let s = { ...initialState(d), mood: 70 };
+  const drops = [];
+  for (let i = 0; i < 6; i++) {
+    const before = s.mood;
+    s = applyTurn(s, d, J('flat', { moodDelta: 0 }));
+    drops.push(before - s.mood);
+  }
+  assert.ok(drops[1] > drops[0], '두 번째 무의미한 턴이 첫 번째보다 더 아파야 한다');
+  assert.ok(drops[3] > drops[2], '연속이 길어질수록 더 문다');
+  // 다만 무한정 나빠지지는 않는다. 상한이 없으면 무의미한 턴만으로 반드시 자리가 깨진다.
+  assert.ok(Math.abs(drops[5] - drops[4]) < 0.01, '상한 뒤로는 더 나빠지지 않는다');
+});
+
+test('두근거림 한 번이면 정체 계수가 처음으로 돌아간다', () => {
+  const d = diffOf('보통');
+  let s = { ...initialState(d), mood: 70 };
+  for (let i = 0; i < 4; i++) s = applyTurn(s, d, J('flat', { moodDelta: 0 }));
+  const deep = s.mood - applyTurn(s, d, J('flat', { moodDelta: 0 })).mood;
+  s = applyTurn(s, d, J('warm', { moodDelta: 0 }));   // 한 번 닿았다
+  const after = s.mood - applyTurn(s, d, J('flat', { moodDelta: 0 })).mood;
+  assert.ok(after < deep, '한 번 닿고 나면 정체가 처음부터 다시 세어져야 한다');
+});
+
+test('nudge는 죽은 턴이 아니라 정체에 세지 않는다', () => {
+  const d = diffOf('보통');
+  const run = tier => {
+    let s = { ...initialState(d), mood: 70 };
+    for (let i = 0; i < 5; i++) s = applyTurn(s, d, J(tier, { moodDelta: 0 }));
+    return s.mood;
+  };
+  assert.ok(run('nudge') > run('flat'),
+    'nudge는 점수가 0이어도 사람 쪽으로 반짝은 한 것이다. 죽은 턴과 같이 취급하면 안 된다');
 });
 
 test('공기는 심판이 갱신하고, 안 주면 직전 값이 유지된다', () => {
@@ -356,7 +400,8 @@ test('세 난이도 모두, 좋은 판정 흐름은 넘고 밋밋한 흐름은 �
     tiers.forEach((t, i) => {
       if (failureReason(s)) return;
       // 장벽은 이 테스트의 관심사가 아니다 — 첫 턴에 다뤘다고 놓고 호감 흐름만 본다
-      s = applyTurn(s, d, J(t, { moodDelta: MOOD[t], barrierAddressed: i === 0 }), { firstImpression: i === 4 });
+      s = applyTurn(s, d, J(t, { moodDelta: MOOD[t], barrierAddressed: i === 0 }),
+        { firstImpression: i === d.textTurns });
     });
     return verdict(s, d);
   };
@@ -1105,42 +1150,19 @@ test('두근거림 종류 구조가 남아 있지 않다', async () => {
   assert.equal(a.history.at(-1).flutterKind, undefined, '종류가 아직 기록된다');
 });
 
-// ── 무전 창 ──────────────────────────────────────────────────────
-// 개선안 여섯을 같은 판정 시퀀스로 재생해 비교한 결과 이게 제일 잘 갈랐다
-// (격차 +43.8 vs baseline +23.7). 무전은 순수한 실력 레버다 — 배급량이 정해져 있고
-// 언제 쓰느냐 말고는 아무것도 요원 마음대로가 아니다.
-test('무전 창 안의 두근거림만 제값을 받는다', async () => {
+// ── 무전은 채점 대상이 아니다 ────────────────────────────────────
+// 한동안 "무전 창" — 지시가 꽂힌 직후 두근거림만 제값 — 을 뒀다가 걷어냈다.
+// 측정 하네스가 none 프로필에서 무전을 아예 안 쓰도록 박아둬서, 그 축이 잰 건
+// 플레이 품질이 아니라 프로필 플래그였다(scoring.js의 「무전 창을 뺐다」 참조).
+test('무전은 호감 계산에 손대지 않는다', async () => {
   const S = await import('../js/scoring.js');
   const d = S.diffOf('보통');
-  const J = { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '', flutterKind: '응답' };
-  const flat = { ...J, tier: 'flat', loveDelta: 0 };
-  // 호감·분위기를 똑같이 맞춰두고 **무전 여부만** 다르게 한다.
-  // (그냥 서로 다른 시점끼리 비교하면 호감 포화 차이가 섞여서 배율을 못 잰다)
-  let base = S.initialState(d);
-  for (let i = 0; i < 4; i++) base = S.applyTurn(base, d, flat, {});
-  const withRadio = S.applyTurn(S.applyTurn(base, d, flat, { radioInjected: true }), d, J, {});
-  const without = S.applyTurn(S.applyTurn(base, d, flat, {}), d, J, {});
-  const gIn = withRadio.lastDelta.love;
-  const gOut = without.lastDelta.love;
-  assert.ok(gIn > gOut * 1.8, `창 안과 창 밖이 두 배 가까이 안 갈린다 (${gIn} vs ${gOut})`);
-  const far = without;
-  const onRadio = withRadio;
-  assert.equal(onRadio.history.at(-1).inRadioWindow, true, '창 안 표시가 안 남는다');
-  assert.equal(far.history.at(-1).inRadioWindow, false, '창 밖인데 창 안으로 표시됐다');
-});
-
-test('무전 창은 꽂힌 턴 뒤로 몇 턴 더 열려 있다', async () => {
-  const S = await import('../js/scoring.js');
-  const d = S.diffOf('보통');
-  const J = { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '', flutterKind: '응답' };
-  const flat = { ...J, tier: 'flat', loveDelta: 0 };
-  for (const [gap, want] of [[0, true], [1, true], [2, true], [3, false]]) {
-    let s = S.applyTurn(S.initialState(d), d, flat, { radioInjected: true });
-    for (let i = 0; i < gap; i++) s = S.applyTurn(s, d, flat, {});
-    s = S.applyTurn(s, d, J, {});
-    assert.equal(s.history.at(-1).inRadioWindow, want,
-      `무전 ${gap}턴 뒤가 창 ${want ? '안' : '밖'}이어야 한다`);
-  }
+  const J = { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '' };
+  const withRadio = S.applyTurn(S.initialState(d), d, J, { radioInjected: true });
+  const without = S.applyTurn(S.initialState(d), d, J, {});
+  assert.equal(withRadio.lastDelta.love, without.lastDelta.love,
+    '무전을 쳤다는 사실만으로 호감이 달라지면, 규칙이 대화가 아니라 버튼을 채점하는 것이다');
+  assert.ok(!('inRadioWindow' in withRadio.history.at(-1)), '무전 창 잔재가 턴 기록에 남아 있다');
 });
 
 test('규칙 계층에 개선안 스위치가 남아 있지 않다', async () => {

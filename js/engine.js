@@ -259,9 +259,13 @@ export class Engine {
     return !this.aborted;
   }
 
+  // 심판이 죽었을 때 쓰는 빈 판정. **flat이 아니라 nudge다** —
+  // flat은 "아무 일도 안 일어났다"는 실제 판정이고, 정체 감쇠가 거기에 붙는다.
+  // 판정을 못 받은 턴에까지 그걸 물리면 API 한 번 흔들린 걸로 자리가 깨진다.
+  // nudge는 점수도 0이고 정체에도 안 세므로, 셈에서 빠지는 자리로 쓴다.
   #neutralJudge(reason) {
     return {
-      tier: 'flat', moodDelta: 0, loveDelta: 0, reason,
+      tier: 'nudge', moodDelta: 0, loveDelta: 0, reason,
       vibe: this.state.vibe, revealed: '', clientEmote: 'talk', targetEmote: 'talk',
     };
   }

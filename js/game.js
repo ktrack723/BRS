@@ -48,6 +48,8 @@ const TIPS = [
   '참고 · 무전은 흐름에 끼어드는 유일한 손잡이다. 아끼면 그냥 소멸한다.',
   '참고 · 착장은 대면 첫 순간에 상대가 직접 보고 판정한다.',
   '참고 · 지침에 "무엇을 하지 마라"와 "무엇을 하라"를 같이 써라.',
+  '참고 · 금지만 적으면 지뢰만 꺼지는 게 아니다. 그 사람이 매력적이던 이유도 같이 꺼진다.',
+  '참고 · 아무 일도 안 일어난 턴이 연달아 쌓이면 공기가 식는다. 안전한 대화가 제일 비싸다.',
   '참고 · 공기 옆 배지가 "전달 안 됨"이면 그 문장은 의뢰인에게 안 간다. 무전으로 직접 말해라.',
   '참고 · 가위손 박은 거절하지 않는다. 폭탄을 붙이라면 붙인다.',
   '참고 · 의뢰서의 「심리 감정」이 그 인간의 하자를 전부 적어둔다. 고르기 전에 읽어라.',
@@ -424,7 +426,7 @@ function dossierHtml(c, { full = false } = {}) {
     <p class="clash-line"><b>이 매칭이 지옥인 이유:</b> ${escapeHtml(c.clash)}</p>
     <div class="diff-box diff-${d.key}">
       <span class="diff-name">난이도 ${escapeHtml(c.difficulty)}</span>
-      <span class="diff-detail">성공선 호감 ${d.threshold} (분위기 ${d.moodFloor} 이상) · 무전 ${d.radioText}+${d.radioTalk}회 · 총 ${d.textTurns + d.talkTurns}턴</span>
+      <span class="diff-detail">성공선 호감 ${d.threshold} · 무전 ${d.radioText}+${d.radioTalk}회 · 총 ${d.textTurns + d.talkTurns}턴</span>
     </div>
     ${full ? `<div class="modal-btns"><button class="btn95 big" id="dossier-take">이 조합을 맡는다</button><button class="btn95" id="dossier-close">닫기</button></div>` : ''}`;
 }
@@ -949,7 +951,6 @@ async function gotoResult() {
       `<tr class="${h.dLove > 0 ? 'good' : h.dLove < 0 ? 'bad' : ''}">` +
       `<td>${h.turn}${h.firstImpression ? '·착장' : ''}${h.revealed ? '·발견' : ''}` +
       `${h.barrier ? '<b class="tt-barrier">·현안</b>' : ''}` +
-      `${h.inRadioWindow ? '<b class="tt-flutter onradio">·무전창</b>' : ''}` +
       `${h.leverage && h.leverage !== 'none' ? `<b class="tt-lev">·압박</b>` : ''}</td>` +
       `<td>${h.dMood >= 0 ? '+' : ''}${h.dMood}</td>` +
       `<td>${h.dLove >= 0 ? '+' : ''}${h.dLove} <span class="dim">[${escapeHtml(h.tier)}] ${h.rawLove >= 0 ? '+' : ''}${h.rawLove}×${h.mult}</span></td>` +

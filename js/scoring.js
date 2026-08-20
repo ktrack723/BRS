@@ -287,6 +287,19 @@ export const TUNING = {
   //
   // ⚠ circadian ace는 두근거림이 **0회**라 배율로는 못 고친다(0은 곱해도 0).
   //    독백 × 단답은 서로에게 닿을 통로가 없다. 조합 쪽 문제로 남아 있다.
+
+  // 정체 감쇠 계수. 무의미한 턴이 n번째로 연달아 오면 분위기가 n×이만큼 깎인다.
+  // 한 턴에 −k씩 붙으니 누적은 연속 길이의 제곱이다 — 8연은 1연 여덟 번의 4.5배로 문다.
+  // 실측(하이쿠 12판): 무의미 연속 턴이 none 37턴(8연·5연·5연 포함) 대 ace 18턴.
+  //   계수 1.6 → 격차 +14.8 · 2.2 → +21.0 · 3.0 → +30.7
+  // 3.0에서 멈추지 않은 이유: 그 위의 격차는 대부분 **파탄 횟수**에서 나온다(none 4/6 파탄).
+  // 그건 분리 성능이 아니라 판이 일찍 끝나는 것이라 2.2에서 끊었다. 상한 4연에서 −8.8이
+  // 최대치인데, 이건 정색(disaster −5)보다 무겁다. 네 턴 연속으로 아무 일도 없는 자리는 실제로 그렇다.
+  stallMood: 2.2,
+  stallCap: 4,               // 연속 무의미 턴의 감쇠 상한. 4연 이후로는 더 나빠지지 않는다
+  // 손실 완충. 호감 100에서 깎임이 (1 − 이 값)배가 된다. 0이면 완충 없음.
+  // 0 → 격차 +16.8 · 0.5 → +20.0 · 0.85 → +23.0. 0.85는 실수를 거의 안 물어서 0.5에서 끊었다.
+  lossCushion: 0.5,
   moodGainScale: 1.0,        // 분위기 이득 쪽 감쇠. 예전 0.75는 분위기가 아예 안 오르게 만들었다
   disasterMood: -5,          // 상대가 정색하면 자리가 식는다. 등급에서 나오는 결과지 별도 판정이 아니다
   breakthroughMood: 3,       // 반대로 방어선이 무너진 순간엔 공기도 같이 풀린다
@@ -310,30 +323,28 @@ export const TUNING = {
 //   쉬움 60→68 (ace 100·100 / none 55·66)
 //   보통 66→74 (ace  83· 86 / none 19·31)
 //   헬   70→78 (ace  79·100 / none 74·75)
-// ── 무전 창 ─────────────────────────────────────────────────────────
-// 개선안 여섯을 같은 판정 시퀀스로 재생해 비교했고(하이쿠 12판), 이게 이겼다.
+// ── 무전 창을 뺐다 ──────────────────────────────────────────────
+// 한동안 "무전이 꽂힌 발언부터 세 턴 안에서 터진 두근거림만 제값을 받는다"를 뒀다.
+// 재생 실측에서 격차가 +19.7 → +56.8로 벌어졌고, 여섯 개선안 중에서도 1등이었다.
+// **그런데 그 숫자는 가짜였다.** 측정 하네스가 none·lazy 프로필에서 무전을 아예 안 쓰도록
+// 박아두고 있다(tests/live.mjs: `if (profile === 'lazy' || profile === 'none') return`).
+// 그러니 "무전 창 안 두근거림"은 플레이 품질이 아니라 **프로필 플래그를 그대로 다시 읽은 것**이다.
+// ace 18회 · none 0회라는 관측은 분리 성능이 아니라 순환 논리였다.
 //
-//   radio    ace 96.5  none 52.7  격차 +43.8   ace 5/6 · none 2/6   ← 승자
-//   ladder   ace 85.2  none 56.0       +29.2
-//   variety  ace 80.3  none 52.7       +27.7
-//   baseline ace 92.7  none 69.0       +23.7
-//   arousal  ace 92.7  none 69.0       +23.7   (각성이 거의 안 쓰여 baseline과 동일)
-//   redline  ace 79.3  none 57.0       +22.3
-//   decay    ace 60.0  none 46.3       +13.7
-//
-// 왜 이게 제일 잘 가르는가: **무전은 순수한 실력 레버다.** 배급량이 정해져 있고
-// (난이도별 3회), 언제 쓰느냐 말고는 아무것도 요원 마음대로가 아니다.
-// 준비를 안 한 판은 무전을 아예 안 쓰므로 모든 두근거림이 창 밖에서 터진다.
-// 입력칸에 무엇을 쳤는지는 여전히 안 본다 — 보는 건 **지시가 실제로 꽂혔는가**다.
-const RADIO_WINDOW = {
-  turns: 2,     // 지시가 꽂힌 발언과 그 다음 두 턴까지가 창 안이다
-  inside: 1.5,
-  outside: 0.7,
-};
+// 규칙은 실제로 벌어진 일만 봐야 하고, 그 '일'은 양쪽 프로필이 원리적으로 똑같이 할 수 있어야 한다.
+// 무전은 그 조건을 못 넘는다. 걷어냈다. 무전은 다시 채점 대상이 아니다 —
+// 효과는 그 다음 발언의 판정으로만 드러난다(noteRadio 참조).
 
 // 두근거림을 다섯 종류(각성·응답·밀당·신체·전환)로 가르고 종류마다 곡선을 달리 주는
 // 구조를 한동안 뒀다. 이론 근거는 탄탄했지만 판정이 복잡해져서 걷어냈다.
 // 지금 기준은 하나다 — **상대가 이 사람에게 끌렸는가.** 그것만 본다.
+
+// **아무 일도 안 일어난 등급.** 대화는 굴러갔고 마음은 그대로다.
+// chill·disaster는 여기 없다 — 그건 아무 일도 없는 게 아니라 나쁜 일이 있었던 것이고,
+// 이미 호감에서 깎이고 있다. 정체 감쇠까지 겹쳐 물리면 밀어붙인 쪽만 두 번 맞는다.
+// nudge도 여기 없다 — 점수는 0이지만 사람 쪽으로 반짝은 했다. 그건 죽은 턴이 아니다.
+// (실측으로도 nudge를 빼는 쪽이 더 잘 갈린다: 무의미 턴 비 2.06배 → 2.57배)
+export const DULL_TIERS = new Set(['flat']);
 
 // **호감을 올릴 수 있는 유일한 등급.** 두근거린 턴만이다.
 // nudge는 여기 없다 — 반짝임은 호감이지 끌림이 아니고, 끌림이 아니면 0점이다.
@@ -386,10 +397,9 @@ export function initialState(d) {
     barrierCleared: false,
     // 강압 누적. hard 2점 · soft 1점. 호감이 모자라도 이게 쌓이면 묶인다.
     leverage: 0,
-    // 무전 창 판정용. **실제로 벌어진 일만 본다** —
-    // 요원이 입력칸에 무엇을 쳤는지는 규칙 계층이 절대 보지 않는다(그건 형식 보상이 된다).
+    // **실제로 벌어진 일만 본다** — 요원이 입력칸에 무엇을 쳤는지는 규칙 계층이 절대 보지 않는다.
     hotSeen: 0,        // 지금까지 셈된 두근거림 횟수
-    sinceRadio: 99,    // 마지막 무전 주입 이후 몇 턴 지났나
+    dullRun: 0,        // 아무 일도 안 일어난 턴(flat)이 연달아 몇 번인가
   };
 }
 
@@ -418,7 +428,15 @@ export function applyTurn(state, d, judge, opts = {}) {
   const tierMood = tier === 'disaster' ? TUNING.disasterMood
     : tier === 'breakthrough' ? TUNING.breakthroughMood * saturate : 0;
   const moodGain = (md >= 0 ? md * TUNING.moodGainScale * saturate : md) * weight;
-  const moodChange = moodGain + tierMood + d.moodDrift;
+  // 정체 감쇠. 아무 일도 안 일어난 턴이 연달아 쌓이면 공기가 식는다.
+  // 한 턴에 −k씩 붙으므로 **연속 길이의 제곱으로 누적된다** — 8연은 1연 여덟 번의 4.5배다.
+  // 상대는 지루한 대화를 오래 견뎌주지 않는다. 그게 여기서 재려는 전부다.
+  s.dullRun = DULL_TIERS.has(tier) ? s.dullRun + 1 : 0;
+  // 다만 무한정 나빠지지는 않는다. 지루함에도 바닥이 있다 —
+  // 상한이 없으면 무의미한 턴이 길어지는 것만으로 자리가 반드시 깨져서,
+  // 격차가 아니라 중단 횟수를 재는 숫자가 된다(실측: 상한 없이 계수 3에서 12판 중 6판 파탄).
+  const stallMood = -TUNING.stallMood * Math.min(s.dullRun, TUNING.stallCap);
+  const moodChange = moodGain + tierMood + stallMood + d.moodDrift;
   const moodAfter = clamp(s.mood + moodChange, 0, 100);
 
   // 2) 호감: 판정 × 난이도 스케일 × 분위기 배율 × 호감 포화.
@@ -428,14 +446,19 @@ export function applyTurn(state, d, judge, opts = {}) {
 
   const hot = FLUTTER_TIERS.has(tier);
 
-  // 무전 창. 지시가 꽂힌 발언과 그 직후 두 턴 안에서 터진 두근거림만 제값을 받는다.
-  // 창 밖은 깎인다 — 저절로 굴러간 두근거림은 요원이 만든 게 아니다.
-  const inWindow = s.sinceRadio <= RADIO_WINDOW.turns;
-  const vMult = hot ? (inWindow ? RADIO_WINDOW.inside : RADIO_WINDOW.outside) : 1;
   if (hot) s.hotSeen += 1;
-  s.sinceRadio = opts.radioInjected ? 0 : s.sinceRadio + 1;
 
-  const scaled = (ld >= 0 ? ld * d.gainScale * loveSat * vMult : ld * d.lossScale) * weight;
+  // 손실 쪽에는 **쌓인 호감이 완충으로 붙는다.** 이득에만 포화를 걸어두면
+  // 판이 길어질수록 (이득 × loveSat ↓) 대 (손실 × 1.0) 로 기울어서,
+  // 밀어붙이는 쪽이 후반에 구조적으로 손해를 본다. 실측이 그랬다 —
+  // 원판정 합이 ace +294/−154 · none +246/−94로, 재료는 ace가 많은데 순합은 none이 앞섰다.
+  // 이미 좋아하게 된 사람은 한 번 삐끗한다고 처음으로 돌아가지 않는다. 그걸 규칙에 적는다.
+  const cushion = 1 - TUNING.lossCushion * (clamp(before.love, 0, 100) / 100);
+  const scaled = (ld >= 0 ? ld * d.gainScale * loveSat : ld * d.lossScale * cushion) * weight;
+  // 한 턴 상한은 두지 않는다. 두 번 시도했고 둘 다 무전 창의 이점만 골라 깎였다 —
+  // 딱 자르면 쉬움 ace가 88 → 36으로 무너지고(cap 12), 완만하게 접어도(knee 26) 격차가 8점 날아간다.
+  // 무전이 꽂힌 한 마디에 사람이 크게 무너지는 건 이 게임이 팔려는 바로 그 장면이다.
+  // 두 번째 한 방이 첫 번째만큼 크지 않게 막는 건 포화 곡선(loveSaturation)이 이미 하고 있다.
   const loveChange = scaled * mult - d.loveDecay;
 
   s.mood = moodAfter;
@@ -458,7 +481,7 @@ export function applyTurn(state, d, judge, opts = {}) {
     mood: round1(s.mood - before.mood),
     love: round1(s.love - before.love),
     rawMood: md, rawLove: ld, tier, judgeTier: judge.tier || '?',
-    mult: round1(mult), inRadioWindow: !!(hot && inWindow),
+    mult: round1(mult),
     revealed: fresh,
     vibe: s.vibe,
     firstImpression: !!opts.firstImpression,
@@ -469,7 +492,6 @@ export function applyTurn(state, d, judge, opts = {}) {
     dMood: s.lastDelta.mood, dLove: s.lastDelta.love,
     mood: Math.round(s.mood), love: Math.round(s.love),
     rawMood: md, rawLove: ld, tier, judgeTier: judge.tier || '?', mult: s.lastDelta.mult,
-    inRadioWindow: !!(hot && inWindow),
     revealed: fresh, firstImpression: !!opts.firstImpression,
     // 장벽·압박은 이제 판을 끝내는 조건이다. 턴 기록에 안 남으면 사후에 왜 졌는지 못 짚는다.
     barrier: judge.barrierAddressed === true, leverage: judge.leverage || 'none',
@@ -599,19 +621,6 @@ export function debrief(state, d, v, couple, transcript = '') {
       ? '한 번도 없었다. 그래서 호감은 시작한 자리에서 한 발짝도 안 움직였다 — ' +
         '합이 맞고 농담이 통하는 건 채점 대상이 아니다. 저 사람이라서 닿는 말이 하나도 없었다.'
       : `${hot}번 있었다. 오른 호감은 전부 이 순간들이 민 것이다. 나머지 턴은 한 점도 안 보탰다.`,
-  });
-  // 무전 창. 이게 이 게임에서 준비를 제일 잘 가르는 축이다 — 안 알려주면 숨겨둔 규칙이다.
-  const onRadio = hotTurns.filter(h => h.inRadioWindow).length;
-  notes.push({
-    key: 'radiowindow', label: '무전 창에서 터진 두근거림',
-    value: `${onRadio} / ${hot}회`,
-    ok: hot > 0 && onRadio > hot / 2,
-    text: hot === 0
-      ? '두근거린 순간이 없었으니 무전 타이밍도 잴 게 없다.'
-      : onRadio === 0
-        ? '한 번도 없다. 두근거림이 전부 무전 밖에서 저절로 터졌고, 그건 제값의 70%만 친다. ' +
-          '무전은 배급량이 정해져 있다 — 안 쓰면 그만큼 그냥 버리는 것이다.'
-        : `${onRadio}번이 무전 직후 세 턴 안에서 터졌다. 그 턴들은 1.5배로 실렸고, 나머지 ${hot - onRadio}번은 0.7배다.`,
   });
   notes.push({
     key: 'secrets', label: '상대가 감춰둔 이야기',

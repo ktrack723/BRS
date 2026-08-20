@@ -434,9 +434,11 @@ test('현안을 끝내 안 다뤄도 호감이 넘으면 성사된다', async ()
 
 // 싫어하는데 사귄다. 협박으로 묶은 쪽.
 test('호감이 모자라도 압박이 쌓이면 묶인다', async () => {
+  // 등급은 nudge다. flat으로 깔면 정체 감쇠가 자리를 먼저 깨뜨려서 강압 경로를 못 잰다 —
+  // 그건 이 테스트가 보려는 것이 아니다. nudge는 점수 0이면서 자리를 유지한다.
   const llm = new FakeLlm({
     judge: (rec, n) => ({
-      tier: 'flat', moodDelta: 0, loveDelta: 0, reason: 'r', vibe: 'v', revealed: '',
+      tier: 'nudge', moodDelta: 0, loveDelta: 0, reason: 'r', vibe: 'v', revealed: '',
       clientEmote: 'smug', targetEmote: 'freeze', barrierAddressed: false,
       leverage: n <= 3 ? 'hard' : 'none',
     }),
@@ -452,7 +454,7 @@ test('호감이 모자라도 압박이 쌓이면 묶인다', async () => {
 test('압박이 한두 번으로는 사람을 못 묶는다', async () => {
   const llm = new FakeLlm({
     judge: (rec, n) => ({
-      tier: 'flat', moodDelta: 0, loveDelta: 0, reason: 'r', vibe: 'v', revealed: '',
+      tier: 'nudge', moodDelta: 0, loveDelta: 0, reason: 'r', vibe: 'v', revealed: '',
       clientEmote: 'smug', targetEmote: 'freeze', barrierAddressed: false,
       leverage: n === 1 ? 'hard' : 'none',
     }),
@@ -488,7 +490,9 @@ test('LLM이 죽어도 판정은 중립으로 흐르고 게임은 끝까지 간�
   };
   const { result } = await playFull(llm);
   assert.equal(result.state.history.length, TOTAL_TURNS + 1, '판정이 실패해도 턴은 전부 기록된다');
-  assert.ok(result.state.history.every(h => h.tier === 'flat'), '실패 시 중립(flat) 처리');
+  // 중립은 flat이 아니라 nudge다. flat에는 정체 감쇠가 붙어서,
+  // API가 한 번 흔들린 것만으로 자리가 깨지고 판이 짧아진다.
+  assert.ok(result.state.history.every(h => h.tier === 'nudge'), '실패 시 중립(nudge) 처리');
 });
 
 test('대면 첫인상은 착장+반응으로 채점되며 firstImpression으로 표시된다', async () => {
