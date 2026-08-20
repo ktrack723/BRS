@@ -183,6 +183,12 @@ test('수위는 허가지 지시가 아니다', async () => {
   assert.match(w, /It does not have to wait for a bedroom and it does not have to wait for the end/,
     '장소·시점 제한이 남아 있다');
   assert.match(w, /It can start in the first exchange/, '첫 턴부터 가능하다는 게 안 적혀 있다');
+  // 끝에만 붙으면 그 뒤가 아무것도 감당 안 해도 된다. 그것도 회피다.
+  assert.match(w, /Do not save it for the last turn/, '마지막 턴 전용으로 밀려날 여지가 있다');
+  assert.match(w, /it can start in\s+the middle and run for several turns/, '중반 진행이 안 열려 있다');
+  // 몸을 이름으로 부르는가
+  assert.match(w, /\*\*Name the body\.\*\*/, '신체 묘사가 뭉뚱그려져 있다');
+  assert.match(w, /not in soft focus/, '구체적으로 갈 때 흐릿해질 여지가 있다');
   // 다만 강압 중에는 안 간다. 압박은 관계를 사지 몸을 사지 않는다.
   assert.match(w, /If one of them is being coerced, the scene does not go there/,
     '강압 상태에서의 예외가 없다');

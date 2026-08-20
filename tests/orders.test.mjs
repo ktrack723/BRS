@@ -209,3 +209,20 @@ test('44건 전부 계기판에 띄울 장벽을 갖고 있다', () => {
     assert.ok(c.barrier && c.barrier.length >= 10, `${id}: 장벽이 비었거나 너무 짧다`);
   }
 });
+
+// ── 지침이 물릴 자리가 있는가 ────────────────────────────────────
+// 사회성 결여를 기본 전제로 깔았더니 숙련 요원의 지침도 같이 죽었다 (실측 ace 0/3).
+// 아무것도 못하는 사람에게 지시를 줘도 아무것도 안 되면 준비 단계가 사문화된다.
+// 지침은 이 사람이 유일하게 붙잡을 수 있는 것이어야 한다.
+test('지침은 이 사람이 유일하게 즉흥이 아닌 부분이다', async () => {
+  const c = COUPLE_BY_ID['gapjil'];
+  const withOrders = P.clientAgentSystem(c, { outfitDesc: '', coaching: '이렇게 해라', speech: '' }, 'talk', { name: '요원' });
+  assert.match(withOrders, /the only part of tonight you are not making up/, '지침이 물릴 자리가 없다');
+  assert.match(withOrders, /you fall back on them, out loud, clumsily/, '지침을 어떻게 쓰는지가 없다');
+  assert.match(withOrders, /Everywhere the orders run out, you are back to being yourself/,
+    '지침이 안 닿는 데서 원래대로 돌아간다는 게 없다');
+  // 지침이 없으면 그 안전망 자체가 없어야 한다
+  const without = P.clientAgentSystem(c, { outfitDesc: '', coaching: '', speech: '' }, 'talk', { name: '요원' });
+  assert.ok(!/the only part of tonight you are not making up/.test(without),
+    '지침이 없는데 지침 안전망 문구가 남아 있다');
+});

@@ -100,6 +100,12 @@ passes get made. This piece does not censor that.
   It can start in the first exchange. It can happen where they are — the table, the roof,
   the back of a car, the storeroom, the crater rim. If that is where these two would go,
   that is where it goes, and the conversation keeps running through it.
+· **Do not save it for the last turn.** Treating it as the closing beat is its own kind of
+  dodge — it means nothing that follows has to deal with it. If it starts, it can start in
+  the middle and run for several turns, with them still talking the whole way through,
+  and the operation can perfectly well end because **that** finished and there was nothing
+  left to say. It can also happen early and then the two of them have to sit in the rest of
+  the evening with it having happened. Both of those are better than an epilogue.
 · One carve-out. **If one of them is being coerced, the scene does not go there.**
   Pressure in this world buys a relationship, an exclusivity, a signature, a Tuesday every
   week — it does not buy a body. When leverage is what is keeping someone at that table,
@@ -524,7 +530,13 @@ ${coaching}
 """
 This is not advice and not a suggestion. It is an order. ${COMPLY[f.compliance] || COMPLY.obeys}
 ${COMPLY_HARD}
-Where the orders say nothing, you act on your own judgement.`
+Where the orders say nothing, you act on your own judgement.
+
+And understand what this is worth to you. You cannot do this on your own — you have never
+been able to. **These lines are the only part of tonight you are not making up as you go.**
+When you are lost, you fall back on them, out loud, clumsily, sometimes word for word in a
+way that does not quite fit the moment. That is still better than what you would have said.
+Everywhere the orders run out, you are back to being yourself, and it shows immediately.`
     : `[ORDERS FROM HEADQUARTERS] None. Nobody told you how to handle this.
 Nobody warned you about anything, nobody gave you a subject to avoid, nobody gave you a
 way out if it goes wrong. There is no plan in your head — there is only the thing you want,
