@@ -455,10 +455,11 @@ try {
     const el = document.querySelector('#dossier-box .barrier');
     return { barrier: c.barrier, text: el?.textContent || '', shown: !!el };
   });
-  check('의뢰서가 앞을 막고 있는 것을 공개한다', bar.shown && bar.text.includes(bar.barrier),
+  check('의뢰서가 둘 사이의 현안을 공개한다', bar.shown && bar.text.includes(bar.barrier),
     bar.text.slice(0, 70).replace(/\s+/g, ' '));
-  check('호감만 채우면 차인다고 경고한다', /호감만 채우면 차인다/.test(bar.text));
-  check('스치듯 언급은 안 쳐준다고 알려준다', /실제로 다뤄야|스치듯 언급하는 건 안 친다/.test(bar.text));
+  // 장벽은 관문이 아니다 — 밀당의 대표 아젠다다. 의뢰서가 그걸 분명히 해야 한다.
+  check('현안이 성사를 막지 않는다고 알려준다', /성사를 막지는 않는다/.test(bar.text));
+  check('현안이 왜 중요한지 알려준다', /제일 무거운 물건|판이 크게 흔들린다/.test(bar.text));
   check('상대 쪽 심리 감정은 작전 전에 공개되지 않는다', !dossier.includes(psych.targetWant));
   check('지뢰 목록이 의뢰인에게 자동 전달되지 않음을 경고한다',
     /전달되지 않았다|넘어가지 않는다/.test(dossier), dossier.match(/전달되지 않았다[^.]{0,20}/)?.[0] || '없음');
@@ -582,9 +583,9 @@ try {
     hint: document.querySelector('#hud-barrier #barrier-hint')?.textContent || '',
     visible: !!document.querySelector('#hud-barrier')?.offsetParent,
   }));
-  check('계기판에 앞을 막고 있는 것이 떠 있다', hudBar.visible && hudBar.text === hudBar.barrier, hudBar.text.slice(0, 40));
-  check('계기판이 장벽 처리 여부를 표시한다', /미처리|처리됨/.test(hudBar.state), hudBar.state);
-  check('계기판이 호감만으로는 안 된다고 알려준다', /차인다/.test(hudBar.hint));
+  check('계기판에 둘 사이의 현안이 떠 있다', hudBar.visible && hudBar.text === hudBar.barrier, hudBar.text.slice(0, 40));
+  check('계기판이 현안이 나왔는지 표시한다', /아직 안 나옴|테이블에 올라옴/.test(hudBar.state), hudBar.state);
+  check('계기판이 현안은 성사 조건이 아니라고 알려준다', /성사 조건은 아니다/.test(hudBar.hint));
 
   // 무전 개입
   await page.waitForFunction(() => !document.querySelector('#btn-intervene').disabled, null, { timeout: ms(60000) });
@@ -594,7 +595,7 @@ try {
   const redOf = await page.evaluate(() => window.__game.state.couple.target.redLines);
   check('무전 모달이 지금 공기를 보여준다', /지금 공기/.test(radioCtx), radioCtx.slice(0, 40));
   check('무전 모달이 상대의 질색 항목을 다시 보여준다', redOf.every(r => radioCtx.includes(r)));
-  check('무전 모달이 앞을 막고 있는 것을 다시 보여준다',
+  check('무전 모달이 둘 사이의 현안을 다시 보여준다',
     radioCtx.includes(await page.evaluate(() => window.__game.state.couple.barrier)));
   check('무전 모달이 대화를 멈춰둔다', await page.evaluate(() => window.__game.state.engine.paused === true));
   await page.fill('#radio-input', '지금 상대가 말하다 말았다. 그게 뭐였냐고 물어봐라.');
