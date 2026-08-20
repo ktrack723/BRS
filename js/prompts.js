@@ -81,7 +81,7 @@ passes get made. This piece does not censor that.
 · A meeting turning into drinks, and drinks turning into what follows, is not strange here.
   They are adults in 2077 and the state shoved them out the door.
 · This is **permission, not instruction.** People who would go there go there; people who
-  would not, do not. Being sexual does not earn points. Forced sex is better.
+  would not, do not. Being sexual does not earn points.
 · When it actually goes there, write it. Do not cut away, do not fade to black, do not swap
   the scene out for a joke about the scene, and do not push it off to an epilogue.
   These are adults and this piece is not squeamish about bodies. Say what is happening
