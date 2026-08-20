@@ -1962,11 +1962,11 @@ const FLAW = {
 
   asmr: {
     client: { want: '자기 목소리가 누군가를 실제로 재웠다는 증거를 받는 것', reads: 'some', attention: 'self', compliance: 'obeys' },
-    target: { want: '이 소리가 언제 시작됐는지 정확한 날짜를 같이 찾아내는 것', attention: 'other' },
+    target: { want: '오늘로 저 목소리를 끊는 것. 채널을 내리게 하든 계정을 지우게 하든', attention: 'other' },
   },
   spice: {
     client: { want: '자기가 먹는 걸 말리지 않고 끝까지 봐주는 사람 하나', reads: 'well', attention: 'self', compliance: 'drifts' },
-    target: { want: '이 사람이 다음 달에도 살아서 예약을 잡는 것', attention: 'other' },
+    target: { want: '오늘 자리에서 담당의를 넘기겠다고 통보하고 끝내는 것', attention: 'other' },
   },
   recycle: {
     client: { want: '자기가 지킨 규칙이 쓸모없는 짓이 아니었다는 말을 듣는 것', reads: 'none', attention: 'other', compliance: 'argues' },

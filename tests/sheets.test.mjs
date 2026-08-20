@@ -801,3 +801,14 @@ test('상대가 원한을 들고 앉는다', () => {
     assert.match(cs, /AND THE PART YOU DO NOT SAY OUT LOUD/, `${c.id}: 속마음 블록 표제가 없다`);
   }
 });
+
+// ── 상대에게 자리를 뜰 이유가 있는가 ──────────────────────────────
+// 상대의 want가 "이 사람하고 같이 뭘 한다" 꼴이면 그건 **자리를 지킬 이유**다.
+// 그런 조합은 첫 줄부터 대화가 잘 굴러가고, 준비를 안 해도 이긴다 (실측: asmr 77, spice 82).
+test('상대의 want가 협력형이 아니다', () => {
+  for (const c of COUPLES) {
+    const w = c.target.flaw.want;
+    assert.ok(!/같이|함께|서로 /.test(w),
+      `${c.id}: 상대가 의뢰인과 같이 뭘 하고 싶어 한다 — 나갈 이유가 없다\n  ${w}`);
+  }
+});
