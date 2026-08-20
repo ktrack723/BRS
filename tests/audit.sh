@@ -68,6 +68,7 @@ chk "정체 감쇠에 상한이 있다 (무의미한 턴만으로 판이 안 끊
 chk "nudge는 죽은 턴이 아니다" "grep -q \"DULL_TIERS = new Set(\\[.flat.\\])\" js/scoring.js"
 chk "심판이 죽었을 때의 중립 판정에는 정체가 안 붙는다" "grep -A2 'neutralJudge(reason)' js/engine.js | grep -q \"tier: 'nudge'\""
 chk "손실 완충 — 쌓인 호감이 실수를 덜 물게 한다" "grep -q 'lossCushion' js/scoring.js"
+chk "금지당한 충동은 사라지지 않고 옆으로 샌다" "grep -q 'the wanting does not' js/prompts.js"
 chk "분위기는 성사를 막지 않는다 (하한 폐지)" "node -e \"import('./js/scoring.js').then(m=>process.exit(['쉬움','보통','헬'].every(k=>m.diffOf(k).moodFloor===0)?0:1))\""
 chk "분위기는 배율과 파탄으로만 남는다" "node -e \"import('./js/scoring.js').then(m=>process.exit(m.moodMultiplier(100)<=1&&m.moodMultiplier(0)<m.moodMultiplier(60)?0:1))\""
 chk "warm에 부정 목록이 있다 (41% 남발 방지)" "grep -q 'that is attention, not wanting' js/prompts.js"

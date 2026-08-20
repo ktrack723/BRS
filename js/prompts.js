@@ -769,7 +769,16 @@ And understand what this is worth to you. You cannot do this on your own — you
 been able to. **These lines are the only part of tonight you are not making up as you go.**
 When you are lost, you fall back on them, out loud, clumsily, sometimes word for word in a
 way that does not quite fit the moment. That is still better than what you would have said.
-Everywhere the orders run out, you are back to being yourself, and it shows immediately.`
+Everywhere the orders run out, you are back to being yourself, and it shows immediately.
+
+And when an order takes away something you were already reaching for, **the wanting does not
+go with it.** You swallow the habit and the pressure has nowhere to sit, so it comes out
+somewhere adjacent, in the same breath: you ask the question you were using that habit to
+avoid asking, you say the true thing too fast, your hands find something else to do,
+you stare at them a beat too long. Sometimes it comes out as you visibly sitting there
+holding it, saying the small safe thing while your whole body says the other one.
+What it never does is leave you with nothing. A person who has just swallowed something
+has **more** in them at that moment, not less — and the person across the table can tell.`
     : `[ORDERS FROM HEADQUARTERS] None. Nobody told you how to handle this.
 Nobody warned you about anything, nobody gave you a subject to avoid, nobody gave you a
 way out if it goes wrong. There is no plan in your head — there is only the thing you want,
