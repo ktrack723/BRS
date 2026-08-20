@@ -443,6 +443,18 @@ try {
   // 판을 깨는 건 버릇이 아니라 성향이라는 걸 화면이 분명히 말해야 한다.
   // 안 그러면 요원은 "그 버릇만 막으면 되겠네"로 읽고 대사 한 줄만 금지한다.
   check('버릇이 아니라 성격 때문이라고 명시한다', /성격 때문이다/.test(wire.box));
+
+  // 호감만 채우면 차인다. 그걸 요원이 의뢰서에서 미리 봐야 한다 — 안 보면 그건 숨겨둔 규칙이다.
+  const bar = await page.evaluate(() => {
+    const name = document.querySelector('#dossier-box h3').textContent;
+    const c = window.__game.COUPLES.find(x => name.includes(x.client.name));
+    const el = document.querySelector('#dossier-box .barrier');
+    return { barrier: c.barrier, text: el?.textContent || '', shown: !!el };
+  });
+  check('의뢰서가 앞을 막고 있는 것을 공개한다', bar.shown && bar.text.includes(bar.barrier),
+    bar.text.slice(0, 70).replace(/\s+/g, ' '));
+  check('호감만 채우면 차인다고 경고한다', /호감만 채우면 차인다/.test(bar.text));
+  check('스치듯 언급은 안 쳐준다고 알려준다', /실제로 다뤄야|스치듯 언급하는 건 안 친다/.test(bar.text));
   check('상대 쪽 심리 감정은 작전 전에 공개되지 않는다', !dossier.includes(psych.targetWant));
   check('지뢰 목록이 의뢰인에게 자동 전달되지 않음을 경고한다',
     /전달되지 않았다|넘어가지 않는다/.test(dossier), dossier.match(/전달되지 않았다[^.]{0,20}/)?.[0] || '없음');
@@ -660,12 +672,14 @@ try {
     };
   });
 
-  // 첫인상 1 + 문자 4 + 대면 5 = 10턴이 기본. 케미가 좋으면 여기서 최대 +5까지 늘어난다.
-  // (라이브에서 실제로 13턴이 나왔다 — 하드코딩 10은 연장 기능 이전에 쓴 것이다.)
-  const { EXTENSION } = await import('../js/scoring.js');
-  const maxTurns = 10 + EXTENSION.maxExtra.text + EXTENSION.maxExtra.talk;
-  check('전 턴이 판정됐다 (기본 10턴 + 케미 연장)',
-    result.turns >= 10 && result.turns <= maxTurns, `${result.turns}턴 (10~${maxTurns})`);
+  // 첫인상 1 + 문자 + 대면이 기본. 케미가 좋으면 거기서 더 늘어난다.
+  // 숫자를 박아두면 턴 수를 바꿀 때마다 여기가 터진다 — 상수에서 계산한다.
+  const { EXTENSION, diffOf } = await import('../js/scoring.js');
+  const dd = diffOf('보통');
+  const baseTurns = 1 + dd.textTurns + dd.talkTurns;
+  const maxTurns = baseTurns + EXTENSION.maxExtra.text + EXTENSION.maxExtra.talk;
+  check(`전 턴이 판정됐다 (기본 ${baseTurns}턴 + 케미 연장)`,
+    result.turns >= baseTurns && result.turns <= maxTurns, `${result.turns}턴 (${baseTurns}~${maxTurns})`);
   check('심판 등급이 한 종류로 몰리지 않았다', new Set(result.tiers).size >= 2, result.tiers.join(','));
   check('구 등급명이 남아 있지 않다',
     !result.tiers.some(t => ['critical', 'hit', 'ok', 'empty', 'backfire', 'redline'].includes(t)), result.tiers.join(','));
@@ -683,8 +697,14 @@ try {
   check('요원 정보가 결과까지 따라간다', result.agent === AGENT_NAME || LIVE, result.agent);
   if (result.mock) {
     check('판정과 타겟 응답이 동시에 발사됐다 (턴당 왕복 2회)', result.mock.maxInFlight >= 2, `동시 최대 ${result.mock.maxInFlight}`);
-    // 인증1 + 스타일링1 + 취조실1 + 정문1 + 발언9 + 응답9 + 판정10 + 상황1 + 편지1 = 34 (브리핑 호출은 없다)
-    check('총 LLM 호출이 예상 범위다', result.mock.calls >= 31 && result.mock.calls <= 37, `${result.mock.calls}콜`);
+    // 인증1 + 스타일링1 + 취조실1 + 정문1 + 상황1 + 편지1 = 6 고정.
+    // 거기에 턴마다 발언1 + 응답1 + 판정1, 그리고 첫인상 판정 1회가 붙는다.
+    // 연장이 붙으면 늘어나므로 범위로 본다. (브리핑은 LLM을 안 쓴다)
+    const turns = dd.textTurns + dd.talkTurns;
+    const lo = 6 + turns * 3 + 1;
+    const hi = lo + (EXTENSION.maxExtra.text + EXTENSION.maxExtra.talk) * 3;
+    check('총 LLM 호출이 예상 범위다',
+      result.mock.calls >= lo && result.mock.calls <= hi, `${result.mock.calls}콜 (${lo}~${hi})`);
   } else {
     check('프롬프트 캐시가 실제로 적중했다', result.usage.cacheRead > 5000, `${result.usage.cacheRead}tok 재사용`);
   }

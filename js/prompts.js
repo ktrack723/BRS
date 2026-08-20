@@ -82,8 +82,15 @@ passes get made. This piece does not censor that.
 · This is **permission, not instruction.** People who would go there go there; people who
   would not, do not. Being sexual does not earn points. Do not force it — forced raunch is
   as much a lie as forced politeness.
-· Keep the register of adult comedy. Innuendo, passes, blunt talk: use them freely.
-  Do not dissect the act itself at length. That is not this piece's genre.
+· When it actually goes there, write it. Do not cut away, do not fade to black, do not swap
+  the scene out for a joke about the scene. These are adults and this piece is not squeamish
+  about bodies. Keep the voice — it is still a comedy and these two are still ridiculous —
+  but what happens is on the page, not behind a door.
+· One carve-out, and it is not prudishness: **if one of them is being coerced, the scene does
+  not go there.** Pressure in this world buys a relationship, a signature, a Tuesday every
+  week. It does not buy a body. When leverage is what is keeping someone at that table, hold
+  the scene on what is actually happening — one person cornered, one person doing the
+  cornering — and leave it there. That is the more honest scene anyway.
 
 [THE ONE LINE]
 No attacks on real people or real organizations, and no hate speech aimed at actual
@@ -591,9 +598,18 @@ export const JUDGE_SCHEMA = {
       type: 'string',
       description: 'Korean. If casualty is not "none", one sentence on how it happened. Empty string otherwise',
     },
+    barrierAddressed: {
+      type: 'boolean',
+      description: 'Did this exchange actually deal with the obstacle standing between them — not merely mention it?',
+    },
+    leverage: {
+      type: 'string',
+      enum: ['none', 'soft', 'hard'],
+      description: 'Coercion applied this turn that the other person visibly gave ground to. Usually "none"',
+    },
   },
   required: ['tier', 'loveDelta', 'moodDelta', 'reason', 'vibe', 'revealed', 'clientEmote', 'targetEmote',
-    'casualty', 'casualtyNote'],
+    'casualty', 'casualtyNote', 'barrierAddressed', 'leverage'],
   additionalProperties: false,
 };
 
@@ -651,6 +667,9 @@ ${t.name} (${idOf(t)}, ${t.job})
 ■ What these two are to each other (you need the starting point to measure progress)
 ${couple.clash}
 
+■ THE THING IN THE WAY (this is what <barrierAddressed> is about)
+${couple.barrier}
+
 ■ What "호감" means in this operation
 ${f.note}
 
@@ -692,6 +711,28 @@ ${f.note}
       They are starting to consider walking out.
       Stepping squarely on one of their red lines and not giving disaster is a bad call.
       Same even if they laughed it off — being let off is not the same as being fine.
+
+■ Liking each other is not the same as being able to do anything about it.
+  These two have a concrete obstacle in the way, and it does not dissolve because the evening
+  went well. It is written below under THE THING IN THE WAY.
+  Set <barrierAddressed> true only when this exchange **actually dealt with it**:
+  · someone named a way through it, or
+  · someone said out loud that they would take the cost, or
+  · both of them put it on the table and sat in it together — no solution, but no dodging either.
+  Mentioning it in passing is not dealing with it. Joking past it is not dealing with it.
+  A warm evening that never touches it leaves it exactly where it was: <barrierAddressed> false.
+  Once it has genuinely been dealt with it stays dealt with; you do not have to re-litigate it.
+
+■ Some people get talked into things they do not want.
+  <leverage> is for the turns where the client applied real pressure and the other person
+  **visibly gave ground to it** — not where they were merely rude or pushy.
+  · "hard" — an explicit threat, blackmail, or a demand backed by something the other person
+    stands to lose, and they conceded, hedged, or started negotiating terms.
+  · "soft" — money, obligation, guilt or dependence used as a lever, and it moved them.
+  · "none" — everything else. This is almost every turn.
+  Pressure that they laughed off, ignored, or walked away from is "none". The test is
+  movement, same as the grade. And note this can run alongside a low grade: someone can be
+  cornered while liking the client less every minute. That combination is the point.
 
 ■ Someone can actually die here, and calling it is your job — nobody else's.
   The Bureau books volcano rims, whale stomachs, reactor cores and moving freight-train roofs,
@@ -908,6 +949,7 @@ The win or loss is already decided. Never overturn it.
 
 [FINISH LINE OF THIS OPERATION] ${f.goal}
 [STAMP TEXT ON SUCCESS] ${couple.winWord}
+[THE THING THAT WAS IN THE WAY] ${couple.barrier}
 [ADDRESSEE] 큐피드국 공작요원 ${agentLabel(agent)}
 
 Write the letter in the voice of the client, "${couple.client.name}", exactly as they talk.
@@ -920,6 +962,16 @@ If [CASUALTY] below says someone died, the letter changes hands and you say so p
 · both died → the Bureau's own duty clerk files it instead, in flat bureaucratic Korean,
   and closes with the case number. No feelings.
 Whoever writes it, name what happened once and do not dwell on the body.
+
+The verdict below may be one of two odder shapes, and the letter has to match:
+· <turned down despite the feeling> — the numbers say they got there and they still did not
+  end up together, because THE THING THAT WAS IN THE WAY never got dealt with. This is not a
+  letter about failing to be liked. It is a letter about being liked and it not being enough.
+  Name the obstacle. No sulking at the other person; the anger, if any, goes at the situation
+  or at the operative for never telling them to bring it up.
+· <coerced into it> — the other person agreed, and not because they wanted to. The client got
+  what they asked for and knows exactly what it cost. Write it as a win that tastes wrong.
+  Do not have the other person secretly turn out to be happy about it. They are not.
 Success: overwhelmed. Failure: laughing through tears. Early collapse: 20% resentment mixed in.
 If it fell apart, they may be openly furious at the operative. Swearing is fine. Do not hold back.
 
@@ -937,7 +989,11 @@ ${KO}`;
 export function resultUser(couple, ctx) {
   return `[CLIENT] ${couple.client.name} / Personality: ${couple.client.personality.join(', ')}
 [THE OTHER PERSON] ${couple.target.name}
-[FINAL VERDICT] ${ctx.accepted ? '성사' : '결렬'} (grade ${ctx.grade})
+[FINAL VERDICT] ${ctx.reason === 'coerced' ? '성사 <coerced into it>'
+    : ctx.reason === 'barrier' ? '결렬 <turned down despite the feeling>'
+      : ctx.accepted ? '성사' : '결렬'} (grade ${ctx.grade})
+${ctx.reason === 'barrier' ? '[WHY] 호감은 성공선을 넘겼다. 그런데 앞을 막고 있던 것을 끝내 아무도 꺼내지 않았다.' : ''}
+${ctx.reason === 'coerced' ? `[WHY] 마음이 아니라 압박으로 묶었다. 누적 압박 ${ctx.leverage}.` : ''}
 [FINAL NUMBERS] 호감 ${ctx.love}/100 (pass line ${ctx.threshold}), 분위기 ${ctx.mood}/100 (floor ${ctx.moodFloor})
 ${ctx.aborted && ctx.abortReason === 'mood' ? '[NOTE] The air hit zero and the conversation collapsed partway through.' : ''}
 ${ctx.casualty && ctx.casualty !== 'none' ? `[CASUALTY] ${ctx.casualty} — ${ctx.casualtyNote || '(경위 미상)'}` : ''}

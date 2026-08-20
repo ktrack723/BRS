@@ -72,8 +72,9 @@ function dossierText(c) {
   · 이미 넘어본 선: ${c.client.flaw.nerve}
 ${rep}
   · 조건반사(가만두면 나온다): ${c.client.weakness}
-⚠ 저 조건반사는 상대의 접촉 금지 항목 「${c.tripwire.redLine}」를 정통으로 밟는다.
-   지침으로 직접 봉인하지 않으면 아무것도 안 해도 저기를 밟고, 한 번으로 끝나지 않는다.
+⚠ 성향 충돌: 이 사람이 원하는 것을 그대로 좇으면 상대의 접촉 금지 항목 「${c.collision.redLine}」 쪽으로 간다.
+   ${c.collision.why}
+   버릇 때문이 아니라 성격 때문이라, 한 문장 금지로는 안 막힌다. 우회로를 깔아줘야 한다.
 [타겟] ${c.target.name} (${c.target.age}, ${c.target.job})
 성격: ${c.target.personality.join(', ')}
 알려진 취향: ${c.target.visiblePrefs.join(' / ')}

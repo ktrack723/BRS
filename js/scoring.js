@@ -98,7 +98,7 @@
 export const DIFFICULTIES = {
   '쉬움': {
     key: 'easy', badge: '쉬움',
-    textTurns: 4, talkTurns: 5,
+    textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,   // 기획서 규정: 문자 1회, 대면 2회
     startLove: 10, startMood: 55,
     threshold: 40, moodFloor: 25,
@@ -108,7 +108,7 @@ export const DIFFICULTIES = {
   },
   '보통': {
     key: 'normal', badge: '보통',
-    textTurns: 4, talkTurns: 5,
+    textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,
     startLove: 6, startMood: 46,
     threshold: 47, moodFloor: 33,
@@ -118,7 +118,7 @@ export const DIFFICULTIES = {
   },
   '헬': {
     key: 'hell', badge: '헬',
-    textTurns: 4, talkTurns: 5,
+    textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,
     startLove: 3, startMood: 38,
     threshold: 54, moodFloor: 40,
@@ -181,6 +181,9 @@ export const TUNING = {
   // 프롬프트로 등급 분포를 눌러도 한계가 있어서, 규칙 계층에도 브레이크를 뒀다.
   // 이건 '특정 워딩을 맞히면 가점' 같은 공략 대상이 아니라, 올라갈수록 무거워지는 저울이다.
   loveSaturation: 128,
+  // 강압 성사에 필요한 누적 압박. hard 두 번 + soft 한 번쯤이면 사람이 묶인다.
+  // 한 번의 협박으로 성사되면 무전 한 방짜리 게임이 된다.
+  coerceMin: 5,
   moodGainScale: 1.0,        // 분위기 이득 쪽 감쇠. 예전 0.75는 분위기가 아예 안 오르게 만들었다
   disasterMood: -5,          // 상대가 정색하면 자리가 식는다. 등급에서 나오는 결과지 별도 판정이 아니다
   breakthroughMood: 3,       // 반대로 방어선이 무너진 순간엔 공기도 같이 풀린다
@@ -228,6 +231,10 @@ export function initialState(d) {
     // 'none' | 'client' | 'target' | 'both'
     casualty: 'none',
     casualtyNote: '',
+    // 현실 장벽을 대화에서 실제로 다뤘는가. 한 번 다루면 계속 다뤄진 것으로 둔다.
+    barrierCleared: false,
+    // 강압 누적. hard 2점 · soft 1점. 호감이 모자라도 이게 쌓이면 묶인다.
+    leverage: 0,
   };
 }
 
@@ -277,6 +284,11 @@ export function applyTurn(state, d, judge, opts = {}) {
     s.casualtyNote = (judge.casualtyNote || '').trim();
   }
 
+  // 장벽은 한 번 다루면 다뤄진 것이다. 매 턴 다시 증명하게 하면 대화가 그 얘기만 하게 된다.
+  if (judge.barrierAddressed === true) s.barrierCleared = true;
+  // 강압은 쌓인다. 한 번의 협박으로 사람이 묶이지는 않는다.
+  s.leverage += LEVERAGE_POINTS[judge.leverage] || 0;
+
   s.lastDelta = {
     mood: round1(s.mood - before.mood),
     love: round1(s.love - before.love),
@@ -305,6 +317,9 @@ export function noteRadio(state) {
 
 // ── 조기 파탄 ───────────────────────────────────────────────────
 // 사상자 표기. 디브리핑과 결과 화면이 같은 말을 쓰게 한 곳에 둔다.
+// 강압의 무게. 한 번 세게 찌른 것(hard)이 두 번 slow-press(soft)와 같다.
+export const LEVERAGE_POINTS = { none: 0, soft: 1, hard: 2 };
+
 export const CASUALTY_KO = { client: '의뢰인이', target: '상대가', both: '둘 다' };
 
 export function failureReason(state) {
@@ -323,15 +338,34 @@ export function verdict(state, d, { aborted = false } = {}) {
     return { accepted: false, grade: 'F', love, mood, margin, reason: 'death', casualty: state.casualty };
   }
   if (aborted) return { accepted: false, grade: 'F', love, mood, margin, reason: 'aborted' };
+
   const moodOk = mood >= d.moodFloor;
-  const accepted = love >= d.threshold && moodOk;
-  let grade;
-  if (!accepted) grade = margin >= -8 ? 'D' : margin >= -22 ? 'E' : 'F';
-  else if (margin >= 20) grade = 'S';
-  else if (margin >= 12) grade = 'A';
-  else if (margin >= 5) grade = 'B';
-  else grade = 'C';
-  return { accepted, grade, love, mood, margin, reason: accepted ? 'ok' : moodOk ? 'love' : 'mood' };
+  const won = love >= d.threshold && moodOk;
+  const cleared = !!state.barrierCleared;
+  const lev = state.leverage || 0;
+
+  const band = (m) => m >= 20 ? 'S' : m >= 12 ? 'A' : m >= 5 ? 'B' : 'C';
+
+  // 1) 정상 성사 — 호감도 넘고 공기도 살아 있고 현실 장벽도 실제로 다뤘다
+  if (won && cleared) {
+    return { accepted: true, grade: band(margin), love, mood, margin, reason: 'ok', leverage: lev };
+  }
+  // 2) 차였다 — 좋아하는데 못 사귄다. 이 게임에서 제일 현실적인 결말이다.
+  //    호감을 끌어올린 것 자체는 실력이므로 F로 떨어뜨리지 않는다.
+  if (won && !cleared) {
+    return { accepted: false, grade: 'D', love, mood, margin, reason: 'barrier', leverage: lev };
+  }
+  // 3) 강압 성사 — 호감은 모자라지만 빠져나갈 수가 없다.
+  //    분위기 하한은 안 본다. 마음을 얻은 게 아니라 구석에 몬 것이기 때문이다.
+  if (lev >= TUNING.coerceMin && mood > 0) {
+    return { accepted: true, grade: 'C', love, mood, margin, reason: 'coerced', leverage: lev };
+  }
+  // 4) 그냥 결렬
+  return {
+    accepted: false, love, mood, margin, leverage: lev,
+    grade: margin >= -8 ? 'D' : margin >= -22 ? 'E' : 'F',
+    reason: moodOk ? 'love' : 'mood',
+  };
 }
 
 // ── 비밀이 화제에 올랐는지 (표시 전용) ──────────────────────────
@@ -412,9 +446,13 @@ export function debrief(state, d, v, couple, transcript = '') {
   return {
     notes, surfaced, missed, revealed: state.revealed,
     threshold: d.threshold, moodFloor: d.moodFloor,
-    summary: v.accepted
-      ? `호감 ${v.love}/${d.threshold} — 성공선을 ${v.margin}점 넘겼다.`
-      : v.reason === 'death'
+    summary: v.reason === 'coerced'
+      ? `호감 ${v.love}/${d.threshold}에는 못 미쳤다. 마음이 아니라 압박으로 묶었다.`
+      : v.accepted
+        ? `호감 ${v.love}/${d.threshold} — 성공선을 ${v.margin}점 넘겼다.`
+        : v.reason === 'barrier'
+          ? `호감 ${v.love}/${d.threshold}은 넘겼는데 차였다. ${couple.barrier}`
+          : v.reason === 'death'
         ? `호감 ${v.love}/${d.threshold}까지 갔지만 ${CASUALTY_KO[state.casualty] || '누군가'} 사망했다. 성사시킬 사람이 없다.`
         : v.reason === 'mood'
           ? `호감 ${v.love}/${d.threshold}은 넘겼지만 분위기 ${v.mood}/${d.moodFloor}이 바닥이라 고백이 묻혔다.`

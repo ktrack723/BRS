@@ -175,6 +175,13 @@ test('수위는 허가지 지시가 아니다', async () => {
   assert.match(w, /passes, seduction, sexual tension/i, '어디까지 되는지가 안 적혀 있다');
   // 그런데 강제하면 안 된다 — 그러면 62명이 전부 똑같이 들이댄다
   assert.match(w, /\*\*permission, not instruction\.\*\*|Do not force it/, '허가가 지시로 읽힌다');
+  // 장르 상한은 걷어냈다. 갈 데까지 가면 그대로 쓴다.
+  assert.match(w, /Do not cut away, do not fade to black/, '행위 묘사 상한이 아직 걸려 있다');
+  assert.ok(!/Do not dissect the act itself/.test(w), '옛 장르 상한이 남아 있다');
+  // 다만 강압 중에는 안 간다. 압박은 관계를 사지 몸을 사지 않는다.
+  assert.match(w, /if one of them is being coerced, the scene does\s+not go there/,
+    '강압 상태에서의 예외가 없다');
+  assert.match(w, /It does not buy a body/, '예외의 근거가 안 적혀 있다');
   // 성인만 나온다는 선은 어떤 경우에도 남아 있어야 한다
   assert.match(w, /every one of them is an adult/, '성인 한정 문구가 사라졌다');
   assert.match(w, /never write anything that could read as a minor, in any context/, '미성년 금지선이 사라졌다');
@@ -599,5 +606,101 @@ test('attention 축이 여닫는 간선이 실제로 조건부다', async () => 
   for (const [k, n] of Object.entries(edge)) {
     assert.ok(n > 0, `${k}: 34건 전부 닫혀 있다 — 죽은 간선이다`);
     assert.ok(n < COUPLES.length, `${k}: 34건 전부 열려 있다 — attention이 아무것도 안 가른다`);
+  }
+});
+
+// ── 이 사람들이 실제로 추악한가 ───────────────────────────────────────
+// "착하지 않다"를 프롬프트에만 적고 데이터는 전부 순한 맛이면 아무 일도 안 일어난다.
+// nerve는 각 인물이 이미 넘어본 선이다. 그 목록이 실제로 현실의 추악함을 담고 있어야 한다.
+test('nerve가 현실의 추악함을 실제로 담고 있다', () => {
+  // 정규식으로 88개를 전부 분류하려 들면 결국 지금 문장들을 그대로 외우는 테스트가 된다.
+  // 그래서 두 가지만 본다 — 추악함이 여러 갈래로 퍼져 있는가, 그리고 구체적인가.
+  const nerves = people.map(x => x.p.flaw.nerve);
+  const AXES = {
+    '돈을 빼돌린다': /빼돌|횡령|자기 명의|지갑으로|생활비로|떼놓|사례를 받|봉투|수수료를 받|성과급|운영비라고/,
+    '남을 팔아넘긴다': /팔았|팔아|넘긴 적|명단|제보|흘린 적|넘겨|정보를 모|정보를 다른/,
+    '은폐하거나 조작한다': /덮었|덮는다|지운다|안 밝힌|조작|고친다|부풀|각색|숨긴|안 내렸|낮춰 적|편집해|허위/,
+    '남을 이용하거나 압박한다': /이용해|이용한|밀어붙인다|압박|흔들|우긴다|붙잡|잡는다|대가로|연기한다|끌었/,
+    '남의 것을 탐낸다': /남의 것|여자친구|애인|뺏|입양 보낼|챙겨온다|가져오는|상관없다|뺏어/,
+    '이득 앞에 원칙을 접는다': /이득이면|급하면|팔 수만 있으면|올려 받|광고비|포상금|조회수|후원금|신념|되면/,
+    '규정과 직업윤리를 어긴다': /신고|판정을 느슨|별점|증거|무료로 받|익명으로|보고 안|밀수|출처를 안|눈감|위생|잔류|검사|계약서|조항|수임한다|후기를 직원이/,
+    '사람을 수단으로 본다': /자료 수집|대상이다|콘텐츠로|사연을|정가표|항목|팬을 이용|하위 라인|가족|자녀/,
+  };
+  for (const [name, re] of Object.entries(AXES)) {
+    const n = nerves.filter(x => re.test(x)).length;
+    assert.ok(n >= 6, `"${name}" 축이 ${n}명뿐이다 — 추악함이 한쪽으로 쏠렸거나 순해졌다`);
+  }
+
+  // 구체적이어야 한다. "가끔 나쁜 짓을 한다"류가 들어오는 걸 막는다.
+  for (const { at, p } of people) {
+    const n = p.flaw.nerve;
+    assert.ok(n.length >= 20, `${at}: nerve가 너무 짧다 — 구체적인 짓이 아니라 형용사다\n  ${n}`);
+  }
+  // 숫자가 붙은 자백이 충분히 있어야 한다 — 횟수·금액·연차가 있어야 진짜로 읽힌다
+  const numbered = nerves.filter(n => /[0-9]|한 번|두 번|세 번|몇 번|여럿|절반/.test(n)).length;
+  assert.ok(numbered >= people.length * 0.25,
+    `숫자가 붙은 자백이 ${numbered}/${people.length}건뿐이다 — 뭉뚱그린 악행만 남았다`);
+  assert.equal(new Set(nerves).size, nerves.length, 'nerve 문구가 중복된다');
+});
+
+test('의뢰 대장이 현실 사회의 추한 단면을 넓게 덮는다', () => {
+  // 정치·종족 같은 판타지 조합만 있으면 "추악함"이 남 얘기가 된다.
+  // 사람들이 실제로 하는 짓 — 갑질, 사생, 악플, 다단계, 추심, 대리, 등급 — 이 있어야 한다.
+  const NEED = ['갑질', '사생', '악플경제', '다단계', '추심', '유료대화', '등급', '뒷조사', '가상인격', '파탄산업'];
+  const have = new Set(COUPLES.map(c => c.category));
+  for (const k of NEED) assert.ok(have.has(k), `현실 카테고리 "${k}"가 없다`);
+  assert.ok(have.size >= 30, `카테고리가 ${have.size}종뿐이다 — 소재가 겹치기 시작한다`);
+});
+
+test('난이도가 한쪽으로 쏠려 있지 않다', () => {
+  const n = {};
+  for (const c of COUPLES) n[c.difficulty] = (n[c.difficulty] || 0) + 1;
+  for (const d of ['쉬움', '보통', '헬']) {
+    assert.ok(n[d] >= 5, `난이도 ${d}가 ${n[d] || 0}건뿐이다 — 필터를 눌러도 볼 게 없다`);
+  }
+  // 헬만 잔뜩 있으면 신규 요원이 첫 판에서 전부 결렬한다
+  assert.ok(n['헬'] <= COUPLES.length * 0.6, `헬이 ${n['헬']}/${COUPLES.length}건 — 너무 쏠렸다`);
+});
+
+// ── 좋아해도 못 사귄다 ────────────────────────────────────────────────
+test('44건 전부에 구체적인 현실 장벽이 있다', () => {
+  for (const c of COUPLES) {
+    assert.ok(c.barrier, `${c.id}: 현실 장벽이 없다`);
+    assert.ok(c.barrier.length >= 25, `${c.id}: 장벽이 너무 뭉뚱그려져 있다 — ${c.barrier}`);
+    // 장벽은 감정이 아니라 조건이어야 한다. "서로 안 맞는다"류는 이미 clash가 담당한다.
+    // 장벽은 '분위기'가 아니라 **비용**이어야 한다. 무엇을 잃는지가 문장 안에 있어야 한다.
+    assert.ok(/끝난다|취소|잃는|해산|기각|무효|재가 된다|문을 닫|해고|철회|만료|금지|위약금|끊긴다|나가야|돌아가야|안 겹|박탈|사유다|못 [가-힣]|없[다고]|안 된다|넘어간다|신고가 들어간다|표적|죽는다|대상이다|물어내야|정지된다/.test(c.barrier),
+      `${c.id}: 장벽에 잃는 것이 안 적혀 있다 — 조건이 아니라 분위기다\n  ${c.barrier}`);
+    // 그리고 clash와 다른 말이어야 한다. 같으면 축이 하나 늘어난 게 아니다.
+    assert.notEqual(c.barrier, c.clash, `${c.id}: 장벽이 clash와 같다`);
+  }
+  assert.equal(new Set(COUPLES.map(c => c.barrier)).size, COUPLES.length, '장벽 문구가 중복된다');
+});
+
+test('장벽과 압박이 심판에게 실제로 전달된다', async () => {
+  const P = await import('../js/prompts.js');
+  for (const c of COUPLES.slice(0, 6)) {
+    const sys = P.judgeSystem(c);
+    assert.ok(sys.includes(c.barrier), `${c.id}: 심판이 장벽을 모른다`);
+    assert.match(sys, /THE THING IN THE WAY/, '장벽 블록 표제가 없다');
+    assert.match(sys, /Mentioning it in passing is not dealing with it/, '스치듯 언급도 통과된다');
+    assert.match(sys, /visibly gave ground to it/, '압박의 판정 기준이 없다');
+    assert.match(sys, /someone can be\s+cornered while liking the client less every minute/,
+      '압박과 호감이 같이 갈 수 있다는 게 안 적혀 있다');
+  }
+});
+
+test('의뢰인과 상대는 장벽 분석을 안 받는다', async () => {
+  const P = await import('../js/prompts.js');
+  const AG = { name: '요원', gender: '기밀' };
+  // 장벽 자체는 두 사람이 사는 현실이라 알 수 있다. 다만 "이걸 다뤄야 성사된다"는
+  // 게임 규칙이므로 인물에게 가면 안 된다 — 알면 첫 턴에 의무적으로 꺼낸다.
+  for (const c of COUPLES.slice(0, 6)) {
+    const cs = P.clientAgentSystem(c, { coaching: '', speech: '', outfitDesc: '' }, 'talk', AG);
+    const ts = P.targetAgentSystem(c, 'talk', '');
+    for (const [who, sys] of [['의뢰인', cs], ['상대', ts]]) {
+      assert.ok(!/THE THING IN THE WAY/.test(sys), `${c.id}/${who}: 장벽 규칙이 인물에게 갔다`);
+      assert.ok(!/barrierAddressed/.test(sys), `${c.id}/${who}: 판정 필드명이 새어나갔다`);
+    }
   }
 });

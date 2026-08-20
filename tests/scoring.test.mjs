@@ -300,9 +300,10 @@ test('대면 첫인상은 가중된다 — 착장은 준비가 아니라 만남�
 });
 
 // ── 판정 ─────────────────────────────────────────────────
-test('성공선과 분위기 하한을 모두 넘어야 성사', () => {
+test('성공선과 분위기 하한과 현실 장벽을 모두 넘어야 성사', () => {
   const d = diffOf('보통');
-  const st = (love, mood) => ({ ...initialState(d), love, mood });
+  // 장벽을 다뤘다고 놓고 나머지를 본다. 장벽 자체는 아래 4갈래 테스트에서 따로 본다.
+  const st = (love, mood) => ({ ...initialState(d), love, mood, barrierCleared: true });
   assert.equal(verdict(st(d.threshold + 20, 80), d).accepted, true);
   assert.equal(verdict(st(d.threshold - 1, 80), d).accepted, false);
   const moodFail = verdict(st(d.threshold + 20, d.moodFloor - 1), d);
@@ -313,7 +314,7 @@ test('성공선과 분위기 하한을 모두 넘어야 성사', () => {
 
 test('등급은 마진 순으로 단조롭다', () => {
   const d = diffOf('보통');
-  const g = m => verdict({ ...initialState(d), love: d.threshold + m, mood: 90 }, d).grade;
+  const g = m => verdict({ ...initialState(d), love: d.threshold + m, mood: 90, barrierCleared: true }, d).grade;
   assert.equal(g(25), 'S'); assert.equal(g(14), 'A');
   assert.equal(g(6), 'B'); assert.equal(g(1), 'C');
   assert.equal(g(-5), 'D'); assert.equal(g(-15), 'E'); assert.equal(g(-40), 'F');
@@ -330,7 +331,8 @@ test('세 난이도 모두, 좋은 판정 흐름은 넘고 밋밋한 흐름은 �
     let s = initialState(d);
     tiers.forEach((t, i) => {
       if (failureReason(s)) return;
-      s = applyTurn(s, d, J(t, { moodDelta: MOOD[t] }), { firstImpression: i === 4 });
+      // 장벽은 이 테스트의 관심사가 아니다 — 첫 턴에 다뤘다고 놓고 호감 흐름만 본다
+      s = applyTurn(s, d, J(t, { moodDelta: MOOD[t], barrierAddressed: i === 0 }), { firstImpression: i === 4 });
     });
     return verdict(s, d);
   };
@@ -941,4 +943,20 @@ test('죽은 사람은 결과 편지를 쓰지 않는다', () => {
   assert.match(user, /\[CASUALTY\] both — 둘 다 분화구로 떨어졌다/, '사상자가 기록관에게 안 넘어간다');
   // 사망일 때 분위기 파탄 문구가 같이 나가면 기록관이 헷갈린다
   assert.ok(!/The air hit zero/.test(user), '사망인데 분위기 파탄 메모가 같이 갔다');
+});
+
+// ── 한 판이 충분히 길어야 장벽까지 간다 ─────────────────
+// 9턴짜리 판에서는 호감 쌓기만 하다 끝났다. 장벽을 꺼낼 자리가 없었다.
+test('한 판이 14턴이고 케미가 좋으면 19턴까지 간다', async () => {
+  const { DIFFICULTIES, EXTENSION } = await import('../js/scoring.js');
+  for (const [name, d] of Object.entries(DIFFICULTIES)) {
+    const base = d.textTurns + d.talkTurns;
+    assert.equal(base, 14, `${name}: 기본 턴이 ${base}다`);
+    assert.ok(d.textTurns >= 5 && d.talkTurns >= 7, `${name}: 두 페이즈 다 충분해야 한다`);
+    const max = base + EXTENSION.maxExtra.text + EXTENSION.maxExtra.talk;
+    assert.equal(max, 19, `${name}: 연장 포함 최대가 ${max}다`);
+  }
+  // 연장 메카닉 자체는 그대로다 — 늘어난 턴 수가 연장을 대체한 게 아니다
+  assert.deepEqual(EXTENSION.hotTiers, ['breakthrough', 'warm']);
+  assert.equal(EXTENSION.needHot, 2, '최근 창에서 뜨거운 턴이 둘이면 연장');
 });

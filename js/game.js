@@ -375,7 +375,7 @@ function dossierHtml(c, { full = false } = {}) {
     <p><b>성격:</b> ${c.client.personality.map(escapeHtml).join(', ')}</p>
     <p><b>내력:</b> ${c.client.background.map(escapeHtml).join(' · ')}</p>
     <p class="quote">“${escapeHtml(c.client.quote)}”</p>
-    ${flawHtml(c.client, c.collision)}
+    ${flawHtml(c.client, c.collision, c.barrier)}
     <hr>
     <h3>상대 · ${escapeHtml(c.target.name)} <small>(${escapeHtml(P.idOf(c.target))}, ${escapeHtml(c.target.job)})</small></h3>
     <p><b>외모:</b> ${c.target.appearance.map(escapeHtml).join(', ')}</p>
@@ -397,7 +397,7 @@ function dossierHtml(c, { full = false } = {}) {
 
 // 의뢰인 심리 감정. flaw 데이터를 그대로 요원에게 보여준다.
 // 이걸 숨겨두면 지침이 왜 씹히는지, 공기를 왜 못 읽는지 플레이어가 영영 알 수 없다.
-function flawHtml(person, collision = null) {
+function flawHtml(person, collision = null, barrier = null) {
   const rows = flawReport(person);
   if (!rows.length) return '';
   return `<div class="flaw-box">
@@ -416,6 +416,11 @@ function flawHtml(person, collision = null) {
         <span class="flaw-tag lv-mid">가만두면 나온다</span>
         <span class="flaw-desc">${escapeHtml(person.weakness)}</span></li>
     </ul>
+    ${barrier ? `<p class="barrier"><b>■ 앞을 막고 있는 것</b><br>
+      ${escapeHtml(barrier)}<br>
+      <span class="dim">호감만 채우면 차인다. 대화에서 이걸 <b>실제로 다뤄야</b> 성사된다 —
+      해결책을 내거나, 감당하겠다고 하거나, 최소한 정면으로 꺼내서 둘이 같이 곤란해져야 한다.
+      스치듯 언급하는 건 안 친다.</span></p>` : ''}
     ${collision ? `<p class="tripwire"><b>⚠ 성향 충돌 —</b> 이 사람이 원하는 것을 그대로 좇으면
       상대의 접촉 금지 항목 「${escapeHtml(collision.redLine)}」 쪽으로 간다.<br>
       <span class="dim">${escapeHtml(collision.why)}<br>
@@ -862,9 +867,12 @@ async function gotoResult() {
   v.emote('right', r.verdict.accepted ? 'laugh' : 'freeze');
 
   const stamp = $('#result-stamp');
-  const dead = r.verdict.reason === 'death';
-  stamp.textContent = r.verdict.accepted ? c.winWord
-    : dead ? '요원 과실 사망' : r.aborted ? '작전 파탄' : '고백 반려';
+  const why = r.verdict.reason;
+  stamp.textContent = why === 'coerced' ? '강압 성사'
+    : why === 'barrier' ? '호감 초과 · 성사 불가'
+      : r.verdict.accepted ? c.winWord
+        : why === 'death' ? '요원 과실 사망'
+          : r.aborted ? '작전 파탄' : '고백 반려';
   stamp.className = `result-stamp ${r.verdict.accepted ? 'ok' : 'fail'}`;
   $('#result-grade').textContent = `공작 등급: ${r.verdict.grade}`;
   $('#result-score').textContent =

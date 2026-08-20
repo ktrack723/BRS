@@ -1131,6 +1131,19 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 }
 
 
+/* 앞을 막고 있는 것 — 호감을 다 채워도 이걸 안 다루면 차인다.
+   지뢰(붉은색)와 구분되게 서류 청색 계열로 둔다. 위험이 아니라 조건이다. */
+.barrier {
+  margin: var(--s2) 0 0;
+  padding: var(--s1) var(--s2);
+  border: 1px solid var(--file);
+  border-left-width: 4px;
+  background: #e6ecf4;
+  font-size: var(--fs-sm);
+  line-height: 1.55;
+}
+.barrier b { color: var(--file); }
+
 /* 지뢰선 경고 — 이 게임에서 요원이 제일 먼저 읽어야 하는 한 줄.
    의뢰인의 조건반사가 상대의 어느 지뢰를 밟는지 알려준다. 붉은 계열은 「질색」 목록과 맞춘다. */
 .tripwire {

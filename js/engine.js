@@ -443,6 +443,7 @@ export class Engine {
             ...v, threshold: this.d.threshold, moodFloor: this.d.moodFloor, aborted: this.aborted,
             abortReason: this.abortReason,
             casualty: this.state.casualty, casualtyNote: this.state.casualtyNote,
+            leverage: this.state.leverage, barrierCleared: this.state.barrierCleared,
             vibe: this.state.vibe, revealed: this.state.revealed, missed: db.missed,
             radioUsed: this.state.radioUsed, transcript,
           }),

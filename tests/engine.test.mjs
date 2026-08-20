@@ -405,11 +405,58 @@ test('좋은 판정이 계속 나오면 성사된다', async () => {
   const llm = new FakeLlm({
     judge: () => ({
       tier: 'breakthrough', moodDelta: 6, loveDelta: 9, reason: 'r', vibe: 'v', revealed: '',
-      clientEmote: 'proud', targetEmote: 'laugh',
+      clientEmote: 'proud', targetEmote: 'laugh', barrierAddressed: true,
     }),
   });
   const { result } = await playFull(llm);
   assert.ok(result.verdict.accepted, `성사되지 않았다 (호감 ${result.verdict.love}/${result.difficulty.threshold})`);
+});
+
+// 좋아하는데 못 사귀는 결말. 이 게임에서 제일 현실적인 쪽이다.
+test('현실 장벽을 끝내 안 다루면 호감이 넘쳐도 차인다', async () => {
+  const llm = new FakeLlm({
+    judge: () => ({
+      tier: 'breakthrough', moodDelta: 6, loveDelta: 9, reason: 'r', vibe: 'v', revealed: '',
+      clientEmote: 'proud', targetEmote: 'laugh', barrierAddressed: false,
+    }),
+  });
+  const { engine, result } = await playFull(llm);
+  assert.equal(engine.state.barrierCleared, false, '아무도 안 꺼냈는데 다뤄진 것으로 잡혔다');
+  assert.ok(result.verdict.love >= result.difficulty.threshold, '테스트 전제: 호감은 넘어야 한다');
+  assert.equal(result.verdict.accepted, false, '장벽을 안 다뤘는데 성사됐다');
+  assert.equal(result.verdict.reason, 'barrier');
+  assert.equal(result.verdict.grade, 'D', '호감을 끌어올린 건 실력이므로 F가 아니다');
+});
+
+// 싫어하는데 사귄다. 협박으로 묶은 쪽.
+test('호감이 모자라도 압박이 쌓이면 묶인다', async () => {
+  const llm = new FakeLlm({
+    judge: (rec, n) => ({
+      tier: 'flat', moodDelta: 0, loveDelta: 0, reason: 'r', vibe: 'v', revealed: '',
+      clientEmote: 'smug', targetEmote: 'freeze', barrierAddressed: false,
+      leverage: n <= 3 ? 'hard' : 'none',
+    }),
+  });
+  const { engine, result } = await playFull(llm);
+  assert.ok(engine.state.leverage >= 5, `압박이 ${engine.state.leverage}점뿐이다`);
+  assert.ok(result.verdict.love < result.difficulty.threshold, '테스트 전제: 호감은 모자라야 한다');
+  assert.equal(result.verdict.accepted, true, '압박이 쌓였는데 안 묶였다');
+  assert.equal(result.verdict.reason, 'coerced');
+  assert.equal(result.verdict.grade, 'C', '강압 성사는 등급이 고정이다');
+});
+
+test('압박이 한두 번으로는 사람을 못 묶는다', async () => {
+  const llm = new FakeLlm({
+    judge: (rec, n) => ({
+      tier: 'flat', moodDelta: 0, loveDelta: 0, reason: 'r', vibe: 'v', revealed: '',
+      clientEmote: 'smug', targetEmote: 'freeze', barrierAddressed: false,
+      leverage: n === 1 ? 'hard' : 'none',
+    }),
+  });
+  const { engine, result } = await playFull(llm);
+  assert.equal(engine.state.leverage, 2);
+  assert.equal(result.verdict.accepted, false, '협박 한 번에 성사되면 무전 한 방짜리 게임이다');
+  assert.notEqual(result.verdict.reason, 'coerced');
 });
 
 test('분위기가 0이면 즉시 파탄나고 남은 턴을 돌지 않는다', async () => {
