@@ -174,7 +174,7 @@ export const DIFFICULTIES = {
     threshold: 60, moodFloor: 25,
     loveDecay: 0.0,   // 턴마다 식는 호감
     moodDrift: 0.5,   // 턴마다 흐르는 분위기 (양수면 알아서 풀린다)
-    gainScale: 1.7, lossScale: 0.85,
+    gainScale: 2.6, lossScale: 1.30,
   },
   '보통': {
     key: 'normal', badge: '보통',
@@ -184,7 +184,7 @@ export const DIFFICULTIES = {
     threshold: 66, moodFloor: 33,
     loveDecay: 0.3,
     moodDrift: -0.1,
-    gainScale: 1.7, lossScale: 1.0,
+    gainScale: 3.4, lossScale: 1.55,
   },
   '헬': {
     key: 'hell', badge: '헬',
@@ -194,7 +194,7 @@ export const DIFFICULTIES = {
     threshold: 70, moodFloor: 40,
     loveDecay: 0.6,
     moodDrift: -0.7,
-    gainScale: 2.1, lossScale: 1.15,
+    gainScale: 3.8, lossScale: 1.75,
   },
 };
 
@@ -259,6 +259,12 @@ export const TUNING = {
   // 강압 성사에 필요한 누적 압박. hard 두 번 + soft 한 번쯤이면 사람이 묶인다.
   // 한 번의 협박으로 성사되면 무전 한 방짜리 게임이 된다.
   coerceMin: 5,
+  // ── 두근거림 관문과 획득 배율 ─────────────────────────────
+  // 관문은 **절대값(40)이고 배율을 안 탄다.** 그래서 배율을 올리면 격차가 증폭된다 —
+  // 두근거림이 없는 판은 아무리 대화가 잘 굴러가도 40에 묶이고,
+  // 있는 판만 그 위로 간다. 배율을 올린 건 그 위쪽 사거리를 벌리기 위해서다.
+  //   gainScale  쉬움 1.7→2.6 · 보통 1.7→3.4 · 헬 2.1→3.8
+  //   lossScale도 같이 올렸다(약 1.5배). 안 그러면 chill이 상대적으로 무의미해진다.
   // ── 두근거림 관문 ──────────────────────────────────────────
   // 분위기가 아무리 좋아도, 대화가 아무리 잘 굴러가도 여기서 막힌다.
   // 이 선 위로는 **warm 이상**, 즉 실제로 마음이 움직인 턴으로만 올라간다.
