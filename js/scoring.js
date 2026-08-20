@@ -125,6 +125,21 @@
 // 난이도는 이미 startLove·moodFloor·감쇠·lossScale과 조합 자체가 지고 있다.
 // 성공선은 실측 중앙 구간에 놓고, 눈에 읽히도록만 완만하게 올린다.
 //
+// ── 서투름을 넣은 뒤 (60/66/70) ─────────────────────────────────
+// 두 에이전트에게 「연애 경험 0」을 기본 전제로 깔고, 상대에게 상대를 싫어할 이유를 주고,
+// 심판이 잘 굴러가는 대화를 warm으로 읽던 걸 조였다. 점수대가 통째로 25점쯤 내려앉았다.
+//
+//   chat-app  none 84 → 53      gapjil  none 60 → 62
+//   chat-app  ace  85 → 61      gapjil  ace  62 → 14   (지침이 역효과를 낸 판)
+//   chill 이하 비율 ace 8% → 27% · 감춰둔 얘기 유출 2~3/3 → 대부분 0~1/3
+//
+// 성공선을 그 분포에 맞춰 내렸다. 66/72/76 → **60/66/70**.
+// 준비 전무가 호감으로 성공선을 넘는 판이 없어졌고, 어쩌다 넘겨도 장벽이 잡는다.
+//
+// ⚠ ace 프로필의 편차가 이 국면에서 특히 크다(14 ~ 61). 요원 역할을 LLM이 맡는 구조라,
+//    서투른 인물에게 무거운 지침을 첫 턴부터 물리면 오히려 다섯 턴을 얼려버린다.
+//    사람 플레이어가 이보다 유리하다 — 계기판을 보고 무전 시점을 고를 수 있다.
+//
 //    재계측: ANTHROPIC_API_KEY=... node tests/live.mjs → node tests/sim.mjs <결과> --grid
 export const DIFFICULTIES = {
   '쉬움': {
@@ -132,7 +147,7 @@ export const DIFFICULTIES = {
     textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,   // 기획서 규정: 문자 1회, 대면 2회
     startLove: 10, startMood: 55,
-    threshold: 66, moodFloor: 25,
+    threshold: 60, moodFloor: 25,
     loveDecay: 0.0,   // 턴마다 식는 호감
     moodDrift: 0.5,   // 턴마다 흐르는 분위기 (양수면 알아서 풀린다)
     gainScale: 1.7, lossScale: 0.85,
@@ -142,7 +157,7 @@ export const DIFFICULTIES = {
     textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,
     startLove: 6, startMood: 46,
-    threshold: 72, moodFloor: 33,
+    threshold: 66, moodFloor: 33,
     loveDecay: 0.3,
     moodDrift: -0.1,
     gainScale: 1.7, lossScale: 1.0,
@@ -152,7 +167,7 @@ export const DIFFICULTIES = {
     textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,
     startLove: 3, startMood: 38,
-    threshold: 76, moodFloor: 40,
+    threshold: 70, moodFloor: 40,
     loveDecay: 0.6,
     moodDrift: -0.7,
     gainScale: 2.1, lossScale: 1.15,

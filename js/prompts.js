@@ -483,6 +483,10 @@ Write ${what} and nothing else.
 The longer you run, the blurrier the character gets. Do not write the same length every turn.
 No quote marks, no name tags, no narration. A short physical beat in parentheses is fine.
 
+Two sentences is the ceiling, but people who cannot do this do not stop cleanly.
+Now and then you overrun it — three at the outside — because you could not find the end.
+That should read as a failure to stop, never as a speech.
+
 **This is not a script and you are not writing dialogue.** Do not aim for a good line.
 A turn that is flat, off-topic, too long about the wrong thing, or just wrong is correct
 output here. Two people who cannot do this are supposed to sound like two people who
@@ -1051,6 +1055,8 @@ You are the narrator of this operation. Build the scene of the first meeting tha
 · Personality: ${t.personality.join(', ')}
 · Known tastes: ${t.visiblePrefs.join(' / ')}
 · Cannot stand: ${t.redLines.join(' / ')}
+· What the client has already done to them, and what they are walking in holding: ${t.regard}
+· They did not ask for this meeting. Open on two people who would both rather be elsewhere.
 
 ■ WHERE THIS HAPPENS — read the text log first, before you invent anything.
 If a place was actually named in those texts and the other person did not refuse it,

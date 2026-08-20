@@ -226,3 +226,13 @@ test('지침은 이 사람이 유일하게 즉흥이 아닌 부분이다', async
   assert.ok(!/the only part of tonight you are not making up/.test(without),
     '지침이 없는데 지침 안전망 문구가 남아 있다');
 });
+
+test('나레이터도 상대가 뭘 들고 앉는지 안다', () => {
+  // 대면 첫 장면이 판의 나머지 톤을 정한다. 여기서 두 사람이 화기애애하게 시작하면
+  // 그 뒤 여덟 턴이 전부 그 톤을 이어받는다.
+  for (const c of Object.values(COUPLE_BY_ID).slice(0, 6)) {
+    const sys = P.situationSystem(c);
+    assert.ok(sys.includes(c.target.regard), `${c.id}: 나레이터가 상대의 원한을 모른다`);
+    assert.match(sys, /They did not ask for this meeting/, `${c.id}: 자리에 오고 싶지 않았다는 게 없다`);
+  }
+});
