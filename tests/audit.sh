@@ -60,7 +60,7 @@ chk "flat이 정확히 0" "node -e \"import('./js/scoring.js').then(m=>process.e
 chk "flat이 최빈값이라고 못 박혀 있다" "grep -q 'the single most common one you give' js/prompts.js"
 chk "두근거림 관문 — 대화만으로는 못 넘는다" "node -e \"import('./js/scoring.js').then(m=>{const d=m.diffOf('쉬움');let s=m.initialState(d);for(let i=0;i<40;i++)s=m.applyTurn(s,d,{tier:'nudge',loveDelta:2,moodDelta:3,vibe:'v',revealed:''});process.exit(Math.round(s.love)===m.TUNING.likingCeiling?0:1)})\""
 chk "관문 위는 warm 이상만 민다" "grep -q 'FLUTTER_TIERS' js/scoring.js"
-chk "관문이 플레이어에게 보인다 (교육·계기판·사후보고)" "grep -q 'meter-ceiling' index.html && grep -q '두근거린 순간' js/scoring.js && grep -q '여기서 막힌다' js/game.js"
+chk "관문이 플레이어에게 보인다 (교육·계기판·사후보고)" "grep -q 'meter-ceiling' index.html && grep -q '두근거린 순간' js/scoring.js && grep -q 'likingCeiling' js/game.js && grep -q '두근거린 순간' js/game.js"
 chk "분위기는 호감을 증폭하지 않는다 (상한 1.0)" "node -e \"import('./js/scoring.js').then(m=>process.exit(m.moodMultiplier(100)<=1?0:1))\""
 chk "하자가 사람을 향하는 것은 이동이 아니다" "grep -q 'pattern running, not the person moving' js/prompts.js"
 echo
