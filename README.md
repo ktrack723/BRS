@@ -473,6 +473,19 @@ ace   breakthrough 3 · warm 21 · nudge 21 · flat 15 · chill  3 · disaster 0
 none  breakthrough 3 · warm 14 · nudge 10 · flat 13 · chill 18 · disaster 2   (n=60)
 ```
 
+장벽 관문을 뺀 뒤, 예전에 준비 전무가 제일 높게 나왔던 조합들로 한 번 더 쟀다:
+
+```
+난이도  조합       none              ace
+쉬움    asmr       61 / 60  성사 C   81 / 60  성사 S
+쉬움    spice      49 / 60  결렬 E   76 / 60  성사 A
+보통    vtuber     55 / 66  결렬 E   57 / 66  결렬 E
+헬      politics   64 / 70  결렬 D   74 / 70  성사 C
+```
+
+**현 구성 8판 기준 none 1/8 · ace 4/8.** 유일한 none 성사는 `asmr` 61/60 — 1점 차다.
+이전에 79~94를 찍던 조합이고, 쉬움에서 운으로 넘어가는 판이 가끔 나오는 건 정상으로 본다.
+
 `taxidermy none`의 **호감 1 · 분위기 6**은 이 게임이 기록한 최저치다. 두 침묵형이 마주 앉아
 15턴 동안 대화를 만드는 데 실패했다. 그게 정상 결과다.
 
