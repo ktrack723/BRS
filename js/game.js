@@ -179,45 +179,111 @@ function prefetchBriefing() {
 }
 
 // ── 신입 교육 슬라이드 ──────────────────────────────────
+// 여섯 장. 한 장은 삽화 한 컷과 문장 한 줄이 전부다.
+// 삽화는 원·사각형·다각형만 붙여서 그린다. 색은 전부 CSS 클래스(=토큰)에서 온다.
+const ART_VB = '0 0 340 128';
+const aSvg = (label, body, dy = 0, dx = 0) =>
+  `<svg class="art" viewBox="${ART_VB}" role="img" aria-label="${label}">`
+  + `<g transform="translate(${dx} ${dy})">${body}</g></svg>`;
+// 블록 인형 한 명 = 머리(원 또는 사각) + 어깨 사다리꼴
+const aTorso = (x, y, c) => `<path class="${c}" d="M${x - 18} ${y + 20}L${x - 13} ${y - 5}h26L${x + 18} ${y + 20}Z"/>`;
+const aPerson = (x, y, c) => `<circle class="${c}" cx="${x}" cy="${y - 22}" r="13"/>` + aTorso(x, y, c);
+const aBlockPerson = (x, y, c) =>
+  `<rect class="${c}" x="${x - 12}" y="${y - 34}" width="24" height="24" rx="3"/>` + aTorso(x, y, c);
+const aCap = (x, y, t, a = '') => `<text class="a-cap ${a}" x="${x}" y="${y}">${t}</text>`;
+const aArrow = (x1, x2, y) =>
+  `<path class="a-dash" d="M${x1} ${y}H${x2}"/>`
+  + `<polygon class="a-soft" points="${x2},${y - 6} ${x2 + 13},${y} ${x2},${y + 6}"/>`;
+const aBar = (y, w, c) =>
+  `<rect class="a-track" x="60" y="${y}" width="248" height="24"/>`
+  + `<rect class="${c}" x="62" y="${y + 2}" width="${w}" height="20"/>`;
+
 const SLIDES = [
   {
-    art: '큐피드局 / 공작요원 배속 통지',
-    title: '큐피드국에 온 걸 환영한다',
-    body: `2077년. 출산율 0.008. 국가비상사태.<br>
-    너는 <b>연애 공작 요원</b>이다. 직접 연애하는 게 아니라, 연애 경험 0인 국민(<b>클라이언트</b>)이
-    짝사랑 상대(<b>타겟</b>)에게 고백하도록 <b>뒤에서 조작</b>하는 일이다.<br>
-    대화는 클라이언트가 한다. 너는 그를 준비시키고, 결정적일 때 무전을 넣는다.`,
+    art: aSvg('요원이 무전으로 클라이언트를 조종하고, 클라이언트가 타겟과 마주 선 그림',
+      // 헤드셋 낀 요원
+      '<path class="a-line" d="M26 40a16 16 0 0 1 32 0"/>'
+      + '<rect class="a-ink" x="21" y="38" width="7" height="12" rx="2"/>'
+      + '<rect class="a-ink" x="56" y="38" width="7" height="12" rx="2"/>'
+      + '<path class="a-line" d="M60 48q-5 8-12 8"/><circle class="a-ink" cx="47" cy="56" r="3"/>'
+      + aPerson(42, 62, 'a-ink')
+      + aArrow(70, 112, 40)
+      + aPerson(150, 62, 'a-file')
+      // 하트 = 정사각형 하나를 45도 돌리고 원 두 개를 윗변에 얹은 것
+      + '<g class="a-stamp"><rect x="208" y="34" width="20" height="20" transform="rotate(45 218 44)"/>'
+      + '<circle cx="210.9" cy="36.9" r="10"/><circle cx="225.1" cy="36.9" r="10"/></g>'
+      + aPerson(286, 62, 'a-stamp')
+      + aCap(42, 104, '요원') + aCap(150, 104, '클라이언트') + aCap(286, 104, '타겟'), 6, 10),
+    line: '너는 직접 연애하지 않는다. 연애 경험 0인 <b>클라이언트</b>를 뒤에서 조작해 <b>타겟</b>에게 고백시키는 게 임무다.',
   },
   {
-    art: '어인 × 사자퍼리 &nbsp;│&nbsp; 뱀파이어 × 마늘농장 &nbsp;│&nbsp; 리눅스 × 윈도우',
-    title: '우리 대장에는 정상적인 조합이 없다',
-    body: `상설 의뢰 <b>20건</b>. 전부 이어질 리 없는 조합이다.<br>
-    어인과 사자 퍼리, 뱀파이어와 마늘 농장주, 리눅스 신봉자와 윈도우 강사,
-    비건 활동가와 3대째 정육점, 정적(政敵)끼리, 그리고 국가 전산 오류로 배정된 게이와 레즈비언까지.<br>
-    <b>조합에 따라 "성공"의 정의가 다르다.</b> 연애가 불가능한 쌍에는 <b>동맹</b>이나 <b>휴전</b>이 결승선이다.`,
+    art: aSvg('둥근 머리와 각진 머리가 붉은 균열을 사이에 두고 마주 섰고, 아래에 결승선 세 종류가 놓인 그림',
+      aPerson(72, 44, 'a-file')
+      + aBlockPerson(268, 44, 'a-stamp')
+      + '<polyline class="a-crack" points="170,6 160,22 172,38 160,54 170,70"/>'
+      + aCap(40, 101, '결승선')
+      + [['연애', 76], ['동맹', 160], ['휴전', 244]].map(([t, x]) =>
+        `<rect class="a-tag" x="${x}" y="84" width="58" height="24"/>`
+        + `<text class="a-tag-t" x="${x + 29}" y="101">${t}</text>`).join(''), 8),
+    line: '상설 의뢰 <b>20건</b>은 전부 이어질 리 없는 조합이라, 쌍에 따라 결승선이 <b>연애</b>가 아니라 <b>동맹</b>이나 <b>휴전</b>이다.',
   },
   {
-    art: '호감 &nbsp;×&nbsp; 분위기 = 획득',
-    title: '게이지는 딱 두 개다',
-    body: `<b>호감</b> — 승리 조건. 성공선을 넘겨야 고백이 받아들여진다.<br>
-    <b>분위기</b> — 호감 획득 <b>배율</b>(×0.3 ~ ×1.6). 분위기가 낮으면 취향을 저격해도 호감이 찔끔 오른다.<br>
-    분위기가 <b>0</b>이 되면 상대가 자리를 뜬다. 그 자리에서 작전 종료.`,
+    art: aSvg('0점 도장이 찍힌 요원의 서류가 점선 화살표를 타고 클라이언트 AI의 머리로 들어가는 그림',
+      '<path class="a-paper" d="M24 10h64l16 16v66H24Z"/>'
+      + '<path class="a-fold" d="M88 10v16h16Z"/>'
+      + '<path class="a-rule" d="M36 42h56M36 56h56M36 70h38"/>'
+      + '<circle class="a-seal" cx="70" cy="70" r="17"/>'
+      + '<text class="a-seal-t" x="70" y="76" transform="rotate(-14 70 70)">0점</text>'
+      + aArrow(120, 176, 52)
+      + '<path class="a-line" d="M250 18V9"/><circle class="a-ink" cx="250" cy="6" r="4"/>'
+      + '<rect class="a-box" x="204" y="18" width="92" height="68" rx="6"/>'
+      + '<circle class="a-file" cx="228" cy="48" r="7"/><circle class="a-file" cx="272" cy="48" r="7"/>'
+      + '<rect class="a-ink" x="224" y="66" width="52" height="7" rx="3"/>'
+      + aCap(64, 110, '요원이 쓴 문장') + aCap(250, 110, '클라이언트 AI'), 5, 10),
+    line: '스타일링·코칭·연설·무전은 <b>채점하지 않는다</b>. 네가 쓴 문장은 클라이언트 AI의 프롬프트로 <b>그대로 주입</b>될 뿐이다.',
   },
   {
-    art: '프롬프트 &nbsp;→&nbsp; 실제 발언 &nbsp;→&nbsp; 판정',
-    title: '준비는 채점하지 않는다',
-    body: `<b>스타일링·코칭·격려 연설·무전 — 전부 점수가 없다.</b> 이건 시험이 아니라 프롬프팅이다.<br>
-    네가 쓴 문장은 클라이언트 AI의 시스템 프롬프트에 <b>그대로 주입</b>될 뿐이다.<br>
-    점수는 오직 <b>그래서 그 인간이 실제 문자·대면에서 뭐라고 말했는가</b>로만 매겨진다.<br>
-    <span class="slide-warn">그러니 준비를 대충 하면 점수가 깎이는 게 아니라 — 그 인간이 대화에서 알아서 망한다.</span>`,
+    art: aSvg('두 사람의 말풍선이 점선 화살표를 타고 판정표의 가감점으로 이어지는 그림',
+      '<path class="a-bub-c" d="M16 6h120a4 4 0 0 1 4 4v30a4 4 0 0 1-4 4H52L34 58V44H16a4 4 0 0 1-4-4V10a4 4 0 0 1 4-4Z"/>'
+      + '<rect class="a-soft" x="24" y="17" width="100" height="7" rx="3.5"/>'
+      + '<rect class="a-soft" x="24" y="29" width="70" height="7" rx="3.5"/>'
+      + '<path class="a-bub-t" d="M48 62h114a4 4 0 0 1 4 4v28a4 4 0 0 1-4 4h-22l-18 14V98H48a4 4 0 0 1-4-4V66a4 4 0 0 1 4-4Z"/>'
+      + '<rect class="a-soft" x="56" y="72" width="100" height="7" rx="3.5"/>'
+      + '<rect class="a-soft" x="56" y="84" width="64" height="7" rx="3.5"/>'
+      + aArrow(182, 214, 58)
+      + '<rect class="a-paper" x="238" y="15" width="88" height="88"/>'
+      + '<rect class="a-file" x="239" y="16" width="86" height="24"/>'
+      + '<text class="a-hdr" x="282" y="33">판정</text>'
+      + '<text class="a-good" x="282" y="66">+13.6</text>'
+      + '<text class="a-bad" x="282" y="92">−8.2</text>', 5),
+    line: '점수는 오직 <b>그 인간이 실제로 뭐라고 말했는가</b>로만 매겨진다. 준비를 대충 하면 그 인간이 대화에서 알아서 망한다.',
   },
   {
-    art: '취향 ？／？ &nbsp;&nbsp; 접촉금지 전면공개',
-    title: '취향은 절반만, 금지 항목은 전부 통보한다',
-    body: `타겟의 취향 중 일부만 의뢰서에 인쇄되어 있다. 나머지는 <b>미확인</b>이며 <b>개수만</b> 통보된다.<br>
-    미확인 취향은 대화 중에만 드러나고, 확보하면 호감이 크게 뛴다. <b>무전으로 화제를 지정해야만</b> 캐낼 수 있다.<br>
-    반대로 <b>접촉 금지 항목</b>(현장 용어로 "지뢰")은 전부 공개된다. 접촉하면 분위기와 호감이 동시에 폭락한다.
-    통보받고도 밟으면 그건 요원 책임이다.`,
+    art: aSvg('호감 막대와 분위기 막대, 성공선 표시와 배율 범위를 나타낸 계기판',
+      '<text class="a-key e" x="48" y="37">호감</text>'
+      + aBar(20, 156, 'a-stamp')
+      + '<path class="a-thr" d="M226 14V50"/>'
+      + aCap(226, 9, '성공선')
+      + '<text class="a-mul" x="184" y="63">×</text>'
+      + '<text class="a-key e" x="48" y="87">분위기</text>'
+      + aBar(70, 118, 'a-file')
+      + '<rect class="a-stamp" x="56" y="66" width="5" height="32"/>'
+      + aCap(60, 112, '0 = 이탈', 's')
+      + aCap(308, 112, '×0.3 ~ ×1.6', 'e'), 4),
+    line: '<b>호감</b>이 성공선을 넘겨야 이긴다. <b>분위기</b>는 그 호감에 곱해지는 배율이고, 0이 되면 상대가 자리를 뜬다.',
+  },
+  {
+    art: aSvg('확인된 취향 카드 두 장과 물음표 카드 두 장, 그 옆에 접촉 금지 경고 삼각형',
+      [14, 54].map(x => `<rect class="a-file" x="${x}" y="22" width="34" height="46" rx="3"/>`
+        + `<path class="a-chk" d="M${x + 9} 45l6 7 11-14"/>`).join('')
+      + [94, 134].map(x => `<rect class="a-unk" x="${x}" y="22" width="34" height="46" rx="3"/>`
+        + `<text class="a-q" x="${x + 17}" y="54">?</text>`).join('')
+      + '<path class="a-div" d="M186 14V94"/>'
+      + '<polygon class="a-stamp" points="256,18 296,86 216,86"/>'
+      + '<rect class="a-lit" x="252" y="42" width="8" height="24" rx="3"/>'
+      + '<circle class="a-lit" cx="256" cy="76" r="4.5"/>'
+      + aCap(91, 108, '취향 절반은 미확인') + aCap(256, 108, '금지 항목 전부 통보'), 2),
+    line: '취향은 절반이 <b>미확인</b>이라 무전으로 화제를 열어야 드러나고, <b>접촉 금지 항목</b>은 전부 통보되니 밟으면 요원 책임이다.',
   },
 ];
 
@@ -232,7 +298,7 @@ function showIntro() {
 function renderSlide() {
   const s = SLIDES[slideIdx];
   $('#intro-slides').innerHTML =
-    `<div class="slide"><div class="slide-art">${s.art}</div><h3>${s.title}</h3><p>${s.body}</p></div>`;
+    `<div class="slide"><div class="slide-art">${s.art}</div><p class="slide-line">${s.line}</p></div>`;
   $('#intro-step').textContent = `신입 교육 ${slideIdx + 1} / ${SLIDES.length}`;
   $('#btn-intro-prev').disabled = slideIdx === 0;
   $('#btn-intro-next').textContent = slideIdx === SLIDES.length - 1 ? '교육 수료 ▶' : '다음 ▶';
