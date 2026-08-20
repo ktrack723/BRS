@@ -2,7 +2,7 @@
 import { LlmClient, RefusalError } from './llm.js';
 import * as P from './prompts.js';
 import { Engine, prepReaction } from './engine.js';
-import { DIFFICULTIES, diffOf } from './scoring.js';
+import { DIFFICULTIES, diffOf, TUNING } from './scoring.js';
 import { COUPLES, flawReport, FLAW_LABELS, WRECK_LABELS } from './couples.js';
 import { AvatarViewer, sanitizeSpec, renderThumb } from './avatar.js';
 import { sfx, startBgm, toggleBgm, unlockAudio } from './audio.js';
@@ -249,6 +249,20 @@ const SLIDES = [
     나왔다고 가산점이 붙지도 않는다 — 다만 그런 얘기가 나올 만큼 대화가 열렸다는 뜻이고, 그건 대체로 좋은 신호다.<br>
     반대로 <b>상대가 질색하는 것</b>은 자네에게 전부 공개된다. 의뢰서에도, 취조실에도, 계기판에도 떠 있다.<br>
     <span class="slide-warn">그런데 그 목록은 <b>의뢰인에게 넘어가지 않는다.</b> 취조실에서 직접 불러주지 않으면 그 인간은 모르는 채로 나가서 밟는다.</span>`,
+  },
+  {
+    art: `호감 ${TUNING.likingCeiling} &nbsp;·&nbsp; 여기서 막힌다`,
+    title: '대화를 잘한다고 사랑에 빠지지 않는다',
+    body: `사람은 하루에 열두 번 대화한다. 즐거운 것도, 웃긴 것도, 진짜로 이해받았다고 느낀 것도 있다.
+    그리고 그중 <b>아무 동료와도 사랑에 빠지지 않는다.</b><br>
+    그래서 <b>대화가 잘 굴러가는 것에는 점수를 주지 않는다.</b> 합이 맞아도, 농담이 통해도,
+    공통 화제가 붙어도 0점이다. 티키타카는 채점 대상이 아니다.<br>
+    호감 게이지에는 <b>${TUNING.likingCeiling}에 관문</b>이 그어져 있다. 아무리 화기애애해도 여기서 막힌다.
+    그 위로는 <b>실제로 두근거린 순간</b>으로만 올라간다 —
+    저 사람이라서 닿은 말, 주제가 아니라 사람 쪽으로 내려간 방어선,
+    자리를 안 끝내려고 붙잡는 몸짓.<br>
+    <span class="slide-warn">평범하게 흘러가다 무미건조하게 끝난 판은 <b>호감 0</b>으로 끝난다.
+    그게 오작동이 아니라 정상 결과다. 저 둘은 그냥 아무 일도 없었던 것이다.</span>`,
   },
   {
     art: '둘 사이의 현안 &nbsp;·&nbsp; 제일 무거운 화제',
@@ -665,6 +679,13 @@ let stageViewer = null;
 function meterUpdate(s) {
   $('#meter-love-name').textContent = P.ENDING.meterName;
   $('#meter-love-fill').style.width = s.love + '%';
+  // 두근거림 관문 — 잘 굴러간 대화는 여기까지만 온다. 그 위는 warm 이상만 민다.
+  const cx = $('#meter-ceiling');
+  if (cx) {
+    cx.style.left = TUNING.likingCeiling + '%';
+    cx.classList.toggle('passed', s.love > TUNING.likingCeiling);
+  }
+  $('#meter-love-fill').classList.toggle('capped', s.love >= TUNING.likingCeiling - 1 && s.love <= TUNING.likingCeiling);
   $('#meter-mood-fill').style.width = s.mood + '%';
   $('#meter-love-num').textContent = s.love;
   $('#meter-mood-num').textContent = s.mood;

@@ -395,8 +395,13 @@ test('warm의 판정 기준이 부정형만으로 되어 있지 않다', async (
     'warm의 부정 기준도 남아 있어야 한다');
   // 대화가 잘 굴러가는 것과 관계가 진전된 것은 다르다. 이걸 안 박아두면
   // 심판이 재치 있는 주고받기를 전부 warm으로 읽는다 (실측: 전 프로필 warm 이상 50~60%).
-  assert.match(sys, /\*\*a defense came off, toward this person\.\*\* Not toward the topic/,
+  assert.match(sys, /\*\*a defense came off, toward this person, and something fluttered\.\*\*/,
     'warm이 대화 윤활에 붙는 걸 막는 문장이 없다');
+  // 두근거림의 출처를 대라고 시켜야 한다 — 안 그러면 "잘 쓴 대사"가 출처가 된다
+  assert.match(sys, /which line, and what about this\s+specific person made that line land\?/,
+    'warm의 출처를 대라는 요구가 없다');
+  assert.match(sys, /Wit is not a source\. Rapport is not\s+a source\. Rhythm is not a source/,
+    '티키타카가 득점 소스가 될 여지가 있다');
   // 주제에 대해 잘 통하는 것은 취미지 고백이 아니다
   assert.match(sys, /That is a hobby, not a confession/,
     '주제에 열리는 것과 사람에게 열리는 것이 구분 안 된다');

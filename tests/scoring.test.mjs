@@ -994,3 +994,64 @@ test('사후 보고에 장벽 항목이 항상 있다', async () => {
     assert.ok(note.text.includes(c.barrier), '장벽 원문이 안 들어갔다');
   }
 });
+
+// ── 두근거림 관문 ────────────────────────────────────────────────
+// 분위기가 아무리 좋아도, 대화가 아무리 잘 굴러가도 여기서 막힌다.
+// 이 선 위로는 실제로 마음이 움직인 턴(warm 이상)으로만 올라간다.
+// 프롬프트로만 말하면 심판이 빠져나간다 — 규칙으로 박아야 한다.
+test('잘 굴러간 대화만으로는 두근거림 관문을 못 넘는다', async () => {
+  const S = await import('../js/scoring.js');
+  const d = S.diffOf('쉬움');
+  let s = S.initialState(d);
+  for (let i = 0; i < 30; i++) {
+    s = S.applyTurn(s, d, { tier: 'nudge', loveDelta: 2, moodDelta: 3, vibe: 'v', revealed: '' });
+  }
+  assert.equal(Math.round(s.love), S.TUNING.likingCeiling,
+    `nudge를 30턴 쌓아도 관문에서 멈춰야 한다 (실제 ${Math.round(s.love)})`);
+  assert.ok(s.mood > 80, '테스트 전제: 분위기는 최고여야 한다');
+});
+
+test('관문 위로는 warm 이상만 민다', async () => {
+  const S = await import('../js/scoring.js');
+  const d = S.diffOf('쉬움');
+  let s = S.initialState(d);
+  for (let i = 0; i < 30; i++) {
+    s = S.applyTurn(s, d, { tier: 'nudge', loveDelta: 2, moodDelta: 3, vibe: 'v', revealed: '' });
+  }
+  const atCeiling = s.love;
+  const warm = S.applyTurn(s, d, { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '' });
+  assert.ok(warm.love > atCeiling, 'warm이 관문을 못 넘겼다');
+  const nudge = S.applyTurn(s, d, { tier: 'nudge', loveDelta: 2, moodDelta: 3, vibe: 'v', revealed: '' });
+  assert.equal(Math.round(nudge.love), Math.round(atCeiling), 'nudge가 관문 위로 한 점이라도 보탰다');
+  // 관문을 넘은 뒤에도 nudge는 못 보탠다
+  const after = S.applyTurn(warm, d, { tier: 'nudge', loveDelta: 2, moodDelta: 3, vibe: 'v', revealed: '' });
+  assert.ok(after.love <= warm.love, '관문 위에서 nudge가 호감을 올렸다');
+});
+
+test('관문은 올라가는 쪽만 막는다 — 손실은 그대로 적용된다', async () => {
+  const S = await import('../js/scoring.js');
+  const d = S.diffOf('쉬움');
+  let s = S.initialState(d);
+  for (let i = 0; i < 10; i++) {
+    s = S.applyTurn(s, d, { tier: 'warm', loveDelta: 6, moodDelta: 3, vibe: 'v', revealed: '' });
+  }
+  assert.ok(s.love > S.TUNING.likingCeiling, '테스트 전제: 관문 위여야 한다');
+  const before = s.love;
+  const chilled = S.applyTurn(s, d, { tier: 'chill', loveDelta: -4, moodDelta: -3, vibe: 'v', revealed: '' });
+  assert.ok(chilled.love < before, '관문 위에서 손실이 안 먹었다');
+});
+
+test('평범하게 굴러가다 무미건조하게 끝나면 호감은 0 근처다', async () => {
+  const S = await import('../js/scoring.js');
+  for (const key of ['쉬움', '보통', '헬']) {
+    const d = S.diffOf(key);
+    let s = S.initialState(d);
+    const turns = d.textTurns + d.talkTurns;
+    for (let i = 0; i < turns; i++) {
+      s = S.applyTurn(s, d, { tier: 'flat', loveDelta: 0, moodDelta: 1, vibe: 'v', revealed: '' });
+    }
+    assert.ok(s.love <= d.startLove,
+      `${key}: 아무 일도 없었는데 호감이 올랐다 (${Math.round(s.love)} / 시작 ${d.startLove})`);
+    assert.ok(s.love < d.threshold / 3, `${key}: 무미건조한 판이 성공선의 1/3을 넘었다`);
+  }
+});

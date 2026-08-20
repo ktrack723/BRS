@@ -19,7 +19,7 @@
 
 // ── 세계관 ────────────────────────────────────────────────────
 import { COUPLES } from './couples.js';   // 브리핑이 말하는 접수 건수는 대장에서 센다
-import { DIFFICULTIES } from './scoring.js'; // 심판의 등급 예산은 그 판의 실제 턴 수를 따라간다
+import { DIFFICULTIES, TUNING } from './scoring.js'; // 심판의 등급 예산과 두근거림 관문은 규칙 계층에서 온다
 
 // 출력 언어 고정. 지시문이 영어이므로 이 줄이 없으면 모델이 영어로 답한다.
 // 블록마다 반복해서 넣는다. 한 번만 넣으면 뒤쪽 출력에서 새어나간다.
@@ -958,6 +958,7 @@ export function judgeSystem(couple) {
   // nudge에도 예산을 건다. 이게 없으면 심판은 flat을 안 쓰고 nudge로 도망친다 —
   // 실측: flat 18% · nudge 34%. nudge는 "아무 일도 없었다"가 아니라 **틀릴 일이 없는 답**이다.
   const nNudge = Math.max(2, Math.round(TURNS * 0.25));
+  const LIKING_CEILING = TUNING.likingCeiling;
   const nHot = nBreak + nWarm;
   return `${WORLD}
 
@@ -1023,6 +1024,11 @@ ${t.name} (${idOf(t)}, ${t.job})
     pick a sentence picking one. The one who never stops, stopping — and leaving the gap.
     The one who checks every kind word taking one at face value and not checking it.
     You were told exactly what each of them does, so you can see the moment it stops.
+    **And the mirror of it: when their pattern itself points at the other person, that is the
+    pattern running, not the person moving.** The anxious one asking again whether they are
+    upset. The fixated one circling back to them. The one who cannot stop talking, talking
+    about them. It looks like attention and it is not — they would be doing it to anyone in
+    that chair. Flat.
     That is **warm at minimum, and usually breakthrough** — it costs them more than anything
     else on this page. Do not round it down because the sentence itself was unremarkable.
     What was said matters less than that they said it at all.
@@ -1055,6 +1061,15 @@ ${f.note}
   that is just these two, being who they are.
   What you are measuring is whether anything moved **despite** all of that.
 
+■ **The meter has a ceiling you cannot lift with conversation.**
+  호감 cannot rise past **${LIKING_CEILING}** on nudges and flats, however many of them there are and
+  however well the evening goes. Above that line the meter only moves on turns you called
+  **warm or breakthrough** — turns where something actually fluttered.
+  This is enforced in the rules, not by you, so do not try to compensate for it: never inflate
+  a turn to warm because the operation "deserves" to get past the line. If it stalls at ${LIKING_CEILING},
+  that is the correct reading of an evening where two people talked and nothing happened.
+  A pleasant, well-run, funny, nothing-happened evening is supposed to end there.
+
 ■ Grades — you are grading **romantic movement only**, against the previous turn. Default is flat.
   Read the 호감 block above again before you pick. The question is never "how did that exchange go".
   It is "did anything happen in there that a colleague could not have caused".
@@ -1065,8 +1080,16 @@ ${f.note}
       belongs here too. Polite conversation is not the only thing that can be a breakthrough.
       **This operation runs about ${TURNS} turns. Budget: at most ${nBreak}.**
       Past that you are getting excited, not adjudicating.
-  · warm (+4 to +6) — **a defense came off, toward this person.** Not toward the topic, not
-      toward the evening. "Still friendly" is not warm. "It was going well" is not warm.
+  · warm (+4 to +6) — **a defense came off, toward this person, and something fluttered.**
+      두근거림. The half-beat where the other person's body registers before their head does.
+      Not toward the topic, not toward the evening. "Still friendly" is not warm.
+      "It was going well" is not warm. **"That was a good exchange" is not warm.**
+      Before you write warm, name the source out loud: **which line, and what about this
+      specific person made that line land?** If your answer is "it was well said" or "the
+      conversation had built up to it", it was not warm. Wit is not a source. Rapport is not
+      a source. Rhythm is not a source. The source has to be something in who they are —
+      what they want, what they are afraid of, what was done to them, what they look like —
+      that this particular line reached.
       These are warm — recognize them, do not round them down:
         · they gave up something about themselves that costs them to say
         · they dropped a register they had been holding all game (honorifics, sarcasm, deflection, silence)

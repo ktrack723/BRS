@@ -259,10 +259,22 @@ export const TUNING = {
   // 강압 성사에 필요한 누적 압박. hard 두 번 + soft 한 번쯤이면 사람이 묶인다.
   // 한 번의 협박으로 성사되면 무전 한 방짜리 게임이 된다.
   coerceMin: 5,
+  // ── 두근거림 관문 ──────────────────────────────────────────
+  // 분위기가 아무리 좋아도, 대화가 아무리 잘 굴러가도 여기서 막힌다.
+  // 이 선 위로는 **warm 이상**, 즉 실제로 마음이 움직인 턴으로만 올라간다.
+  // 프롬프트로만 말하면 심판이 빠져나간다(실측: flat 18% · nudge 34%). 규칙으로 박는다.
+  //   · 관문 아래: nudge가 쌓여서 여기까지는 온다
+  //   · 관문 위:   nudge는 한 점도 못 보탠다. 두근거린 턴만 민다
+  //   · 손실은 언제나 그대로 적용된다 — 관문은 올라가는 쪽만 막는다
+  likingCeiling: 40,
   moodGainScale: 1.0,        // 분위기 이득 쪽 감쇠. 예전 0.75는 분위기가 아예 안 오르게 만들었다
   disasterMood: -5,          // 상대가 정색하면 자리가 식는다. 등급에서 나오는 결과지 별도 판정이 아니다
   breakthroughMood: 3,       // 반대로 방어선이 무너진 순간엔 공기도 같이 풀린다
 };
+
+// 관문을 넘길 수 있는 등급. 「사람 쪽으로 방어선이 내려간」 턴만이다.
+// nudge는 여기 없다 — 반짝임은 호감이지 끌림이 아니다.
+export const FLUTTER_TIERS = new Set(['warm', 'breakthrough']);
 
 // 심판의 tier에 맞춰 loveDelta를 밴드 안으로 강제한다.
 export function bandLove(tier, loveDelta) {
@@ -350,7 +362,13 @@ export function applyTurn(state, d, judge, opts = {}) {
   const loveChange = scaled * mult - d.loveDecay;
 
   s.mood = moodAfter;
-  s.love = clamp(s.love + loveChange, 0, 100);
+  // 두근거림 관문. 잘 굴러간 대화는 여기까지만 올라온다 —
+  // 그 위는 실제로 마음이 움직인 턴(warm 이상)만 민다.
+  let loveAfter = s.love + loveChange;
+  if (loveChange > 0 && !FLUTTER_TIERS.has(tier)) {
+    loveAfter = Math.min(loveAfter, Math.max(before.love, TUNING.likingCeiling));
+  }
+  s.love = clamp(loveAfter, 0, 100);
   s.turns += 1;
 
   // 사망은 판정에 딸려 오지만 수치 계산과는 무관하다. 한 번 정해지면 뒤집히지 않는다.
@@ -495,6 +513,18 @@ export function debrief(state, d, v, couple, transcript = '') {
     text: state.barrierCleared
       ? `${couple.barrier} — 이 얘기가 실제로 테이블에 올라왔다. 여기까지 갔다는 뜻이다.`
       : `${couple.barrier} — 아무도 이 얘기를 꺼내지 않았다. 성사를 막지는 않지만, 그만큼 겉만 돌았다는 뜻이다.`,
+  });
+  // 두근거림 관문. 여기서 멈춘 판은 "못했다"가 아니라 "아무 일도 없었다"다.
+  // 그 차이를 안 알려주면 플레이어는 게이지가 고장 났다고 생각한다.
+  const hot = state.history.filter(h => h.tier === 'warm' || h.tier === 'breakthrough').length;
+  notes.push({
+    key: 'flutter', label: '두근거린 순간',
+    value: `${hot}회`,
+    ok: hot > 0,
+    text: hot === 0
+      ? `한 번도 없었다. 대화가 얼마나 잘 굴러갔든 호감은 ${TUNING.likingCeiling}에서 막힌다 — ` +
+        '합이 맞고 농담이 통하는 건 채점 대상이 아니다. 저 사람이라서 닿는 말이 하나도 없었다.'
+      : `${hot}번 있었다. 관문 ${TUNING.likingCeiling} 위로 올라간 건 전부 이 순간들이 민 것이다.`,
   });
   notes.push({
     key: 'secrets', label: '상대가 감춰둔 이야기',
