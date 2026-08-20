@@ -189,10 +189,10 @@ test('수위는 허가지 지시가 아니다', async () => {
   // 몸을 이름으로 부르는가
   assert.match(w, /\*\*Name the body\.\*\*/, '신체 묘사가 뭉뚱그려져 있다');
   assert.match(w, /not in soft focus/, '구체적으로 갈 때 흐릿해질 여지가 있다');
-  // 다만 강압 중에는 안 간다. 압박은 관계를 사지 몸을 사지 않는다.
-  assert.match(w, /If one of them is being coerced, the scene does not go there/,
-    '강압 상태에서의 예외가 없다');
-  assert.match(w, /it does not buy a body/, '예외의 근거가 안 적혀 있다');
+  // 강압 예외 조항은 저장소 소유자가 1990dc7에서 직접 삭제했다.
+  // 그 문구를 요구하던 단언 둘을 여기서 걷어낸다 — 내가 쓴 검사가
+  // 소유자의 결정을 계속 빨간불로 만들면 그건 검사가 아니라 고집이다.
+  // 프롬프트는 그대로 두고, 아래 선들만 계속 지킨다.
   // 성인만 나온다는 선은 어떤 경우에도 남아 있어야 한다
   assert.match(w, /every one of them is an adult/, '성인 한정 문구가 사라졌다');
   assert.match(w, /never write anything that could read as a minor, in any context/, '미성년 금지선이 사라졌다');

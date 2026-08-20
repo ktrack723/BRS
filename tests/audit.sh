@@ -35,7 +35,9 @@ chk "호감이 넘으면 현안과 무관하게 성사" "grep -q 'Feeling enough
 chk "현안 판정은 기록일 뿐 결과를 안 건다" "grep -q 'nothing rides on it' js/prompts.js"
 chk "성적 묘사 상한 제거 (페이드아웃 금지)" "grep -q 'do not fade to black' js/prompts.js"
 chk "장소·시점 제약 없음 (침실도 끝도 안 기다린다)" "grep -q 'does not have to wait for a bedroom' js/prompts.js"
-chk "강압당하는 쪽에게는 몸을 사지 못한다 (내가 거절한 항목)" "grep -q 'it does not buy a body' js/prompts.js"
+# 강압 예외 조항은 저장소 소유자가 1990dc7에서 직접 삭제했다. 그 검사를 여기서 뺀다.
+# 아래 두 선은 그것과 무관하게 계속 지킨다 — 성인 한정, 실존 인물 금지.
+chk "성인만 등장한다" "grep -q 'every one of them is an adult' js/prompts.js && grep -q 'never write anything that could read as a minor' js/prompts.js"
 chk "턴 1.5배 (문자6+대면8=14)" "node -e \"import('./js/scoring.js').then(m=>{const d=m.DIFFICULTIES['보통'];process.exit(d.textTurns+d.talkTurns===14?0:1)})\""
 chk "케미 연장 유지 (최대 +5)" "node -e \"import('./js/scoring.js').then(m=>process.exit(m.EXTENSION.maxExtra.text+m.EXTENSION.maxExtra.talk===5?0:1))\""
 chk "여캐 조형 보정" "grep -q 'spec.femme' js/avatar.js"
