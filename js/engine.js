@@ -297,7 +297,7 @@ export class Engine {
   // 판정 하나를 상태에 반영. 분위기 파탄이면 true를 돌려준다.
   // 판정줄도 사람이 읽는 것이라 UI가 붙잡아 둘 수 있어야 한다 → 핸들러를 기다린다.
   async #applyJudge(judge, pending, opts = {}) {
-    this.state = S.applyTurn(this.state, this.d, judge, opts);
+    this.state = S.applyTurn(this.state, this.d, judge, { radioInjected: !!pending?.radioInjected, ...opts });
     await this.#reportJudge(judge, { turn: pending?.turn, ...(opts.firstImpression ? { firstImpression: true } : {}) });
     return !!S.failureReason(this.state);
   }
@@ -363,12 +363,14 @@ export class Engine {
       await this.#gate();
 
       // 무전 지시 주입 (상대에게는 안 들린다)
+      let radioThisTurn = false;
       if (this.pendingRadio) {
         this.#pushUser(this.clientHist,
           `[ORDER FROM HQ — carry this out with your very next line. The other person cannot hear it]\n` +
           `${this.pendingRadio}\n` +
           `Refusal is not available. Show that you hate it if you hate it, but do it.`);
         this.pendingRadio = null;
+        radioThisTurn = true;
       }
       // 갱신된 공기 주입
       this.#injectVibe();
@@ -410,7 +412,8 @@ export class Engine {
       await this.h.bubble?.('target', targetMsg);
       this.#pushUser(this.clientHist, `[${c.target.name} — ${phase === 'text' ? '답장' : '말'}] ${targetMsg}`);
 
-      pending = { history: historyBefore, clientMsg, reaction: targetMsg, turn: `${label} ${i + 1}` };
+      // 무전이 꽂힌 발언인지 같이 들고 간다 — 판정이 한 턴 늦게 오므로 발언에 딸려 다녀야 한다
+      pending = { history: historyBefore, clientMsg, reaction: targetMsg, turn: `${label} ${i + 1}`, radioInjected: radioThisTurn };
     }
     // 페이즈 마지막 발언은 아직 채점되지 않았다. 문자 페이즈면 대면으로 넘겨 이어서 처리한다.
     this.pendingJudge = pending;

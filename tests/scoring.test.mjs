@@ -717,9 +717,10 @@ test('스키마의 모든 객체가 구조화 출력 요건을 지킨다', () =>
 
 // ── 테스트 예산 가드 ────────────────────────────────────
 // Opus로 밸런싱 한 라운드가 $6.6다. 실수로 비싼 모델이 기본값이 되는 걸 막는다.
-test('라이브 테스트는 Sonnet만 쓴다', async () => {
+test('라이브 테스트는 Haiku/Sonnet만 쓴다', async () => {
   const { resolveTestModel, TEST_MODEL, OVERRIDE_FLAG } = await import('./test-model.mjs');
-  assert.match(TEST_MODEL, /^claude-sonnet-/, '기본 테스트 모델은 소넷이어야 한다');
+  assert.match(TEST_MODEL, /^claude-haiku-/, '기본 테스트 모델은 하이쿠여야 한다');
+  assert.equal(resolveTestModel('claude-haiku-4-5-20251001', []), 'claude-haiku-4-5-20251001', '하이쿠는 통과');
   assert.equal(resolveTestModel(undefined, []), TEST_MODEL, '미지정이면 소넷');
   assert.equal(resolveTestModel('claude-sonnet-5', []), 'claude-sonnet-5', '소넷은 통과');
 

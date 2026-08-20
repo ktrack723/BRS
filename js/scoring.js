@@ -284,6 +284,21 @@ export const TUNING = {
   breakthroughMood: 3,       // 반대로 방어선이 무너진 순간엔 공기도 같이 풀린다
 };
 
+// ── 개선안 스위치 (A/B 비교 전용) ────────────────────────────────────
+// 준비한 요원과 안 한 요원을 더 잘 가르는 규칙을 여섯 개 만들고 실측으로 고른다.
+// **전부 실제로 벌어진 일만 본다.** 요원이 입력칸에 무엇을 쳤는지는 규칙이 안 본다 —
+// 그걸 보면 내용이 아니라 형식을 보상하게 되고, 여덟 자만 치면 만점이 된다.
+// 승자를 고른 뒤에는 이 스위치를 걷어내고 본문에 새긴다.
+//
+//   radio    무전 직후 세 턴 안의 두근거림은 크게, 그 밖은 작게. 타이밍이 실력이다
+//   redline  정색당하면 손실 두 배 + 그 뒤 두근거림이 계속 깎인다. 지뢰는 요원만 안다
+//   variety  같은 종류 반복은 급감, 서로 다른 종류를 섞으면 가산. 레버를 여러 개 쓰는가
+//   arousal  각성 전이를 살린다(실측 53건 중 1건으로 죽어 있었다). 장소는 요원이 정한다
+//   ladder   응답은 직전 응답보다 깊어야 유효. 같은 깊이 반복은 0 (Aron의 경사로)
+//   decay    종류 불문 판 전체 n번째 두근거림에 0.85^n. 길게 끄는 것 자체를 눌러본다
+export const VARIANT = (typeof process !== 'undefined' && process.env && process.env.BRS_VARIANT) || 'baseline';
+const V = (name) => VARIANT === name;
+
 // ── 두근거림의 종류 ──────────────────────────────────────────────────
 // 두근거림은 하나가 아니다. 심리학 쪽 이론들이 서로 다른 기제 여럿을 가리킨다.
 // 그래서 **세기(warm→breakthrough)가 아니라 종류**로 가른다. 종류마다 점수 성질이 다르다.
@@ -359,6 +374,12 @@ export function initialState(d) {
     // 두근거림을 종류별로 센다. 각성은 반복될수록 죽고, 밀당은 과하면 뒤집히고,
     // 전환점은 판당 상한이 있다. 그 판정을 하려면 지금까지의 횟수를 알아야 한다.
     flutters: {},
+    // 개선안 비교용 파생 상태. 전부 **실제로 벌어진 일**만 본다 —
+    // 요원이 입력칸에 무엇을 쳤는지는 규칙 계층이 절대 보지 않는다(그건 형식 보상이 된다).
+    hotSeen: 0,        // 지금까지 셈된 두근거림 횟수
+    burned: 0,         // 정색당한 횟수 (disaster)
+    sinceRadio: 99,    // 마지막 무전 주입 이후 몇 턴 지났나
+    lastResponsive: 0, // 마지막 '응답' 두근거림의 원판정 크기 (사다리 검사용)
   };
 }
 
@@ -411,7 +432,30 @@ export function applyTurn(state, d, judge, opts = {}) {
     s.flutters = { ...s.flutters, [kind]: seen + 1 };
   }
 
-  const scaled = (ld >= 0 ? ld * d.gainScale * loveSat * kindMult : ld * d.lossScale) * weight;
+  // ── 개선안 스위치 ────────────────────────────────────────────
+  let vMult = 1;
+  let lossMult = 1;
+  if (kind) {
+    // 무전 타이밍: 지시가 꽂힌 직후에 터진 두근거림만 크게 친다
+    if (V('radio')) vMult *= s.sinceRadio <= 2 ? 1.5 : 0.7;
+    // 정색당한 뒤로는 계속 깎인다. 지뢰 목록은 요원만 가지고 있다
+    if (V('redline')) vMult *= Math.pow(0.75, s.burned);
+    // 레버를 여러 개 쓰는가. 처음 쓰는 종류에 가산, 이미 쓴 종류에 감산
+    if (V('variety')) vMult *= (s.flutters[kind] || 0) === 0 ? 1.35 : 0.7;
+    // 각성 전이 되살리기 — 실측에서 53건 중 1건으로 사문화돼 있었다
+    if (V('arousal') && kind === '각성') vMult *= 2.2;
+    // 응답 사다리: 직전 응답보다 깊지 않으면 안 친다 (Aron — 경사로지 절벽이 아니다)
+    if (V('ladder') && kind === '응답') vMult *= ld > s.lastResponsive ? 1.2 : 0;
+    // 길게 끄는 것 자체를 누른다
+    if (V('decay')) vMult *= Math.pow(0.85, s.hotSeen);
+    s.hotSeen += 1;
+    if (kind === '응답') s.lastResponsive = Math.max(s.lastResponsive, ld);
+  }
+  if (V('redline') && ld < 0) lossMult = 2;
+  if (tier === 'disaster') s.burned += 1;
+  s.sinceRadio = opts.radioInjected ? 0 : s.sinceRadio + 1;
+
+  const scaled = (ld >= 0 ? ld * d.gainScale * loveSat * kindMult * vMult : ld * d.lossScale * lossMult) * weight;
   const loveChange = scaled * mult - d.loveDecay;
 
   s.mood = moodAfter;
@@ -449,6 +493,7 @@ export function applyTurn(state, d, judge, opts = {}) {
     revealed: fresh, firstImpression: !!opts.firstImpression,
     // 장벽·압박은 이제 판을 끝내는 조건이다. 턴 기록에 안 남으면 사후에 왜 졌는지 못 짚는다.
     barrier: judge.barrierAddressed === true, leverage: judge.leverage || 'none',
+    radioInjected: !!opts.radioInjected,
     reason: judge.reason || '', vibe: s.vibe,
   });
   return s;
