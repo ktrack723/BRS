@@ -242,6 +242,22 @@ test('세계관이 도덕 기본값을 이득 쪽으로 깔아둔다', () => {
   assert.ok(P.WORLD.includes('DO NOT PLAY RIGHTEOUS'));
 });
 
+test('대화가 잘 굴러가면 안 된다 — 결 조이기 3처가 살아 있다', () => {
+  const c = COUPLE_BY_ID['politics'];
+  const sys = P.clientAgentSystem(c, { coaching: '', speech: '', outfitDesc: '' }, 'text', {});
+  // ① 열림은 급소를 맞혔을 때만 — "대화가 잘 굴러가서"는 절대 아니다
+  assert.ok(sys.includes('Talking well earns no thaw'), '열림 조건이 풀렸다');
+  assert.ok(!sys.includes('be reached — fast'), '삭제한 완충 문장이 되살아났다');
+  // ② 기본 태도: 상대는 성가시고, 원하는 것과 좋아하는 것은 별개로 굴러간다 (착취는 호감 불요)
+  assert.match(sys, /you do not particularly\s+like this person/, '기본 태도 문장이 사라졌다');
+  assert.ok(sys.includes('does not soften how you treat them'), '착취-호감 분리 문장이 사라졌다');
+  // ③ 코미디는 대화가 망하는 데서 나온다 — 만담이 아니라
+  assert.ok(P.WORLD.includes('from the conversation failing'), '코미디 재조준이 풀렸다');
+  assert.match(P.WORLD, /A scene that reads smooth\s+has missed the joke/);
+  // 공통 꼬리는 대칭이다 — 상대 쪽도 같은 결을 받는다
+  assert.ok(P.targetAgentSystem(c, 'text', '').includes('Talking well earns no thaw'));
+});
+
 test('모든 시스템 프롬프트가 출력 언어를 한국어로 못 박는다', () => {
   const c = COUPLE_BY_ID['politics'];
   const all = [
