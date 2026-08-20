@@ -234,6 +234,7 @@ LLM 호출 지점: 국장 브리핑 · 스타일링 시공(스펙 변환) · 클
 npm test              # 규칙 + 하네스 회귀 테스트 54개 (LLM 불필요, 0.2초)
 npm run browser       # 실제 브라우저 E2E (가짜 LLM, API 키·크레딧 불필요)
 npm run responsive    # 9개 뷰포트 × 7개 화면 레이아웃 감사 (아이패드 전 기종 포함)
+npm run coercion      # 성적 강요 메커니즘 감사 11축 (LLM 불필요). 치명 발견이 있으면 종료코드 1
 
 ANTHROPIC_API_KEY=sk-... npm run live                       # 실제 API로 끝까지 플레이하는 밸런싱 하네스
 ANTHROPIC_API_KEY=sk-... npm run browser -- --live          # 실제 API로 브라우저 E2E
@@ -265,6 +266,7 @@ $ node tests/live.mjs --model=claude-opus-5
 | `tests/engine.test.mjs` | 하네스 19개 — 판정 누락/중복 없음, 심판이 반응을 받는지, 발언·반응 짝 일치, 동시 발사, 캐시 breakpoint, 무전 주입·폐기, 파탄 경로, LLM 장애 시 중립 처리 | ❌ |
 | `tests/responsive.mjs` | 9뷰포트 × 7화면 — 가로 스크롤, 뷰포트 이탈, 내용 잘림, flex 압착, 터치 타깃 44px, 캔버스, WCAG AA | ❌ |
 | `tests/browser.mjs` | 실제 브라우저 — 썸네일 40장이 진짜 three.js 렌더인지(불투명 픽셀 검사), 스타일링이 머리색/상의색을 바꾸는지, 종족 불변, 게이지 바 갱신, 무전 일시정지·재개, 의뢰서가 미확인 취향을 누설하지 않는지, **5개 화면 WCAG AA 명암비** | ❌ (`--live`로 전환 가능) |
+| `tests/coercion.mjs` | 성적 강요 메커니즘 감사 11축 — 지뢰 커버리지, 심판 프롬프트 규정, 규칙 계층 도달성, 주입 검열, 등급별 손익, 손익분기 오판율, 완주 시뮬레이션, 엔진 종단 구동, 거절 경로 | ❌ (`--live`로 심판 프로브) |
 | `tests/live.mjs` | 실제 플레이로 밸런싱 데이터 수집 | ✅ |
 | `tests/sim.mjs` | 수집된 판정 스트림 리플레이 + 상수 탐색 | ❌ |
 
