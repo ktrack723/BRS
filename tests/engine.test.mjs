@@ -637,12 +637,12 @@ test('핸들러가 약속을 돌려주지 않아도 그냥 흘러간다', async 
 // ── 케미가 좋으면 자리가 길어진다 ──────────────────────────────────────
 // 대화가 잘 풀리는데 예정된 턴에서 칼같이 끊기면, 잘 풀렸다는 사실 자체가 무의미해진다.
 
-test('판정이 뜨겁고 분위기가 오르면 턴이 늘어난다', async () => {
+// 자리가 길어질지는 이제 **심판이 정한다** — 케미가 아니라 "더 갈 데 있나"를 답한다.
+test('심판이 더 갈 데 있다고 하면 턴이 늘어난다', async () => {
   const S = await import('../js/scoring.js');
-  // 매 턴 뜨겁게 채점해서 분위기를 끌어올린다
   const llm = new FakeLlm({
     judge: () => ({
-      tier: 'warm', moodDelta: 9, loveDelta: 5, reason: '잘 풀린다',
+      tier: 'warm', moodDelta: 9, loveDelta: 5, reason: '잘 풀린다', keepGoing: true,
       vibe: '둘 다 웃고 있다', revealed: '', clientEmote: 'laugh', targetEmote: 'laugh',
     }),
   });
@@ -655,9 +655,7 @@ test('판정이 뜨겁고 분위기가 오르면 턴이 늘어난다', async () 
   const sit = await engine.situation();
   await engine.runTalking(sit);
 
-  assert.ok(events.length >= 1, '판 내내 뜨거웠는데 한 턴도 안 늘어났다');
-  assert.ok(engine.state.mood >= engine.d.startMood + S.EXTENSION.moodGain,
-    '분위기가 실제로 올라야 연장 조건이 성립한다');
+  assert.ok(events.length >= 1, '심판이 계속 "더 갈 데 있다"고 했는데 한 턴도 안 늘어났다');
   for (const e of events) {
     assert.ok(e.extra <= S.EXTENSION.maxExtra[e.phase], `${e.phase} 연장 상한을 넘었다`);
     assert.ok(e.turns > (e.phase === 'text' ? engine.d.textTurns : engine.d.talkTurns),
@@ -682,22 +680,25 @@ test('대화가 미지근하면 턴이 늘어나지 않는다', async () => {
   assert.equal(engine.phaseTurns, engine.d.textTurns);
 });
 
-test('분위기를 끌어올리지 못하면 판정이 좋아도 늘어나지 않는다', async () => {
-  const S = await import('../js/scoring.js');
-  const hot = ['warm', 'breakthrough', 'warm'];
-  for (const name of Object.keys(S.DIFFICULTIES)) {
-    const d = S.diffOf(name);
-    const need = d.startMood + S.EXTENSION.moodGain;
-    assert.equal(S.extraTurn('talk', hot, need - 1, 0, d), false, `${name}: 안 끌어올렸는데 길어진다`);
-    assert.equal(S.extraTurn('talk', hot, need, 0, d), true, `${name}: 끌어올렸는데 안 길어진다`);
-    // 시작하자마자 조건을 만족하면 안 된다 — 아무것도 안 한 판이 공짜로 연장된다
-    assert.equal(S.extraTurn('talk', hot, d.startMood, 0, d), false, `${name}: 시작 분위기로 연장된다`);
-    // 상한을 넘겨서는 안 된다
-    assert.equal(S.extraTurn('talk', hot, 100, S.EXTENSION.maxExtra.talk, d), false, `${name}: 연장 상한이 안 먹는다`);
-  }
+// 분위기 조건은 폐지했다 — 자리 길이를 정하는 건 심판의 keepGoing 하나다.
+// 대신 반대쪽을 본다: 심판이 연달아 "더 갈 데 없다"고 하면 자리가 일찍 끊긴다.
+test('심판이 더 갈 데 없다고 하면 자리가 일찍 끊긴다', async () => {
+  const llm = new FakeLlm({
+    judge: () => ({
+      tier: 'flat', moodDelta: 0, loveDelta: 0, reason: '할 말이 없다', keepGoing: false,
+      vibe: '침묵', revealed: '', clientEmote: 'talk', targetEmote: 'talk',
+    }),
+  });
+  const couple = COUPLES.find(c => c.difficulty === '쉬움');
+  const engine = new Engine(llm, { couple, prep: {}, agent: AGENT, handlers: {} });
+  await engine.runTexting();
+  const textTurns = engine.state.turns;
+  assert.ok(textTurns < engine.d.textTurns,
+    `할 말이 없는데 문자 페이즈를 다 돌았다 (${textTurns}/${engine.d.textTurns})`);
+  const sys = engine.transcript.filter(t => t.who === 'sys').map(t => t.text).join(' ');
+  assert.match(sys, /답장이 끊겼다/, '왜 끊겼는지 화면에 안 나온다');
 });
 
-// ── 사람이 죽으면 하네스가 거기서 멈춘다 ─────────────────
 test('사망 판정이 나오면 공작이 그 자리에서 종료된다', async () => {
   // 3번째 판정에서 상대가 죽는다
   const llm = new FakeLlm({

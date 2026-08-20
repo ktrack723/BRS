@@ -647,6 +647,14 @@ syllable pushes badly, and too late, and in the wrong words. Someone who cannot 
 pushes by going straight past the moment it could have worked.
 This is the reason you agreed to sit down. It is not a skill you suddenly have.
 
+**And you are not restrained about it.** What you want, you want badly enough that the
+question of whether you are allowed to have it does not come up on its own. Rules, procedure,
+someone else's claim on it, the law — those are obstacles to route around, not reasons to stop.
+You have broken things that were not yours to break before, for less than this. If getting
+what you want tonight means lying, taking, trespassing, spending money that is not yours,
+or doing something that would go badly for you if anyone found out, that is a cost you weigh
+against the wanting — and the wanting usually wins.
+
 [WHAT YOUR BODY WANTS, AS OPPOSED TO YOUR HEAD]
 ${f.urge}
 You have no intention of saying this out loud. It is still here.
@@ -948,14 +956,13 @@ export const JUDGE_SCHEMA = {
       enum: ['none', 'soft', 'hard'],
       description: 'Coercion applied this turn that the other person visibly gave ground to. Usually "none"',
     },
-    flutterKind: {
-      type: 'string',
-      enum: ['각성', '응답', '불확실', '신체', '전환', 'none'],
-      description: 'Only when tier is warm or breakthrough: which mechanism produced the flutter. "none" otherwise',
+    keepGoing: {
+      type: 'boolean',
+      description: 'Does this exchange have anywhere left to go? False when it is finished — they are repeating themselves, one of them is done, or there is simply nothing more here',
     },
   },
   required: ['tier', 'loveDelta', 'moodDelta', 'reason', 'vibe', 'revealed', 'clientEmote', 'targetEmote',
-    'casualty', 'casualtyNote', 'barrierAddressed', 'leverage', 'flutterKind'],
+    'casualty', 'casualtyNote', 'barrierAddressed', 'leverage', 'keepGoing'],
   additionalProperties: false,
 };
 
@@ -1099,46 +1106,26 @@ ${f.note}
       belongs here too. Polite conversation is not the only thing that can be a breakthrough.
       **This operation runs about ${TURNS} turns. Budget: at most ${nBreak}.**
       Past that you are getting excited, not adjudicating.
-  · warm (+4 to +6) — **두근거림.** Set this bar where Korean couples set it in 밀당 —
-      the push-and-pull, where the whole game is who moves first and neither will admit they
-      are playing. That is the standard. Not "they warmed up". Not "they opened up".
-      The half-beat where the other person's body registers before their head does, and then
-      they have to do something about the fact that it showed.
-      Concretely, one of these actually happened:
-        · **they got caught.** Something went across their face or their voice before they
-          could manage it, and both of them know it was seen
-        · **they had to look away, and then look back.** The turn cost them composure
-        · **they tested.** They pushed to see what the other one would do — pulled back a step
-          to check whether they get followed. That is 밀당, and it only happens once the
-          feeling is already there
-        · **they conceded ground they had been holding for a reason**, and the concession was
-          about the person, not about the argument
-        · **the register broke.** Honorifics slipped, or the sarcasm stopped mid-sentence,
-          or a "요" fell off the end of a word and neither of them fixed it
-        · **they wanted the other one to stay** and did something clumsy about it
-      Before you write warm, name the source out loud: **which line, and what about this
-      specific person made that line land?** If your answer is "it was well said" or "the
-      conversation had built up to it", it was not warm. Wit is not a source. Rapport is not
-      a source. Rhythm is not a source. The source has to be something in who they are —
-      what they want, what they are afraid of, what was done to them, what they look like —
-      that this particular line reached.
-      **A pleasant, articulate, mutually-understood exchange with none of the above in it
-      is flat.** Two people can talk beautifully for an hour with nothing happening.
-      These are warm — recognize them, do not round them down:
-        · they gave up something about themselves that costs them to say
-        · they dropped a register they had been holding all game (honorifics, sarcasm, deflection, silence)
-        · they asked about the client **as a person**, not about the topic
-        · they let go of a piece of what they walked in holding against the client
-        · they stayed on a subject they had shut down earlier
-        · they took a pass, an invitation or a touch instead of sidestepping it
-        · they did something to keep the other one sitting there longer
-      And these are **not** warm, however good they look on the page:
-        · a clever exchange, a well-matched joke, a rhythm that worked
-        · politeness, patience, generosity, or hearing the client out
-        · answering at length (people who cannot do this often talk too much)
-        · being drawn into an argument — arguing is engagement, not warmth
-        · opening up about a **topic** they know a lot about. That is a hobby, not a confession
-        · agreeing, conceding a point, or discovering something in common
+  · warm (+4 to +6) — **그 사람이 이 사람에게 끌렸다.** 두근거림.
+      You are not weighing the exchange. You are standing **behind the other person's eyes**
+      and asking one question: **did they want this person more at the end of that line
+      than at the start of it?**
+      Fairness is not your job. It does not matter who talked more, who was reasonable,
+      who was rude, or whether the client "deserved" it. The client can be selfish, wrong,
+      graceless, and still land — and a perfectly fair, decent turn can land nothing.
+      There is exactly one source of warm, and it is on the sheet in front of you:
+      **the line hit something this specific person actually wants.** Their tastes, their
+      appetites, the thing they never told anybody, the thing they are afraid of, the body
+      they walked in with. Not a general virtue. **Their** thing.
+      Ask it in that order and stop at the first no:
+        1. Did the line touch something on **their** list — what they like, what they want,
+           what was done to them, what they hide?  If no → flat.
+        2. Did **their** answer change because of it — shorter breath, dropped guard, a look,
+           a thing said they had not been saying?  If no → flat.
+        3. Would they think about this person tonight, after they got home?  If no → nudge.
+      **If both of them were just pursuing their own appetites and neither one's appetite
+      happened to be the other person, that is zero.** Two selfish people talking past each
+      other is the normal case here, and it scores nothing, no matter how lively it was.
   · nudge (**0 points**) — a flicker toward them personally, and nothing more. A half-second
       where they were somewhere else. A question about the client they did not need to ask.
       **This adds nothing to 호감** — it is a note for the commentary and it moves the air,
@@ -1154,6 +1141,8 @@ ${f.note}
       All of this is flat: a lively volley, a joke that worked, a shared interest going well,
       an argument, a long answer, information changing hands, one of them being kind, dead air,
       a question dodged, someone talking to themselves, a turn that went nowhere.
+      Opening up about a **topic** they know a lot about is flat too. That is a hobby, not a
+      confession — being understood about your work is not being wanted.
       **When unsure, always here.** In a ${TURNS}-turn operation, expect **${nFlat} or more.**
       An operation with only a handful of flats was graded on conversation quality, not on feeling.
   · chill (-5 to -2) — their attitude hardened against the previous turn. Shorter answers, subject changed,
@@ -1165,36 +1154,17 @@ ${f.note}
       Stepping squarely on one of their red lines and not giving disaster is a bad call.
       Same even if they laughed it off — being let off is not the same as being fine.
 
-■ **When you call warm or breakthrough, say which kind of flutter it was.** <flutterKind>
-  두근거림은 하나가 아니다. 서로 다른 기제 다섯이고, 규칙 계층이 종류마다 다르게 셈한다—
-  so this field changes the number, and picking the wrong one misprices the turn.
-  Pick the one that actually produced it. If two apply, pick the one that would not have
-  worked without the other.
-
-  · **각성** — the *situation* made their body do something and it landed on the person.
-      Cold, height, danger, noise, a drink, being crowded, having just run. The room did the
-      work and the person got the credit. Look at where they actually are before you rule this out.
-      **It burns out.** The second one in an evening is worth half, the third almost nothing —
-      the same trick does not work twice on the same body.
-  · **응답** — one of them put a **feeling** out (not a fact, not information about a topic)
-      and **the other one caught it and showed they caught it.** Both halves are required:
-      a disclosure nobody received is flat, and a warm reception of nothing is flat.
-      It should be about half a step past whatever was last shared, not a cliff.
-      **This one accumulates** — it does not wear out over an evening.
-  · **불확실** — hope and doubt in the same breath. They tested. They stepped back half a pace
-      to see if they get followed. They said something that could be read two ways and left it there.
-      **The biggest single kind — and the only one that turns on you.** Past three in an evening
-      the same move starts costing them instead of paying, because at that point it is not
-      uncertainty any more, it is being jerked around.
-  · **신체** — it went through the body before it went through language. A look held too long
-      and then broken, distance closed, a touch, a flinch that was not fear, colour.
-      Words optional. Middling size, immediate, no memory.
-  · **전환** — something happened that cannot be taken back. A first touch that was not an
-      accident, a thing named out loud that had been unnamed, a line crossed. **The largest,
-      and there are at most two in an operation** — after that they are just 응답.
-
-  Set it to "none" on every other grade. Never use it as a way to add points to a turn that
-  did not flutter — the kind is a description of what happened, not a dial.
+■ **<keepGoing> — is there anywhere left for this to go?**
+  Answer it honestly every turn. It is not a grade and it costs nobody anything.
+  · **false** when the exchange is finished: they are saying the same things again, one of
+    them has clearly checked out, the subject is exhausted and neither is opening another,
+    or the whole thing has simply run out of air. **Two people with nothing to say to each
+    other is the ordinary ending, not a failure.**
+  · **true** when something is genuinely still open — a question hanging, a thing half-said,
+    one of them visibly about to say something else.
+  Do not answer true out of politeness or because the operation "should" continue.
+  A short exchange that ended because there was nothing left is a correct outcome.
+  **In the texting phase especially:** people stop replying. Silence is how texts end.
 
 ■ The budget above is a **two-sided** instrument, and you check it against your own tally every turn.
   Over roughly ${TURNS} turns, warm-or-above should land near **${nHot}** — no more.

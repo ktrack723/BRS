@@ -377,43 +377,21 @@ test('심판의 분포 가드가 양방향이다', async () => {
   assert.match(sys, /budget to spend\*\*, not a ceiling to avoid/, '분포가 예산이 아니라 상한으로 읽힌다');
 });
 
-test('warm의 판정 기준이 부정형만으로 되어 있지 않다', async () => {
+// "이건 warm이 아니다" 목록만 있고 "이건 warm이다" 기준이 없으면 심판은 flat으로 도망친다.
+test('warm에 긍정 기준이 있고, 그게 상대의 취향이다', async () => {
   const P = await import('../js/prompts.js');
   const { COUPLE_BY_ID } = await import('../js/couples.js');
   const sys = P.judgeSystem(COUPLE_BY_ID['os-war']);
-  // "이건 warm이 아니다" 목록만 있고 "이건 warm이다" 목록이 없으면 심판은 nudge로 도망친다
-  const positives = [
-    'they gave up something about themselves that costs them to say',
-    'they dropped a register they had been holding all game',
-    'they let go of a piece of what they walked in holding against the client',
-    'they did something to keep the other one sitting there longer',
-  ];
-  for (const line of positives) {
-    assert.ok(sys.includes(line), `warm의 긍정 기준이 없다: ${line}`);
-  }
-  assert.match(sys, /are \*\*not\*\* warm, however good they look on the page/,
-    'warm의 부정 기준도 남아 있어야 한다');
-  // 대화가 잘 굴러가는 것과 관계가 진전된 것은 다르다. 이걸 안 박아두면
-  // 심판이 재치 있는 주고받기를 전부 warm으로 읽는다 (실측: 전 프로필 warm 이상 50~60%).
-  assert.match(sys, /\*\*두근거림\.\*\* Set this bar where Korean couples set it in 밀당/,
-    'warm의 기준이 밀당 수준으로 안 잡혀 있다');
-  assert.match(sys, /who moves first and neither will admit they\s+are playing/,
-    '밀당의 정의가 안 적혀 있다');
-  assert.match(sys, /A pleasant, articulate, mutually-understood exchange with none of the above in it\s+is flat/,
-    'warm이 대화 윤활에 붙는 걸 막는 문장이 없다');
-  // 두근거림의 출처를 대라고 시켜야 한다 — 안 그러면 "잘 쓴 대사"가 출처가 된다
-  assert.match(sys, /which line, and what about this\s+specific person made that line land\?/,
-    'warm의 출처를 대라는 요구가 없다');
-  assert.match(sys, /Wit is not a source\. Rapport is not\s+a source\. Rhythm is not a source/,
-    '티키타카가 득점 소스가 될 여지가 있다');
-  // 주제에 대해 잘 통하는 것은 취미지 고백이 아니다
-  assert.match(sys, /That is a hobby, not a confession/,
+  // 판별을 순서 있는 세 질문으로 준다 — 목록 대조가 아니라 절차여야 한다
+  assert.match(sys, /Ask it in that order and stop at the first no/, '판별 순서가 없다');
+  assert.match(sys, /Did the line touch something on \*\*their\*\* list/, '1단계가 없다');
+  assert.match(sys, /Did \*\*their\*\* answer change because of it/, '2단계가 없다');
+  assert.match(sys, /Would they think about this person tonight/, '3단계가 없다');
+  // 그리고 대화 윤활은 여전히 flat이어야 한다
+  assert.match(sys, /All of this is flat: a lively volley, a joke that worked/,
+    '잘 굴러간 대화가 flat이라는 목록이 없다');
+  assert.match(sys, /That is a hobby, not a\s+confession/,
     '주제에 열리는 것과 사람에게 열리는 것이 구분 안 된다');
-  assert.match(sys, /a clever exchange, a well-matched joke, a rhythm that worked/,
-    '잘 쓴 대사가 warm이 아니라는 게 안 적혀 있다');
-  // 그리고 반대쪽 — 어색함을 냉각으로 오독하면 판이 반대로 무너진다
-  assert.match(sys, /Hardening, not fumbling/, 'chill이 서투름과 구분되지 않는다');
-  assert.match(sys, /It is the baseline/, '이 둘의 기준선이 망한 대화라는 게 안 적혀 있다');
 });
 
 test('턴별 판정 지시에도 양방향 의심이 걸려 있다', async () => {
@@ -1180,4 +1158,35 @@ test('asmr의 전제가 유대가 아니라 진행 중인 상해다', () => {
   assert.match(c.target.regard, /소견서|채널/, '상대 쪽 원한이 구체적 피해가 아니다');
   // 상대의 want는 여전히 퇴장형이어야 한다
   assert.match(c.target.flaw.want, /끊|내리게|지우게/, 'asmr 상대에게 자리를 뜰 이유가 없다');
+});
+
+// ── 욕망에 충실하고, 그걸 위해서라면 선을 넘는다 ────────────────────
+test('두 에이전트가 욕망을 위해 법을 어길 수 있다고 적혀 있다', () => {
+  for (const c of COUPLES.slice(0, 5)) {
+    for (const sys of [
+      P.clientAgentSystem(c, { outfitDesc: '', coaching: '', speech: '' }, 'talk', { name: '요원' }),
+      P.targetAgentSystem(c, 'talk', ''),
+    ]) {
+      assert.match(sys, /\*\*And you are not restrained about it\.\*\*/,
+        `${c.id}: 욕망에 충실하다는 전제가 없다`);
+      assert.match(sys, /the law — those are obstacles to route around, not reasons to stop/,
+        `${c.id}: 법이 걸림돌일 뿐이라는 문장이 없다`);
+      assert.match(sys, /the wanting usually wins/, `${c.id}: 욕망이 이긴다는 결론이 없다`);
+    }
+  }
+});
+
+// ── 심판은 철저히 상대 시점에서만 본다 ──────────────────────────────
+test('심판이 공정함이 아니라 상대의 취향만 본다', () => {
+  const sys = P.judgeSystem(COUPLE_BY_ID['politics']);
+  assert.match(sys, /standing \*\*behind the other person's eyes\*\*/, '상대 시점 지시가 없다');
+  assert.match(sys, /Fairness is not your job/, '공정 채점을 막는 문장이 없다');
+  assert.match(sys, /The client can be selfish, wrong,\s+graceless, and still land/,
+    '이기적이어도 먹힐 수 있다는 게 없다');
+  assert.match(sys, /the line hit something this specific person actually wants/,
+    'warm의 유일한 출처가 상대의 취향이 아니다');
+  // 준비 없이 서로 자기 욕심만 얘기하면 0
+  assert.match(sys, /that is zero\./, '서로 자기 욕심만 얘기한 판이 0점이라는 게 없다');
+  assert.match(sys, /Two selfish people talking past each\s+other is the normal case here/,
+    '자기 얘기만 하는 게 정상값이라는 게 없다');
 });

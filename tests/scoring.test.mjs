@@ -982,8 +982,32 @@ test('한 판이 14턴이고 케미가 좋으면 19턴까지 간다', async () =
     assert.equal(max, 19, `${name}: 연장 포함 최대가 ${max}다`);
   }
   // 연장 메카닉 자체는 그대로다 — 늘어난 턴 수가 연장을 대체한 게 아니다
-  assert.deepEqual(EXTENSION.hotTiers, ['breakthrough', 'warm']);
-  assert.equal(EXTENSION.needHot, 2, '최근 창에서 뜨거운 턴이 둘이면 연장');
+  assert.equal(EXTENSION.maxExtra.text, 2);
+  assert.equal(EXTENSION.maxExtra.talk, 3);
+});
+
+// 자리 길이는 이제 **모델이 정한다.** 예전엔 케미(최근 warm 개수 + 분위기)로 판단했는데
+// 그건 "잘 굴러가면 더 한다"라서 잡담이 길어지는 쪽으로만 작동했다.
+test('연장과 조기 종료는 심판의 keepGoing이 정한다', async () => {
+  const S = await import('../js/scoring.js');
+  // 명시적 true가 마지막이면 늘어난다
+  assert.equal(S.extraTurn('talk', [true, true], 0), true);
+  assert.equal(S.extraTurn('talk', [true, false], 0), false, '마지막이 false면 안 늘어난다');
+  assert.equal(S.extraTurn('talk', [true], 0), false, '한 건만으로는 판단하지 않는다');
+  assert.equal(S.extraTurn('talk', [true, true], 3), false, '연장 상한을 넘지 않는다');
+  // 답이 없으면 아무것도 안 한다 — 없는 답 때문에 자리가 움직이면 사고다
+  assert.equal(S.extraTurn('talk', [null, null, null], 0), false);
+  assert.equal(S.cutShort('talk', [null, null, null]), false);
+});
+
+test('할 말이 떨어지면 자리를 접는다 — 문자가 더 빨리 끊긴다', async () => {
+  const S = await import('../js/scoring.js');
+  assert.equal(S.cutShort('text', [false, false]), true, '문자는 두 번이면 끊긴다');
+  assert.equal(S.cutShort('talk', [false, false]), false, '대면은 두 번으로는 안 끊긴다');
+  assert.equal(S.cutShort('talk', [false, false, false]), true, '대면은 세 번이면 끊긴다');
+  assert.equal(S.cutShort('text', [false, true, false]), false, '중간에 살아났으면 안 끊긴다');
+  assert.ok(S.EXTENSION.deadFor.text < S.EXTENSION.deadFor.talk,
+    '문자가 대면보다 빨리 끊겨야 한다 — 답장이 끊기면서 끝나는 게 자연스럽다');
 });
 
 // ── 장벽은 이긴 판에도 사후 보고에 남는다 ──────────────────────
@@ -1066,114 +1090,19 @@ test('평범하게 굴러가다 무미건조하게 끝나면 호감은 0 근처�
   }
 });
 
-// ── 두근거림의 종류 ──────────────────────────────────────────────
-// 두근거림은 하나가 아니다. 이론들이 서로 다른 기제 여럿을 가리킨다.
-// 세기가 아니라 **종류**로 갈랐고, 종류마다 점수 곡선이 다르다.
-test('각성 전이는 급격히 포화한다 — 같은 트릭은 두 번 안 먹는다', async () => {
+// 두근거림을 다섯 종류로 가르고 종류마다 곡선을 달리 주는 구조를 한동안 뒀다.
+// 이론 근거는 탄탄했지만 판정이 복잡해져서 걷어냈다 — 기준은 하나여야 한다.
+test('두근거림 종류 구조가 남아 있지 않다', async () => {
   const S = await import('../js/scoring.js');
-  const d = S.diffOf('보통');
-  let s = S.initialState(d);
-  const gains = [];
-  for (let i = 0; i < 4; i++) {
-    const b = s.love;
-    s = S.applyTurn(s, d, { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '', flutterKind: '각성' });
-    gains.push(s.love - b);
-  }
-  assert.ok(gains[1] < gains[0] * 0.6, `두 번째 각성이 반토막 아래여야 한다 (${gains[0].toFixed(1)} → ${gains[1].toFixed(1)})`);
-  assert.ok(gains[3] < gains[0] * 0.15, '네 번째 각성은 거의 0이어야 한다');
-  // 응답은 같은 조건에서 안 죽는다 — 친밀은 쌓인다 (Reis & Shaver)
-  let r = S.initialState(d);
-  const rGains = [];
-  for (let i = 0; i < 4; i++) {
-    const b = r.love;
-    r = S.applyTurn(r, d, { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '', flutterKind: '응답' });
-    rGains.push(r.love - b);
-  }
-  assert.ok(rGains[3] > rGains[0] * 0.5, `응답은 네 번째도 살아 있어야 한다 (${rGains[0].toFixed(1)} → ${rGains[3].toFixed(1)})`);
-  assert.ok(rGains[3] > gains[3] * 5, '응답이 각성보다 훨씬 오래 간다');
-});
-
-test('밀당은 양날이다 — 넘기면 깎는다', async () => {
-  const S = await import('../js/scoring.js');
-  const d = S.diffOf('보통');
-  let s = S.initialState(d);
-  const gains = [];
-  for (let i = 0; i < 5; i++) {
-    const b = s.love;
-    s = S.applyTurn(s, d, { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '', flutterKind: '불확실' });
-    gains.push(s.love - b);
-  }
-  const limit = S.FLUTTER_KINDS['불확실'].flipAfter;
-  for (let i = 0; i < limit; i++) assert.ok(gains[i] > 0, `${i + 1}번째 밀당은 아직 올려야 한다`);
-  assert.ok(gains[limit] < 0, `${limit + 1}번째 밀당부터는 깎여야 한다 (실제 ${gains[limit].toFixed(1)})`);
-  assert.equal(s.history.at(-1).flutterFlipped, true, '뒤집힌 게 기록에 안 남는다');
-  // 적당한 밀당은 제일 크게 민다 (Tennov: 희망과 불확실의 혼합)
-  let r = S.initialState(d);
-  r = S.applyTurn(r, d, { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '', flutterKind: '응답' });
-  assert.ok(gains[0] > r.love - d.startLove, '첫 밀당이 응답보다 커야 한다');
-});
-
-test('전환점은 판당 상한이 있다', async () => {
-  const S = await import('../js/scoring.js');
-  const d = S.diffOf('보통');
-  let s = S.initialState(d);
-  const gains = [];
-  for (let i = 0; i < 4; i++) {
-    const b = s.love;
-    s = S.applyTurn(s, d, { tier: 'breakthrough', loveDelta: 8, moodDelta: 4, vibe: 'v', revealed: '', flutterKind: '전환' });
-    gains.push(s.love - b);
-  }
-  const cap = S.FLUTTER_KINDS['전환'].capPerGame;
-  assert.ok(gains[cap] < gains[0] * 0.6, `${cap + 1}번째 전환점부터는 평범해져야 한다`);
-});
-
-test('종류를 안 주거나 모르는 값이면 응답으로 떨어진다', async () => {
-  const S = await import('../js/scoring.js');
+  assert.equal(S.FLUTTER_KINDS, undefined, '종류 표가 아직 export돼 있다');
   const d = S.diffOf('보통');
   const base = S.initialState(d);
-  const a = S.applyTurn(base, d, { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '' });
-  const b = S.applyTurn(base, d, { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '', flutterKind: '없는종류' });
-  const c = S.applyTurn(base, d, { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '', flutterKind: '응답' });
-  assert.equal(a.love, c.love, '종류가 없으면 응답으로 처리돼야 한다');
-  assert.equal(b.love, c.love, '모르는 종류면 응답으로 떨어져야 한다');
-  assert.equal(a.history.at(-1).flutterKind, '응답');
-});
-
-test('두근거리지 않은 턴에는 종류가 안 붙는다', async () => {
-  const S = await import('../js/scoring.js');
-  const d = S.diffOf('보통');
-  const base = S.initialState(d);
-  for (const tier of ['flat', 'nudge', 'chill']) {
-    const r = S.applyTurn(base, d, { tier, loveDelta: 5, moodDelta: 1, vibe: 'v', revealed: '', flutterKind: '전환' });
-    assert.equal(r.history.at(-1).flutterKind, '', `${tier}에 두근거림 종류가 붙었다`);
-    assert.deepEqual(r.flutters, {}, `${tier}이 종류 집계를 건드렸다`);
-  }
-});
-
-test('사후 보고가 두근거림을 종류별로 갈라 보여준다', async () => {
-  const S = await import('../js/scoring.js');
-  const { COUPLE_BY_ID } = await import('../js/couples.js');
-  const c = COUPLE_BY_ID['politics'];
-  const d = S.diffOf(c.difficulty);
-  let s = S.initialState(d);
-  for (const k of ['각성', '각성', '응답', '불확실']) {
-    s = S.applyTurn(s, d, { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '', flutterKind: k });
-  }
-  const note = S.debrief(s, d, S.verdict(s, d), c, '').notes.find(n => n.key === 'flutter');
-  assert.match(note.value, /4회/, '총 횟수가 없다');
-  assert.match(note.value, /각성 전이 2/, '종류별 집계가 없다');
-  assert.match(note.text, /각성 전이는 같은 저녁에 두 번째부터 반토막/, '각성 반복 경고가 없다');
-});
-
-// effort는 모델마다 지원 여부가 다르다. 실제 모델 id에는 날짜가 붙으므로(claude-haiku-4-5-20251001)
-// 정확 일치로 걸러두면 전 호출이 invalid_request_error로 죽는다 — 실제로 12판이 통째로 날아갔다.
-test('effort 미지원 모델을 접두사로 잡는다', async () => {
-  const { supportsEffort } = await import('../js/llm.js');
-  assert.equal(supportsEffort('claude-haiku-4-5-20251001'), false, '날짜 붙은 하이쿠 id를 못 잡는다');
-  assert.equal(supportsEffort('claude-haiku-4-5'), false, '하이쿠를 못 잡는다');
-  assert.equal(supportsEffort('claude-opus-5'), true);
-  assert.equal(supportsEffort('claude-sonnet-5'), true);
-  assert.equal(supportsEffort(undefined), true, '모델이 없으면 기본 동작을 막지 않는다');
+  assert.equal(base.flutters, undefined, '종류별 집계가 상태에 남아 있다');
+  // 종류를 뭘 넣든 결과가 같아야 한다 — 더 이상 안 본다
+  const a = S.applyTurn(base, d, { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '', flutterKind: '전환' });
+  const b = S.applyTurn(base, d, { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '' });
+  assert.equal(a.love, b.love, '종류가 아직 점수를 바꾼다');
+  assert.equal(a.history.at(-1).flutterKind, undefined, '종류가 아직 기록된다');
 });
 
 // ── 무전 창 ──────────────────────────────────────────────────────

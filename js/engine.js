@@ -60,6 +60,7 @@ export class Engine {
 
     this.paused = false;      // 무전 모달이 열려 있는 동안
     this.pendingRadio = null; // 다음 클라이언트 발언에 주입될 지시
+    this.keepLog = [];        // 심판이 매 턴 답한 '더 갈 데 있나' — 연장과 조기 종료를 둘 다 굴린다
     this.pendingJudge = null; // 아직 채점되지 않은 직전 발언 (판정은 한 턴 늦게 온다)
     this.tierLog = [];        // 심판이 지금까지 매긴 등급. 심판 본인에게 되돌려줘 분포를 점검하게 한다
     this.lastVibeSent = null; // 클라이언트에게 마지막으로 알려준 공기 (바뀔 때만 다시 알려준다)
@@ -298,6 +299,12 @@ export class Engine {
   // 판정줄도 사람이 읽는 것이라 UI가 붙잡아 둘 수 있어야 한다 → 핸들러를 기다린다.
   async #applyJudge(judge, pending, opts = {}) {
     this.state = S.applyTurn(this.state, this.d, judge, { radioInjected: !!pending?.radioInjected, ...opts });
+    // **명시적인 답만 자리 길이를 움직인다.** true면 늘리고, false가 연달아 나오면 끊는다.
+    // 답이 없으면(구형 심판·응답 실패) null로 남기고 아무것도 안 한다 —
+    // 없는 답 때문에 자리가 끊기거나 늘어나면 그건 판정이 아니라 사고다.
+    if (!opts.firstImpression) {
+      this.keepLog.push(typeof judge?.keepGoing === 'boolean' ? judge.keepGoing : null);
+    }
     await this.#reportJudge(judge, { turn: pending?.turn, ...(opts.firstImpression ? { firstImpression: true } : {}) });
     return !!S.failureReason(this.state);
   }
@@ -347,11 +354,22 @@ export class Engine {
 
       // 마지막 턴에 들어서는 참인데 케미가 뜨거우면 자리가 길어진다.
       // 대면 상황 선발주(아래)보다 먼저 판단해야 한다 — 그래야 '진짜 마지막 턴'에서 발주된다.
-      if (i === this.phaseTurns - 1 &&
-          S.extraTurn(phase, this.tierLog, this.state.mood, extra, this.d)) {
+      // 할 말이 떨어지면 자리를 접는다. 심판이 연달아 "더 갈 데 없다"고 했을 때만이다.
+      // 문자는 답장이 끊기면서 끝나는 게 자연스러워서 더 짧게 잡혀 있다.
+      if (i > 0 && S.cutShort(phase, this.keepLog)) {
+        const msg = phase === 'text'
+          ? '(답장이 끊겼다. 둘 다 더 보낼 말이 없다.)'
+          : '(할 말이 떨어졌다. 누가 먼저랄 것도 없이 일어난다.)';
+        this.transcript.push({ who: 'sys', text: msg });
+        await this.h.bubble?.('sys', msg);
+        this.phaseTurns = i + 1;
+        break;
+      }
+
+      if (i === this.phaseTurns - 1 && S.extraTurn(phase, this.keepLog, extra)) {
         this.phaseTurns += 1; extra += 1;
         const msg = phase === 'text'
-          ? '(대화가 끊길 기미가 없다. 둘 다 휴대폰을 놓지 않는다.)'
+          ? '(아직 할 말이 남았다. 둘 다 휴대폰을 놓지 않는다.)'
           : '(누구도 자리에서 일어나지 않는다. 얘기가 더 이어진다.)';
         this.transcript.push({ who: 'sys', text: msg });
         await this.h.bubble?.('sys', msg);

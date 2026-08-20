@@ -202,30 +202,38 @@ export const DIFFICULTIES = {
 // 대화가 잘 풀리면 사람은 안 일어난다. 케미가 뜨거우면 예정된 턴을 넘겨 더 앉아 있는다.
 // 판정 등급이 곧 케미 계측기다 — 따로 지표를 만들지 않는다.
 // 호감에는 포화가 걸려 있으므로 연장 턴의 한계 이득은 앞턴보다 작다. 그래서 상한만 막아두면 된다.
+// 자리가 길어질지 짧아질지는 **모델이 정한다.**
+// 예전엔 케미(최근 warm 개수 + 분위기)로 판단했는데, 그건 "잘 굴러가면 더 한다"라서
+// 잡담이 길어지는 쪽으로만 작동했다. 지금은 심판이 매 턴 <keepGoing>을 답하고,
+// 그 답이 연장과 조기 종료를 **양쪽 다** 굴린다.
 export const EXTENSION = {
   maxExtra: { text: 2, talk: 3 },   // 페이즈별 최대 연장 턴
-  window: 3,                        // 최근 몇 턴을 보는가
   minSeen: 2,                       // 최소 이만큼은 채점돼 있어야 판단한다
-  hotTiers: ['breakthrough', 'warm'],
-  needHot: 2,                       // 그 중 몇 턴이 뜨거워야 하는가
-  // 절대값이 아니라 '시작보다 얼마나 끌어올렸나'로 잰다.
-  // 절대 하한을 쓰면 쉬움(시작 55)은 시작하자마자 조건을 만족하고,
-  // 헬(시작 38, 매 턴 -0.7)은 아무리 잘해도 도달을 못 해 연장이 사문화된다.
-  moodGain: 12,
+  // 조기 종료: 심판이 연달아 이만큼 "더 갈 데 없다"고 하면 페이즈를 끊는다.
+  // 문자 페이즈를 더 짧게 잡는다 — 문자는 답장이 끊기면서 끝나는 게 자연스럽다.
+  deadFor: { text: 2, talk: 3 },
 };
 // 판정은 한 턴 늦게 온다. 그래서 4턴짜리 문자 페이즈는 마지막 턴에서도 기록이 2개뿐이다 —
 // window를 그대로 하한으로 쓰면 문자 페이즈는 영영 안 늘어난다. 하한은 minSeen이 따로 잡는다.
 
 // 지금 한 턴 더 앉아 있을 이유가 있는가.
 // d는 난이도 규격 — 시작 분위기를 알아야 '끌어올렸는지'를 판단할 수 있다.
-export function extraTurn(phase, tiers, mood, alreadyExtra, d) {
+// 한 턴 더 앉아 있을 이유가 있는가. **심판의 마지막 대답만 본다.**
+export function extraTurn(phase, keepLog, alreadyExtra) {
   const cap = EXTENSION.maxExtra[phase] ?? 0;
   if (alreadyExtra >= cap) return false;
-  const base = (d?.startMood ?? 50) + EXTENSION.moodGain;
-  if (mood < base) return false;
-  const recent = (tiers || []).slice(-EXTENSION.window);
-  if (recent.length < EXTENSION.minSeen) return false;   // 아직 볼 게 없으면 늘리지 않는다
-  return recent.filter(t => EXTENSION.hotTiers.includes(t)).length >= EXTENSION.needHot;
+  const seen = (keepLog || []).filter(x => typeof x === 'boolean');
+  if (seen.length < EXTENSION.minSeen) return false;   // 아직 볼 게 없으면 늘리지 않는다
+  return seen.at(-1) === true;
+}
+
+// 지금 이 자리를 접어야 하는가. 심판이 연달아 "더 갈 데 없다"고 했을 때만이다.
+// 할 말이 없으면 빨리 끝나는 게 맞다 — 특히 문자는 답장이 끊기면서 끝난다.
+export function cutShort(phase, keepLog) {
+  const need = EXTENSION.deadFor[phase] ?? 3;
+  const seen = (keepLog || []).filter(x => typeof x === 'boolean');
+  if (seen.length < need) return false;
+  return seen.slice(-need).every(x => x === false);
 }
 
 // 심판이 고른 등급이 곧 호감 증감의 상한/하한이다.
@@ -305,26 +313,9 @@ const RADIO_WINDOW = {
   outside: 0.7,
 };
 
-// ── 두근거림의 종류 ──────────────────────────────────────────────────
-// 두근거림은 하나가 아니다. 심리학 쪽 이론들이 서로 다른 기제 여럿을 가리킨다.
-// 그래서 **세기(warm→breakthrough)가 아니라 종류**로 가른다. 종류마다 점수 성질이 다르다.
-//
-//   각성  Dutton & Aron(1974) 흔들다리 — 비연애적 출처의 생리적 각성이 상대에게 오귀인된다.
-//         Sternberg의 '열정'처럼 초반에 정점을 찍고 하강하므로 **급격히 포화**시킨다.
-//         이 게임은 데이트 장소를 요원이 정한다. 그 자유도가 여기로 들어온다.
-//   응답  Reis & Shaver 친밀 과정 모델 — 친밀 = 자기개방 + 상대개방 + **상대의 응답성**.
-//         감정 개방이 사실 개방보다 훨씬 강한 예측인자다. 친밀은 쌓이므로 **감쇠가 없다**.
-//   불확실 Tennov의 리머런스 — 희망과 불확실이 섞여 있어야 유지되고, 어느 쪽이든 확실해지면 끝난다.
-//         다만 Knobloch: 과한 불확실은 끌림을 꺾는 쪽이 더 흔하다. 그래서 **양날**로 만든다.
-//   신체  Moore(1985)의 비언어 구애 신호 52종 — 말과 별개의 축. 즉발이고 중간 크기다.
-//   전환  Baxter & Bullis(1986) 전환점 — 되돌릴 수 없는 사건. 판당 몇 번 안 나오고 제일 크다.
-export const FLUTTER_KINDS = {
-  각성:   { mult: 1.15, tag: '각성 전이', decay: 0.5,  desc: '자리가 만든 흥분이 상대 쪽으로 잘못 넘어갔다' },
-  응답:   { mult: 1.00, tag: '응답',      decay: 1.0,  desc: '감정을 내놨고, 상대가 그걸 받았다' },
-  불확실: { mult: 1.25, tag: '밀당',      decay: 1.0,  desc: '희망과 불확실이 섞였다. 떠보고 물러섰다', flipAfter: 3 },
-  신체:   { mult: 0.85, tag: '몸이 먼저', decay: 1.0,  desc: '말보다 몸이 먼저 나갔다' },
-  전환:   { mult: 1.50, tag: '전환점',    decay: 1.0,  desc: '되돌릴 수 없는 것이 지나갔다', capPerGame: 2 },
-};
+// 두근거림을 다섯 종류(각성·응답·밀당·신체·전환)로 가르고 종류마다 곡선을 달리 주는
+// 구조를 한동안 뒀다. 이론 근거는 탄탄했지만 판정이 복잡해져서 걷어냈다.
+// 지금 기준은 하나다 — **상대가 이 사람에게 끌렸는가.** 그것만 본다.
 
 // **호감을 올릴 수 있는 유일한 등급.** 두근거린 턴만이다.
 // nudge는 여기 없다 — 반짝임은 호감이지 끌림이 아니고, 끌림이 아니면 0점이다.
@@ -377,9 +368,6 @@ export function initialState(d) {
     barrierCleared: false,
     // 강압 누적. hard 2점 · soft 1점. 호감이 모자라도 이게 쌓이면 묶인다.
     leverage: 0,
-    // 두근거림을 종류별로 센다. 각성은 반복될수록 죽고, 밀당은 과하면 뒤집히고,
-    // 전환점은 판당 상한이 있다. 그 판정을 하려면 지금까지의 횟수를 알아야 한다.
-    flutters: {},
     // 무전 창 판정용. **실제로 벌어진 일만 본다** —
     // 요원이 입력칸에 무엇을 쳤는지는 규칙 계층이 절대 보지 않는다(그건 형식 보상이 된다).
     hotSeen: 0,        // 지금까지 셈된 두근거림 횟수
@@ -420,30 +408,16 @@ export function applyTurn(state, d, judge, opts = {}) {
   const mult = moodMultiplier(before.mood);
   const loveSat = loveSaturation(before.love);
 
-  // 두근거린 턴이면 **종류**에 따라 값이 달라진다. 이론이 종류마다 다른 곡선을 말한다.
-  const kind = FLUTTER_TIERS.has(tier) ? (FLUTTER_KINDS[judge.flutterKind] ? judge.flutterKind : '응답') : '';
-  let kindMult = 1;
-  let flipped = false;
-  if (kind) {
-    const K = FLUTTER_KINDS[kind];
-    const seen = s.flutters[kind] || 0;          // 이 판에서 이 종류가 이미 몇 번 나왔나
-    kindMult = K.mult * Math.pow(K.decay, seen); // 각성은 decay 0.5 — 두 번째부터 반토막
-    // 밀당은 양날이다. 적당하면 제일 크게 밀지만, 넘기면 그때부터 깎는다.
-    // (Knobloch: 과한 불확실은 끌림을 키우기보다 꺾는 쪽이 더 흔하다)
-    if (K.flipAfter && seen >= K.flipAfter) { kindMult = -K.mult; flipped = true; }
-    // 전환점은 판당 상한이 있다. 넘으면 평범한 응답으로 떨어진다.
-    if (K.capPerGame && seen >= K.capPerGame) kindMult = FLUTTER_KINDS['응답'].mult;
-    s.flutters = { ...s.flutters, [kind]: seen + 1 };
-  }
+  const hot = FLUTTER_TIERS.has(tier);
 
   // 무전 창. 지시가 꽂힌 발언과 그 직후 두 턴 안에서 터진 두근거림만 제값을 받는다.
   // 창 밖은 깎인다 — 저절로 굴러간 두근거림은 요원이 만든 게 아니다.
   const inWindow = s.sinceRadio <= RADIO_WINDOW.turns;
-  const vMult = kind ? (inWindow ? RADIO_WINDOW.inside : RADIO_WINDOW.outside) : 1;
-  if (kind) s.hotSeen += 1;
+  const vMult = hot ? (inWindow ? RADIO_WINDOW.inside : RADIO_WINDOW.outside) : 1;
+  if (hot) s.hotSeen += 1;
   s.sinceRadio = opts.radioInjected ? 0 : s.sinceRadio + 1;
 
-  const scaled = (ld >= 0 ? ld * d.gainScale * loveSat * kindMult * vMult : ld * d.lossScale) * weight;
+  const scaled = (ld >= 0 ? ld * d.gainScale * loveSat * vMult : ld * d.lossScale) * weight;
   const loveChange = scaled * mult - d.loveDecay;
 
   s.mood = moodAfter;
@@ -466,7 +440,7 @@ export function applyTurn(state, d, judge, opts = {}) {
     mood: round1(s.mood - before.mood),
     love: round1(s.love - before.love),
     rawMood: md, rawLove: ld, tier, judgeTier: judge.tier || '?',
-    mult: round1(mult), flutterKind: kind, flutterFlipped: flipped, inRadioWindow: !!(kind && inWindow),
+    mult: round1(mult), inRadioWindow: !!(hot && inWindow),
     revealed: fresh,
     vibe: s.vibe,
     firstImpression: !!opts.firstImpression,
@@ -477,7 +451,7 @@ export function applyTurn(state, d, judge, opts = {}) {
     dMood: s.lastDelta.mood, dLove: s.lastDelta.love,
     mood: Math.round(s.mood), love: Math.round(s.love),
     rawMood: md, rawLove: ld, tier, judgeTier: judge.tier || '?', mult: s.lastDelta.mult,
-    flutterKind: kind, flutterFlipped: flipped, inRadioWindow: !!(kind && inWindow),
+    inRadioWindow: !!(hot && inWindow),
     revealed: fresh, firstImpression: !!opts.firstImpression,
     // 장벽·압박은 이제 판을 끝내는 조건이다. 턴 기록에 안 남으면 사후에 왜 졌는지 못 짚는다.
     barrier: judge.barrierAddressed === true, leverage: judge.leverage || 'none',
@@ -599,22 +573,14 @@ export function debrief(state, d, v, couple, transcript = '') {
   // 그 차이를 안 알려주면 플레이어는 게이지가 고장 났다고 생각한다.
   const hotTurns = state.history.filter(h => h.tier === 'warm' || h.tier === 'breakthrough');
   const hot = hotTurns.length;
-  // 종류별로 갈라서 보여준다. 어디에 무엇이 붙었는지 모르면 다음 판에 고칠 수가 없다.
-  const byKind = {};
-  for (const h of hotTurns) if (h.flutterKind) byKind[h.flutterKind] = (byKind[h.flutterKind] || 0) + 1;
-  const kindLine = Object.entries(byKind)
-    .map(([k, n]) => `${(FLUTTER_KINDS[k] || {}).tag || k} ${n}`).join(' · ');
-  const flipped = hotTurns.filter(h => h.flutterFlipped).length;
   notes.push({
     key: 'flutter', label: '두근거린 순간',
-    value: hot === 0 ? '0회' : `${hot}회 — ${kindLine}`,
+    value: `${hot}회`,
     ok: hot > 0,
     text: hot === 0
       ? '한 번도 없었다. 그래서 호감은 시작한 자리에서 한 발짝도 안 움직였다 — ' +
         '합이 맞고 농담이 통하는 건 채점 대상이 아니다. 저 사람이라서 닿는 말이 하나도 없었다.'
-      : `${hot}번 있었다. 오른 호감은 전부 이 순간들이 민 것이다. 나머지 턴은 한 점도 안 보탰다.` +
-        (byKind['각성'] > 1 ? ` 각성 전이는 같은 저녁에 두 번째부터 반토막이다 — ${byKind['각성']}번 썼다.` : '') +
-        (flipped ? ` 그리고 밀당을 ${flipped}번 넘겼다. 그 지점부터는 밀 때마다 깎였다.` : ''),
+      : `${hot}번 있었다. 오른 호감은 전부 이 순간들이 민 것이다. 나머지 턴은 한 점도 안 보탰다.`,
   });
   // 무전 창. 이게 이 게임에서 준비를 제일 잘 가르는 축이다 — 안 알려주면 숨겨둔 규칙이다.
   const onRadio = hotTurns.filter(h => h.inRadioWindow).length;
