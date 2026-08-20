@@ -392,6 +392,10 @@ function driveBlock(p, ordersPossible = false) {
   return `[WHAT YOU WANT OUT OF THIS SEAT]
 ${f.want}
 Not for their sake — for yours. Every word out of your mouth starts here.
+You keep coming back to it. If the conversation drifts away, you steer it back — not as a
+tactic, but because it is the only reason you agreed to sit down. You will push toward it
+even when the room starts telling you not to. You are not good at reading that signal,
+and you would not stop for it anyway.
 
 [WHAT YOUR BODY WANTS, AS OPPOSED TO YOUR HEAD]
 ${f.urge}
@@ -402,14 +406,14 @@ Hide it, leak it, bring it out after a few drinks, or never bring it out — you
 ${f.nerve}
 You are not a good person. Cover it when it might show, and do it again when it pays.
 
-[WHAT COMES OUT OF YOU WHEN THERE IS A GAP]
+[A HABIT OF YOURS]
 ${p.weakness}
-It is a reflex, not a decision. It fires when the room goes quiet, when you are cornered,
-when you get excited. You have never once stopped it on your own, and you do not think of it
-as a problem — to you it is just how you talk.
+A tic, not a decision. It surfaces when the room goes quiet, when you are cornered, when you
+get excited. You have never once stopped it on your own and you do not think of it as a
+problem — to you it is just how you talk. Other people find it mildly exhausting.
 ${ordersPossible
-    ? 'The only thing that has ever held it back is an explicit order from Headquarters naming it.\nWith no such order, it comes out, and it comes out more than once.'
-    : 'Nobody has ever told you to stop, so it comes out, and it comes out more than once.'}`;
+    ? 'The only thing that has ever held it back is an explicit order from Headquarters naming it.\nWith no such order it surfaces, and more than once.'
+    : 'Nobody has ever told you to stop, so it surfaces, and more than once.'}`;
 }
 
 // 발언 길이·형식. 두 에이전트가 같은 규칙을 쓴다.
@@ -422,6 +426,17 @@ attitude, not word count. Do not explain — speak. Do not write the same length
 No quote marks, no name tags, no narration. A short physical beat in parentheses is fine.
 ${KO}`;
 }
+
+// 대면 자리는 실제로 사람을 죽일 수 있다. 그 사실을 두 인물이 모르면
+// 둘 다 아슬아슬한 '거의 밀 뻔한' 장면만 쓰고, 아무 일도 안 일어난다 (실측).
+// 지시가 아니라 사실로 넣는다 — 밀라는 게 아니라, 밀면 밀리는 곳이라는 것.
+const PHYSICAL = `[WHERE YOU ARE STANDING]
+Whatever this place is, it is real and so is what is in it. Lava, a blade, an edge with no
+railing, an animal, a drop — if the scene put it there, it works the way it actually works.
+You are not careful. Nobody warned you. You can grab, shove, back up too far, lose your
+footing, or be on the receiving end of any of that.
+Nothing here protects you because you are the one talking. If a move happens, write it
+happening — not the version where it almost happens and everyone is fine.`;
 
 // 명령의 결. 셋 다 이행한다 — 어떻게 이행하느냐가 다를 뿐이다.
 const COMPLY = {
@@ -493,6 +508,7 @@ ${speechBlock}
 
 [RIGHT NOW]
 ${phase === 'text' ? `You are texting ${t.name}.` : `You called ${t.name} out and you are sitting across from them.`}
+${phase === 'talk' ? `\n${PHYSICAL}\n` : ''}
 
 ${speakFormat(phase === 'text' ? 'one text message' : 'one thing said at this table, right now')}
 [ORDERS FROM HEADQUARTERS] are not audible to the other person. That went into your ear only.`;
@@ -528,6 +544,7 @@ ${couple.clash}
 
 [RIGHT NOW]
 ${phase === 'text' ? `A text just landed from ${c.name}, out of nowhere.` : `${c.name} called you out and you are sitting across from them.`}
+${phase === 'talk' ? `\n${PHYSICAL}\n` : ''}
 
 ${speakFormat(phase === 'text' ? 'one reply text' : 'one thing said at this table, right now')}`;
 }
@@ -565,8 +582,18 @@ export const JUDGE_SCHEMA = {
     },
     clientEmote: { type: 'string', enum: EMOTES, description: 'The client’s expression right now' },
     targetEmote: { type: 'string', enum: EMOTES, description: 'The other person’s expression right now' },
+    casualty: {
+      type: 'string',
+      enum: ['none', 'client', 'target', 'both'],
+      description: 'Almost always "none". Only name a death when this exchange actually killed someone — see the rules',
+    },
+    casualtyNote: {
+      type: 'string',
+      description: 'Korean. If casualty is not "none", one sentence on how it happened. Empty string otherwise',
+    },
   },
-  required: ['tier', 'loveDelta', 'moodDelta', 'reason', 'vibe', 'revealed', 'clientEmote', 'targetEmote'],
+  required: ['tier', 'loveDelta', 'moodDelta', 'reason', 'vibe', 'revealed', 'clientEmote', 'targetEmote',
+    'casualty', 'casualtyNote'],
   additionalProperties: false,
 };
 
@@ -665,6 +692,35 @@ ${f.note}
       They are starting to consider walking out.
       Stepping squarely on one of their red lines and not giving disaster is a bad call.
       Same even if they laughed it off — being let off is not the same as being fine.
+
+■ Someone can actually die here, and calling it is your job — nobody else's.
+  The Bureau books volcano rims, whale stomachs, reactor cores and moving freight-train roofs,
+  and some of these people hold a blade for a living. Where the scene put a lethal thing,
+  that thing is loaded. It is not set dressing and it does not politely fail to work.
+
+  Set <casualty> to client, target or both when **both of these are true**:
+  · the lethal thing is already in the transcript — the lava, the blade, the vacuum, the
+    animal, the unrailed edge. You never invent one.
+  · and this exchange physically committed someone to it: a shove, a grab at the blade,
+    a lunge, a step backwards while shouting, someone closing distance on a ledge.
+  That is the whole test. **If both are true you must call it.** You do not get to rule that
+  the shove "probably did not connect", that they "caught themselves", or that a professional
+  would have kept hold of the knife. If the transcript shows the push and the drop, they went
+  over. These are not protagonists with plot armour; they are two civilians the state pushed
+  onto a rock above a lava pool.
+
+  Worked example: the operative radios "shove them", the client shoves, and the scene is a
+  railing-less rock at a crater rim → casualty: "target". One sentence, no gap in it.
+  Counter-example: they scream at each other on that same rock and nobody touches anybody →
+  casualty: "none", however ugly it got. Words alone never do it. Contact or a step does.
+
+  Outside those conditions <casualty> is "none", and on an ordinary date in an ordinary place
+  that is every single turn. Most operations end with two living people who did not get along.
+
+  When you do call it: it is final. Nobody is revived, nobody was "only unconscious".
+  Grade the turn as disaster and write casualtyNote as the one sentence that killed them.
+  Do not soften it into a joke and do not linger on the body — this is a comedy about a
+  failed date, and the death is the punchline's period, not its subject.
 
 ■ Distribution check — before grading, always look at [the grades you have given so far].
   This is a **budget to spend**, not a ceiling to avoid. Across a 10-turn operation, aim for roughly:
@@ -793,9 +849,11 @@ line about how they ended up at a cafe instead. The operative chose that place o
   If it was named, it is booked.
 · 2077 has the budget and the paperwork for all of it. The Bureau logs it as a field expense.
   Physics is a scheduling problem here, not a wall.
-· A place that would normally kill them does not kill them. It just makes the date worse,
-  which is better. Heat, ash, vacuum, stomach acid, radiation — write them as atmosphere and
-  inconvenience, as things that get in the way of the conversation. Never as a fatal event.
+· The hazard is real. Heat, ash, vacuum, stomach acid, radiation, a two-hundred-metre drop —
+  put them on the table as things that could actually kill someone, and keep them present.
+  Nobody dies in your narration; you are setting the scene, not resolving it. But the scene
+  must make clear what is one wrong move away, because later in this conversation one of
+  them may make it.
 · The other person still reacts as themselves. Someone who would be furious about being
   dragged to a volcano is furious about it. That is the point.
 If the texts never landed on a place, invent one yourself: 2077 absurd, but something these
@@ -854,6 +912,14 @@ The win or loss is already decided. Never overturn it.
 
 Write the letter in the voice of the client, "${couple.client.name}", exactly as they talk.
 Name the operative at least once.
+
+If [CASUALTY] below says someone died, the letter changes hands and you say so plainly:
+· the client died → the letter is the other person's statement to the Bureau. Bewildered,
+  annoyed at being made to file paperwork, and honest about not having liked them much.
+· the other person died → the client still writes, and it is a wreck. Do not make it tidy.
+· both died → the Bureau's own duty clerk files it instead, in flat bureaucratic Korean,
+  and closes with the case number. No feelings.
+Whoever writes it, name what happened once and do not dwell on the body.
 Success: overwhelmed. Failure: laughing through tears. Early collapse: 20% resentment mixed in.
 If it fell apart, they may be openly furious at the operative. Swearing is fine. Do not hold back.
 
@@ -873,7 +939,8 @@ export function resultUser(couple, ctx) {
 [THE OTHER PERSON] ${couple.target.name}
 [FINAL VERDICT] ${ctx.accepted ? '성사' : '결렬'} (grade ${ctx.grade})
 [FINAL NUMBERS] 호감 ${ctx.love}/100 (pass line ${ctx.threshold}), 분위기 ${ctx.mood}/100 (floor ${ctx.moodFloor})
-${ctx.aborted ? '[NOTE] The air hit zero and the conversation collapsed partway through.' : ''}
+${ctx.aborted && ctx.abortReason === 'mood' ? '[NOTE] The air hit zero and the conversation collapsed partway through.' : ''}
+${ctx.casualty && ctx.casualty !== 'none' ? `[CASUALTY] ${ctx.casualty} — ${ctx.casualtyNote || '(경위 미상)'}` : ''}
 [LAST RECORDED AIR] ${ctx.vibe || '(nothing recorded)'}
 [WHAT SURFACED ABOUT THE OTHER PERSON] ${ctx.revealed?.length ? ctx.revealed.join(' / ') : '(nothing)'}
 [WHAT NEVER SURFACED] ${ctx.missed?.length ? ctx.missed.join(' / ') : '(nothing)'}

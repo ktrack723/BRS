@@ -375,7 +375,7 @@ function dossierHtml(c, { full = false } = {}) {
     <p><b>성격:</b> ${c.client.personality.map(escapeHtml).join(', ')}</p>
     <p><b>내력:</b> ${c.client.background.map(escapeHtml).join(' · ')}</p>
     <p class="quote">“${escapeHtml(c.client.quote)}”</p>
-    ${flawHtml(c.client, c.tripwire)}
+    ${flawHtml(c.client, c.collision)}
     <hr>
     <h3>상대 · ${escapeHtml(c.target.name)} <small>(${escapeHtml(P.idOf(c.target))}, ${escapeHtml(c.target.job)})</small></h3>
     <p><b>외모:</b> ${c.target.appearance.map(escapeHtml).join(', ')}</p>
@@ -397,7 +397,7 @@ function dossierHtml(c, { full = false } = {}) {
 
 // 의뢰인 심리 감정. flaw 데이터를 그대로 요원에게 보여준다.
 // 이걸 숨겨두면 지침이 왜 씹히는지, 공기를 왜 못 읽는지 플레이어가 영영 알 수 없다.
-function flawHtml(person, tripwire = null) {
+function flawHtml(person, collision = null) {
   const rows = flawReport(person);
   if (!rows.length) return '';
   return `<div class="flaw-box">
@@ -416,10 +416,11 @@ function flawHtml(person, tripwire = null) {
         <span class="flaw-tag lv-mid">가만두면 나온다</span>
         <span class="flaw-desc">${escapeHtml(person.weakness)}</span></li>
     </ul>
-    ${tripwire ? `<p class="tripwire"><b>⚠ 이 버릇은 상대의 접촉 금지 항목을 정통으로 밟는다 —</b>
-      「${escapeHtml(tripwire.redLine)}」<br>
-      <span class="dim">지침으로 이 버릇을 직접 봉인하지 않으면, 아무것도 안 해도 이 인간은 저기를 밟는다.
-      한 번도 아니고 여러 번. 그게 이 의뢰가 기본값으로 파탄나는 경로다.</span></p>` : ''}
+    ${collision ? `<p class="tripwire"><b>⚠ 성향 충돌 —</b> 이 사람이 원하는 것을 그대로 좇으면
+      상대의 접촉 금지 항목 「${escapeHtml(collision.redLine)}」 쪽으로 간다.<br>
+      <span class="dim">${escapeHtml(collision.why)}<br>
+      버릇 때문이 아니다. <b>성격 때문이다.</b> 지침으로 우회로를 깔아주지 않으면 결국 저기로 간다 —
+      막을 대사가 정해져 있는 게 아니라서, 한 문장 금지로는 안 막힌다.</span></p>` : ''}
   </div>`;
 }
 
@@ -441,8 +442,8 @@ function targetBriefHtml(c) {
     <p class="handoff-warn"><b>이 화면의 정보는 의뢰인에게 자동으로 넘어가지 않는다.</b>
       의뢰인이 아는 것: ${knows} 나머지는 <b>지침에 직접 적어야</b> 그 인간 머릿속에 들어간다.</p>
     <p class="weakness"><b>의뢰인 조건반사:</b> ${escapeHtml(c.client.weakness)}</p>
-    <p class="tripwire"><b>⚠ 저게 그대로 「${escapeHtml(c.tripwire.redLine)}」를 밟는다.</b>
-      <span class="dim">여기서 봉인하지 않으면 밟는다.</span></p>
+    <p class="tripwire"><b>⚠ 성향 충돌: 「${escapeHtml(c.collision.redLine)}」</b>
+      <span class="dim">${escapeHtml(c.collision.why)} — 여기서 우회로를 깔아줘야 한다.</span></p>
     ${comply ? `<p class="brief-flaw lv-${comply.level}"><b>의뢰인 지침 수용:</b>
       ${escapeHtml(comply.tag)} — ${escapeHtml(comply.desc)}</p>` : ''}`;
 }
@@ -861,7 +862,9 @@ async function gotoResult() {
   v.emote('right', r.verdict.accepted ? 'laugh' : 'freeze');
 
   const stamp = $('#result-stamp');
-  stamp.textContent = r.verdict.accepted ? c.winWord : r.aborted ? '작전 파탄' : '고백 반려';
+  const dead = r.verdict.reason === 'death';
+  stamp.textContent = r.verdict.accepted ? c.winWord
+    : dead ? '요원 과실 사망' : r.aborted ? '작전 파탄' : '고백 반려';
   stamp.className = `result-stamp ${r.verdict.accepted ? 'ok' : 'fail'}`;
   $('#result-grade').textContent = `공작 등급: ${r.verdict.grade}`;
   $('#result-score').textContent =

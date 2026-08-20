@@ -860,3 +860,85 @@ test('제2차 강제배정은 기존 헬보다 하자가 나쁘다', async () =>
     }
   }
 });
+
+// ── 사람이 죽을 수 있다 ─────────────────────────────────
+// 화산 분화구, 고래 뱃속, 칼을 든 상대. 장소와 인물이 실제로 치명적이면 죽음도 결과여야 한다.
+test('사망이 분위기 파탄보다 먼저 판을 끝낸다', async () => {
+  const { failureReason, initialState, diffOf } = await import('../js/scoring.js');
+  const d = diffOf('보통');
+  const alive = initialState(d);
+  assert.equal(failureReason(alive), null);
+  assert.equal(failureReason({ ...alive, mood: 0 }), 'mood');
+  assert.equal(failureReason({ ...alive, casualty: 'target' }), 'death');
+  // 분위기가 만점이어도 죽으면 끝이다
+  assert.equal(failureReason({ ...alive, mood: 100, casualty: 'client' }), 'death');
+  // 둘 다면 죽음이 먼저 잡힌다
+  assert.equal(failureReason({ ...alive, mood: 0, casualty: 'both' }), 'death');
+});
+
+test('사망은 호감이 성공선을 넘었어도 무조건 F다', async () => {
+  const { verdict, initialState, diffOf } = await import('../js/scoring.js');
+  const d = diffOf('보통');
+  const s = { ...initialState(d), love: 95, mood: 90, casualty: 'target' };
+  const v = verdict(s, d);
+  assert.equal(v.accepted, false, '성사시킬 사람이 없는데 성사됐다');
+  assert.equal(v.grade, 'F');
+  assert.equal(v.reason, 'death');
+  assert.equal(v.casualty, 'target');
+});
+
+test('사망은 한 번 정해지면 뒤집히지 않는다', async () => {
+  const { applyTurn, initialState, diffOf } = await import('../js/scoring.js');
+  const d = diffOf('보통');
+  let s = initialState(d);
+  assert.equal(s.casualty, 'none');
+  s = applyTurn(s, d, J('disaster', { casualty: 'client', casualtyNote: '용암에 빠졌다' }));
+  assert.equal(s.casualty, 'client');
+  assert.equal(s.casualtyNote, '용암에 빠졌다');
+  // 다음 판정이 none을 뱉어도 되살아나지 않는다
+  s = applyTurn(s, d, J('warm', { casualty: 'none' }));
+  assert.equal(s.casualty, 'client', '죽은 사람이 되살아났다');
+  // 다른 사람으로 덮어쓰지도 않는다
+  s = applyTurn(s, d, J('disaster', { casualty: 'both' }));
+  assert.equal(s.casualty, 'client', '첫 사망 기록이 덮였다');
+});
+
+test('심판이 아무 값이나 뱉어도 사상자 칸은 네 값만 받는다', async () => {
+  const { applyTurn, initialState, diffOf } = await import('../js/scoring.js');
+  const d = diffOf('보통');
+  for (const junk of ['dead', '사망', true, 1, null, undefined, 'CLIENT']) {
+    const s = applyTurn(initialState(d), d, J('flat', { casualty: junk }));
+    assert.equal(s.casualty, 'none', `casualty=${String(junk)}가 통과했다`);
+  }
+});
+
+test('사망 경위가 판정 스키마와 프롬프트 양쪽에 있다', () => {
+  assert.ok(P.JUDGE_SCHEMA.properties.casualty, '판정 스키마에 사상자 칸이 없다');
+  assert.deepEqual(P.JUDGE_SCHEMA.properties.casualty.enum, ['none', 'client', 'target', 'both']);
+  // 구조화 출력은 모든 속성이 required여야 한다
+  for (const k of ['casualty', 'casualtyNote']) {
+    assert.ok(P.JUDGE_SCHEMA.required.includes(k), `${k}가 required에 없다`);
+  }
+  const sys = P.judgeSystem(COUPLE_BY_ID['os-war']);
+  assert.match(sys, /Someone can actually die here/, '사망 규칙이 없다');
+  assert.match(sys, /You never invent one/, '없던 위험을 지어내는 걸 안 막고 있다');
+  assert.match(sys, /\*\*If both are true you must call it\.\*\*/, '조건이 맞아도 안 부를 여지가 있다');
+  assert.match(sys, /probably did not connect/, '판정 회피 경로가 안 막혀 있다');
+  assert.match(sys, /Words alone never do it/, '말싸움만으로 죽을 수 있다');
+  assert.match(sys, /that is every single turn/, '사망이 흔해질 수 있다');
+  assert.match(sys, /it is final\. Nobody is revived/, '되살아날 여지가 있다');
+});
+
+test('죽은 사람은 결과 편지를 쓰지 않는다', () => {
+  const sys = P.resultSystem(COUPLE_BY_ID['os-war'], AGENT);
+  assert.match(sys, /the client died → the letter is the other person's statement/, '의뢰인 사망 처리가 없다');
+  assert.match(sys, /both died → the Bureau's own duty clerk files it/, '전멸 처리가 없다');
+  const user = P.resultUser(COUPLE_BY_ID['os-war'], {
+    accepted: false, grade: 'F', love: 20, mood: 0, threshold: 47, moodFloor: 33,
+    aborted: true, abortReason: 'death', casualty: 'both', casualtyNote: '둘 다 분화구로 떨어졌다',
+    transcript: '(기록)', radioUsed: 0,
+  });
+  assert.match(user, /\[CASUALTY\] both — 둘 다 분화구로 떨어졌다/, '사상자가 기록관에게 안 넘어간다');
+  // 사망일 때 분위기 파탄 문구가 같이 나가면 기록관이 헷갈린다
+  assert.ok(!/The air hit zero/.test(user), '사망인데 분위기 파탄 메모가 같이 갔다');
+});

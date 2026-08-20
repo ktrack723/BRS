@@ -431,10 +431,18 @@ try {
   const wire = await page.evaluate(() => {
     const name = document.querySelector('#dossier-box h3').textContent;
     const c = window.__game.COUPLES.find(x => name.includes(x.client.name));
-    return { redLine: c.tripwire.redLine, box: document.querySelector('#dossier-box .tripwire')?.textContent || '' };
+    return {
+      redLine: c.collision.redLine, why: c.collision.why,
+      weakness: c.client.weakness,
+      box: document.querySelector('#dossier-box .tripwire')?.textContent || '',
+    };
   });
-  check('의뢰서가 그 버릇이 밟을 지뢰를 지목한다',
-    wire.box.includes(wire.redLine) && /지침으로/.test(wire.box), wire.box.slice(0, 60).replace(/\s+/g, ' '));
+  check('의뢰서가 성향이 데려갈 금지 항목을 지목한다',
+    wire.box.includes(wire.redLine) && wire.box.includes(wire.why),
+    wire.box.slice(0, 70).replace(/\s+/g, ' '));
+  // 판을 깨는 건 버릇이 아니라 성향이라는 걸 화면이 분명히 말해야 한다.
+  // 안 그러면 요원은 "그 버릇만 막으면 되겠네"로 읽고 대사 한 줄만 금지한다.
+  check('버릇이 아니라 성격 때문이라고 명시한다', /성격 때문이다/.test(wire.box));
   check('상대 쪽 심리 감정은 작전 전에 공개되지 않는다', !dossier.includes(psych.targetWant));
   check('지뢰 목록이 의뢰인에게 자동 전달되지 않음을 경고한다',
     /전달되지 않았다|넘어가지 않는다/.test(dossier), dossier.match(/전달되지 않았다[^.]{0,20}/)?.[0] || '없음');

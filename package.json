@@ -10,6 +10,7 @@
     "responsive": "node tests/responsive.mjs",
     "live": "node tests/live.mjs",
     "sim": "node tests/sim.mjs",
-    "serve": "python3 -m http.server 8000"
+    "serve": "python3 -m http.server 8000",
+    "graph": "node tests/graph.mjs"
   }
 }

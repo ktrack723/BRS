@@ -224,6 +224,10 @@ export function initialState(d) {
     radioUsed: 0,
     history: [],       // 턴별 판정 로그 (디브리핑/밸런싱용)
     lastDelta: null,
+    // 사상자. 화산 분화구·고래 뱃속·칼을 든 상대 — 이 게임의 자리는 실제로 사람을 죽일 수 있다.
+    // 'none' | 'client' | 'target' | 'both'
+    casualty: 'none',
+    casualtyNote: '',
   };
 }
 
@@ -266,6 +270,13 @@ export function applyTurn(state, d, judge, opts = {}) {
   s.love = clamp(s.love + loveChange, 0, 100);
   s.turns += 1;
 
+  // 사망은 판정에 딸려 오지만 수치 계산과는 무관하다. 한 번 정해지면 뒤집히지 않는다.
+  const cas = ['client', 'target', 'both'].includes(judge.casualty) ? judge.casualty : 'none';
+  if (cas !== 'none' && s.casualty === 'none') {
+    s.casualty = cas;
+    s.casualtyNote = (judge.casualtyNote || '').trim();
+  }
+
   s.lastDelta = {
     mood: round1(s.mood - before.mood),
     love: round1(s.love - before.love),
@@ -293,7 +304,12 @@ export function noteRadio(state) {
 }
 
 // ── 조기 파탄 ───────────────────────────────────────────────────
+// 사상자 표기. 디브리핑과 결과 화면이 같은 말을 쓰게 한 곳에 둔다.
+export const CASUALTY_KO = { client: '의뢰인이', target: '상대가', both: '둘 다' };
+
 export function failureReason(state) {
+  // 사망이 먼저다. 분위기가 아무리 좋아도 한쪽이 죽으면 그 자리는 거기서 끝난다.
+  if (state.casualty && state.casualty !== 'none') return 'death';
   if (state.mood <= 0) return 'mood';   // 분위기 파탄. 상대가 자리를 뜬다
   return null;
 }
@@ -302,6 +318,10 @@ export function failureReason(state) {
 export function verdict(state, d, { aborted = false } = {}) {
   const love = Math.round(state.love), mood = Math.round(state.mood);
   const margin = love - d.threshold;
+  // 사망은 무조건 F다. 호감이 성공선을 넘었어도 성사시킬 사람이 없다.
+  if (state.casualty && state.casualty !== 'none') {
+    return { accepted: false, grade: 'F', love, mood, margin, reason: 'death', casualty: state.casualty };
+  }
   if (aborted) return { accepted: false, grade: 'F', love, mood, margin, reason: 'aborted' };
   const moodOk = mood >= d.moodFloor;
   const accepted = love >= d.threshold && moodOk;
@@ -394,8 +414,10 @@ export function debrief(state, d, v, couple, transcript = '') {
     threshold: d.threshold, moodFloor: d.moodFloor,
     summary: v.accepted
       ? `호감 ${v.love}/${d.threshold} — 성공선을 ${v.margin}점 넘겼다.`
-      : v.reason === 'mood'
-        ? `호감 ${v.love}/${d.threshold}은 넘겼지만 분위기 ${v.mood}/${d.moodFloor}이 바닥이라 고백이 묻혔다.`
-        : `호감 ${v.love}/${d.threshold} — 성공선에 ${Math.abs(v.margin)}점 모자랐다.`,
+      : v.reason === 'death'
+        ? `호감 ${v.love}/${d.threshold}까지 갔지만 ${CASUALTY_KO[state.casualty] || '누군가'} 사망했다. 성사시킬 사람이 없다.`
+        : v.reason === 'mood'
+          ? `호감 ${v.love}/${d.threshold}은 넘겼지만 분위기 ${v.mood}/${d.moodFloor}이 바닥이라 고백이 묻혔다.`
+          : `호감 ${v.love}/${d.threshold} — 성공선에 ${Math.abs(v.margin)}점 모자랐다.`,
   };
 }

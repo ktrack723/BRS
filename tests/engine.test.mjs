@@ -102,6 +102,40 @@ test('판정은 한 턴 늦게 오지만 마지막 발언까지 반드시 정산
   assert.equal(result.state.history.length, TOTAL_TURNS + 1);
 });
 
+// 문자 페이즈의 판정이 대면 화면까지 따라오면 플레이어에게는 그냥 오작동으로 보인다.
+// 예전에는 미결 판정이 runTalking 안에서 정산돼서, 장소·도입부·상대의 첫마디가 이미 뜬 뒤에
+// "문자 8턴 판정"이 뒤늦게 찍혔다.
+test('문자 페이즈 판정은 대면이 시작되기 전에 전부 끝난다', async () => {
+  const llm = new FakeLlm();
+  const events = [];
+  const engine = new Engine(llm, {
+    couple, agent: AGENT,
+    prep: { outfitDesc: '테스트 착장', coaching: '', speech: '' },
+    handlers: {
+      judge: j => events.push({ kind: 'judge', turn: j.turn || '' }),
+      bubble: (who, text) => events.push({ kind: 'bubble', who, text }),
+    },
+  });
+  await engine.runTexting();
+  // 문자 페이즈가 끝난 시점에 미결 판정이 남아 있으면 안 된다
+  assert.equal(engine.pendingJudge, null, '문자 페이즈가 미결 판정을 대면으로 넘겼다');
+  const afterText = events.length;
+
+  const sit = await engine.situation();
+  await engine.runTalking(sit);
+
+  // 대면 시작 이후에 나온 판정 중 '문자'짜리가 있으면 안 된다
+  const leaked = events.slice(afterText).filter(e => e.kind === 'judge' && /문자/.test(e.turn));
+  assert.deepEqual(leaked, [], `대면 시작 후에 문자 판정이 ${leaked.length}건 새어나왔다`);
+
+  // 정산 순서도 확인한다 — 문자 마지막 판정이 대면 장소 안내보다 먼저 나와야 한다
+  const lastTextJudge = events.findLastIndex(e => e.kind === 'judge' && /문자/.test(e.turn));
+  const placeBubble = events.findIndex(e => e.kind === 'bubble' && e.who === 'sys' && /테스트 광장/.test(e.text));
+  assert.ok(lastTextJudge >= 0 && placeBubble >= 0, '테스트 전제: 둘 다 발생해야 한다');
+  assert.ok(lastTextJudge < placeBubble,
+    '문자 마지막 판정이 대면 장소 안내보다 뒤에 나온다');
+});
+
 // ── 심판이 '상대의 실제 반응'을 본다 ────────────────────
 test('심판에게 타겟의 실제 반응이 함께 전달된다', async () => {
   const llm = new FakeLlm();
@@ -609,5 +643,84 @@ test('분위기를 끌어올리지 못하면 판정이 좋아도 늘어나지 �
     assert.equal(S.extraTurn('talk', hot, d.startMood, 0, d), false, `${name}: 시작 분위기로 연장된다`);
     // 상한을 넘겨서는 안 된다
     assert.equal(S.extraTurn('talk', hot, 100, S.EXTENSION.maxExtra.talk, d), false, `${name}: 연장 상한이 안 먹는다`);
+  }
+});
+
+// ── 사람이 죽으면 하네스가 거기서 멈춘다 ─────────────────
+test('사망 판정이 나오면 공작이 그 자리에서 종료된다', async () => {
+  // 3번째 판정에서 상대가 죽는다
+  const llm = new FakeLlm({
+    judge: (rec, n) => ({
+      tier: n === 3 ? 'disaster' : 'nudge', moodDelta: n === 3 ? -5 : 2, loveDelta: n === 3 ? -8 : 2,
+      reason: n === 3 ? '칼을 든 사람을 밀었다' : '무난', vibe: '공기', revealed: '',
+      clientEmote: 'panic', targetEmote: 'dead',
+      casualty: n === 3 ? 'target' : 'none',
+      casualtyNote: n === 3 ? '뒷걸음질치다 분화구 쪽으로 넘어갔다' : '',
+    }),
+  });
+  const { engine, events, result } = await playFull(llm);
+
+  assert.equal(engine.state.casualty, 'target', '사망이 기록되지 않았다');
+  assert.equal(engine.aborted, true, '사람이 죽었는데 공작이 계속됐다');
+  assert.equal(engine.abortReason, 'death', `중단 사유가 ${engine.abortReason}다`);
+  assert.equal(result.verdict.reason, 'death');
+  assert.equal(result.verdict.grade, 'F');
+  assert.equal(result.verdict.accepted, false);
+
+  // 파탄 문구가 읽씹이 아니라 사망이어야 한다
+  const sys = events.bubbles.filter(b => b.who === 'sys').map(b => b.text).join('\n');
+  assert.match(sys, /사망했다/, '사망 안내가 안 나갔다');
+  assert.match(sys, /분화구/, '사망 경위가 안 실렸다');
+  assert.ok(!/읽씹/.test(sys), '사망인데 읽씹 문구가 나갔다');
+
+  // 죽은 뒤로는 더 이상 발언이 없어야 한다
+  const deadAt = events.bubbles.findIndex(b => b.who === 'sys' && /사망했다/.test(b.text));
+  const after = events.bubbles.slice(deadAt + 1).filter(b => b.who === 'client' || b.who === 'target');
+  assert.deepEqual(after, [], `사망 후에 대사가 ${after.length}줄 더 나왔다`);
+});
+
+test('사망이 없으면 사상자 칸은 계속 none이다', async () => {
+  const llm = new FakeLlm();
+  const { engine, result } = await playFull(llm);
+  assert.equal(engine.state.casualty, 'none');
+  assert.notEqual(result.verdict.reason, 'death');
+});
+
+// 나레이터는 '어디서 만났고 상대가 뭐라고 했나'만 만든다. 본부가 무엇을 시켰는지는 그 장면에 쓸 일이 없고,
+// 알면 의뢰인을 '지시받는 사람'으로 그리기 시작한다. 심판과 기록관에게는 그대로 가야 한다.
+test('무전 내용이 나레이터에게는 안 가고 심판·기록관에게는 간다', async () => {
+  const llm = new FakeLlm();
+  const RADIO = '무전전용문장XYZ';
+  await playFull(llm, { onTurn: (engine) => { if (engine.radioLeft > 0) engine.submitRadio(RADIO); } });
+
+  const sit = llm.calls.find(c => c.label.includes('상황 생성'));
+  assert.ok(sit, '상황 생성 호출이 없다');
+  assert.ok(!sit.messages[0].content.includes(RADIO), '나레이터에게 무전이 새어나갔다');
+  assert.ok(!/HQ RADIO/.test(sit.messages[0].content), '나레이터 기록에 무전 라벨이 남아 있다');
+  // 다만 실제 대사는 그대로 넘어가야 한다 — 안 그러면 장소를 정할 근거가 사라진다
+  assert.match(sit.messages[0].content, /클라이언트 발언 #1/, '나레이터가 문자 내용을 못 받았다');
+
+  const judged = llm.byLabel('판정').some(c => c.judgeUser.includes(RADIO));
+  assert.ok(judged, '심판이 무전을 못 봤다 — 화제가 튄 이유를 모르게 된다');
+  const letter = llm.calls.find(c => c.label === '결과 편지');
+  assert.ok(letter.messages[0].content.includes(RADIO), '기록관이 무전을 못 봤다 — 편지의 재료가 사라진다');
+});
+
+test('사망 안내의 조사가 받침에 맞는다', async () => {
+  // "트럼푸이(가) 사망했다"는 판에서 제일 크게 읽히는 문장에서 김을 뺀다
+  const mk = (name) => new FakeLlm({
+    judge: (rec, n) => ({
+      tier: n === 2 ? 'disaster' : 'nudge', moodDelta: 0, loveDelta: n === 2 ? -8 : 1,
+      reason: '', vibe: '', revealed: '', clientEmote: 'panic', targetEmote: 'dead',
+      casualty: n === 2 ? 'target' : 'none', casualtyNote: '',
+    }),
+  });
+  // 받침 없는 이름(도날두 트럼푸) → "가", 받침 있는 이름(윤도우 → 우, 받침 없음) 둘 다 확인
+  for (const [id, expect] of [['politics', '트럼푸가 사망했다'], ['gamer-activist', '정화연이 사망했다']]) {
+    const llm = mk();
+    const { events } = await playFull(llm, { couple: COUPLE_BY_ID[id] });
+    const sys = events.bubbles.filter(b => b.who === 'sys').map(b => b.text).join('\n');
+    assert.match(sys, new RegExp(expect), `${id}: 조사가 안 맞는다`);
+    assert.ok(!/이\(가\)/.test(sys), `${id}: 조사 괄호 표기가 남았다`);
   }
 });

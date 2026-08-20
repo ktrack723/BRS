@@ -320,9 +320,10 @@ test('문자에서 정해진 장소는 아무리 말이 안 돼도 나레이터�
   // 물리적으로 불가능해도 성립해야 한다 — 이 게임의 자유도가 여기서 결정된다
   assert.match(sys, /Vesuvius/, '불가능한 장소의 예시가 없다');
   assert.match(sys, /Physics is a scheduling problem here, not a wall/, '물리 제약을 안 풀어놨다');
-  // 다만 사람이 죽으면 판이 끝난다. 장소는 방해물이지 사망 원인이 아니다.
-  assert.match(sys, /does not kill them/, '치명적 장소가 판을 끝낼 수 있다');
-  assert.match(sys, /Never as a fatal event/, '사망 처리 금지가 없다');
+  // 위험은 진짜여야 한다 — 다만 나레이터가 죽이지는 않는다. 죽음은 대화 중에 벌어진다.
+  assert.match(sys, /The hazard is real/, '장소의 위험이 배경 소품으로만 적혀 있다');
+  assert.match(sys, /Nobody dies in your narration/, '나레이터가 장면에서 사람을 죽일 수 있다');
+  assert.match(sys, /one wrong move away/, '무엇이 한 발짝 앞인지가 안 깔린다');
   // 상대는 여전히 자기 성격대로 반응한다 — 화산에 끌려가면 화를 낸다
   assert.match(sys, /The other person still reacts as themselves/, '장소가 인물을 지워버린다');
 });
@@ -413,35 +414,57 @@ test('버릇이 방아쇠와 결과를 둘 다 담고 있다', () => {
   }
 });
 
-// ── 아무것도 안 하면 밟는다 ───────────────────────────────────────────
-// 예전에는 의뢰인의 조건반사가 그냥 웃긴 버릇이었다. 아가미로 뻐끔거리고 물건 개수를 셌다.
-// 상대에게 아무 상처도 못 냈고, 그래서 실측 disaster 비율이 0~1%였다.
-// 살릴 것이 없으면 살리는 게임이 아니다. 지금은 전원이 지뢰를 하나씩 밟는다.
-test('의뢰인 전원의 조건반사가 상대의 지뢰를 실제로 밟는다', () => {
-  const share = (a, b) => {
-    const cut = t => String(t).replace(/[^가-힣a-zA-Z0-9]+/g, ' ').split(' ').filter(w => w.length >= 2);
-    const A = cut(a);
-    return cut(b).some(w => A.some(x => x.includes(w) || w.includes(x)));
-  };
+// ── 판을 깨는 건 버릇이 아니라 성향이다 ──────────────────────────────
+// 한때 반대로 해봤다. 의뢰인의 조건반사가 상대의 금지 항목을 그대로 발음하게 짜놓으니
+// disaster는 늘었는데 **대사 한 개짜리 퍼즐**이 됐다 — "그 말만 하지 마라" 한 줄이면 끝났다.
+// 지금은 want를 정직하게 좇으면 자연히 그쪽으로 가는 구조다.
+const norm = t => String(t).replace(/[^가-힣a-zA-Z0-9]/g, '');
+function gramHits(a, b, n) {
+  const x = norm(a), y = norm(b), A = new Set(), seen = new Set();
+  for (let i = 0; i + n <= x.length; i++) A.add(x.slice(i, i + n));
+  for (let i = 0; i + n <= y.length; i++) { const g = y.slice(i, i + n); if (A.has(g)) seen.add(g); }
+  return seen.size;
+}
+const echoes = (a, b) => gramHits(a, b, 5) >= 1 || gramHits(a, b, 4) >= 3;
+
+test('버릇은 그냥 거슬리기만 한다 — 금지 항목을 직접 발음하지 않는다', () => {
   for (const c of COUPLES) {
-    assert.ok(c.tripwire, `${c.id}: 지뢰선이 없다`);
-    const { index, redLine } = c.tripwire;
-    assert.ok(Number.isInteger(index) && c.target.redLines[index] === redLine,
-      `${c.id}: 지뢰선 인덱스가 목록과 안 맞는다`);
-    // 선언만 하고 실제로는 안 밟는 걸 막는다
-    assert.ok(share(c.client.weakness, redLine),
-      `${c.id}: 버릇이 지뢰를 안 밟는다\n  버릇: ${c.client.weakness}\n  지뢰: ${redLine}`);
+    for (const line of c.target.redLines) {
+      assert.ok(!echoes(c.client.weakness, line),
+        `${c.id}: 버릇이 금지 항목을 그대로 옮겨 적었다 — 대사 한 개짜리 퍼즐이 된다\n  버릇: ${c.client.weakness}\n  항목: ${line}`);
+    }
   }
 });
 
-test('지뢰선이 세 항목에 고루 퍼져 있다', () => {
-  // 전부 0번 지뢰만 밟으면 지뢰 목록 세 줄 중 두 줄이 장식이 된다
-  const dist = {};
-  for (const c of COUPLES) dist[c.tripwire.index] = (dist[c.tripwire.index] || 0) + 1;
-  assert.equal(Object.keys(dist).length, 3, `지뢰선이 ${Object.keys(dist).join('/')}번에만 몰렸다`);
-  for (const [i, n] of Object.entries(dist)) {
-    assert.ok(n >= 3, `${i}번 지뢰를 밟는 커플이 ${n}건뿐이다`);
+test('성향 충돌의 근거가 양쪽에 다 닿는다', () => {
+  // 금지 항목 쪽에만 닿으면 지뢰를 옮겨 적은 것이고,
+  // 의뢰인 쪽에만 닿으면 왜 하필 저 지뢰인지가 설명되지 않는다.
+  const touches = (a, b) => gramHits(a, b, 4) >= 1 || gramHits(a, b, 3) >= 2 || (() => {
+    const x = norm(a);
+    return String(b).replace(/[^가-힣a-zA-Z0-9]+/g, ' ').split(' ').filter(Boolean)
+      .some(w => { for (let l = w.length; l >= 2; l--) if (x.includes(w.slice(0, l))) return true; return false; });
+  })();
+  for (const c of COUPLES) {
+    assert.ok(c.collision, `${c.id}: 성향 충돌이 없다`);
+    const { index, redLine, why } = c.collision;
+    assert.equal(c.target.redLines[index], redLine, `${c.id}: 충돌 대상 번호가 목록과 안 맞는다`);
+    assert.ok(why.length > 25, `${c.id}: 근거가 너무 짧다 — 요원 화면에 그대로 나가는 문장이다`);
+    assert.ok(touches(why, redLine), `${c.id}: 근거가 금지 항목에 안 닿는다`);
+    const self = [c.client.flaw.want, c.client.personality.join(' '), c.client.background.join(' '), c.client.job].join(' ');
+    assert.ok(touches(why, self), `${c.id}: 근거가 의뢰인 성향에 안 닿는다`);
   }
+});
+
+test('성향 충돌이 세 금지 항목에 고루 퍼져 있다', () => {
+  // 전부 0번만 겨누면 금지 목록 세 줄 중 두 줄이 장식이 된다
+  const dist = {};
+  for (const c of COUPLES) dist[c.collision.index] = (dist[c.collision.index] || 0) + 1;
+  assert.equal(Object.keys(dist).length, 3, `충돌이 ${Object.keys(dist).join('/')}번에만 몰렸다`);
+  for (const [i, n] of Object.entries(dist)) assert.ok(n >= 3, `${i}번을 겨누는 커플이 ${n}건뿐이다`);
+});
+
+test('옛 지뢰선 구조가 남아 있지 않다', () => {
+  for (const c of COUPLES) assert.equal(c.tripwire, undefined, `${c.id}: tripwire가 아직 붙어 있다`);
 });
 
 test('자동 파멸 조합은 살릴 구석이 구조적으로 없다', () => {
@@ -457,19 +480,38 @@ test('자동 파멸 조합은 살릴 구석이 구조적으로 없다', () => {
   }
 });
 
-test('지침이 없으면 조건반사가 나온다는 사실이 프롬프트에 있다', async () => {
+test('버릇은 거슬리는 수준으로만 프롬프트에 들어간다', async () => {
   const P = await import('../js/prompts.js');
   const c = COUPLES[0];
   const AG = { name: '요원', gender: '기밀' };
   const bare = P.clientAgentSystem(c, { coaching: '', speech: '', outfitDesc: '' }, 'talk', AG);
-  assert.match(bare, /You have never once stopped it on your own/, '스스로 못 막는다는 사실이 없다');
-  assert.match(bare, /The only thing that has ever held it back is an explicit order/,
-    '지침만이 버릇을 막는다는 경로가 안 적혀 있다');
-  assert.match(bare, /it comes out more than once/, '한 번만 나오면 지침 한 줄로 끝난다');
+  assert.match(bare, /A HABIT OF YOURS/, '버릇 블록이 없다');
+  assert.match(bare, /Other people find it mildly exhausting/, '버릇이 판을 깨는 장치처럼 적혀 있다');
+  assert.match(bare, /it surfaces, and more than once/, '한 번만 나오면 지침 한 줄로 끝난다');
   // 상대는 본부 명령을 못 받는다. 명령 얘기를 넣으면 없는 레버를 있다고 말하는 셈이다.
   const t = P.targetAgentSystem(c, 'talk', '');
   assert.ok(!/explicit order from Headquarters/.test(t), '상대에게 본부 명령 얘기가 갔다');
   assert.match(t, /Nobody has ever told you to stop/, '상대 쪽 문구가 없다');
+});
+
+// 판을 깨는 힘은 이제 want에 있다. want를 정직하게 좇으면 자연히 지뢰 쪽으로 간다.
+test('의뢰인이 자기 want를 끈질기게 좇도록 적혀 있다', async () => {
+  const P = await import('../js/prompts.js');
+  const AG = { name: '요원', gender: '기밀' };
+  for (const sys of [
+    P.clientAgentSystem(COUPLES[0], { coaching: '', speech: '', outfitDesc: '' }, 'talk', AG),
+    P.targetAgentSystem(COUPLES[0], 'talk', ''),
+  ]) {
+    assert.match(sys, /You keep coming back to it/, 'want를 한 번 말하고 마는 것으로 읽힌다');
+    assert.match(sys, /you steer it back/, '화제가 흘러가면 되돌린다는 문장이 없다');
+    assert.match(sys, /even when the room starts telling you not to/,
+      '공기가 말려도 밀고 간다는 문장이 없다 — 그게 없으면 판이 안 깨진다');
+  }
+  // 다만 '지뢰를 밟아라'는 어디에도 없어야 한다. 그건 지시고, 지시는 인물을 스위치로 만든다.
+  const sys = P.clientAgentSystem(COUPLES[0], { coaching: '', speech: '', outfitDesc: '' }, 'talk', AG);
+  for (const line of COUPLES[0].target.redLines) {
+    assert.ok(!sys.includes(line), `금지 항목이 의뢰인 프롬프트에 들어갔다: ${line}`);
+  }
 });
 
 test('심판이 반복해서 밟힌 지뢰를 예산 때문에 덮지 않는다', async () => {
@@ -479,4 +521,83 @@ test('심판이 반복해서 밟힌 지뢰를 예산 때문에 덮지 않는다'
   assert.match(sys, /chill and disaster are supposed to stack up/, '피해 누적이 허용되지 않는다');
   assert.match(sys, /Do not smooth that\s+out to protect the budget/, '예산이 상한으로 작동한다');
   assert.match(sys, /An operation that ends in wreckage is a legitimate outcome/, '파탄이 정상 결과가 아니다');
+});
+
+// 자리가 실제로 사람을 죽일 수 있다는 사실을 두 인물이 모르면
+// 둘 다 '거의 밀 뻔한' 장면만 쓰고 아무 일도 안 일어난다 (실측).
+test('대면에서만 물리적 결과가 실재한다고 알려준다', async () => {
+  const P = await import('../js/prompts.js');
+  const c = COUPLES[0];
+  const AG = { name: '요원', gender: '기밀' };
+  for (const [who, talk, text] of [
+    ['의뢰인',
+      P.clientAgentSystem(c, { coaching: '', speech: '', outfitDesc: '' }, 'talk', AG),
+      P.clientAgentSystem(c, { coaching: '', speech: '', outfitDesc: '' }, 'text', AG)],
+    ['상대', P.targetAgentSystem(c, 'talk', ''), P.targetAgentSystem(c, 'text', '')],
+  ]) {
+    assert.match(talk, /WHERE YOU ARE STANDING/, `${who}: 대면에 물리 블록이 없다`);
+    assert.match(talk, /it works the way it actually works/, `${who}: 위험이 소품으로 읽힌다`);
+    assert.match(talk, /not the version where it almost happens and everyone is fine/,
+      `${who}: 아슬아슬한 미수만 쓰게 된다`);
+    // 문자 단계에는 몸이 없다
+    assert.ok(!/WHERE YOU ARE STANDING/.test(text), `${who}: 문자 단계에 물리 블록이 붙었다`);
+  }
+});
+
+// ── 정보 비대칭은 테스트가 지킨다 ──────────────────────────────────────
+// `npm run graph`가 그래프를 사람 눈으로 보게 뽑아준다면, 여기는 그중 절대 깨지면 안 되는
+// 차단선을 기계가 지킨다. 프롬프트를 손대다 한 줄 잘못 옮기면 여기서 걸린다.
+test('프롬프트 사이 차단선이 지켜진다', async () => {
+  const P = await import('../js/prompts.js');
+  const AG = { name: '박큐피드', gender: '기밀' };
+  const prep = { outfitDesc: '착장', coaching: '지침본문XYZ', speech: '연설본문XYZ' };
+  for (const c of COUPLES) {
+    const client = P.clientAgentSystem(c, prep, 'talk', AG);
+    const target = P.targetAgentSystem(c, 'talk', prep.outfitDesc);
+    const judge = P.judgeSystem(c);
+
+    // 1) 의뢰인은 상대의 지뢰도, 감춰둔 이야기도 모른다. 이게 이 게임의 핵심이다.
+    //    짧은 항목("포교")은 의뢰인 자기 시트에도 우연히 들어 있을 수 있어서 부분 문자열로는 못 잰다.
+    //    실제로 새면 목록 통째로 실린다 — 그 모양을 먼저 보고, 개별 항목은 네 글자 이상만 본다.
+    assert.ok(!client.includes(c.target.redLines.join(' / ')), `${c.id}: 의뢰인에게 지뢰 목록이 통째로 갔다`);
+    assert.ok(!client.includes(c.target.hiddenPrefs.join(' / ')), `${c.id}: 의뢰인에게 비밀 목록이 통째로 갔다`);
+    for (const v of [...c.target.redLines, ...c.target.hiddenPrefs].filter(v => v.length >= 4)) {
+      assert.ok(!client.includes(v), `${c.id}: 의뢰인이 상대의 비공개 정보를 안다 — ${v}`);
+    }
+    // 2) 성향 충돌 분석은 요원 것이다. 인물이 알면 알아서 피해버린다.
+    assert.ok(!client.includes(c.collision.why), `${c.id}: 의뢰인이 충돌 분석을 안다`);
+    assert.ok(!target.includes(c.collision.why), `${c.id}: 상대가 충돌 분석을 안다`);
+    // 3) 심판은 의뢰인 시트를 못 본다. 보면 나온 말이 아니라 '그 사람이라면'으로 채점한다.
+    assert.ok(!judge.includes(c.client.flaw.want), `${c.id}: 심판이 의뢰인의 욕망을 안다`);
+    assert.ok(!judge.includes(c.client.flaw.urge), `${c.id}: 심판이 의뢰인의 몸을 안다`);
+    assert.ok(!judge.includes(c.client.personality.join(', ')), `${c.id}: 심판이 의뢰인 성격을 안다`);
+    assert.ok(!judge.includes(c.client.story), `${c.id}: 심판이 의뢰인 사연을 안다`);
+    // 4) 요원이 쓴 것은 채점 대상이 아니다
+    for (const v of [prep.coaching, prep.speech]) {
+      assert.ok(!judge.includes(v), `${c.id}: 심판에게 요원의 준비물이 갔다`);
+    }
+    // 5) 반대로, 심판은 상대 시트를 봐야 반응을 읽는다
+    assert.ok(judge.includes(c.target.redLines.join(' / ')), `${c.id}: 심판이 상대의 지뢰를 모른다`);
+    assert.ok(judge.includes(c.target.hiddenPrefs.join(' / ')), `${c.id}: 심판이 상대의 비밀을 모른다`);
+  }
+});
+
+test('attention 축이 여닫는 간선이 실제로 조건부다', async () => {
+  const P = await import('../js/prompts.js');
+  const AG = { name: '박큐피드', gender: '기밀' };
+  const prep = { outfitDesc: '착장', coaching: '', speech: '' };
+  const edge = { tPers: 0, tPrefs: 0, cPers: 0, cWeak: 0 };
+  for (const c of COUPLES) {
+    const cs = P.clientAgentSystem(c, prep, 'talk', AG);
+    const ts = P.targetAgentSystem(c, 'talk', prep.outfitDesc);
+    if (cs.includes(c.target.personality.join(', '))) edge.tPers++;
+    if (c.target.visiblePrefs.some(v => cs.includes(v))) edge.tPrefs++;
+    if (ts.includes(c.client.personality.join(', '))) edge.cPers++;
+    if (ts.includes(c.client.weakness)) edge.cWeak++;
+  }
+  // 항상 열려 있거나 항상 닫혀 있으면 그 축은 데이터가 아니라 장식이다
+  for (const [k, n] of Object.entries(edge)) {
+    assert.ok(n > 0, `${k}: 34건 전부 닫혀 있다 — 죽은 간선이다`);
+    assert.ok(n < COUPLES.length, `${k}: 34건 전부 열려 있다 — attention이 아무것도 안 가른다`);
+  }
 });

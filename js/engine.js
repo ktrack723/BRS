@@ -26,6 +26,17 @@ import * as S from './scoring.js';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const HISTORY_WINDOW = 12;
 
+// 받침에 맞는 조사. 마지막 글자가 한글이면 종성 유무로 고른다.
+const JOSA = { '이': ['이', '가'], '과': ['과', '와'], '을': ['을', '를'], '은': ['은', '는'] };
+function josa(word, kind) {
+  const pair = JOSA[kind];
+  if (!pair) return word;
+  const ch = String(word).trim().slice(-1);
+  const code = ch.charCodeAt(0) - 0xac00;
+  const hangul = code >= 0 && code <= 11171;
+  return word + (hangul ? pair[code % 28 === 0 ? 1 : 0] : `${pair[0]}(${pair[1]})`);
+}
+
 export class Engine {
   constructor(llm, { couple, prep, agent, handlers }) {
     this.llm = llm;
@@ -101,9 +112,14 @@ export class Engine {
     };
   }
 
-  #history(limit = 0) {
+  // opts.noRadio — 무전 줄을 뺀 기록.
+  // 나레이터는 '어디서 만났고 상대가 뭐라고 했나'만 만들면 된다. 본부가 무엇을 시켰는지는
+  // 그 장면에 쓸 일이 없고, 알면 의뢰인을 '지시받는 사람'으로 그리기 시작한다.
+  // (심판과 결과 기록관에게는 그대로 간다 — 화제가 튄 이유를 알아야 하고, 편지에는 그게 재료다.)
+  #history(limit = 0, { noRadio = false } = {}) {
     const c = this.couple;
-    const lines = this.transcript.map(t =>
+    const src = noRadio ? this.transcript.filter(t => t.who !== 'radio') : this.transcript;
+    const lines = src.map(t =>
       t.who === 'client' ? `${c.client.name}: ${t.text}`
         : t.who === 'target' ? `${c.target.name}: ${t.text}`
           : t.who === 'radio' ? `[HQ RADIO — the other person cannot hear this]: ${t.text}`
@@ -157,6 +173,11 @@ export class Engine {
     this.h.vibe?.(this.state.vibe);
     this.h.meters?.(this.snapshot());
     await this.#runTurns('text', this.d.textTurns);
+    // 문자 페이즈의 마지막 판정을 여기서 끝낸다.
+    // 예전에는 이 미결 판정이 runTalking 안까지 따라가서, 대면 장소·도입부·상대의 첫마디가
+    // 이미 화면에 뜬 뒤에 "문자 8턴 판정"이 뒤늦게 찍혔다. 페이즈가 넘어간 뒤에 나오는
+    // 지난 페이즈 판정은 플레이어에게 그냥 오작동으로 보인다.
+    await this.#flushJudge('text');
     return !this.aborted;
   }
 
@@ -166,7 +187,7 @@ export class Engine {
       const r = await this.situationPromise.catch(() => null);
       if (r) return r;
     }
-    return this.#callSituation(this.#history());
+    return this.#callSituation(this.#history(0, { noRadio: true }));
   }
 
   #callSituation(history) {
@@ -200,8 +221,6 @@ export class Engine {
     this.transcript.push({ who: 'target', text: sit.outfitReaction });
     await this.h.bubble?.('target', sit.outfitReaction);
 
-    // 문자 페이즈 마지막 발언의 미결 판정을 먼저 정산한다 (대면 첫 반응이 그 발언의 결과이기도 하다)
-    await this.#flushJudge('text');
     if (this.aborted) return false;
 
     // 첫인상 판정 — 스타일링이 실제로 효력을 발휘하는 지점. 준비 단계가 아니라 '만남'에서 채점된다.
@@ -280,10 +299,24 @@ export class Engine {
   }
 
   async #breakdown(phase) {
-    const msg = phase === 'text'
-      ? '...읽씹당했다. 프로필 사진도 강아지로 바뀌었다.'
-      : '...상대가 "화장실 좀"이라며 나가더니 돌아오지 않았다.';
-    this.aborted = true; this.abortReason = 'mood';
+    // 사망이면 파탄 문구가 달라진다. 읽씹당한 게 아니라 사람이 죽은 것이다.
+    const cas = this.state.casualty;
+    let msg;
+    if (cas && cas !== 'none') {
+      const c = this.couple;
+      // 이 줄은 판에서 제일 크게 읽히는 문장이다. "트럼푸이(가) 사망했다"로 나가면 김이 샌다.
+      const who = cas === 'both' ? `${josa(c.client.name, '과')} ${josa(c.target.name, '이')} 둘 다`
+        : josa(cas === 'client' ? c.client.name : c.target.name, '이');
+      const note = this.state.casualtyNote ? ` ${this.state.casualtyNote}` : '';
+      msg = `...${who} 사망했다.${note} 공작은 여기서 종료된다.`;
+      this.abortReason = 'death';
+    } else {
+      msg = phase === 'text'
+        ? '...읽씹당했다. 프로필 사진도 강아지로 바뀌었다.'
+        : '...상대가 "화장실 좀"이라며 나가더니 돌아오지 않았다.';
+      this.abortReason = 'mood';
+    }
+    this.aborted = true;
     this.transcript.push({ who: 'sys', text: msg });
     await this.h.bubble?.('sys', msg);
   }
@@ -359,7 +392,7 @@ export class Engine {
       ];
       // 문자 마지막 턴이면 대면 상황 생성까지 같은 배치에 태운다
       if (phase === 'text' && i === this.phaseTurns - 1) {
-        this.situationPromise = this.#callSituation(this.#history());
+        this.situationPromise = this.#callSituation(this.#history(0, { noRadio: true }));
       }
 
       const [targetMsg, judge] = await Promise.all(jobs);
@@ -408,6 +441,8 @@ export class Engine {
         messages: [{
           role: 'user', content: P.resultUser(this.couple, {
             ...v, threshold: this.d.threshold, moodFloor: this.d.moodFloor, aborted: this.aborted,
+            abortReason: this.abortReason,
+            casualty: this.state.casualty, casualtyNote: this.state.casualtyNote,
             vibe: this.state.vibe, revealed: this.state.revealed, missed: db.missed,
             radioUsed: this.state.radioUsed, transcript,
           }),
