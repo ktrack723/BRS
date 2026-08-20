@@ -284,20 +284,26 @@ export const TUNING = {
   breakthroughMood: 3,       // 반대로 방어선이 무너진 순간엔 공기도 같이 풀린다
 };
 
-// ── 개선안 스위치 (A/B 비교 전용) ────────────────────────────────────
-// 준비한 요원과 안 한 요원을 더 잘 가르는 규칙을 여섯 개 만들고 실측으로 고른다.
-// **전부 실제로 벌어진 일만 본다.** 요원이 입력칸에 무엇을 쳤는지는 규칙이 안 본다 —
-// 그걸 보면 내용이 아니라 형식을 보상하게 되고, 여덟 자만 치면 만점이 된다.
-// 승자를 고른 뒤에는 이 스위치를 걷어내고 본문에 새긴다.
+// ── 무전 창 ─────────────────────────────────────────────────────────
+// 개선안 여섯을 같은 판정 시퀀스로 재생해 비교했고(하이쿠 12판), 이게 이겼다.
 //
-//   radio    무전 직후 세 턴 안의 두근거림은 크게, 그 밖은 작게. 타이밍이 실력이다
-//   redline  정색당하면 손실 두 배 + 그 뒤 두근거림이 계속 깎인다. 지뢰는 요원만 안다
-//   variety  같은 종류 반복은 급감, 서로 다른 종류를 섞으면 가산. 레버를 여러 개 쓰는가
-//   arousal  각성 전이를 살린다(실측 53건 중 1건으로 죽어 있었다). 장소는 요원이 정한다
-//   ladder   응답은 직전 응답보다 깊어야 유효. 같은 깊이 반복은 0 (Aron의 경사로)
-//   decay    종류 불문 판 전체 n번째 두근거림에 0.85^n. 길게 끄는 것 자체를 눌러본다
-export const VARIANT = (typeof process !== 'undefined' && process.env && process.env.BRS_VARIANT) || 'baseline';
-const V = (name) => VARIANT === name;
+//   radio    ace 96.5  none 52.7  격차 +43.8   ace 5/6 · none 2/6   ← 승자
+//   ladder   ace 85.2  none 56.0       +29.2
+//   variety  ace 80.3  none 52.7       +27.7
+//   baseline ace 92.7  none 69.0       +23.7
+//   arousal  ace 92.7  none 69.0       +23.7   (각성이 거의 안 쓰여 baseline과 동일)
+//   redline  ace 79.3  none 57.0       +22.3
+//   decay    ace 60.0  none 46.3       +13.7
+//
+// 왜 이게 제일 잘 가르는가: **무전은 순수한 실력 레버다.** 배급량이 정해져 있고
+// (난이도별 3회), 언제 쓰느냐 말고는 아무것도 요원 마음대로가 아니다.
+// 준비를 안 한 판은 무전을 아예 안 쓰므로 모든 두근거림이 창 밖에서 터진다.
+// 입력칸에 무엇을 쳤는지는 여전히 안 본다 — 보는 건 **지시가 실제로 꽂혔는가**다.
+const RADIO_WINDOW = {
+  turns: 2,     // 지시가 꽂힌 발언과 그 다음 두 턴까지가 창 안이다
+  inside: 1.5,
+  outside: 0.7,
+};
 
 // ── 두근거림의 종류 ──────────────────────────────────────────────────
 // 두근거림은 하나가 아니다. 심리학 쪽 이론들이 서로 다른 기제 여럿을 가리킨다.
@@ -374,12 +380,10 @@ export function initialState(d) {
     // 두근거림을 종류별로 센다. 각성은 반복될수록 죽고, 밀당은 과하면 뒤집히고,
     // 전환점은 판당 상한이 있다. 그 판정을 하려면 지금까지의 횟수를 알아야 한다.
     flutters: {},
-    // 개선안 비교용 파생 상태. 전부 **실제로 벌어진 일**만 본다 —
+    // 무전 창 판정용. **실제로 벌어진 일만 본다** —
     // 요원이 입력칸에 무엇을 쳤는지는 규칙 계층이 절대 보지 않는다(그건 형식 보상이 된다).
     hotSeen: 0,        // 지금까지 셈된 두근거림 횟수
-    burned: 0,         // 정색당한 횟수 (disaster)
     sinceRadio: 99,    // 마지막 무전 주입 이후 몇 턴 지났나
-    lastResponsive: 0, // 마지막 '응답' 두근거림의 원판정 크기 (사다리 검사용)
   };
 }
 
@@ -432,30 +436,14 @@ export function applyTurn(state, d, judge, opts = {}) {
     s.flutters = { ...s.flutters, [kind]: seen + 1 };
   }
 
-  // ── 개선안 스위치 ────────────────────────────────────────────
-  let vMult = 1;
-  let lossMult = 1;
-  if (kind) {
-    // 무전 타이밍: 지시가 꽂힌 직후에 터진 두근거림만 크게 친다
-    if (V('radio')) vMult *= s.sinceRadio <= 2 ? 1.5 : 0.7;
-    // 정색당한 뒤로는 계속 깎인다. 지뢰 목록은 요원만 가지고 있다
-    if (V('redline')) vMult *= Math.pow(0.75, s.burned);
-    // 레버를 여러 개 쓰는가. 처음 쓰는 종류에 가산, 이미 쓴 종류에 감산
-    if (V('variety')) vMult *= (s.flutters[kind] || 0) === 0 ? 1.35 : 0.7;
-    // 각성 전이 되살리기 — 실측에서 53건 중 1건으로 사문화돼 있었다
-    if (V('arousal') && kind === '각성') vMult *= 2.2;
-    // 응답 사다리: 직전 응답보다 깊지 않으면 안 친다 (Aron — 경사로지 절벽이 아니다)
-    if (V('ladder') && kind === '응답') vMult *= ld > s.lastResponsive ? 1.2 : 0;
-    // 길게 끄는 것 자체를 누른다
-    if (V('decay')) vMult *= Math.pow(0.85, s.hotSeen);
-    s.hotSeen += 1;
-    if (kind === '응답') s.lastResponsive = Math.max(s.lastResponsive, ld);
-  }
-  if (V('redline') && ld < 0) lossMult = 2;
-  if (tier === 'disaster') s.burned += 1;
+  // 무전 창. 지시가 꽂힌 발언과 그 직후 두 턴 안에서 터진 두근거림만 제값을 받는다.
+  // 창 밖은 깎인다 — 저절로 굴러간 두근거림은 요원이 만든 게 아니다.
+  const inWindow = s.sinceRadio <= RADIO_WINDOW.turns;
+  const vMult = kind ? (inWindow ? RADIO_WINDOW.inside : RADIO_WINDOW.outside) : 1;
+  if (kind) s.hotSeen += 1;
   s.sinceRadio = opts.radioInjected ? 0 : s.sinceRadio + 1;
 
-  const scaled = (ld >= 0 ? ld * d.gainScale * loveSat * kindMult * vMult : ld * d.lossScale * lossMult) * weight;
+  const scaled = (ld >= 0 ? ld * d.gainScale * loveSat * kindMult * vMult : ld * d.lossScale) * weight;
   const loveChange = scaled * mult - d.loveDecay;
 
   s.mood = moodAfter;
@@ -478,7 +466,7 @@ export function applyTurn(state, d, judge, opts = {}) {
     mood: round1(s.mood - before.mood),
     love: round1(s.love - before.love),
     rawMood: md, rawLove: ld, tier, judgeTier: judge.tier || '?',
-    mult: round1(mult), flutterKind: kind, flutterFlipped: flipped,
+    mult: round1(mult), flutterKind: kind, flutterFlipped: flipped, inRadioWindow: !!(kind && inWindow),
     revealed: fresh,
     vibe: s.vibe,
     firstImpression: !!opts.firstImpression,
@@ -489,7 +477,7 @@ export function applyTurn(state, d, judge, opts = {}) {
     dMood: s.lastDelta.mood, dLove: s.lastDelta.love,
     mood: Math.round(s.mood), love: Math.round(s.love),
     rawMood: md, rawLove: ld, tier, judgeTier: judge.tier || '?', mult: s.lastDelta.mult,
-    flutterKind: kind, flutterFlipped: flipped,
+    flutterKind: kind, flutterFlipped: flipped, inRadioWindow: !!(kind && inWindow),
     revealed: fresh, firstImpression: !!opts.firstImpression,
     // 장벽·압박은 이제 판을 끝내는 조건이다. 턴 기록에 안 남으면 사후에 왜 졌는지 못 짚는다.
     barrier: judge.barrierAddressed === true, leverage: judge.leverage || 'none',
@@ -627,6 +615,19 @@ export function debrief(state, d, v, couple, transcript = '') {
       : `${hot}번 있었다. 오른 호감은 전부 이 순간들이 민 것이다. 나머지 턴은 한 점도 안 보탰다.` +
         (byKind['각성'] > 1 ? ` 각성 전이는 같은 저녁에 두 번째부터 반토막이다 — ${byKind['각성']}번 썼다.` : '') +
         (flipped ? ` 그리고 밀당을 ${flipped}번 넘겼다. 그 지점부터는 밀 때마다 깎였다.` : ''),
+  });
+  // 무전 창. 이게 이 게임에서 준비를 제일 잘 가르는 축이다 — 안 알려주면 숨겨둔 규칙이다.
+  const onRadio = hotTurns.filter(h => h.inRadioWindow).length;
+  notes.push({
+    key: 'radiowindow', label: '무전 창에서 터진 두근거림',
+    value: `${onRadio} / ${hot}회`,
+    ok: hot > 0 && onRadio > hot / 2,
+    text: hot === 0
+      ? '두근거린 순간이 없었으니 무전 타이밍도 잴 게 없다.'
+      : onRadio === 0
+        ? '한 번도 없다. 두근거림이 전부 무전 밖에서 저절로 터졌고, 그건 제값의 70%만 친다. ' +
+          '무전은 배급량이 정해져 있다 — 안 쓰면 그만큼 그냥 버리는 것이다.'
+        : `${onRadio}번이 무전 직후 세 턴 안에서 터졌다. 그 턴들은 1.5배로 실렸고, 나머지 ${hot - onRadio}번은 0.7배다.`,
   });
   notes.push({
     key: 'secrets', label: '상대가 감춰둔 이야기',

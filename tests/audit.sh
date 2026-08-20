@@ -70,6 +70,11 @@ chk "각성 전이는 급격히 포화 (Dutton & Aron)" "node -e \"import('./js/
 chk "밀당은 양날 — 넘기면 깎인다 (Knobloch)" "node -e \"import('./js/scoring.js').then(m=>{const d=m.diffOf('보통');let s=m.initialState(d),g=0;for(let i=0;i<4;i++){const b=s.love;s=m.applyTurn(s,d,{tier:'warm',loveDelta:5,moodDelta:3,vibe:'v',revealed:'',flutterKind:'불확실'});g=s.love-b}process.exit(g<0?0:1)})\""
 chk "심판이 두근거림 종류를 고른다" "grep -q 'flutterKind' js/prompts.js && grep -q \"'flutterKind'\" js/prompts.js"
 chk "종류가 플레이어에게 보인다 (턴표·사후보고)" "grep -q 'tt-flutter' js/game.js && grep -q '종류별' js/scoring.js"
+chk "무전 창 — 지시 직후 두근거림만 제값 (개선안 6개 중 승자)" "grep -q 'RADIO_WINDOW' js/scoring.js"
+chk "A/B 스위치가 코드에 안 남아 있다" "! grep -q 'BRS_VARIANT' js/scoring.js"
+chk "규칙 계층에 준비 점수 개념이 없다" "! grep -q 'prepScore' js/scoring.js"
+chk "무전 창이 플레이어에게 보인다" "grep -q 'radiowindow' js/scoring.js && grep -q 'onradio' js/game.js"
+chk "effort·단가를 접두사로 잡는다 (날짜 붙은 id)" "node -e \"import('./js/llm.js').then(m=>process.exit(!m.supportsEffort('claude-haiku-4-5-20251001')&&m.priceOf('claude-haiku-4-5-20251001')[0]===1?0:1))\""
 echo
 echo "── 절대 들어가면 안 되는 것 ──"
 chk "저장소 어디에도 실제 API 키 없음 (자리표시자는 허용)" "! grep -rnE 'sk-ant-api03-[A-Za-z0-9_-]{20,}' --exclude-dir=.git ."

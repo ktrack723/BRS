@@ -949,7 +949,7 @@ async function gotoResult() {
       `<tr class="${h.dLove > 0 ? 'good' : h.dLove < 0 ? 'bad' : ''}">` +
       `<td>${h.turn}${h.firstImpression ? '·착장' : ''}${h.revealed ? '·발견' : ''}` +
       `${h.barrier ? '<b class="tt-barrier">·현안</b>' : ''}` +
-      `${h.flutterKind ? `<b class="tt-flutter${h.flutterFlipped ? ' flipped' : ''}">·${escapeHtml((FLUTTER_KINDS[h.flutterKind] || {}).tag || h.flutterKind)}</b>` : ''}` +
+      `${h.flutterKind ? `<b class="tt-flutter${h.flutterFlipped ? ' flipped' : ''}${h.inRadioWindow ? ' onradio' : ''}">·${escapeHtml((FLUTTER_KINDS[h.flutterKind] || {}).tag || h.flutterKind)}${h.inRadioWindow ? '📻' : ''}</b>` : ''}` +
       `${h.leverage && h.leverage !== 'none' ? `<b class="tt-lev">·압박</b>` : ''}</td>` +
       `<td>${h.dMood >= 0 ? '+' : ''}${h.dMood}</td>` +
       `<td>${h.dLove >= 0 ? '+' : ''}${h.dLove} <span class="dim">[${escapeHtml(h.tier)}] ${h.rawLove >= 0 ? '+' : ''}${h.rawLove}×${h.mult}</span></td>` +

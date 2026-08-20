@@ -1175,3 +1175,48 @@ test('effort 미지원 모델을 접두사로 잡는다', async () => {
   assert.equal(supportsEffort('claude-sonnet-5'), true);
   assert.equal(supportsEffort(undefined), true, '모델이 없으면 기본 동작을 막지 않는다');
 });
+
+// ── 무전 창 ──────────────────────────────────────────────────────
+// 개선안 여섯을 같은 판정 시퀀스로 재생해 비교한 결과 이게 제일 잘 갈랐다
+// (격차 +43.8 vs baseline +23.7). 무전은 순수한 실력 레버다 — 배급량이 정해져 있고
+// 언제 쓰느냐 말고는 아무것도 요원 마음대로가 아니다.
+test('무전 창 안의 두근거림만 제값을 받는다', async () => {
+  const S = await import('../js/scoring.js');
+  const d = S.diffOf('보통');
+  const J = { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '', flutterKind: '응답' };
+  const flat = { ...J, tier: 'flat', loveDelta: 0 };
+  // 호감·분위기를 똑같이 맞춰두고 **무전 여부만** 다르게 한다.
+  // (그냥 서로 다른 시점끼리 비교하면 호감 포화 차이가 섞여서 배율을 못 잰다)
+  let base = S.initialState(d);
+  for (let i = 0; i < 4; i++) base = S.applyTurn(base, d, flat, {});
+  const withRadio = S.applyTurn(S.applyTurn(base, d, flat, { radioInjected: true }), d, J, {});
+  const without = S.applyTurn(S.applyTurn(base, d, flat, {}), d, J, {});
+  const gIn = withRadio.lastDelta.love;
+  const gOut = without.lastDelta.love;
+  assert.ok(gIn > gOut * 1.8, `창 안과 창 밖이 두 배 가까이 안 갈린다 (${gIn} vs ${gOut})`);
+  const far = without;
+  const onRadio = withRadio;
+  assert.equal(onRadio.history.at(-1).inRadioWindow, true, '창 안 표시가 안 남는다');
+  assert.equal(far.history.at(-1).inRadioWindow, false, '창 밖인데 창 안으로 표시됐다');
+});
+
+test('무전 창은 꽂힌 턴 뒤로 몇 턴 더 열려 있다', async () => {
+  const S = await import('../js/scoring.js');
+  const d = S.diffOf('보통');
+  const J = { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '', flutterKind: '응답' };
+  const flat = { ...J, tier: 'flat', loveDelta: 0 };
+  for (const [gap, want] of [[0, true], [1, true], [2, true], [3, false]]) {
+    let s = S.applyTurn(S.initialState(d), d, flat, { radioInjected: true });
+    for (let i = 0; i < gap; i++) s = S.applyTurn(s, d, flat, {});
+    s = S.applyTurn(s, d, J, {});
+    assert.equal(s.history.at(-1).inRadioWindow, want,
+      `무전 ${gap}턴 뒤가 창 ${want ? '안' : '밖'}이어야 한다`);
+  }
+});
+
+test('규칙 계층에 개선안 스위치가 남아 있지 않다', async () => {
+  const S = await import('../js/scoring.js');
+  assert.equal(S.VARIANT, undefined, 'A/B 스위치가 아직 export돼 있다');
+  const src = await (await import('node:fs/promises')).readFile('js/scoring.js', 'utf8');
+  assert.ok(!/BRS_VARIANT/.test(src), '환경변수 스위치가 코드에 남아 있다');
+});

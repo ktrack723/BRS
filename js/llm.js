@@ -11,6 +11,15 @@ const API_VERSION = '2023-06-01';
 const NO_EFFORT_PREFIXES = ['claude-haiku-'];
 export const supportsEffort = (m) => !NO_EFFORT_PREFIXES.some(p => String(m || '').startsWith(p));
 
+// 모델 id → 단가. 정확 일치 먼저, 없으면 접두사가 가장 긴 항목을 쓴다.
+export function priceOf(model) {
+  const m = String(model || '');
+  if (!m) return null;
+  if (PRICES[m]) return PRICES[m];
+  const hit = Object.keys(PRICES).filter(k => m.startsWith(k)).sort((a, b) => b.length - a.length)[0];
+  return hit ? PRICES[hit] : null;
+}
+
 const PRICES = { // $ per MTok (input, output)
   'claude-opus-5': [5, 25],
   'claude-sonnet-5': [3, 15],
@@ -178,7 +187,10 @@ export class LlmClient {
     const outTok = u.output_tokens || 0;
     const cw = u.cache_creation_input_tokens || 0;
     const cr = u.cache_read_input_tokens || 0;
-    const p = PRICES[data.model] || PRICES[useModel] || [5, 25];
+    // 가격표도 접두사로 본다 — 실제 id에는 날짜가 붙는다(claude-haiku-4-5-20251001).
+    // 정확 일치로 두면 하이쿠 판이 오퍼스 단가로 계산돼서 비용 보고가 통째로 거짓말이 된다
+    // (실측: 하이쿠 12판이 $10.33으로 찍혔다. 실제 단가면 그 1/5쯤이다).
+    const p = priceOf(data.model) || priceOf(useModel) || [5, 25];
 
     this.usage.calls += 1;
     this.usage.inputTokens += inTok;
