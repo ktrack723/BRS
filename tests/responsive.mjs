@@ -46,11 +46,12 @@ const VIEWPORTS = [
   { name: '데스크톱',              w: 1500, h: 1000 },
 ].filter(v => !args.only || `${v.w}x${v.h}` === args.only);
 
-const SCREENS = ['boot', 'intro', 'briefing', 'roster', 'consult', 'chat', 'result'];
+const SCREENS = ['boot', 'intro', 'briefing', 'roster', 'salon', 'interro', 'gate', 'chat', 'result'];
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
 const server = http.createServer((rq, rs) => {
-  const f = path.join(ROOT, rq.url === '/' ? 'index.html' : decodeURIComponent(rq.url.split('?')[0]));
+  const rel = decodeURIComponent(rq.url.split('?')[0]);   // ?pace= 같은 질의는 파일 경로가 아니다
+  const f = path.join(ROOT, rel === '/' ? 'index.html' : rel);
   if (!f.startsWith(ROOT) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { rs.writeHead(404); return rs.end(); }
   rs.writeHead(200, { 'content-type': MIME[path.extname(f)] || 'application/octet-stream' });
   fs.createReadStream(f).pipe(rs);
@@ -61,16 +62,33 @@ function mockLlm() {
   window.__game.llm.call = async ({ label }) => {
     await new Promise(r => setTimeout(r, 1));
     if (label === '본부 인증') return '이상무';
-    if (label === '국장 브리핑') {
-      return '요원. 큐피드국은 도저히 이어질 리 없는 20건을 상시 접수하고 있다. 어인과 사자 퍼리, '
-        + '뱀파이어와 마늘 농장주, 30년 정적끼리. 전부 정상이 아니다. 너는 그들을 이어붙여야 한다. '
-        + '실패하면 출산율은 0.007이 된다. 이상! 건투를 빈다, 요원.';
-    }
     if (label === '스타일링 시공') {
       return {
-        spec: { skin: '#e8d0c0', hair: '#ff8a2b', hairStyle: 'spiky', top: '#dd1122', bottom: '#2a3a4a', shoes: '#7a5a2a', heightScale: 1.02, widthScale: 0.9, accessory: 'sunglasses', accessoryColor: '#111111', expression: 'chad', aura: 'fire', species: 'human' },
-        outfitDesc: '형광 주황으로 물들인 머리에 새빨간 턱시도, 카우보이 부츠, 선글라스를 썼다.',
+        spec: {
+          skin: '#e8d0c0', hair: '#ff8a2b', hairStyle: 'spiky', top: '#dd1122', bottom: '#2a3a4a',
+          shoes: '#7a5a2a', heightScale: 1.02, widthScale: 0.9, accessory: 'sunglasses',
+          accessoryColor: '#111111', expression: 'chad', aura: 'fire', species: 'human',
+          props: [
+            { shape: 'sphere', color: '#1a1a1a', size: 0.35, at: 'handR', motion: 'bob', label: '폭탄' },
+            { shape: 'torus', color: '#ffdd55', size: 0.4, at: 'crown', motion: 'yaw', label: '후광' },
+          ],
+        },
+        outfitDesc: '형광 주황으로 물들인 머리에 새빨간 턱시도, 카우보이 부츠, 선글라스. 오른손에 폭탄을 들었다.',
         comment: '시공 완료. 책임은 안 진다.',
+        clientReaction: '아니 정말 이러라고요? …뭐, 따르겠습니다만. 근데 이 폭탄은 진짜 터지는 건 아니죠?',
+        clientFace: 'cringe',
+      };
+    }
+    if (label === '취조실 반응') {
+      return {
+        reaction: '알겠습니다. 근데 그거 하면 제가 좀 이상해 보이지 않나요? …아니 하겠습니다. 하겠다고요.',
+        face: 'cringe', note: '피조사자 항의 1회. 수용함. 조명 아래 발한 관측됨.',
+      };
+    }
+    if (label === '정문 반응') {
+      return {
+        reaction: '…그 얘기를 어떻게 아셨어요. (문고리를 잡은 채로 한참 서 있다) 다녀오겠습니다.',
+        face: 'shy', note: '동공 흔들림 관측. 사기 상승으로 판단. 출동 승인.',
       };
     }
     return '기타';
@@ -85,6 +103,7 @@ function poseScreens() {
 
   // 대화 화면
   document.querySelector('#chat-phase-label').textContent = `작전 2단계 · 대면 공작 — 네오서울 무한스크롤 카페 「플러그 앤 플레이」`;
+  document.querySelector('#vibe-text').textContent = '상대가 처음으로 정면을 봤다. 규정 얘기는 아직 안 끝났다.';
   const win = document.querySelector('#chat-window');
   win.innerHTML = '';
   const lines = [
@@ -99,15 +118,17 @@ function poseScreens() {
     const d = document.createElement('div');
     d.className = `bubble ${who}`;
     const name = who === 'client' ? c.client.name : who === 'target' ? c.target.name : who === 'radio' ? '본부 무전' : '상황';
-    d.innerHTML = `<span class="who">${esc(name)}</span>${esc(text)}`;
+    d.innerHTML = `<span class="who">${esc(name)}</span><span class="say">${esc(text)}</span>`;
     win.appendChild(d);
   }
+  // 재생 대기 표시도 자리를 차지한다 — 켜 둔 상태로 레이아웃을 본다
+  document.querySelector('#chat-advance').classList.add('on');
   const feed = document.querySelector('#judge-feed');
   feed.innerHTML = '';
   for (const [cls, html] of [
-    ['good', '<b>분위기 +4.4 · 호감 +13.6</b> 급소 관통! 상대가 무너진다<span class="tag hit">미확인 취향 적중</span><span class="tag calc">판정 +9 × 분위기 0.9</span>'],
-    ['meh', '<b>분위기 +0.6 · 호감 +2.7</b> 맥락은 받았다, 결정타는 아니다<span class="tag calc">판정 +3 × 분위기 1.1</span>'],
-    ['bad', '<b>분위기 -13.0 · 호감 -8.2</b> 금지 항목 직격! 상대가 싸늘해졌다<span class="tag red">금지항목 접촉</span>'],
+    ['big', '<b>분위기 +4.4 · 호감 +13.6</b> 방어선이 실제로 내려갔다. 규정 뒤에 숨던 사람이 처음으로 자기 얘기를 했다<span class="tag tier breakthrough">방어선 붕괴</span><span class="tag hit">새로 드러남: 현장에서 3초 센 건 거리 재기가 아니었다</span><span class="tag calc">판정 +9 × 분위기 0.9</span>'],
+    ['good', '<b>분위기 +0.6 · 호감 +2.7</b> 맥락은 받았다. 상대도 싫지는 않은 눈치다<span class="tag tier nudge">조금 통함</span><span class="tag calc">판정 +3 × 분위기 1.1</span>'],
+    ['bad', '<b>분위기 -13.0 · 호감 -8.2</b> 정색했다. 이 자리에서 할 얘기가 아니었다<span class="tag tier disaster">정색</span><span class="tag calc">판정 -8 × 분위기 1.0</span>'],
   ]) {
     const d = document.createElement('div'); d.className = `judge-line ${cls}`; d.innerHTML = html; feed.appendChild(d);
   }
@@ -121,11 +142,11 @@ function poseScreens() {
   document.querySelector('#hud-mult').textContent = '분위기 배율 ×1.1';
   document.querySelector('#hud-diff').textContent = `난이도 ${c.difficulty} · 성공선 52`;
   document.querySelector('#btn-intervene').textContent = '무전 개입 (잔여 2)';
-  document.querySelector('#intel-count').textContent = '4 / 5건 파악';
+  document.querySelector('#intel-count').textContent = '대화 중 2건';
   document.querySelector('#intel-list').innerHTML =
-    c.target.visiblePrefs.map(p => `<li class="known">${esc(p)}</li>`).join('')
-    + `<li class="found">미확인 취향 — 적중 (종료 후 기밀 해제)</li><li class="unknown">미확인 취향 — 미파악</li><li class="unknown">미확인 취향 — 미파악</li>`;
-  document.querySelector('#redline-count').textContent = '위반 1회';
+    c.target.visiblePrefs.map(p => `<li class="known">${esc(p)} <span class="dim">(사전 통보)</span></li>`).join('')
+    + `<li class="found">현장에서 3초 센 건 거리 재기가 아니었다</li>`
+    + `<li class="found">사람 머리 냄새에 이상하게 예민하다</li>`;
   document.querySelector('#redline-list').innerHTML = c.target.redLines.map(p => `<li class="mine">${esc(p)}</li>`).join('');
 
   // 결과 화면
@@ -140,20 +161,22 @@ function poseScreens() {
   document.querySelector('#result-epilogue').textContent = '— 에필로그: 둘은 듀얼 부팅 커플이 되었다.';
   document.querySelector('#debrief-summary').textContent = '호감 62/52 — 성공선을 10점 넘겼다.';
   document.querySelector('#debrief-list').innerHTML = [
-    ['미확인 취향 확보', '3 / 3건', '전부 확보했다. 이건 요원의 실력이다.'],
-    ['접촉 금지 위반', '0회', '금지 항목 접촉 없음.'],
+    ['상대에 대해 알아낸 것', '3건', '현장에서 3초 센 건 거리 재기가 아니었다 · 사람 머리 냄새에 예민하다 · 규정을 방패로 쓴다'],
+    ['상대가 감춰둔 이야기', '2 / 3건 화제에 오름', '일부는 나왔고 일부는 끝내 안 나왔다.'],
+    ['상대가 식은 턴', '1턴', '1턴에서 상대가 물러섰다. 판이 뒤집힌 순간은 1회.'],
     ['무전 개입', '1 / 3회', '개입권이 남은 채로 끝났다.'],
     ['발언 성적', '호재 8 / 악재 2턴', '최고의 한마디는 3턴(호감 +14.6), 최악은 6턴(-0.5).'],
   ].map(([n, v, t]) => `<li class="ok"><b>${n}</b> <span class="dscore">${v}</span><br><span class="dim">${t}</span></li>`).join('');
   document.querySelector('#debrief-prefs').innerHTML =
     c.target.visiblePrefs.map(p => `<li class="known">${esc(p)} <span class="dim">(사전 통보)</span></li>`).join('')
-    + c.target.hiddenPrefs.map(p => `<li class="found">${esc(p)} <span class="dim">(작전 중 확보)</span></li>`).join('');
+    + c.target.hiddenPrefs.slice(0, 2).map(p => `<li class="found">${esc(p)} <span class="dim">(대화에서 화제에 올랐다)</span></li>`).join('')
+    + c.target.hiddenPrefs.slice(2).map(p => `<li class="missed">${esc(p)} <span class="dim">(끝내 안 나왔다)</span></li>`).join('');
   document.querySelector('#debrief-turns').innerHTML =
-    '<div class="turn-table-wrap"><table class="turn-table"><tr><th>턴</th><th>분위기</th><th>호감</th><th>누적 호감/분위기</th><th>판정</th></tr>'
+    '<div class="turn-table-wrap"><table class="turn-table"><tr><th>턴</th><th>분위기</th><th>호감</th><th>누적 호감/분위기</th><th>해설</th></tr>'
     + Array.from({ length: 10 }, (_, i) =>
       `<tr class="${i % 3 ? 'good' : ''}"><td>${i + 1}${i === 4 ? '·착장' : ''}</td><td>+4.4</td>`
-      + `<td>+13.6 <span class="dim">[critical] +9×0.9</span></td><td>51 / 59</td>`
-      + `<td>급소 관통! 상대가 무너진다</td></tr>`).join('')
+      + `<td>+13.6 <span class="dim">[breakthrough] +9×0.9</span></td><td>51 / 59</td>`
+      + `<td>방어선이 실제로 내려갔다. 규정 뒤에 숨던 사람이 처음으로 자기 얘기를 했다</td></tr>`).join('')
     + '</table></div>';
   document.querySelector('#btn-retry').classList.remove('hidden');
   document.querySelector('#btn-restart').classList.remove('hidden');
@@ -262,12 +285,14 @@ const problems = [];
 const page = await browser.newPage({ viewport: { width: 1500, height: 1000 } });
 page.on('pageerror', e => problems.push({ vp: '-', screen: '-', kind: 'JS 오류', detail: String(e).slice(0, 120) }));
 
-await page.goto(`http://127.0.0.1:${PORT}/`, { waitUntil: 'networkidle' });
+await page.goto(`http://127.0.0.1:${PORT}/?pace=instant`, { waitUntil: 'networkidle' });
 await page.waitForFunction(() => window.__game && window.__game.COUPLES);
 await page.evaluate(mockLlm);
 await page.evaluate(installContrast);
 
 // 게임을 대화/결과 화면 상태까지 끌어올린다 (실제 흐름으로 진입해야 내용이 진짜다)
+await page.fill('#agent-name', '박큐피드');
+await page.fill('#agent-gender', '기밀');
 await page.fill('#key-input', 'sk-ant-fake');
 await page.click('#btn-boot');
 await page.waitForSelector('#screen-intro:not(.hidden)', { timeout: 20000 });
@@ -280,12 +305,23 @@ await page.evaluate(() => {
   [...document.querySelectorAll('.couple-card')].find(el => el.textContent.includes(t.client.name))
     .querySelector('.cc-take').click();
 });
-await page.waitForSelector('#screen-consult:not(.hidden)', { timeout: 15000 });
-await page.fill('#styling-input', '형광 주황색으로 염색, 새빨간 턱시도, 카우보이 부츠, 선글라스');
+// ① 미용실
+await page.waitForSelector('#screen-salon:not(.hidden)', { timeout: 15000 });
+await page.fill('#styling-input', '형광 주황색으로 염색, 새빨간 턱시도, 카우보이 부츠, 선글라스, 오른손에 폭탄');
 await page.click('#btn-styling');
-await page.waitForFunction(() => (document.querySelector('#styling-result')?.textContent || '').length > 5, null, { timeout: 30000 });
-await page.fill('#coaching-input', '상대가 말끝을 흐리면 반드시 물고 늘어져라. "I use Arch btw"는 절대 입 밖에 내지 마라. 리눅스 설치 권유는 금지다.');
+await page.waitForSelector('#styling-result .react-outfit', { timeout: 30000 });
+// ② 취조실
+await page.click('#btn-salon-next');
+await page.waitForSelector('#screen-interro:not(.hidden)', { timeout: 15000 });
+await page.fill('#coaching-input', '상대가 말을 아끼면 그냥 넘어가지 말고 한 번 더 물어라. "I use Arch btw"는 절대 입 밖에 내지 마라. 리눅스 설치 권유는 금지다.');
+await page.click('#btn-coaching');
+await page.waitForSelector('#coaching-result .react-line', { timeout: 30000 });
+// ③ 정문
+await page.click('#btn-interro-next');
+await page.waitForSelector('#screen-gate:not(.hidden)', { timeout: 15000 });
 await page.fill('#speech-input', '컨퍼런스에서 장내가 얼어붙었을 때 너 혼자 심장이 얼어붙었다며. 그 온도차를 아는 사람은 너뿐이야. 오늘은 그걸 말로 해.');
+await page.click('#btn-speech');
+await page.waitForSelector('#speech-result .react-line', { timeout: 30000 });
 await page.evaluate(poseScreens);
 
 console.log(`\n📐 반응형 감사 — ${VIEWPORTS.length}개 뷰포트 × ${SCREENS.length}개 화면\n`);

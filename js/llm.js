@@ -5,8 +5,20 @@
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const API_VERSION = '2023-06-01';
 
-// effort 파라미터를 지원하지 않는 모델
-const NO_EFFORT_MODELS = new Set(['claude-haiku-4-5']);
+// effort 파라미터를 지원하지 않는 모델.
+// **접두사로 본다** — 실제 id에는 날짜가 붙는다(claude-haiku-4-5-20251001).
+// 정확 일치로 두면 그 날짜 붙은 id가 안 걸려서 전 호출이 invalid_request_error로 죽는다.
+const NO_EFFORT_PREFIXES = ['claude-haiku-'];
+export const supportsEffort = (m) => !NO_EFFORT_PREFIXES.some(p => String(m || '').startsWith(p));
+
+// 모델 id → 단가. 정확 일치 먼저, 없으면 접두사가 가장 긴 항목을 쓴다.
+export function priceOf(model) {
+  const m = String(model || '');
+  if (!m) return null;
+  if (PRICES[m]) return PRICES[m];
+  const hit = Object.keys(PRICES).filter(k => m.startsWith(k)).sort((a, b) => b.length - a.length)[0];
+  return hit ? PRICES[hit] : null;
+}
 
 const PRICES = { // $ per MTok (input, output)
   'claude-opus-5': [5, 25],
@@ -15,6 +27,41 @@ const PRICES = { // $ per MTok (input, output)
 };
 const CACHE_WRITE_MULT = 1.25;  // 캐시 기록은 입력 단가의 1.25배
 const CACHE_READ_MULT = 0.1;    // 캐시 적중은 0.1배
+
+// 구조화 출력(output_config.format.schema)이 받지 않는 JSON Schema 키워드.
+// 하나라도 섞이면 400 invalid_request_error가 나면서 그 화면이 통째로 멈춘다
+// (예: "For 'array' type, property 'maxItems' is not supported").
+// 스키마 쪽에서 안 쓰는 게 원칙이지만, 하나 흘러들었다고 게임이 서면 안 되니 보내기 직전에 걷어낸다.
+// 개수·길이 상한 같은 건 프롬프트로 지시하고 실제 강제는 파싱 후 sanitize 단계가 한다.
+const UNSUPPORTED_SCHEMA_KEYS = new Set([
+  'maxItems', 'minItems', 'uniqueItems', 'contains', 'maxContains', 'minContains',
+  'maxLength', 'minLength', 'pattern', 'format',
+  'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf',
+  'maxProperties', 'minProperties', 'patternProperties', 'propertyNames',
+  'default', 'examples', 'deprecated', 'readOnly', 'writeOnly',
+]);
+
+// properties / $defs 아래의 키는 키워드가 아니라 '필드 이름'이다.
+// 하필 이름이 format이나 pattern인 필드를 지우면 안 되니, 이 자리에서는 걸러내지 않는다.
+const SCHEMA_NAME_MAPS = new Set(['properties', '$defs', 'definitions']);
+
+// 스키마를 재귀로 훑어 지원되지 않는 키워드만 제거한 사본을 만든다. 원본은 건드리지 않는다.
+export function stripUnsupportedSchemaKeys(node) {
+  if (Array.isArray(node)) return node.map(n => stripUnsupportedSchemaKeys(n));
+  if (!node || typeof node !== 'object') return node;
+  const out = {};
+  for (const [k, v] of Object.entries(node)) {
+    if (UNSUPPORTED_SCHEMA_KEYS.has(k)) continue;
+    if (SCHEMA_NAME_MAPS.has(k) && v && typeof v === 'object' && !Array.isArray(v)) {
+      const inner = {};
+      for (const [name, sub] of Object.entries(v)) inner[name] = stripUnsupportedSchemaKeys(sub);
+      out[k] = inner;
+      continue;
+    }
+    out[k] = stripUnsupportedSchemaKeys(v);
+  }
+  return out;
+}
 
 export class RefusalError extends Error {
   constructor(msg) { super(msg || 'LLM이 이 요청을 정중히 거절했다'); this.name = 'RefusalError'; }
@@ -41,8 +88,24 @@ export class LlmClient {
     return [block];
   }
 
+  // 마지막 사용자 메시지를 블록 형태로 바꿔 캐시 breakpoint를 단다. 원본은 건드리지 않는다.
+  #cacheTail(messages) {
+    if (!messages?.length) return messages;
+    const out = messages.slice();
+    for (let i = out.length - 1; i >= 0; i--) {
+      const m = out[i];
+      if (m.role !== 'user' || typeof m.content !== 'string') continue;
+      out[i] = { role: m.role, content: [{ type: 'text', text: m.content, cache_control: { type: 'ephemeral' } }] };
+      break;
+    }
+    return out;
+  }
+
   // 핵심 진입점. schema를 주면 구조화 JSON, 없으면 텍스트를 반환한다.
-  //   cache=true  → system 블록에 캐시 breakpoint를 건다 (턴마다 재사용되는 에이전트용)
+  //   cache=true  → system 블록 + **마지막 사용자 메시지**에 캐시 breakpoint를 건다.
+  //     대화 에이전트는 턴마다 같은 히스토리 접두사를 다시 보낸다 — 메시지에 breakpoint를
+  //     안 걸면 그 접두사가 매 턴 비캐시 입력으로 재과금된다(실측: 판당 비캐시 190k tok).
+  //     breakpoint는 굴러가며 따라온다: 이번 턴의 마지막 메시지가 다음 턴의 접두사다.
   //   model       → 이 호출만 다른 모델로 (심판처럼 기계적인 판정을 싸게 돌릴 때)
   async call({ label, system, messages, schema = null, effort = 'low', maxTokens = 4000, cache = false, model = null }) {
     if (!this.apiKey) throw new Error('API 키 없음: 하네스 미가동');
@@ -50,14 +113,14 @@ export class LlmClient {
     const body = {
       model: useModel,
       max_tokens: maxTokens,
-      messages,
+      messages: cache ? this.#cacheTail(messages) : messages,
     };
     const sys = this.#systemBlocks(system, cache);
     if (sys) body.system = sys;
 
     const outputConfig = {};
-    if (!NO_EFFORT_MODELS.has(useModel)) outputConfig.effort = effort;
-    if (schema) outputConfig.format = { type: 'json_schema', schema };
+    if (supportsEffort(useModel)) outputConfig.effort = effort;
+    if (schema) outputConfig.format = { type: 'json_schema', schema: stripUnsupportedSchemaKeys(schema) };
     if (Object.keys(outputConfig).length) body.output_config = outputConfig;
 
     const entry = { label, model: useModel, at: Date.now(), request: body, status: 'pending' };
@@ -140,7 +203,10 @@ export class LlmClient {
     const outTok = u.output_tokens || 0;
     const cw = u.cache_creation_input_tokens || 0;
     const cr = u.cache_read_input_tokens || 0;
-    const p = PRICES[data.model] || PRICES[useModel] || [5, 25];
+    // 가격표도 접두사로 본다 — 실제 id에는 날짜가 붙는다(claude-haiku-4-5-20251001).
+    // 정확 일치로 두면 하이쿠 판이 오퍼스 단가로 계산돼서 비용 보고가 통째로 거짓말이 된다
+    // (실측: 하이쿠 12판이 $10.33으로 찍혔다. 실제 단가면 그 1/5쯤이다).
+    const p = priceOf(data.model) || priceOf(useModel) || [5, 25];
 
     this.usage.calls += 1;
     this.usage.inputTokens += inTok;

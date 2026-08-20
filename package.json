@@ -1,15 +1,18 @@
 {
   "name": "cupid-2077",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
   "description": "연애조작단 2077 — three.js + Claude API B급 병맛 LLM 데이팅 공작 게임 (GitHub Pages 정적 사이트)",
   "scripts": {
-    "test": "node --test tests/scoring.test.mjs tests/engine.test.mjs",
+    "test": "node --test tests/scoring.test.mjs tests/engine.test.mjs tests/schema.test.mjs tests/pacing.test.mjs tests/sheets.test.mjs tests/orders.test.mjs",
     "browser": "node tests/browser.mjs",
     "responsive": "node tests/responsive.mjs",
     "live": "node tests/live.mjs",
     "sim": "node tests/sim.mjs",
-    "serve": "python3 -m http.server 8000"
+    "serve": "python3 -m http.server 8000",
+    "graph": "node tests/graph.mjs",
+    "audit": "bash tests/audit.sh",
+    "limits": "node tests/limits.mjs"
   }
 }
