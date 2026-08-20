@@ -95,7 +95,6 @@ export class Engine {
       bouts: s.bouts, pendingExchanges: this.boutBuf.length,
       // 공기가 실제로 의뢰인에게 닿는가. 안 닿는 사람이 있다.
       air: this.couple.client.keys.air,
-      vibeDelivered: this.vibeSent.client,
       turn: s.exchanges, phase: this.phase,
       turnsTotal, turnsLeft: Math.max(0, turnsTotal - this.phaseTurn),
     };
@@ -249,7 +248,8 @@ export class Engine {
       `${c.client.name}: ${x.c}`,
       `${c.target.name}: ${x.t}`,
     ]).join('\n');
-    const tag = `${phase === 'text' ? '문자' : '대면'} ${this.state.bouts + 1 + (this.pendingJudge ? 1 : 0)}합`;
+    // #fireJudge는 pendingJudge가 없을 때만 불린다 — 다음 합 번호는 언제나 bouts+1이다.
+    const tag = `${phase === 'text' ? '문자' : '대면'} ${this.state.bouts + 1}합`;
     const promise = this.llm.call({
       label: `판정 ${tag}`, system: P.judgeSystem(this.couple), cache: true,
       messages: [{ role: 'user', content: P.judgeUser(this.#context(bout), boutLines, this.tierLog) }],
@@ -272,12 +272,11 @@ export class Engine {
     this.pendingJudge = null;
     const judge = await pj.promise;
     // 심판이 꼬리를 다음 합으로 잘랐다 — 마지막 페이즈 정산이면 자를 다음이 없다.
+    // 합 전체를 넘기려 들면(carry ≥ 합 크기) 무시한다 — 판정 없는 합이 생기면 안 된다.
     const carry = pj.final ? 0 : Math.max(0, Math.min(S.BOUT.carryMax, Math.round(judge.carry || 0)));
-    if (carry > 0 && carry < pj.bout.length) {
-      this.boutBuf.unshift(...pj.bout.slice(-carry));
-    }
-    const judged = pj.bout.length - (carry < pj.bout.length ? carry : 0);
-    await this.#applyJudge(judge, { exchanges: judged });
+    const back = carry < pj.bout.length ? carry : 0;
+    if (back > 0) this.boutBuf.unshift(...pj.bout.slice(-back));
+    await this.#applyJudge(judge, { exchanges: pj.bout.length - back });
     return this.aborted;
   }
 

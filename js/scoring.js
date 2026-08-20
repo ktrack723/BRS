@@ -47,7 +47,6 @@ export const DIFFICULTIES = {
 // size: 미채점 교환이 이만큼 쌓이면 심판을 부른다 ("서로 대여섯 마디").
 // carryMax: 심판이 "마지막 n교환은 다음 합의 시작"이라고 잘라 넘길 수 있는 최대치.
 //           합의 경계는 심판이 나눈다 — 규칙은 상한만 지킨다.
-// minJudge: 페이즈가 끝날 때 이 미만의 잔여 교환은 직전 합에 얹지 않고 그냥 채점한다.
 export const BOUT = { size: 5, carryMax: 2 };
 
 // 자리 연장/조기 종료 — 합 단위. 심판이 매 합 끝에 keepGoing을 답한다.

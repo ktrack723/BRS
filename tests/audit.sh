@@ -17,7 +17,7 @@ chk "의뢰인·상대가 완전히 동일한 카테고리를 가진다 (검증�
 chk "want/urge/nerve/regard가 제거됐다" "! grep -qE 'flaw\\.want|\\.urge|\\.nerve|\\.regard' js/prompts.js js/engine.js js/game.js"
 chk "만남+아젠다가 relation 하나로 묶였다" "node -e \"import('./js/couples.js').then(m=>process.exit(m.COUPLES.every(c=>c.relation&&c.relation.includes('현안'))?0:1))\""
 chk "성향이 전원에게 있다 — 상대만 있는 게 아니다" "node -e \"import('./js/couples.js').then(m=>process.exit(m.COUPLES.every(c=>c.client.prefs.length>=3&&c.target.prefs.length>=3)?0:1))\""
-chk "의뢰인 성향은 미공개분까지 요원에게 전부 보인다" "grep -q 'mine: couple.client.prefs' js/couples.js && grep -q '미공개분 포함 전부' js/game.js"
+chk "의뢰인 성향은 미공개분까지 요원에게 전부 보인다" "grep -q 'sheetHtml(c.client, { mine: true })' js/game.js && grep -q '미공개분 포함 전부' js/game.js"
 chk "특별 키워드 5종 (상대관심·공기읽기·명령수용·조건반사·어긋남)" "grep -q \"KEYS = \\['interest', 'air', 'comply', 'reflex', 'wreck'\\]\" tests/sheets.test.mjs"
 
 echo

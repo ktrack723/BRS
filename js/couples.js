@@ -2785,7 +2785,7 @@ export const KEY_LABELS = {
     drifts: { tag: '한 번만 이행', desc: '한 번 하고 나면 원래 하던 얘기로 돌아간다. 같은 지침을 다시 쓸 각오를 해라.' },
   },
 };
-export const KEY_SEVERITY = {
+const KEY_SEVERITY = {
   air: { well: 'ok', some: 'mid', none: 'bad' },
   interest: { other: 'ok', mixed: 'mid', self: 'bad' },
   comply: { obeys: 'ok', argues: 'mid', drifts: 'bad' },
@@ -2839,18 +2839,11 @@ for (const c of COUPLES) {
 
 export const COUPLE_BY_ID = Object.fromEntries(COUPLES.map(c => [c.id, c]));
 
-// 난이도별 개수 (UI 필터용)
-export function countByDifficulty() {
-  const out = {};
-  for (const c of COUPLES) out[c.difficulty] = (out[c.difficulty] || 0) + 1;
-  return out;
-}
-
-// 의뢰서에 노출할 성향. **의뢰인은 전부, 상대는 공개분만 + 미공개 개수.**
+// 의뢰서에 노출할 **상대 쪽** 성향 요약 — 공개분·지뢰·미공개 개수.
+// 의뢰인 성향은 요약이 필요 없다: 요원에게는 전부 공개라 client.prefs를 그대로 그린다(sheetHtml).
 export function dossierPrefs(couple) {
   const t = couple.target;
   return {
-    mine: couple.client.prefs,
     open: t.prefs.filter(p => p.open && !p.neg).map(p => p.t),
     neg: t.prefs.filter(p => p.open && p.neg).map(p => p.t),
     hiddenCount: t.prefs.filter(p => !p.open).length,

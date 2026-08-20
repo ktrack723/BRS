@@ -2077,24 +2077,24 @@ LLM 호출 지점: 착장 시공 · 취조실 반응 · 정문 반응 · 의뢰�
 ## 🧪 테스트
 
 ```bash
-npm test              # 규칙 + 하네스 + 스키마 회귀 테스트 87개 (LLM 불필요, 0.3초)
+npm test              # 규칙 + 하네스 + 스키마 회귀 테스트 (LLM 불필요, 0.3초)
+npm run audit         # 프롬프트·데이터 정적 감사 (절대 금지 항목 포함)
 npm run browser       # 실제 브라우저 E2E (가짜 LLM, API 키·크레딧 불필요)
 npm run responsive    # 9개 뷰포트 × 전 화면 레이아웃 감사 (아이패드 전 기종 포함)
 
-node tests/sim.mjs --montecarlo                             # 실측 분포 기반 밸런싱 (API 0회)
-ANTHROPIC_API_KEY=sk-... npm run live                       # 실제 API로 끝까지 플레이하는 밸런싱 하네스
-ANTHROPIC_API_KEY=sk-... npm run browser -- --live          # 실제 API로 브라우저 E2E
-node tests/sim.mjs /tmp/live-results.json --grid --tune      # 기록된 판정 오프라인 리플레이 (API 0회)
+ANTHROPIC_API_KEY=sk-... npm run live                # 실제 API로 끝까지 플레이하는 밸런싱 하네스
+ANTHROPIC_API_KEY=sk-... npm run browser -- --live   # 실제 API로 브라우저 E2E
+node tests/sim.mjs <live결과.json> --grid            # 기록된 합 판정 오프라인 리플레이 (API 0회)
 ```
 
-### ⚠ 라이브 테스트는 Sonnet만 쓴다 — `tests/test-model.mjs`
+### ⚠ 라이브 테스트는 Haiku만 쓴다 — `tests/test-model.mjs`
 
-Opus로 밸런싱 한 라운드(20판)를 돌리면 **$6.6**가 나간다. 기본 크레딧이 $10 수준이라
-두 라운드를 못 버틴다(실제로 한 번 소진됐다). 테스트는 "규칙이 의도대로 갈리는가"를 보는 것이지
-최고 품질의 연기를 보는 게 아니므로 Sonnet으로 충분하다.
+Opus로 밸런싱 한 라운드(20판)를 돌리면 **$6.6**가 나간다. Sonnet으로 내려도 12판에 $6.6였다.
+테스트는 "규칙이 의도대로 갈리는가"를 보는 것이지 최고 품질의 연기를 보는 게 아니므로
+Haiku로 충분하다. 단, 절대 점수는 모델마다 다르다 — Haiku 실측치는 A/B 비교용이다.
 
 그래서 모델 선택을 **한 파일에서 강제**한다. `tests/live.mjs`와 `tests/browser.mjs --live`가
-모두 `resolveTestModel()`을 통과해야 하고, Sonnet 계열이 아니면 종료코드 1로 막힌다.
+모두 `resolveTestModel()`을 통과해야 하고, Haiku/Sonnet 계열이 아니면 종료코드 1로 막힌다.
 게임 본체(`js/`)의 기본 모델은 Opus 5 그대로다 — 이 강제는 테스트 전용이다.
 
 | 테스트 | 검증 대상 | API |
@@ -2107,7 +2107,7 @@ Opus로 밸런싱 한 라운드(20판)를 돌리면 **$6.6**가 나간다. 기�
 | `tests/graph.mjs` | 정보 흐름 그래프를 프롬프트에서 직접 뽑는다 (`npm run graph`). 죽은 간선·비대칭 위반·조건부 간선 감사 | ❌ |
 | `tests/sheets.test.mjs` | 캐릭터 시트 — 규격·중복·아바타 어휘, 하자 값 쏠림, **욕망 3단**(want/urge/nerve) 존재와 편중, 성별 커버리지, **지시문 영문화와 출력 언어 고정**, **장소 자유도** | ❌ |
 | `tests/live.mjs` | 실제 플레이로 밸런싱 데이터 수집 | ✅ |
-| `tests/sim.mjs` | 판정 스트림 리플레이 + 상수 탐색 + 몬테카를로 | ❌ |
+| `tests/sim.mjs` | 기록된 합 판정 스트림 리플레이 + `--grid` 상수 탐색 | ❌ |
 
 브라우저 E2E는 `window.__game.llm.call`을 페이지 안에서 바꿔치기한다.
 DOM·CSS·three.js·게임 흐름은 전부 진짜로 돌아가고 LLM만 결정적으로 대체되므로,
@@ -2183,4 +2183,5 @@ want/urge/nerve(욕망 3단)·regard(들고 온 것)·barrier·collision은 **�
 다시 박는 배치(마지막 지시가 이긴다), 회사원 0점 기준선. 압축하면서 가드레일을 새로
 섞어 넣지 않았다 — 감사 항목이 그걸 지킨다.
 
-테스트 113 · 감사 61 항목이 새 모델 기준으로 전부 통과한다.
+테스트 112 · 감사 62 항목이 새 모델 기준으로 전부 통과하고, 브라우저 E2E와
+9뷰포트 반응형 감사도 새 체계 기준으로 초록이다 (가짜 LLM — API 0회).

@@ -69,12 +69,14 @@ test('전원이 성향을 가진다 — 상대만 성향 있는 게 아니다', 
   }
 });
 
-test('의뢰인 성향은 요원에게 전부 보인다', () => {
+test('의뢰서의 상대 요약이 정확하다 — 공개·지뢰·미공개 개수', () => {
   for (const c of COUPLES) {
     const dp = dossierPrefs(c);
-    assert.equal(dp.mine.length, c.client.prefs.length, `${c.id}: 의뢰인 성향이 가려졌다`);
+    assert.equal(dp.open.length, c.target.prefs.filter(p => p.open && !p.neg).length);
     assert.equal(dp.hiddenCount, c.target.prefs.filter(p => !p.open).length);
     assert.ok(dp.neg.length >= 1, `${c.id}: 상대 지뢰가 의뢰서에 없다`);
+    // 의뢰인 쪽은 요약이 없다 — 요원에게 전부 공개라 client.prefs가 그대로 화면에 간다.
+    assert.equal(dp.mine, undefined, '의뢰인 성향 요약 필드는 죽은 API다. 되살리지 마라');
   }
 });
 

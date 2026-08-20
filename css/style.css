@@ -98,8 +98,8 @@ body {
 }
 
 /* 데이터·수치는 등폭. 표와 게이지 숫자가 흔들리지 않는다 */
-code, pre, .mono, .meter-num, .dscore, .turn-table, .inject-code,
-.cc-meta, .diff-detail, .briefing-text, #console-panel, .classif, .doc-no, .fld,
+code, pre, .meter-num, .dscore, .turn-table, .inject-code,
+.cc-meta, .diff-detail, .briefing-text, #console-panel, .classif, .doc-no,
 .result-grade, .turn-badge {
   font-family: var(--font-mono);
   font-feature-settings: "tnum" 1;
@@ -313,10 +313,6 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
   text-align: center; color: #a9b6c4; font-size: var(--fs-sm);
   margin: 0 auto var(--s5); max-width: 46em;
 }
-.blink { animation: blink 1.8s steps(2) infinite; }
-@keyframes blink { 50% { opacity: .25; } }
-@media (prefers-reduced-motion: reduce) { .blink { animation: none; } }
-
 .boot-panel { max-width: 620px; margin: 0 auto; }
 .boot-panel label { margin-top: var(--s3); }
 #screen-boot > .dim { text-align: center; color: #8798a8; }
@@ -350,7 +346,6 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 .slide-art .a-bub-t { fill: var(--dlg-lit); stroke: var(--stamp); stroke-width: 2; }
 .slide-art .a-line  { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
 .slide-art .a-dash  { fill: none; stroke: var(--ink-soft); stroke-width: 2.5; stroke-dasharray: 7 5; }
-.slide-art .a-thr   { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-dasharray: 5 4; }
 .slide-art .a-crack,
 .slide-art .a-block { fill: none; stroke: var(--stamp); stroke-width: 4.5; stroke-linejoin: round; stroke-linecap: round; }
 .slide-art .a-scribble { fill: none; stroke: var(--ink-soft); stroke-width: 3.5; stroke-linejoin: round; stroke-linecap: round; }
@@ -373,9 +368,6 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
   border: 1px solid var(--dlg-edge); cursor: pointer;
 }
 .intro-dots .dot.on { background: var(--stamp); border-color: var(--stamp-deep); }
-.intro-prefetch { margin: var(--s3) 0 0; font-size: var(--fs-xs); color: var(--ink-soft); text-align: right; }
-.intro-prefetch.ok { color: var(--ok); font-weight: 500; }
-.intro-prefetch.bad { color: #6f3628; font-weight: 500; }
 
 /* ══════════════════════════════════════════════════════════
    브리핑
@@ -647,10 +639,6 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
   margin: 0 0 var(--s2); font-size: var(--fs-xs); color: var(--ink-soft);
   display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap;
 }
-.fld {
-  font-family: var(--font-mono); font-size: var(--fs-xs); font-weight: 500; letter-spacing: .06em;
-  color: var(--paper); background: var(--ink-mid); padding: 2px var(--s2);
-}
 .prep-tag {
   margin-left: auto; font-size: var(--fs-xs); font-family: var(--font-mono);
   padding: 2px var(--s2); background: #fff; border: 1px solid var(--dlg-edge);
@@ -722,11 +710,10 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
   font-size: var(--fs-xs); padding: 3px var(--s2);
   background: #fff; border: 1px solid var(--dlg-edge); color: var(--ink-mid);
 }
-.hud-chip.good { border-color: var(--ok); background: #e5eade; color: #24401f; }
 .hud-chip.bad { border-color: var(--stamp); background: #f0e0dd; color: #6b1519; }
 #btn-intervene { width: 100%; }
 .hud-intel h4 { display: flex; justify-content: space-between; gap: var(--s2); }
-#intel-count, #redline-count { font-weight: 400; font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-mid); }
+#intel-count { font-weight: 400; font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-mid); }
 #intel-list, #redline-list { margin: 0; padding-left: 18px; font-size: var(--fs-sm); }
 #intel-list .known { color: var(--ok); }
 #intel-list .found { color: var(--file); font-weight: 600; }
@@ -1067,7 +1054,6 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
   .couple-card:hover { transform: none; }
 }
 
-/* 인쇄 (기밀문서를 출력하려는 요원을 위해) */
 /* ══════════════════════════════════════════════════════════
    정보 공개층 — 심리 감정 · 인계 경고 · 공기 도달 여부
    flaw는 게임을 지배하는 데이터인데 여태 화면에 한 글자도 없었다.
@@ -1077,7 +1063,6 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
   background: #eef1e9; border: 1px solid var(--dlg-edge); border-left: 4px solid var(--file);
 }
 .flaw-box h4 { margin: 0 0 var(--s2); font-size: var(--fs-sm); letter-spacing: .04em; }
-.flaw-want { margin: 0 0 var(--s2); font-size: var(--fs-sm); line-height: 1.6; }
 .flaw-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
 .flaw-list li {
   display: grid; grid-template-columns: 6em auto; gap: 4px var(--s2);
@@ -1098,25 +1083,9 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 .flaw-tag.lv-bad { border-color: var(--stamp); background: #f0e0dd; color: #6b1519; }
 /* 대화 불능 — 결함 축과 다른 색이어야 한다. 이건 성향이 아니라 출력 형태다 */
 .flaw-tag.wreck { border-color: #5a3f7a; background: #ece4f2; color: #3d2755; }
-/* 두근거림 종류 — 어느 기제가 밀었는지. 뒤집힌 밀당은 붉게 */
-.turn-table .tt-stall { color: #5b6b7a; margin-left: 3px; font-weight: 700; }
-
-/* 상대가 들고 오는 것 — 지뢰(붉은색)와 다르다. 이건 피할 것이 아니라 겨눌 것이다 */
-.regard-box {
-  margin: var(--s2) 0 0; padding: var(--s1) var(--s2);
-  border: 1px solid #5a3f7a; border-left-width: 4px; background: #f4f0f8;
-}
 .flaw-list li.lv-high { border-left-color: #5a3f7a; }
 
 /* 로스터 카드 하단 결함 배지 — 조합을 고르기 전에 보여야 한다 */
-/* 대장 카드의 장벽 한 줄 — 맡기 전에 보여야 한다. 의뢰서를 안 열어보는 플레이어가 대부분이다. */
-.cc-barrier {
-  margin: var(--s1) 0 0; padding: 4px var(--s1);
-  border-left: 3px solid var(--stamp); background: #f5e9e7;
-  font-size: var(--fs-xs); line-height: 1.45; color: var(--ink-mid);
-}
-.cc-barrier b { color: var(--stamp-deep); }
-
 .cc-flaws { display: flex; flex-wrap: wrap; gap: 4px; margin: var(--s2) 0 0; }
 
 /* 요원은 아는데 의뢰인은 모르는 정보. 이 경계가 이 게임의 핵심이다 */
@@ -1174,37 +1143,7 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 }
 
 
-/* 둘 사이의 현안 — 성사를 막지는 않는다. 밀당에서 제일 무거운 화제다.
-   지뢰(붉은색)와 구분되게 서류 청색 계열로 둔다. 위험이 아니라 소재다. */
-.barrier {
-  margin: var(--s2) 0 0;
-  padding: var(--s1) var(--s2);
-  border: 1px solid var(--file);
-  border-left-width: 4px;
-  background: #e6ecf4;
-  font-size: var(--fs-sm);
-  line-height: 1.55;
-}
-.barrier b { color: var(--file); }
-
-/* 지뢰선 경고 — 이 게임에서 요원이 제일 먼저 읽어야 하는 한 줄.
-   의뢰인의 조건반사가 상대의 어느 지뢰를 밟는지 알려준다. 붉은 계열은 「질색」 목록과 맞춘다. */
-.tripwire {
-  margin: var(--s2) 0 0;
-  padding: var(--s1) var(--s2);
-  border: 1px solid var(--alert);
-  border-left-width: 4px;
-  background: #f4e6e4;
-  font-size: var(--fs-sm);
-  line-height: 1.55;
-}
-.tripwire b { color: var(--alert); }
-/* 취조실 요약 카드는 어두운 바탕이다. 같은 규칙을 쓰면 글자가 안 보인다.
-   .dim은 밝은 바탕 기준(--ink-soft)이라 여기서 2.6:1까지 떨어진다. 같이 덮어쓴다. */
-.target-brief .tripwire { background: #2a1c1c; color: #e4c9c5; }
-.target-brief .tripwire b { color: #f0a9a4; }
-.target-brief .tripwire .dim { color: #cfb0ac; }
-
+/* 인쇄 (기밀문서를 출력하려는 요원을 위해) */
 @media print {
   #crt, #topbar, #console-panel, #toast, .modal { display: none !important; }
   body { background: #fff; color: #000; }
@@ -1216,11 +1155,7 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
   font-family: var(--font-mono); font-size: var(--fs-xs); font-weight: 400;
   color: var(--ink-mid); border: 1px solid var(--dlg-edge); background: #fff;
 }
-/* 넘어본 선은 나머지와 결이 다르다. 이건 자랑이 아니라 약점이다 */
-.flaw-want.dirty { border-left: 3px solid var(--stamp); padding-left: var(--s2); }
-
-/* 사후 턴표에서 판을 끝낸 조건을 짚어준다 — 어느 턴에 장벽이 다뤄졌고 어느 턴에 압박이 먹혔는지. */
-.turn-table .tt-barrier { color: var(--ok); }
+/* 사후 합표에서 판을 끝낸 조건을 짚어준다 — 어느 합에 압박이 먹혔고 어디서 상대가 일어섰는지. */
 .turn-table .tt-lev { color: var(--stamp-deep); }
 
 /* 무전 모달의 장벽 줄 — 요원이 지시를 쓰는 바로 그 자리에서 보여야 쓴다. */

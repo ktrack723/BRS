@@ -87,8 +87,7 @@ about it again that night? No → zero, however good it was.`,
 };
 
 // 인물 한 줄 표기. 나이·직업은 내력 첫 줄에 산다.
-export const introOf = (p) => `${p.history[0]}`;
-export const idOf = (p) => `${introOf(p)} · ${p.gender}`;
+export const idOf = (p) => `${p.history[0]} · ${p.gender}`;
 
 export const agentLabel = (agent) => {
   const name = (agent?.name || '').trim() || '무명';
@@ -148,7 +147,7 @@ export const EMOTES = [
   'talk', 'laugh', 'shy', 'panic', 'angry', 'sad', 'proud', 'freeze', 'smug', 'cringe', 'nod', 'shake',
 ];
 
-export const PROP_SCHEMA = {
+const PROP_SCHEMA = {
   type: 'object',
   properties: {
     shape: { type: 'string', enum: PROP_SHAPES },
@@ -162,7 +161,7 @@ export const PROP_SCHEMA = {
   additionalProperties: false,
 };
 
-export const AVATAR_SPEC_SCHEMA = {
+const AVATAR_SPEC_SCHEMA = {
   type: 'object',
   properties: {
     skin: { type: 'string' }, hair: { type: 'string', description: 'Keep original unless dyed by order' },
@@ -731,7 +730,7 @@ ${context || '(nothing — the operation opens here)'}
 [THE BOUT UNDER JUDGEMENT — every line of it]
 ${boutLines}
 
-Grade the bout as one unit from ${'behind the other person\'s eyes'}: net movement only.
+Grade the bout as one unit from behind the other person's eyes: net movement only.
 Cut the boundary with carry if the tail opens a new beat. Rule.`;
 }
 
