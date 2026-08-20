@@ -1067,6 +1067,15 @@ test('심판 예산이 flat 우위로 잡혀 있다', async () => {
     assert.ok(flat >= hot * 2, `${key}: flat 예산이 warm 이상 예산의 두 배가 안 된다 (flat ${flat} / hot ${hot})`);
     assert.ok(sys.includes(`expect **${flat} or more.**`), `${key}: flat 예산이 프롬프트에 없다`);
     assert.ok(sys.includes(`should land near **${hot}**`), `${key}: warm 이상 예산이 프롬프트에 없다`);
+    // nudge에도 상한이 없으면 심판은 flat을 안 쓰고 nudge로 도망친다 (실측 flat 18% · nudge 34%)
+    const nudge = Math.max(2, Math.round(turns * 0.25));
+    assert.ok(sys.includes(`about ${nudge} in a ${turns}-turn operation, and no more`),
+      `${key}: nudge 예산이 없다 — 심판이 여기로 도망친다`);
+    assert.ok(nudge < flat, `${key}: nudge 예산이 flat보다 크거나 같다`);
+    assert.ok(sys.includes(`flat ${flat}+ · nudge up to ${nudge} · warm up to `),
+      `${key}: 전체 분포 요약이 없다 — 심판이 자기 집계를 대조할 기준이 없다`);
+    assert.match(sys, /If flat is not your largest column by a clear margin/,
+      `${key}: flat이 최빈값이어야 한다는 자기 점검이 없다`);
   }
 });
 

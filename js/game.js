@@ -397,6 +397,11 @@ function dossierHtml(c, { full = false } = {}) {
     <p><b>내력:</b> ${c.target.background.map(escapeHtml).join(' · ')}</p>
     <p><b>알려진 취향:</b> ${c.target.visiblePrefs.map(escapeHtml).join(', ')}</p>
     <p class="unknown-prefs"><b>미확인 취향 ${c.target.hiddenPrefs.length}건</b> — 내용 비공개. 대화가 거기까지 흘러가야만 나온다</p>
+    <p class="regard-box"><b>상대가 들고 오는 것:</b> ${escapeHtml(c.target.regard)}
+      <br><span class="dim">이건 취향이 아니라 <b>이미 벌어진 일</b>이다. 저 사람은 이걸 첫 문장부터 머리에 담고
+      앉는다. 여기서 한 조각이라도 내려놓게 만드는 건 이 판에서 호감이 가장 크게 움직이는 순간이다 —
+      잘 통하는 대화 열 번보다 이게 크다.
+      <br>이 문장 역시 <b>의뢰인에게 전달되지 않는다.</b></span></p>
     <p class="redline-box"><b>접촉 금지 항목:</b> ${c.target.redLines.map(escapeHtml).join(' / ')}
       <br><span class="handoff-warn">이 목록은 <b>의뢰인에게 전달되지 않았다.</b> 취조실에서 직접 불러주지 않으면 그 인간은 모르는 채로 나간다.</span></p>
     <p class="unknown-prefs"><b>상대 심리 감정:</b> 미실시 — 상대는 우리 국민이 아니다. 저 사람이 뭘 원하고 뭘 못 읽는지는 대화로만 드러난다</p>

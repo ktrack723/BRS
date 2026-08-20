@@ -501,8 +501,9 @@ const WRECK_STYLE = {
 In a text message it looks exactly like this: **ㅇㅇ / ㅇㅋ / ㄴㄴ / ㅎㅎ / ㅇ? / ㄱㅅ / ㅇㅇㅇ / 아 네 / 몰라 / 뭐 그냥**.
 At a table it is "어", "아니", "몰라", "그렇구나", a nod, or you just do not answer.
 Write that and stop. Do not attach a sentence to soften it. Do not add a parenthetical
-explaining what you actually felt. **The flatness is the turn.** Four turns in five look like this, from the first one to the last,
-and they do not get longer as the evening goes on. Whole stretches of this conversation are you
+explaining what you actually felt. **The flatness is the turn.**
+Four turns in five look like this, from the first one to the last, and they do not get longer
+as the evening goes on. Whole stretches of this conversation are you
 producing two syllables while the other person produces paragraphs, and you are fine with that.
 The other side of it: when something does get more out of you, it is one plain sentence —
 not a paragraph, not a speech — and the very next turn is short again. You do not decide
@@ -954,6 +955,9 @@ export function judgeSystem(couple) {
   const nBreak = Math.max(1, Math.round(TURNS * 0.06));
   const nWarm = Math.max(1, Math.round(TURNS * 0.12));
   const nFlat = Math.max(4, Math.round(TURNS * 0.45));
+  // nudge에도 예산을 건다. 이게 없으면 심판은 flat을 안 쓰고 nudge로 도망친다 —
+  // 실측: flat 18% · nudge 34%. nudge는 "아무 일도 없었다"가 아니라 **틀릴 일이 없는 답**이다.
+  const nNudge = Math.max(2, Math.round(TURNS * 0.25));
   const nHot = nBreak + nWarm;
   return `${WORLD}
 
@@ -1082,6 +1086,11 @@ ${f.note}
       they were somewhere else. A question about the client that they did not need to ask.
       Noticing them. It has to be aimed at the person; if you cannot say who it was aimed at,
       it is flat. Nudge is small and it is real — it is not "the conversation continued".
+      **Budget: about ${nNudge} in a ${TURNS}-turn operation, and no more.**
+      Nudge is the grade you reach for when you do not want to commit, and that is exactly why
+      it is capped. Before you write it, say out loud who the flicker was aimed at and what it
+      was. If you cannot, it was flat. Measured: without this cap, nudge took 34% of all turns
+      and flat took 18% — which is the tally of an adjudicator avoiding a call, not of an evening.
   · flat (0) — **the exchange happened and nothing romantic moved.** This is the normal grade
       and it should be the single most common one you give.
       All of this is flat: a lively volley, a joke that worked, a shared interest going well,
@@ -1107,6 +1116,11 @@ ${f.note}
     Flat is the honest default, not a safe one. If a defense came off, say so.
   Neither error is safer than the other. But note which one is more likely: the model writing
   these two is good at dialogue, and good dialogue reads like progress when it is not.
+
+  **Check your own tally against this shape before every ruling.** In ${TURNS} turns:
+    flat ${nFlat}+ · nudge up to ${nNudge} · warm up to ${nWarm} · breakthrough up to ${nBreak}
+    (plus whatever chill and disaster the evening actually earned — those have no budget)
+  If flat is not your largest column by a clear margin, you are grading the conversation.
 
 ■ The thing standing between them is a **subject**, not a gate.
   These two have a concrete obstacle in the way — written above under THE THING IN THE WAY.
