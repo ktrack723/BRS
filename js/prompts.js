@@ -1126,6 +1126,17 @@ ${f.note}
       **If both of them were just pursuing their own appetites and neither one's appetite
       happened to be the other person, that is zero.** Two selfish people talking past each
       other is the normal case here, and it scores nothing, no matter how lively it was.
+      Step 1 means **an item on their sheet**, not a theme near one. "They both care about
+      their work" is not it. "He named the exact thing she has never told anybody" is.
+      And these are never warm, however the exchange felt:
+        · they engaged, argued back, or stayed in it — that is attention, not wanting
+        · they were impressed, or respected the client, or found them interesting
+        · they laughed, or the room got easier
+        · the client was finally honest / finally decent / finally interesting
+        · they were understood about a **topic**
+      **Measured: without this list the judge called warm on 41% of all turns and flat on 10%.
+      That is not an evening, that is a rubber stamp.** If your tally is running like that,
+      you are answering step 1 too generously — go back and name the item on the sheet.
   · nudge (**0 points**) — a flicker toward them personally, and nothing more. A half-second
       where they were somewhere else. A question about the client they did not need to ask.
       **This adds nothing to 호감** — it is a note for the commentary and it moves the air,

@@ -171,7 +171,7 @@ export const DIFFICULTIES = {
     textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,   // 기획서 규정: 문자 1회, 대면 2회
     startLove: 10, startMood: 55,
-    threshold: 60, moodFloor: 25,
+    threshold: 68, moodFloor: 0,
     loveDecay: 0.0,   // 턴마다 식는 호감
     moodDrift: 0.5,   // 턴마다 흐르는 분위기 (양수면 알아서 풀린다)
     gainScale: 4.5, lossScale: 1.45,
@@ -181,7 +181,7 @@ export const DIFFICULTIES = {
     textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,
     startLove: 6, startMood: 46,
-    threshold: 66, moodFloor: 33,
+    threshold: 74, moodFloor: 0,
     loveDecay: 0.3,
     moodDrift: -0.1,
     gainScale: 4.0, lossScale: 1.75,
@@ -191,7 +191,7 @@ export const DIFFICULTIES = {
     textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,
     startLove: 3, startMood: 38,
-    threshold: 70, moodFloor: 40,
+    threshold: 78, moodFloor: 0,
     loveDecay: 0.6,
     moodDrift: -0.7,
     gainScale: 3.6, lossScale: 2.00,
@@ -292,6 +292,24 @@ export const TUNING = {
   breakthroughMood: 3,       // 반대로 방어선이 무너진 순간엔 공기도 같이 풀린다
 };
 
+// ── 분위기 하한을 없애고 성공선을 올렸다 ────────────────────────────
+// 판정을 상대 시점 하나로 단순화하고 욕망·위법 전제를 넣은 뒤 실측(하이쿠 12판):
+//
+//   호감은 아주 잘 갈렸다 — ace 평균 91 · none 53. 짝 비교에서 ace가 전부 이겼다.
+//   그런데 **분위기 하한이 그 판들을 죽이고 있었다**:
+//     politics ace 호감 79/70 · 분위기 24/40 → 결렬
+//     gapjil   ace 호감 83/66 · 분위기 13/33 → 결렬
+//     vtuber   ace 호감 86/66 · 분위기  0/33 → 파탄
+//
+// 욕망에 충실하고 법도 어기는 두 사람이 서로 자기 것을 밀어붙이면 방은 험악해진다.
+// 그런데 그중 상대 취향에 닿는 말이 있으면 호감은 오른다 — **싫어하면서 끌리는 상태**다.
+// 그게 이 게임이 재려던 것이므로, 분위기가 그걸 막으면 안 된다. 하한을 뺐다.
+// 분위기는 여전히 두 가지 일을 한다: 호감 획득에 배율로 곱하고(상한 1.0), 0에 닿으면 자리가 깨진다.
+//
+// 하한을 빼면 ace 6/6 · none 3/6이 된다. 성공선을 실측에 맞춰 +8 올려 none을 0/6으로 밀었다.
+//   쉬움 60→68 (ace 100·100 / none 55·66)
+//   보통 66→74 (ace  83· 86 / none 19·31)
+//   헬   70→78 (ace  79·100 / none 74·75)
 // ── 무전 창 ─────────────────────────────────────────────────────────
 // 개선안 여섯을 같은 판정 시퀀스로 재생해 비교했고(하이쿠 12판), 이게 이겼다.
 //

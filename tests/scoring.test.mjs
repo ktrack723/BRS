@@ -1149,3 +1149,40 @@ test('규칙 계층에 개선안 스위치가 남아 있지 않다', async () =>
   const src = await (await import('node:fs/promises')).readFile('js/scoring.js', 'utf8');
   assert.ok(!/BRS_VARIANT/.test(src), '환경변수 스위치가 코드에 남아 있다');
 });
+
+// ── 분위기는 성사를 막지 않는다 ──────────────────────────────────
+// 실측: 호감 79/70·86/66인 판이 분위기 24/40·0/33으로 결렬됐다.
+// 욕망에 충실하고 법도 어기는 두 사람이 밀어붙이면 방은 험악해지는데,
+// 그중 상대 취향에 닿는 말이 있으면 호감은 오른다 — 싫어하면서 끌리는 상태다.
+// 그게 이 게임이 재려던 것이므로 분위기가 그걸 막으면 안 된다.
+test('분위기가 낮아도 호감이 넘으면 성사된다', async () => {
+  const S = await import('../js/scoring.js');
+  for (const key of ['쉬움', '보통', '헬']) {
+    const d = S.diffOf(key);
+    assert.equal(d.moodFloor, 0, `${key}: 분위기 하한이 아직 살아 있다`);
+    const st = { ...S.initialState(d), love: d.threshold + 5, mood: 3 };
+    const v = S.verdict(st, d);
+    assert.ok(v.accepted, `${key}: 호감이 넘었는데 분위기 때문에 막혔다`);
+  }
+});
+
+test('분위기는 여전히 두 가지 일을 한다 — 배율과 파탄', async () => {
+  const S = await import('../js/scoring.js');
+  // 배율: 험악한 방에서는 같은 판정이 덜 남는다 (다만 증폭은 없다)
+  assert.ok(S.moodMultiplier(0) < S.moodMultiplier(60), '분위기 배율이 죽었다');
+  assert.ok(S.moodMultiplier(100) <= 1, '분위기가 호감을 증폭한다');
+  // 파탄: 0에 닿으면 자리가 깨진다
+  const d = S.diffOf('보통');
+  assert.ok(S.failureReason({ ...S.initialState(d), mood: 0 }), '분위기 0인데 파탄이 안 난다');
+});
+
+// 성공선은 실측에서 뽑았다. 판정 시퀀스를 고정하고 성공선만 움직여 갈리는 지점을 찾았다.
+test('성공선이 실측 분포 위에 있다', async () => {
+  const S = await import('../js/scoring.js');
+  assert.equal(S.diffOf('쉬움').threshold, 68);
+  assert.equal(S.diffOf('보통').threshold, 74);
+  assert.equal(S.diffOf('헬').threshold, 78);
+  // 난이도가 올라갈수록 성공선도 올라간다
+  const th = ['쉬움', '보통', '헬'].map(k => S.diffOf(k).threshold);
+  for (let i = 1; i < th.length; i++) assert.ok(th[i] > th[i - 1], '난이도 사다리가 깨졌다');
+});
