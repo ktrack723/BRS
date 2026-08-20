@@ -3,7 +3,7 @@ import { LlmClient, RefusalError } from './llm.js';
 import * as P from './prompts.js';
 import { Engine, prepReaction } from './engine.js';
 import { DIFFICULTIES, diffOf } from './scoring.js';
-import { COUPLES, flawReport, FLAW_LABELS } from './couples.js';
+import { COUPLES, flawReport, FLAW_LABELS, WRECK_LABELS } from './couples.js';
 import { AvatarViewer, sanitizeSpec, renderThumb } from './avatar.js';
 import { sfx, startBgm, toggleBgm, unlockAudio } from './audio.js';
 import * as pace from './pacing.js';
@@ -251,17 +251,16 @@ const SLIDES = [
     <span class="slide-warn">그런데 그 목록은 <b>의뢰인에게 넘어가지 않는다.</b> 취조실에서 직접 불러주지 않으면 그 인간은 모르는 채로 나가서 밟는다.</span>`,
   },
   {
-    art: '호감 100 &nbsp;→&nbsp; 그래도 결렬',
-    title: '좋아하게 만드는 것만으로는 안 된다',
-    body: `모든 의뢰에는 <b>앞을 막고 있는 것</b>이 하나씩 붙어 있다. 마음으로 치울 수 없는 것들이다 —
+    art: '둘 사이의 현안 &nbsp;·&nbsp; 제일 무거운 화제',
+    title: '꺼낼 수 있는 제일 무거운 얘기',
+    body: `모든 의뢰에는 <b>둘 사이의 현안</b>이 하나씩 붙어 있다 —
     법, 계약, 소송, 발령, 자격, 겹치지 않는 근무표.<br>
-    <b>호감이 성공선을 넘어도 이걸 안 다루면 차인다.</b> 그것도 싫어서 차이는 게 아니라,
-    좋아하는데 못 사귀어서 차인다. 도장에는 「호감 초과 · 성사 불가」가 찍힌다.<br>
-    다뤘다고 치는 건 셋 중 하나다 — <b>누가 뚫을 방법을 말했거나</b>,
-    <b>대가를 감당하겠다고 했거나</b>, <b>둘이 정면으로 꺼내놓고 같이 곤란해졌거나.</b>
-    스치듯 언급하거나 농담으로 넘기는 건 안 친다.<br>
+    <b>이게 성사를 막지는 않는다.</b> 호감이 성공선을 넘으면 성사다. 사람은 충분히 마음이 있으면
+    이런 걸 감수하기로 하고, 이 게임도 그렇게 친다.<br>
+    이건 <b>밀당의 대표 아젠다</b>다. 저 둘이 테이블에 올릴 수 있는 제일 무거운 물건이라서,
+    잡담이 끝나면 대화가 결국 그리로 간다. 꺼내면 판이 크게 흔들린다 — 좋은 쪽으로든 나쁜 쪽으로든.<br>
     <span class="slide-warn">그리고 <b>의뢰인은 이걸 모른다.</b> 의뢰서와 계기판에 떠 있는 건 자네 화면이다.
-    자네가 지침이나 무전으로 꺼내주지 않으면, 저 둘은 신나게 놀다가 그대로 끝난다.</span>`,
+    자네가 지침이나 무전으로 꺼내주지 않으면, 저 둘은 겉만 돌다가 끝난다.</span>`,
   },
   {
     art: '의뢰서 &nbsp;·&nbsp; 심리 감정 &nbsp;·&nbsp; 작전 계기판',
@@ -366,9 +365,10 @@ function renderRosterCards() {
         <li>미확인 <b>${c.target.hiddenPrefs.length}</b></li>
         <li>금지 <b>${c.target.redLines.length}</b></li>
       </ul>
-      <p class="cc-barrier"><b>■ 앞을 막고 있는 것</b> ${escapeHtml(c.barrier)}</p>
+      <p class="cc-barrier"><b>■ 둘 사이의 현안</b> ${escapeHtml(c.barrier)}</p>
       <div class="cc-flaws" title="의뢰인 심리 감정">${flawReport(c.client)
-        .map(r => `<span class="flaw-tag lv-${r.level}">${escapeHtml(r.tag)}</span>`).join('')}</div>
+        .map(r => `<span class="flaw-tag lv-${r.level}">${escapeHtml(r.tag)}</span>`).join('')}<span
+        class="flaw-tag wreck" title="대화 불능">${escapeHtml(WRECK_LABELS[c.client.wreck.kind].tag)}</span></div>
       <div class="cc-btns">
         <button class="btn95 tiny cc-detail" type="button">의뢰서</button>
         <button class="btn95 cc-take" type="button">이 조합을 맡는다</button>
@@ -429,12 +429,17 @@ function flawHtml(person, collision = null, barrier = null) {
       <li class="lv-mid"><span class="flaw-axis">조건반사</span>
         <span class="flaw-tag lv-mid">가만두면 나온다</span>
         <span class="flaw-desc">${escapeHtml(person.weakness)}</span></li>
+      <li class="lv-high"><span class="flaw-axis">대화 불능</span>
+        <span class="flaw-tag wreck">${escapeHtml(WRECK_LABELS[person.wreck.kind].tag)}</span>
+        <span class="flaw-desc">${escapeHtml(person.wreck.line)}<br>
+          <span class="dim">${escapeHtml(WRECK_LABELS[person.wreck.kind].desc)}</span></span></li>
     </ul>
-    ${barrier ? `<p class="barrier"><b>■ 앞을 막고 있는 것</b><br>
+    ${barrier ? `<p class="barrier"><b>■ 둘 사이의 현안</b><br>
       ${escapeHtml(barrier)}<br>
-      <span class="dim">호감만 채우면 차인다. 대화에서 이걸 <b>실제로 다뤄야</b> 성사된다 —
-      해결책을 내거나, 감당하겠다고 하거나, 최소한 정면으로 꺼내서 둘이 같이 곤란해져야 한다.
-      스치듯 언급하는 건 안 친다.</span></p>` : ''}
+      <span class="dim"><b>성사를 막지는 않는다.</b> 호감이 성공선을 넘으면 성사다 —
+      마음이 충분하면 사람은 이런 걸 감수하기로 한다.<br>
+      이건 저 둘이 테이블에 올릴 수 있는 <b>제일 무거운 물건</b>이다. 잡담이 끝나면 대화가
+      결국 그리로 가고, 꺼내는 순간 판이 크게 흔들린다 — 어느 쪽으로 흔들릴지는 자네에게 달렸다.</span></p>` : ''}
     ${collision ? `<p class="tripwire"><b>⚠ 성향 충돌 —</b> 이 사람이 원하는 것을 그대로 좇으면
       상대의 접촉 금지 항목 「${escapeHtml(collision.redLine)}」 쪽으로 간다.<br>
       <span class="dim">${escapeHtml(collision.why)}<br>
@@ -675,15 +680,15 @@ function meterUpdate(s) {
   $('#btn-intervene').disabled = s.radioLeft <= 0;
   markVibeReach(s.reads);
 
-  // 앞을 막고 있는 것 — 처리 전에는 계속 붉게 떠 있고, 다뤄지는 순간 도장이 바뀐다.
+  // 둘 사이의 현안 — 성사를 막지는 않는다. 다만 꺼내면 판이 크게 흔들리는 화제다.
   const bx = $('#hud-barrier');
   if (bx) {
     bx.classList.toggle('cleared', !!s.barrierCleared);
     $('#barrier-text').textContent = s.barrier || '';
-    $('#barrier-state').textContent = s.barrierCleared ? '처리됨' : '미처리';
+    $('#barrier-state').textContent = s.barrierCleared ? '테이블에 올라옴' : '아직 안 나옴';
     $('#barrier-hint').textContent = s.barrierCleared
-      ? '한 번 다뤄진 건 다시 안 따진다. 이제 호감만 성공선을 넘기면 된다.'
-      : '대화에서 실제로 다뤄야 성사된다. 호감만 채우면 차인다 — 스치듯 언급하는 건 안 친다.';
+      ? '이 얘기가 실제로 나왔다. 성사 조건은 아니지만, 여기까지 갔다는 뜻이다.'
+      : '성사를 막지는 않는다. 다만 꺼낼 수 있는 제일 무거운 화제라서, 꺼내면 판이 크게 움직인다.';
   }
 
   const t = state.couple.target;
@@ -895,8 +900,7 @@ async function gotoResult() {
   const stamp = $('#result-stamp');
   const why = r.verdict.reason;
   stamp.textContent = why === 'coerced' ? '강압 성사'
-    : why === 'barrier' ? '호감 초과 · 성사 불가'
-      : r.verdict.accepted ? c.winWord
+    : r.verdict.accepted ? c.winWord
         : why === 'death' ? '요원 과실 사망'
           : r.aborted ? '작전 파탄' : '고백 반려';
   stamp.className = `result-stamp ${r.verdict.accepted ? 'ok' : 'fail'}`;
@@ -923,7 +927,7 @@ async function gotoResult() {
     r.state.history.map(h =>
       `<tr class="${h.dLove > 0 ? 'good' : h.dLove < 0 ? 'bad' : ''}">` +
       `<td>${h.turn}${h.firstImpression ? '·착장' : ''}${h.revealed ? '·발견' : ''}` +
-      `${h.barrier ? '<b class="tt-barrier">·장벽</b>' : ''}` +
+      `${h.barrier ? '<b class="tt-barrier">·현안</b>' : ''}` +
       `${h.leverage && h.leverage !== 'none' ? `<b class="tt-lev">·압박</b>` : ''}</td>` +
       `<td>${h.dMood >= 0 ? '+' : ''}${h.dMood}</td>` +
       `<td>${h.dLove >= 0 ? '+' : ''}${h.dLove} <span class="dim">[${escapeHtml(h.tier)}] ${h.rawLove >= 0 ? '+' : ''}${h.rawLove}×${h.mult}</span></td>` +
@@ -965,6 +969,7 @@ function initRadio() {
     const reach = VIBE_REACH[snap.reads] || VIBE_REACH.well;
     const f = state.couple.client.flaw || {};
     const comply = FLAW_LABELS.compliance[f.compliance] || FLAW_LABELS.compliance.obeys;
+    const wreck = WRECK_LABELS[state.couple.client.wreck.kind];
     $('#radio-context').innerHTML =
       `<div class="radio-stat">` +
       `<span class="hud-chip">남은 턴 ${snap.turnsLeft}/${snap.turnsTotal}</span>` +
@@ -976,12 +981,14 @@ function initRadio() {
       `<span class="reach-chip ${reach.cls}">의뢰인에게 ${escapeHtml(reach.tag)}</span><br>` +
       `<span class="dim">${escapeHtml(reach.note)}.</span><br>` +
       `<span class="dim"><b>이 명령은 ${escapeHtml(comply.tag)}:</b> ${escapeHtml(comply.desc)}</span><br>` +
+      // 단답 인물에게 "길게 설득해"를 시키는 건 지침이 아니라 헛수고다. 그 자리에서 보여야 한다.
+      `<span class="dim"><b>의뢰인 대화 불능 — ${escapeHtml(wreck.tag)}:</b> ${escapeHtml(wreck.desc)}</span><br>` +
       `<span class="dim">저 둘은 각자 원하는 게 따로 있다. 흐름을 바꾸고 싶으면 여기서 바꿔야 한다.</span><br>` +
       `<span class="dim">상대가 질색: ${t.redLines.map(escapeHtml).join(' / ')} — 의뢰인은 지침으로 들은 것만 안다.</span><br>` +
-      // 무전은 장벽을 꺼내라고 시킬 수 있는 유일한 창구다. 그 자리에서 원문이 보여야 쓴다.
-      `<span class="radio-barrier ${snap.barrierCleared ? 'done' : ''}"><b>앞을 막고 있는 것 ` +
-      `(${snap.barrierCleared ? '처리됨' : '미처리'}):</b> ${escapeHtml(state.couple.barrier)}` +
-      `${snap.barrierCleared ? '' : ' — 이걸 대화에서 실제로 다루지 않으면 호감이 얼마든 차인다.'}</span>`;
+      // 무전은 현안을 꺼내라고 시킬 수 있는 유일한 창구다. 그 자리에서 원문이 보여야 쓴다.
+      `<span class="radio-barrier ${snap.barrierCleared ? 'done' : ''}"><b>둘 사이의 현안 ` +
+      `(${snap.barrierCleared ? '테이블에 올라옴' : '아직 안 나옴'}):</b> ${escapeHtml(state.couple.barrier)}` +
+      `${snap.barrierCleared ? '' : ' — 성사 조건은 아니다. 다만 꺼낼 수 있는 제일 무거운 화제다.'}</span>`;
     $('#modal-radio').classList.remove('hidden');
     $('#radio-input').value = '';
     $('#radio-input').focus();

@@ -412,8 +412,10 @@ test('좋은 판정이 계속 나오면 성사된다', async () => {
   assert.ok(result.verdict.accepted, `성사되지 않았다 (호감 ${result.verdict.love}/${result.difficulty.threshold})`);
 });
 
-// 좋아하는데 못 사귀는 결말. 이 게임에서 제일 현실적인 쪽이다.
-test('현실 장벽을 끝내 안 다루면 호감이 넘쳐도 차인다', async () => {
+// 장벽은 관문이 아니라 밀당의 대표 아젠다다. 호감으로 넘어간다 —
+// 마음이 충분하면 사람은 이런 걸 감수하기로 하고, 이 게임도 그렇게 친다.
+// (한동안 관문이었고 그게 준비 수준을 갈랐다. 지금 그 자리는 대화 불능이 맡는다.)
+test('현안을 끝내 안 다뤄도 호감이 넘으면 성사된다', async () => {
   const llm = new FakeLlm({
     judge: () => ({
       tier: 'breakthrough', moodDelta: 6, loveDelta: 9, reason: 'r', vibe: 'v', revealed: '',
@@ -423,9 +425,11 @@ test('현실 장벽을 끝내 안 다루면 호감이 넘쳐도 차인다', asyn
   const { engine, result } = await playFull(llm);
   assert.equal(engine.state.barrierCleared, false, '아무도 안 꺼냈는데 다뤄진 것으로 잡혔다');
   assert.ok(result.verdict.love >= result.difficulty.threshold, '테스트 전제: 호감은 넘어야 한다');
-  assert.equal(result.verdict.accepted, false, '장벽을 안 다뤘는데 성사됐다');
-  assert.equal(result.verdict.reason, 'barrier');
-  assert.equal(result.verdict.grade, 'D', '호감을 끌어올린 건 실력이므로 F가 아니다');
+  assert.equal(result.verdict.accepted, true, '호감이 넘었는데 현안 때문에 막혔다');
+  assert.equal(result.verdict.reason, 'ok', '차임 결말이 아직 살아 있다');
+  // 그래도 기록에는 남아야 한다 — 참고 컨텍스트로서
+  const note = result.debrief.notes.find(n => n.key === 'barrier');
+  assert.ok(note && !note.ok, '현안이 사후 보고에서 사라졌다');
 });
 
 // 싫어하는데 사귄다. 협박으로 묶은 쪽.

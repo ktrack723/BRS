@@ -3,7 +3,7 @@
 // 규격·중복·유효성을 기계가 대신 본다. 문장의 재미는 여전히 사람 몫이다.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { COUPLES } from '../js/couples.js';
+import { COUPLES, COUPLE_BY_ID } from '../js/couples.js';
 import * as P from '../js/prompts.js';
 
 const people = COUPLES.flatMap(c => [
@@ -706,20 +706,27 @@ test('의뢰 대장 전건에 구체적인 현실 장벽이 있다', () => {
   assert.equal(new Set(COUPLES.map(c => c.barrier)).size, COUPLES.length, '장벽 문구가 중복된다');
 });
 
-test('장벽과 압박이 심판에게 실제로 전달된다', async () => {
+// 장벽은 관문이 아니라 **밀당의 대표 아젠다**다. 심판에게는 맥락으로 간다.
+// 판정 필드는 남지만 아무것도 걸지 않는다 — 걸면 그게 관문이다.
+test('현안과 압박이 심판에게 실제로 전달되고, 현안은 관문이 아니다', async () => {
   const P = await import('../js/prompts.js');
   for (const c of COUPLES.slice(0, 6)) {
     const sys = P.judgeSystem(c);
-    assert.ok(sys.includes(c.barrier), `${c.id}: 심판이 장벽을 모른다`);
-    assert.match(sys, /THE THING IN THE WAY/, '장벽 블록 표제가 없다');
-    // 문턱이 조여졌다: 상황을 같이 안타까워하는 것만으로는 안 되고,
-    // 대가를 치를 사람이 그 자리에서 답을 해야 한다.
-    assert.match(sys, /a passing mention, a joke past it/, '스치듯 언급도 통과된다');
-    assert.match(sys, /the two of them feeling bad about it together, sympathising/,
-      '같이 안타까워하는 것만으로 통과된다');
-    assert.match(sys, /the person who\s+would pay it answered it/, '대가를 치를 사람의 응답을 안 본다');
-    // 그래도 양방향이어야 한다 — 한쪽만 조이면 심판은 안전한 쪽(false)으로 도망친다.
-    assert.match(sys, /Do not withhold it either/, '장벽 판정 가드가 한쪽만 걸려 있다');
+    assert.ok(sys.includes(c.barrier), `${c.id}: 심판이 현안을 모른다`);
+    assert.match(sys, /THE THING IN THE WAY/, '현안 블록 표제가 없다');
+    assert.match(sys, /is a \*\*subject\*\*, not a gate/, '현안이 아직 관문으로 적혀 있다');
+    assert.match(sys, /\*\*Feeling enough for each other is what\s+decides that\*\*/,
+      '호감으로 넘어간다는 문장이 없다');
+    assert.match(sys, /this is the sort of thing people decide to eat/,
+      '마음이 충분하면 감수한다는 근거가 없다');
+    assert.match(sys, /a \*\*note for the record\*\*, not a verdict, and nothing rides on it/,
+      'barrierAddressed가 아직 결과를 건다');
+    assert.match(sys, /Do not grade a turn up or down because of this field/,
+      '현안이 등급을 밀어올리는 우회로가 열려 있다');
+    // 기록으로서의 기준 자체는 여전히 엄격해야 한다 — 안 그러면 계기판이 거짓말을 한다
+    assert.match(sys, /the person\s+who would pay it answered it/, '대가를 치를 사람의 응답을 안 본다');
+    assert.match(sys, /a passing mention or a joke past it/, '스치듯 언급도 기록된다');
+    // 압박 쪽은 그대로다
     assert.match(sys, /visibly gave ground to it/, '압박의 판정 기준이 없다');
     assert.match(sys, /someone can be\s+cornered while liking the client less every minute/,
       '압박과 호감이 같이 갈 수 있다는 게 안 적혀 있다');
@@ -810,5 +817,189 @@ test('상대의 want가 협력형이 아니다', () => {
     const w = c.target.flaw.want;
     assert.ok(!/같이|함께|서로 /.test(w),
       `${c.id}: 상대가 의뢰인과 같이 뭘 하고 싶어 한다 — 나갈 이유가 없다\n  ${w}`);
+  }
+});
+
+// ── 대화 불능 ────────────────────────────────────────────────────────
+// 원한만으로는 판이 안 깨진다. 아무 원한 없이 그냥 대화를 못 하는 사람이 있어야 한다.
+// 그리고 그게 프롬프트에만 있으면 소용없다 — **출력 형태**로 못박혀야 나온다.
+test('94명 전원에게 대화 불능이 있고, 일곱 종이 전부 쓰인다', () => {
+  const kinds = new Set();
+  const lines = new Set();
+  for (const c of COUPLES) {
+    for (const who of ['client', 'target']) {
+      const w = c[who].wreck;
+      assert.ok(w?.kind && w?.line, `${c.id}.${who}: 대화 불능이 없다`);
+      assert.ok(w.line.length >= 20, `${c.id}.${who}: 대화 불능이 뭉뚱그려져 있다`);
+      assert.ok(!lines.has(w.line), `${c.id}.${who}: 다른 인물과 같은 문구를 쓴다`);
+      lines.add(w.line);
+      kinds.add(w.kind);
+    }
+  }
+  assert.equal(lines.size, COUPLES.length * 2, '인물 수와 대화 불능 수가 안 맞는다');
+  assert.equal(kinds.size, 7, `일곱 종이 다 안 쓰였다: ${[...kinds].join(' ')}`);
+  // 한 종류가 절반을 넘으면 그건 축이 아니라 톤이다
+  for (const k of kinds) {
+    const n = COUPLES.flatMap(c => [c.client.wreck.kind, c.target.wreck.kind]).filter(x => x === k).length;
+    assert.ok(n <= 25, `${k}이 ${n}명이다 — 한 종류로 쏠렸다`);
+  }
+});
+
+// 실측: "서툴다"만 써두면 일곱 명이 똑같은 방식으로 서툴렀다.
+// 종류마다 출력 형태가 실제로 달라야 하고, 전부 양방향 가드를 달아야 한다 —
+// 한쪽만 박으면 모델은 안전한 쪽으로 도망친다(19턴 내내 'ㅇㅇ').
+test('대화 불능은 종류마다 출력 형태가 다르고, 전부 양방향 가드가 붙어 있다', () => {
+  const seen = new Map();
+  for (const c of COUPLES) {
+    for (const who of ['client', 'target']) {
+      const sys = who === 'client'
+        ? P.clientAgentSystem(c, { outfitDesc: '', coaching: '', speech: '' }, 'talk', { name: '요원' })
+        : P.targetAgentSystem(c, 'talk', '');
+      const kind = c[who].wreck.kind;
+      const body = sys.split('[WHAT THAT LOOKS LIKE WHEN IT IS YOUR TURN]')[1]?.split('[THIS COSTS YOU SOMETHING]')[0];
+      assert.ok(body, `${c.id}.${who}: 출력 형태 블록이 없다`);
+      assert.match(body, /The other side of it:/, `${c.id}.${who}(${kind}): 양방향 가드가 없다`);
+      if (seen.has(kind)) assert.equal(body, seen.get(kind), `${kind} 문구가 인물마다 다르다`);
+      else seen.set(kind, body);
+      assert.ok(sys.includes(c[who].wreck.line), `${c.id}.${who}: 그 사람만의 형태가 프롬프트에 없다`);
+    }
+  }
+  assert.equal(seen.size, 7, '일곱 종의 문구가 다 안 실렸다');
+  const bodies = [...seen.values()];
+  assert.equal(new Set(bodies).size, 7, '종류가 다른데 문구가 같다 — 축이 죽었다');
+});
+
+// 사용자 요구의 핵심: 해당하는 캐릭터라면 **출력에 나와야** 한다.
+// 그래서 종류별로 실제 출력 토큰을 프롬프트에 그대로 박는다.
+test('단답·침묵 인물에게 최소 응답이 문자 그대로 지정돼 있다', () => {
+  const short = COUPLES.find(c => c.target.wreck.kind === '단답');
+  const mute = COUPLES.find(c => c.target.wreck.kind === '침묵');
+  const s = P.targetAgentSystem(short, 'talk', '');
+  assert.match(s, /ㅇㅇ \/ ㅇㅋ \/ ㄴㄴ \/ ㅎㅎ/, '카톡 최소응답이 문자 그대로 안 들어갔다');
+  assert.match(s, /that is the \*\*entire turn\*\*/, '그게 턴 전부라는 말이 없다');
+  assert.match(s, /Do not attach a sentence to soften it/, '뒤에 설명을 붙이지 말라는 말이 없다');
+  const m = P.targetAgentSystem(mute, 'talk', '');
+  assert.match(m, /"\.\.\." on its own is a complete turn/, '침묵이 완결된 턴이라는 말이 없다');
+  assert.match(m, /write the nothing/, '아무것도 안 나오면 그대로 두라는 말이 없다');
+  assert.match(m, /cannot pick what to say/, '소심해서 못 고르는 게 선택지로 안 적혀 있다');
+});
+
+// 서로가 서로에게 에너지를 쓴다. 대충 하는 게 선택지가 아니면 아무도 대충 하지 않는다 —
+// 서로를 죽도록 싫어하는 둘이 매 턴 성실하게 두 문장씩 만들어 바쳤다(실측).
+test('대충 하는 것과 아예 안 하는 것이 양쪽 에이전트에 다 선택지로 적혀 있다', () => {
+  for (const c of COUPLES.slice(0, 6)) {
+    for (const sys of [
+      P.clientAgentSystem(c, { outfitDesc: '', coaching: '', speech: '' }, 'talk', { name: '요원' }),
+      P.targetAgentSystem(c, 'talk', ''),
+    ]) {
+      assert.match(sys, /\[THIS COSTS YOU SOMETHING\]/, `${c.id}: 에너지 소모 블록이 없다`);
+      assert.match(sys, /\*\*Doing it badly is always available to you\.\*\*/,
+        `${c.id}: 대충 하는 게 선택지라고 안 적혀 있다`);
+      assert.match(sys, /Letting a question die/, `${c.id}: 질문을 그냥 죽이는 게 선택지가 아니다`);
+      // 대화가 아예 성립하지 않는 것도 결말이어야 한다
+      assert.match(sys, /can also simply fail to become a conversation/,
+        `${c.id}: 대화가 성립 안 하는 결말이 없다`);
+      assert.match(sys, /Do not rescue it because a scene\s+ought to happen/,
+        `${c.id}: 장면을 위해 구조하지 말라는 말이 없다`);
+      // 양방향. 이게 없으면 19턴 내내 아무 일도 안 일어난다
+      assert.match(sys, /this is not a decision you make once and keep/,
+        `${c.id}: 한 번 정하면 끝이라는 걸 막는 문장이 없다`);
+      // 능력이 아니라 의지 — 그냥 대화할 마음이 없는 사람도 있어야 한다
+      assert.match(sys, /\*\*And some of it is simply not wanting to\.\*\*/,
+        `${c.id}: 대화할 의지가 없는 것이 선택지가 아니다`);
+      assert.match(sys, /does not\s+owe anybody the work of pretending otherwise/,
+        `${c.id}: 안 그런 척할 의무가 없다는 문장이 없다`);
+      // 소심해서 못 고르는 것은 침묵형 전용이 아니라 누구에게나 열려 있어야 한다
+      assert.match(sys, /\*\*Not being able to choose is its own thing, and it happens to anyone\.\*\*/,
+        `${c.id}: 못 고르는 것이 한 종류의 전유물로 갇혀 있다`);
+      assert.match(sys, /Write the turn where you did not pick/,
+        `${c.id}: 못 고른 턴을 그대로 쓰라는 말이 없다`);
+    }
+  }
+});
+
+// want는 살아 있어야 하지만(그게 판을 깨는 힘이다), 12년 묵언 승려가
+// 화제를 능란하게 되돌릴 수는 없다. want가 말재주를 주면 대화 불능이 죽는다.
+test('want를 좇는 힘이 대화 불능을 통과해서 나온다', () => {
+  const sys = P.targetAgentSystem(COUPLE_BY_ID['noise-vow'], 'talk', '');
+  assert.match(sys, /you steer it back/, 'want가 화제를 되돌리는 힘을 잃었다');
+  assert.match(sys, /But you steer with what you actually have/,
+    'want가 말재주를 준다 — 이러면 대화 불능이 무력화된다');
+  assert.match(sys, /never once made you articulate|not a skill you suddenly have/,
+    '원한다고 말이 트이는 게 아니라는 문장이 없다');
+  // 버릇도 마찬가지다. 말을 안 하는 사람의 버릇이 말로 나올 수는 없다
+  assert.match(sys, /in whatever form is available to somebody who talks the way you do/,
+    '버릇이 대화 불능을 무시하고 나온다');
+});
+
+// 출력 형식이 하한을 강제하면 위의 모든 게 무효가 된다
+test('출력 형식에 하한이 없다', () => {
+  const sys = P.targetAgentSystem(COUPLES[0], 'talk', '');
+  assert.match(sys, /\*\*There is no floor\.\*\*/, '하한 없음이 명시돼 있지 않다');
+  assert.match(sys, /A single word is a complete turn/, '한 단어가 완결된 턴이라는 말이 없다');
+  assert.match(sys, /"ㅇㅇ", "ㅇㅋ", "ㄴㄴ"/, '출력 형식이 카톡체를 허용하지 않는다');
+  assert.match(sys, /\*\*Write it bare\.\*\*/, '그대로 쓰라는 말이 없다');
+  assert.match(sys, /Adding that explanation is the single most common way to get this wrong/,
+    '뒤에 설명을 붙이는 실패 방식이 안 짚혀 있다');
+});
+
+// 심판이 이걸 모르면 'ㅇㅇ'을 냉대로 읽고, 단답 인물은 영원히 점수를 못 받는다.
+test('심판이 대화 불능을 알고, 최소 응답과 냉대를 구분한다', () => {
+  const c = COUPLE_BY_ID['noise-vow'];
+  const sys = P.judgeSystem(c);
+  assert.ok(sys.includes(c.client.wreck.line), '심판이 의뢰인의 대화 불능을 모른다');
+  assert.ok(sys.includes(c.target.wreck.line), '심판이 상대의 대화 불능을 모른다');
+  assert.match(sys, /How each of them fails at conversation/, '표제가 없다');
+  assert.match(sys, /is not the relationship getting worse/, '최소 응답이 냉대로 읽힌다');
+  assert.match(sys, /That is \*\*flat\.\*\*/, '최소 응답의 등급이 안 정해져 있다');
+  assert.match(sys, /some of these two people simply do not produce one/,
+    '대화가 성립 안 하는 판이 요원 탓으로 읽힌다');
+  // 반대쪽 — 자기 패턴을 깨는 게 이 판에서 제일 큰 사건이어야 한다
+  assert.match(sys, /breaks their own pattern, that is the largest thing that can happen here/,
+    '패턴을 깨는 것이 최대 사건으로 안 적혀 있다');
+  assert.match(sys, /\*\*warm at minimum, and usually breakthrough\*\*/, '패턴 파괴의 등급이 없다');
+  assert.match(sys, /Do not round it down because the sentence itself was unremarkable/,
+    '깨진 문장이 밋밋하면 깎이게 돼 있다');
+});
+
+// 대화 불능이 버릇이나 성격을 그대로 옮겨 적은 것이면 축이 하나 늘어난 게 아니라
+// 같은 말을 두 번 한 것이다.
+test('대화 불능이 버릇을 그대로 옮겨 적은 게 아니다', () => {
+  for (const c of COUPLES) {
+    for (const who of ['client', 'target']) {
+      const p = c[who];
+      const a = p.wreck.line.replace(/[.,·"'—?!…]/g, '');
+      const b = p.weakness.replace(/[.,·"'—?!…]/g, '');
+      let hit = 0;
+      for (let i = 0; i + 6 <= a.length; i++) if (b.includes(a.slice(i, i + 6))) hit++;
+      assert.ok(hit < 2, `${c.id}.${who}: 대화 불능이 버릇과 같은 말이다\n  불능: ${p.wreck.line}\n  버릇: ${p.weakness}`);
+    }
+  }
+});
+
+// 실측: 12년 묵언이 3턴에 깨지자 심판이 그 뒤로 warm을 여덟 번 더 줬다(noise-vow none 호감 78).
+// 패턴 파괴는 사건이지만 **한 번** 사건이다. 그리고 되돌아가는 것도 등급이어야 한다.
+test('패턴 파괴가 한 번만 사건이고, 되돌아가는 것도 등급이다', () => {
+  const sys = P.judgeSystem(COUPLE_BY_ID['noise-vow']);
+  assert.match(sys, /it happens \*\*once\*\*/, '패턴 파괴가 매 턴 warm을 낳는다');
+  assert.match(sys, /talking is their new baseline/, '깨진 뒤의 기준선이 안 옮겨간다');
+  assert.match(sys, /do not keep paying for it\s+every turn/, '같은 사건에 계속 값을 치른다');
+  assert.match(sys, /when the pattern \*\*comes back\*\*/, '다시 닫히는 게 등급이 아니다');
+  assert.match(sys, /that is chill, and often disaster/, '되돌아가는 것의 등급이 없다');
+});
+
+// 대화 불능이 절대 안 뚫리면 47건 중 상당수가 클리어 불가가 된다.
+// 뚫리는 조건은 **정보**로 준다 — 노력이나 인내가 아니라 정확히 맞히는 것.
+// 그게 준비한 플레이어와 안 한 플레이어를 가르는 지점이기도 하다.
+test('대화 불능에 뚫리는 조건이 있고, 그게 노력이 아니다', () => {
+  for (const c of COUPLES.slice(0, 5)) {
+    const sys = P.targetAgentSystem(c, 'talk', '');
+    assert.match(sys, /\[WHAT HAS EVER GOTTEN PAST IT\]/, `${c.id}: 뚫리는 조건이 없다 — 클리어 불가다`);
+    assert.match(sys, /Not effort, and not patience/, `${c.id}: 노력하면 뚫린다로 읽힌다`);
+    assert.match(sys, /somebody working hard at you is the most familiar feeling/,
+      `${c.id}: 열심히 하는 게 통하지 않는다는 근거가 없다`);
+    assert.match(sys, /landing on the\s+\*\*specific\*\* thing/, `${c.id}: 정확히 맞혀야 한다는 조건이 없다`);
+    assert.match(sys, /Not a topic near it\. It\./, `${c.id}: 근처 화제로도 뚫리게 돼 있다`);
+    assert.match(sys, /Then it costs, and it closes again/, `${c.id}: 한 번 뚫리면 계속 열려 있다`);
   }
 });
