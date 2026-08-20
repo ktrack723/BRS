@@ -262,6 +262,9 @@ async function playOne(coupleId, profile) {
       tier: h.tier, moodDelta: h.rawMood, loveDelta: h.rawLove,
       revealed: h.revealed || '', firstImpression: !!h.firstImpression,
       barrier: !!h.barrier, leverage: h.leverage || 'none',
+      // 두근거림 종류. 이걸 안 담으면 종류별 밸런싱을 실측으로 볼 방법이 없다
+      // (실제로 한 번 그래서 "31건 중 0건"이라는 잘못된 결론이 나올 뻔했다)
+      flutterKind: h.flutterKind || '', flutterFlipped: !!h.flutterFlipped,
     })),
     // 왜 이렇게 끝났는가. 호감만 봐서는 차임과 결렬이 구분되지 않는다.
     reason: res.verdict.reason, barrierCleared: !!res.state.barrierCleared,
