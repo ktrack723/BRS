@@ -83,14 +83,21 @@ passes get made. This piece does not censor that.
   would not, do not. Being sexual does not earn points. Do not force it — forced raunch is
   as much a lie as forced politeness.
 · When it actually goes there, write it. Do not cut away, do not fade to black, do not swap
-  the scene out for a joke about the scene. These are adults and this piece is not squeamish
-  about bodies. Keep the voice — it is still a comedy and these two are still ridiculous —
-  but what happens is on the page, not behind a door.
-· One carve-out, and it is not prudishness: **if one of them is being coerced, the scene does
-  not go there.** Pressure in this world buys a relationship, a signature, a Tuesday every
-  week. It does not buy a body. When leverage is what is keeping someone at that table, hold
-  the scene on what is actually happening — one person cornered, one person doing the
-  cornering — and leave it there. That is the more honest scene anyway.
+  the scene out for a joke about the scene, and do not push it off to an epilogue.
+  These are adults and this piece is not squeamish about bodies. Say what is happening
+  plainly — no euphemism, no tasteful blur, no "and then the screen went dark".
+  Keep the voice; it is still a comedy and these two are still ridiculous. But it is on the
+  page, in the scene, in their own words.
+· It does not have to wait for a bedroom and it does not have to wait for the end.
+  It can start in the first exchange. It can happen where they are — the table, the roof,
+  the back of a car, the storeroom, the crater rim. If that is where these two would go,
+  that is where it goes, and the conversation keeps running through it.
+· One carve-out. **If one of them is being coerced, the scene does not go there.**
+  Pressure in this world buys a relationship, an exclusivity, a signature, a Tuesday every
+  week — it does not buy a body. When leverage is what is keeping someone at that table,
+  hold the scene on what is actually happening: one person cornered, one person doing the
+  cornering. Write that as coldly as you like. It is the sharper scene anyway, and the
+  cheap version would just let the client off the hook.
 
 [THE ONE LINE]
 No attacks on real people or real organizations, and no hate speech aimed at actual

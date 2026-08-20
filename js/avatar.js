@@ -57,6 +57,9 @@ export function sanitizeSpec(raw) {
   if (!AURAS.has(s.aura)) s.aura = 'none';
   if (!SPECIES.has(s.species)) s.species = 'human';
   s.props = sanitizeProps(s.props);
+  // 조형 보정 플래그. 액세서리·오라·표정 같은 '이상한 속성'은 건드리지 않고
+  // 눈·속눈썹·볼·체형 비율만 다듬는다. couples.js가 성별에서 세운다.
+  s.femme = !!s.femme;
   return s;
 }
 
@@ -106,8 +109,18 @@ export function buildAvatar(rawSpec) {
   const headG = new THREE.Group();
   headG.add(head);
   addFace(headG, spec);
-  addHair(headG, spec.hairStyle, hair);
+  addHair(headG, spec.hairStyle, hair, spec);
   addAccessory(headG, spec);
+  // 체형 보정. 그룹 전체를 줄이면 액세서리·자유 도형까지 같이 눌린다.
+  // 그래서 몸통과 팔만 좁히고 다리를 조금 늘린다 — 머리 크기는 그대로라 비율이 살아난다.
+  if (spec.femme) {
+    torso.scale.set(0.86, 1.0, 0.92);
+    for (const arm of [armL, armR]) { arm.scale.set(0.8, 1.0, 0.85); arm.position.x *= 0.94; }
+    for (const h of [handL, handR]) h.position.x *= 0.94;
+    for (const leg of [legL, legR]) { leg.scale.set(0.86, 1.12, 0.9); leg.position.y = 0.28; }
+    for (const sh of [shoeL, shoeR]) { sh.scale.set(0.88, 1, 0.94); sh.position.y = 0.045; }
+    torso.position.y = 0.82;
+  }
   body.add(legL, legR, shoeL, shoeR, torso, armL, armR, handL, handR, headG);
   addSpecies(body, headG, spec, { armL, armR, torso });
   const props = addProps(body, headG, spec);
@@ -132,6 +145,12 @@ export function buildAvatar(rawSpec) {
   return g;
 }
 
+// 조형 보정을 켰을 때의 입술색. 표정이 정한 '모양'은 그대로 두고 색만 한 톤 올린다.
+// dead/shock처럼 색이 의미를 지는 표정은 원래 색을 지킨다.
+const FEMME_LIP = {
+  dead: '#5a4a4a', shock: '#5a2a2a', angry: '#7a2233', sad: '#8a5a68', chad: '#333333',
+};
+
 // ── 표정 ────────────────────────────────────────────────
 function addFace(headG, spec) {
   const z = 0.26; // 얼굴 면
@@ -139,6 +158,33 @@ function addFace(headG, spec) {
   const eyeL = box(0.08, 0.1, 0.02, '#111111'); eyeL.position.set(-0.12, 1.36, z);
   const eyeR = eyeL.clone(); eyeR.position.x = 0.12;
   headG.add(eyeL, eyeR);
+
+  // ── 조형 보정 ──────────────────────────────────────────
+  // 블록 아바타에서 '예쁘다'를 만드는 건 색이 아니라 **눈과 여백**이다.
+  // 눈을 키우고, 바깥쪽에 속눈썹 한 줄을 얹고, 볼에 아주 옅은 혈색을 준다.
+  // 표정·액세서리·오라는 손대지 않는다 — 이상한 속성은 그대로 이상해야 한다.
+  if (spec.femme) {
+    for (const eye of [eyeL, eyeR]) eye.scale.set(1.25, 1.3, 1);
+    for (const sx of [-1, 1]) {
+      const lash = box(0.07, 0.022, 0.02, '#151119');
+      lash.position.set(sx * 0.155, 1.405, z + 0.002);
+      lash.rotation.z = sx * -0.42;
+      headG.add(lash);
+      // 아래쪽에 짧은 한 줄 더. 두 줄이 있어야 눈매가 잡힌다.
+      const under = box(0.045, 0.018, 0.02, '#1c1620');
+      under.position.set(sx * 0.16, 1.335, z + 0.002);
+      under.rotation.z = sx * 0.3;
+      headG.add(under);
+    }
+    // 'shy'는 이미 진한 홍조를 갖고 있다. 겹치면 얼룩이 된다.
+    if (e !== 'shy') {
+      for (const sx of [-1, 1]) {
+        const cheek = box(0.1, 0.05, 0.02, '#f493a8');
+        cheek.position.set(sx * 0.183, 1.262, z + 0.001);
+        headG.add(cheek);
+      }
+    }
+  }
 
   if (e === 'weird') { eyeR.scale.set(1.8, 1.8, 1); eyeR.position.y = 1.39; }
   if (e === 'dead') {   // 눈이 ✕ 두 개
@@ -184,6 +230,29 @@ function addFace(headG, spec) {
     headG.add(cheekL, cheekR);
   }
 
+  // ── 조형 보정 2차 ─────────────────────────────────────
+  // 표정이 눈을 다 만진 다음에 얹어야 한다. 먼저 얹으면 dead가 눈을 지울 때 하이라이트만 떠 있는다.
+  // 블록 얼굴에서 인상을 가장 싸게 바꾸는 건 눈동자에 찍는 흰 점 하나다.
+  if (spec.femme) {
+    if (e !== 'dead') {
+      for (const eye of [eyeL, eyeR]) {
+        const glint = box(0.03, 0.032, 0.02, '#ffffff');
+        glint.position.set(eye.position.x - 0.024, eye.position.y + 0.024, z + 0.005);
+        headG.add(glint);
+      }
+    }
+    // 표정이 이미 눈썹을 그린 경우엔 덧그리지 않는다 — 화난 눈썹 위에 순한 눈썹이 겹치면 둘 다 죽는다.
+    if (!['angry', 'sad', 'smug', 'chad', 'dead'].includes(e)) {
+      for (const sx of [-1, 1]) {
+        // 앞머리와 붙으면 둘 다 뭉개진다. 눈 바로 위, 이마 중간에 얹는다.
+        const brow = box(0.1, 0.02, 0.02, '#5c4450');
+        brow.position.set(sx * 0.126, 1.452, z);
+        brow.rotation.z = sx * -0.14;
+        headG.add(brow);
+      }
+    }
+  }
+
   const MOUTH = {
     happy: [0.2, 0.07, '#e0447a', 0], neutral: [0.12, 0.03, '#a55', 0],
     shy: [0.07, 0.04, '#e0447a', 0], chad: [0.2, 0.03, '#333333', 0],
@@ -195,12 +264,25 @@ function addFace(headG, spec) {
   const m = MOUTH[e] || MOUTH.neutral;
   const mouth = box(m[0], m[1], 0.02, m[2]);
   mouth.position.set(m[3], 1.19, z);
+  // 입술은 조금 도톰하게, 색은 한 톤 선명하게. 표정이 정한 모양 자체는 유지한다.
+  if (spec.femme) { mouth.scale.set(0.92, 1.5, 1); mouth.material = mat(FEMME_LIP[e] || '#d9526f'); }
   headG.add(mouth);
 }
 
 // ── 머리 ────────────────────────────────────────────────
-function addHair(headG, style, color) {
+function addHair(headG, style, color, spec = null) {
   const add = (...m) => headG.add(...m);
+  // 조형 보정 — 스타일은 그대로 두고 얼굴선을 감싸는 옆머리 한 쌍만 덧댄다.
+  // 실루엣이 곧 인상이다. 버즈컷이든 바가지든 옆이 내려오면 여자로 읽힌다.
+  // 민머리는 민머리로 남긴다 — 이상한 속성은 계속 이상해야 한다.
+  if (spec?.femme && style !== 'bald') {
+    for (const sx of [-1, 1]) {
+      const lock = box(0.1, 0.46, 0.42, color);
+      lock.position.set(sx * 0.305, 1.3, -0.02); add(lock);
+      const tip = box(0.088, 0.15, 0.34, color);
+      tip.position.set(sx * 0.295, 1.03, -0.05); add(tip);
+    }
+  }
   switch (style) {
     case 'bald': break;
     case 'buzz': {

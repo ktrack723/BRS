@@ -178,10 +178,15 @@ test('수위는 허가지 지시가 아니다', async () => {
   // 장르 상한은 걷어냈다. 갈 데까지 가면 그대로 쓴다.
   assert.match(w, /Do not cut away, do not fade to black/, '행위 묘사 상한이 아직 걸려 있다');
   assert.ok(!/Do not dissect the act itself/.test(w), '옛 장르 상한이 남아 있다');
+  assert.match(w, /no euphemism, no tasteful blur/, '완곡어법으로 빠져나갈 여지가 있다');
+  // 방까지 기다리지도, 끝까지 기다리지도 않는다
+  assert.match(w, /It does not have to wait for a bedroom and it does not have to wait for the end/,
+    '장소·시점 제한이 남아 있다');
+  assert.match(w, /It can start in the first exchange/, '첫 턴부터 가능하다는 게 안 적혀 있다');
   // 다만 강압 중에는 안 간다. 압박은 관계를 사지 몸을 사지 않는다.
-  assert.match(w, /if one of them is being coerced, the scene does\s+not go there/,
+  assert.match(w, /If one of them is being coerced, the scene does not go there/,
     '강압 상태에서의 예외가 없다');
-  assert.match(w, /It does not buy a body/, '예외의 근거가 안 적혀 있다');
+  assert.match(w, /it does not buy a body/, '예외의 근거가 안 적혀 있다');
   // 성인만 나온다는 선은 어떤 경우에도 남아 있어야 한다
   assert.match(w, /every one of them is an adult/, '성인 한정 문구가 사라졌다');
   assert.match(w, /never write anything that could read as a minor, in any context/, '미성년 금지선이 사라졌다');

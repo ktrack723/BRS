@@ -2364,6 +2364,9 @@ for (const c of COUPLES) {
     }
     c[who].weakness = w;
     c[who].flaw = { ...x, urge: u, nerve: n };
+    // 조형 보정 플래그. 아바타 렌더러가 눈매·볼·체형 비율만 다듬는다.
+    // 액세서리·오라·표정 같은 인물의 '이상한 속성'은 여기서 아무것도 안 건드린다.
+    if (c[who].gender === '여') c[who].spec.femme = true;
   }
 
   // 성향 충돌. 근거(why)가 **양쪽에 다 닿아야** 한다 —

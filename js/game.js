@@ -528,7 +528,8 @@ async function runStyling() {
       messages: [{ role: 'user', content: P.stylingUser(state.couple, state.clientSpec, tags, state.agent) }],
       schema: P.STYLING_SCHEMA, effort: 'low', maxTokens: 5000,
     }));
-    state.clientSpec = sanitizeSpec(r.spec);
+    // 가위손 박은 조형 보정 플래그를 모른다(스키마에 없다). 시공 후에도 유지해준다.
+    state.clientSpec = sanitizeSpec({ ...r.spec, femme: state.couple.client.spec.femme });
     state.prep.outfitDesc = r.outfitDesc || tags;
     state.prepReact.styling = { ...r, tags };
     salonViewer.updateLeft(state.clientSpec);

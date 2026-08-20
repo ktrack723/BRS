@@ -94,6 +94,14 @@
 // 성공선을 여기에 맞춰 더 내리지 않은 이유: 일반 헬은 숙련이 넘고 있다(politics 64/54).
 // 자동파멸에 맞춰 내리면 나머지 스물한 건이 물러진다.
 //
+// ── 14턴 · 엔딩 4갈래 이후 재계측 (50/56/66) ────────────────────
+// 턴을 9 → 14로 늘리니 호감이 통째로 올라왔다. 같은 커플·같은 프로필에서
+// 쉬움 54 → 60~93, 보통 32~75 → 54~55, 헬 → 49~87.
+// 성공선을 40/47/54 → **50/56/66**으로 올렸다. 대략 1.2배다 (턴은 1.56배지만 포화가 먹는다).
+//
+// 다만 이제 **호감은 더 이상 주된 관문이 아니다.** 실측에서 결렬의 대부분이 barrier다 —
+// 게이지는 다 찼는데 아무도 앞을 막은 얘기를 안 꺼낸 것이다. 그게 의도한 모양이다.
+//
 //    재계측: ANTHROPIC_API_KEY=... node tests/live.mjs → node tests/sim.mjs <결과> --grid
 export const DIFFICULTIES = {
   '쉬움': {
@@ -101,7 +109,7 @@ export const DIFFICULTIES = {
     textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,   // 기획서 규정: 문자 1회, 대면 2회
     startLove: 10, startMood: 55,
-    threshold: 40, moodFloor: 25,
+    threshold: 50, moodFloor: 25,
     loveDecay: 0.0,   // 턴마다 식는 호감
     moodDrift: 0.5,   // 턴마다 흐르는 분위기 (양수면 알아서 풀린다)
     gainScale: 1.7, lossScale: 0.85,
@@ -111,7 +119,7 @@ export const DIFFICULTIES = {
     textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,
     startLove: 6, startMood: 46,
-    threshold: 47, moodFloor: 33,
+    threshold: 56, moodFloor: 33,
     loveDecay: 0.3,
     moodDrift: -0.1,
     gainScale: 1.7, lossScale: 1.0,
@@ -121,7 +129,7 @@ export const DIFFICULTIES = {
     textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,
     startLove: 3, startMood: 38,
-    threshold: 54, moodFloor: 40,
+    threshold: 66, moodFloor: 40,
     loveDecay: 0.6,
     moodDrift: -0.7,
     gainScale: 2.1, lossScale: 1.15,
@@ -350,15 +358,17 @@ export function verdict(state, d, { aborted = false } = {}) {
   if (won && cleared) {
     return { accepted: true, grade: band(margin), love, mood, margin, reason: 'ok', leverage: lev };
   }
-  // 2) 차였다 — 좋아하는데 못 사귄다. 이 게임에서 제일 현실적인 결말이다.
+  // 2) 강압 성사 — 마음을 얻은 게 아니라 구석에 몬 것이다.
+  //    장벽보다 먼저 본다. 협박으로 묶으면 현실 장벽은 상대가 알아서 감당할 문제가 된다 —
+  //    (실측에서 압박 16점이 쌓였는데 장벽 미처리라는 이유로 '차임'이 나왔다. 순서가 틀렸었다.)
+  //    분위기 하한도 안 본다. 공기가 좋아서 묶인 게 아니기 때문이다.
+  if (lev >= TUNING.coerceMin && mood > 0) {
+    return { accepted: true, grade: 'C', love, mood, margin, reason: 'coerced', leverage: lev };
+  }
+  // 3) 차였다 — 좋아하는데 못 사귄다. 이 게임에서 제일 현실적인 결말이다.
   //    호감을 끌어올린 것 자체는 실력이므로 F로 떨어뜨리지 않는다.
   if (won && !cleared) {
     return { accepted: false, grade: 'D', love, mood, margin, reason: 'barrier', leverage: lev };
-  }
-  // 3) 강압 성사 — 호감은 모자라지만 빠져나갈 수가 없다.
-  //    분위기 하한은 안 본다. 마음을 얻은 게 아니라 구석에 몬 것이기 때문이다.
-  if (lev >= TUNING.coerceMin && mood > 0) {
-    return { accepted: true, grade: 'C', love, mood, margin, reason: 'coerced', leverage: lev };
   }
   // 4) 그냥 결렬
   return {
