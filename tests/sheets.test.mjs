@@ -1101,3 +1101,51 @@ test('두 사람을 붙여놓으면 대화가 성립하지 않는 것이 기본�
     }
   }
 });
+
+// ── 하자가 출력 형식 안에 있어야 한다 ─────────────────────────────
+// 실측: 프롬프트 앞쪽(전체 30k)에 「너는 독백형이다」라고 써두면 모형이 그걸 이기고
+// 유창하고 다정한 대사를 쓴다. politics 준비 전무 판에서 독백형 인물이 15턴 내내
+// 정확하고 자기성찰적으로 말했고, 심판이 warm 7회를 줬다 — 그건 오심이 아니었다.
+// 그 대사들이 실제로 warm이었다. 마지막 지시가 제일 세게 먹으므로 거기 박는다.
+test('대화 불능이 출력 형식 블록 안에 다시 박혀 있다', () => {
+  for (const c of COUPLES.slice(0, 6)) {
+    for (const [who, sys] of [
+      ['client', P.clientAgentSystem(c, { outfitDesc: '', coaching: '', speech: '' }, 'talk', { name: '요원' })],
+      ['target', P.targetAgentSystem(c, 'talk', '')],
+    ]) {
+      assert.match(sys, /\[AND THIS IS THE SHAPE YOUR TURN COMES OUT IN — THE LAST THING YOU READ\]/,
+        `${c.id}.${who}: 출력 형식 안에 하자가 없다`);
+      // 출력 형식 뒤쪽에 있어야 한다 — 인물 소개부보다 뒤
+      const iChar = sys.indexOf('[HOW YOU FAIL AT BEING IN A ROOM WITH SOMEONE]');
+      const iOut = sys.indexOf('[AND THIS IS THE SHAPE YOUR TURN COMES OUT IN');
+      assert.ok(iOut > iChar, `${c.id}.${who}: 하자 재확인이 인물 소개보다 앞에 있다`);
+      assert.ok(sys.length - iOut < 2600, `${c.id}.${who}: 하자 재확인이 끝에서 너무 멀다`);
+      // 잘 쓴 대사를 살려두지 말라는 자기검열이 있어야 한다
+      assert.match(sys, /you wrote the wrong character and you rewrite it/,
+        `${c.id}.${who}: 유창한 대사를 걸러내는 자기검열이 없다`);
+      assert.match(sys, /Do not let a good line survive because\s+it is a good line/,
+        `${c.id}.${who}: 좋은 대사를 살려두는 걸 막는 문장이 없다`);
+    }
+  }
+});
+
+// 지침이 있으면 하자에서 잠깐 끌어올려지고, 없으면 아무것도 안 끌어올린다.
+// 이게 준비한 요원과 안 한 요원이 갈리는 마지막 자리다.
+test('지침만이 의뢰인을 하자에서 끌어올린다', () => {
+  const c = COUPLES[0];
+  const bare = P.clientAgentSystem(c, { outfitDesc: '', coaching: '', speech: '' }, 'talk', { name: '요원' });
+  assert.match(bare, /And there are no orders\. Nothing is going to lift you out of the block above tonight\./,
+    '지침이 없을 때 아무것도 안 끌어올린다는 문장이 없다');
+  assert.ok(!/One exception to the block above/.test(bare), '지침이 없는데 예외 조항이 들어갔다');
+
+  for (const prep of [{ coaching: '상대 얘기를 먼저 들어라', speech: '' }, { coaching: '', speech: '오늘은 웃지 마' }]) {
+    const led = P.clientAgentSystem(c, { outfitDesc: '', ...prep }, 'talk', { name: '요원' });
+    assert.match(led, /One exception to the block above: where the orders actually cover this moment/,
+      '지침이 있는데 하자에서 끌어올려지지 않는다');
+    assert.match(led, /The moment the orders stop covering\s+it, you are back to the block above/,
+      '지침이 안 닿는 데서 원래대로 돌아간다는 문장이 없다');
+  }
+  // 상대는 본부 지침을 못 받으므로 이 예외가 없어야 한다
+  const t = P.targetAgentSystem(c, 'talk', '');
+  assert.ok(!/One exception to the block above/.test(t), '상대에게 지침 예외가 들어갔다');
+});

@@ -681,7 +681,22 @@ ${ordersPossible
 }
 
 // 발언 길이·형식. 두 에이전트가 같은 규칙을 쓴다.
-function speakFormat(what) {
+//
+// **인물의 대화 불능을 여기 끝에 다시 박는다.** 실측: 프롬프트 앞쪽(전체 30k 토큰)에
+// 「너는 독백형이다」라고 써두면 모형은 그걸 이기고 유창하고 다정한 대사를 쓴다.
+// politics 준비 전무 판에서 독백형 인물이 15턴 내내 정확하고 자기성찰적으로 말했다 —
+// 심판이 warm 7회를 준 게 오심이 아니라, 그 대사들이 실제로 warm이었다.
+// 마지막 지시가 제일 세게 먹으므로, 출력 형태는 출력 형식 안에 있어야 한다.
+function speakFormat(what, wreck) {
+  const register = wreck ? `
+
+[AND THIS IS THE SHAPE YOUR TURN COMES OUT IN — THE LAST THING YOU READ]
+${WRECK_STYLE[wreck.kind]}
+
+**Check the turn you just wrote against that block before you send it.** If it reads like
+something a socially competent person would say — fluent, well-aimed, emotionally precise —
+you wrote the wrong character and you rewrite it. Do not let a good line survive because
+it is a good line.` : '';
   return `[OUTPUT FORMAT]
 Write ${what} and nothing else.
 **Keep it short. Never exceed two sentences.**
@@ -704,6 +719,7 @@ A turn that is flat, off-topic, too long about the wrong thing, or just wrong is
 output here. Two people who cannot do this are supposed to sound like two people who
 cannot do this — dead air, half-finished sentences, someone answering a question nobody
 asked. If your turn would work in a sitcom, it is wrong.
+${register}
 ${KO}`;
 }
 
@@ -813,8 +829,11 @@ ${speechBlock}
 ${phase === 'text' ? `You are texting ${t.name}.` : `You called ${t.name} out and you are sitting across from them.`}
 ${phase === 'talk' ? `\n${PHYSICAL}\n` : ''}
 
-${speakFormat(phase === 'text' ? 'one text message' : 'one thing said at this table, right now')}
-[ORDERS FROM HEADQUARTERS] are not audible to the other person. That went into your ear only.`;
+${speakFormat(phase === 'text' ? 'one text message' : 'one thing said at this table, right now', c.wreck)}
+[ORDERS FROM HEADQUARTERS] are not audible to the other person. That went into your ear only.
+${coaching || speech
+    ? 'One exception to the block above: where the orders actually cover this moment, you reach for\nthem, and what comes out is better than you are. It still comes out in your voice — clumsy,\nmistimed, half-remembered — but it is aimed at something. The moment the orders stop covering\nit, you are back to the block above, immediately and visibly.'
+    : 'And there are no orders. Nothing is going to lift you out of the block above tonight.\nWhatever comes out of you is yours, and you are the person described up there.'}`;
 }
 
 // 타겟도 같은 구조다. 정보만 준다. "실마리를 흘려라" 류의 연출 지시는 전부 삭제했다.
@@ -882,7 +901,7 @@ because the conversation would run smoother that way. Smoother is not your probl
 ${phase === 'text' ? `A text just landed from ${c.name}, out of nowhere. You did not ask for it.` : `${c.name} called you out and you are sitting across from them.`}
 ${phase === 'talk' ? `\n${PHYSICAL}\n` : ''}
 
-${speakFormat(phase === 'text' ? 'one reply text' : 'one thing said at this table, right now')}`;
+${speakFormat(phase === 'text' ? 'one reply text' : 'one thing said at this table, right now', t.wreck)}`;
 }
 
 // ── 5) 심판 = 해설자 ───────────────────────────────────────────
