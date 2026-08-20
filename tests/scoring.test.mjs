@@ -1164,3 +1164,14 @@ test('사후 보고가 두근거림을 종류별로 갈라 보여준다', async 
   assert.match(note.value, /각성 전이 2/, '종류별 집계가 없다');
   assert.match(note.text, /각성 전이는 같은 저녁에 두 번째부터 반토막/, '각성 반복 경고가 없다');
 });
+
+// effort는 모델마다 지원 여부가 다르다. 실제 모델 id에는 날짜가 붙으므로(claude-haiku-4-5-20251001)
+// 정확 일치로 걸러두면 전 호출이 invalid_request_error로 죽는다 — 실제로 12판이 통째로 날아갔다.
+test('effort 미지원 모델을 접두사로 잡는다', async () => {
+  const { supportsEffort } = await import('../js/llm.js');
+  assert.equal(supportsEffort('claude-haiku-4-5-20251001'), false, '날짜 붙은 하이쿠 id를 못 잡는다');
+  assert.equal(supportsEffort('claude-haiku-4-5'), false, '하이쿠를 못 잡는다');
+  assert.equal(supportsEffort('claude-opus-5'), true);
+  assert.equal(supportsEffort('claude-sonnet-5'), true);
+  assert.equal(supportsEffort(undefined), true, '모델이 없으면 기본 동작을 막지 않는다');
+});

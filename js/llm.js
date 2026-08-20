@@ -5,8 +5,11 @@
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const API_VERSION = '2023-06-01';
 
-// effort 파라미터를 지원하지 않는 모델
-const NO_EFFORT_MODELS = new Set(['claude-haiku-4-5']);
+// effort 파라미터를 지원하지 않는 모델.
+// **접두사로 본다** — 실제 id에는 날짜가 붙는다(claude-haiku-4-5-20251001).
+// 정확 일치로 두면 그 날짜 붙은 id가 안 걸려서 전 호출이 invalid_request_error로 죽는다.
+const NO_EFFORT_PREFIXES = ['claude-haiku-'];
+export const supportsEffort = (m) => !NO_EFFORT_PREFIXES.some(p => String(m || '').startsWith(p));
 
 const PRICES = { // $ per MTok (input, output)
   'claude-opus-5': [5, 25],
@@ -91,7 +94,7 @@ export class LlmClient {
     if (sys) body.system = sys;
 
     const outputConfig = {};
-    if (!NO_EFFORT_MODELS.has(useModel)) outputConfig.effort = effort;
+    if (supportsEffort(useModel)) outputConfig.effort = effort;
     if (schema) outputConfig.format = { type: 'json_schema', schema: stripUnsupportedSchemaKeys(schema) };
     if (Object.keys(outputConfig).length) body.output_config = outputConfig;
 
