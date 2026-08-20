@@ -88,8 +88,24 @@ export class LlmClient {
     return [block];
   }
 
+  // 마지막 사용자 메시지를 블록 형태로 바꿔 캐시 breakpoint를 단다. 원본은 건드리지 않는다.
+  #cacheTail(messages) {
+    if (!messages?.length) return messages;
+    const out = messages.slice();
+    for (let i = out.length - 1; i >= 0; i--) {
+      const m = out[i];
+      if (m.role !== 'user' || typeof m.content !== 'string') continue;
+      out[i] = { role: m.role, content: [{ type: 'text', text: m.content, cache_control: { type: 'ephemeral' } }] };
+      break;
+    }
+    return out;
+  }
+
   // 핵심 진입점. schema를 주면 구조화 JSON, 없으면 텍스트를 반환한다.
-  //   cache=true  → system 블록에 캐시 breakpoint를 건다 (턴마다 재사용되는 에이전트용)
+  //   cache=true  → system 블록 + **마지막 사용자 메시지**에 캐시 breakpoint를 건다.
+  //     대화 에이전트는 턴마다 같은 히스토리 접두사를 다시 보낸다 — 메시지에 breakpoint를
+  //     안 걸면 그 접두사가 매 턴 비캐시 입력으로 재과금된다(실측: 판당 비캐시 190k tok).
+  //     breakpoint는 굴러가며 따라온다: 이번 턴의 마지막 메시지가 다음 턴의 접두사다.
   //   model       → 이 호출만 다른 모델로 (심판처럼 기계적인 판정을 싸게 돌릴 때)
   async call({ label, system, messages, schema = null, effort = 'low', maxTokens = 4000, cache = false, model = null }) {
     if (!this.apiKey) throw new Error('API 키 없음: 하네스 미가동');
@@ -97,7 +113,7 @@ export class LlmClient {
     const body = {
       model: useModel,
       max_tokens: maxTokens,
-      messages,
+      messages: cache ? this.#cacheTail(messages) : messages,
     };
     const sys = this.#systemBlocks(system, cache);
     if (sys) body.system = sys;

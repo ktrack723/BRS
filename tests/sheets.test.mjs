@@ -274,9 +274,11 @@ test('심판은 철저히 상대 시점이다 — 공정 평가가 아니다', (
 
 test('심판의 분포 가드가 양방향이다', () => {
   const sys = P.judgeSystem(COUPLE_BY_ID['politics']);
-  assert.ok(sys.includes('you are appreciating'), '후한 쪽 가드');
+  assert.ok(sys.includes('appreciating, not adjudicating'), '후한 쪽 가드');
   assert.ok(sys.includes('you are hiding'), '인색한 쪽 가드');
   assert.ok(sys.includes('Neither error is safer'));
+  assert.ok(sys.includes('ZERO breakthrough bouts'), 'breakthrough 강예산이 빠졌다');
+  assert.ok(sys.includes('at most 2 warm'), 'warm 예산이 빠졌다');
 });
 
 test('심판이 합 단위로 채점하고 경계를 자를 수 있다', () => {

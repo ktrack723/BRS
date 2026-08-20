@@ -30,15 +30,15 @@ export const DIFFICULTIES = {
     startLove: 6,
     threshold: 64,
     // 보통 조합(gapjil·vtuber·os-war …)은 대화가 굴러가지 않아 두근거림 소재 자체가
-    // 절반이다(교환 단위 실측: 판당 두근 5.3회 vs 쉬움 10.2·헬 10.3). 그래서 배율이 제일 높다.
-    gainScale: 4.6, lossScale: 1.6,
+    // 적다. 그래서 배율이 제일 높다 (합 체계 실측 19판 재생으로 확정).
+    gainScale: 5.2, lossScale: 1.6,
   },
   '헬': {
     key: 'hell', badge: '헬',
     textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,
     startLove: 3,
-    threshold: 72,
+    threshold: 66,
     gainScale: 3.8, lossScale: 1.9,
   },
 };
@@ -84,6 +84,16 @@ export const TUNING = {
   // 손실 완충. 이득에만 포화를 걸면 판이 길수록 밀어붙인 쪽이 구조적으로 손해를 본다(실측).
   // 이미 좋아하게 된 사람은 한 번 삐끗한다고 처음으로 돌아가지 않는다. 호감 100에서 깎임이 절반.
   lossCushion: 0.5,
+  // 반복 감쇠. n번째 두근 합의 이득이 이 값의 (n-1)제곱 배로 준다.
+  // 첫 무너짐이 사건이고, 그 다음부터는 새 기본값이다.
+  //
+  // 실측(하이쿠 19판 재생): 합 단위 심판은 예산을 프롬프트로 박아도 breakthrough를
+  // 46%나 찍는다 — 다섯 교환짜리 극적인 덩어리는 거의 항상 '무너짐'처럼 읽히기 때문이다.
+  // 감쇠 없이는 전원이 100에 붙었다(성사 10/12). 0.55에서 분포가 살아났다:
+  //   쉬움 ace[60,72]      none[48,50,54]   → 성공선 58
+  //   보통 ace[58,64,86]   none[41,50,63]   → 성공선 64 (배율 5.2)
+  //   헬   ace[55,63,67,71] none[42,59,64]  → 성공선 66
+  flutterRepeat: 0.55,
   // 강압 성사에 필요한 누적 압박. 합 단위이므로 낮다 — hard 합 두 번이면 사람이 묶인다.
   coerceMin: 4,
   firstImpressionScale: 1.2, // 대면 첫인상 판정 가중 (착장이 실제로 작용하는 지점)
@@ -144,9 +154,13 @@ export function applyBout(state, d, judge, opts = {}) {
   if (vibe) s.vibe = vibe;
 
   // 호감. 이득에는 포화, 손실에는 쌓인 호감만큼 완충.
+  // 그리고 **반복 감쇠** — 두 번째 방어선 붕괴는 첫 번째만큼 클 수 없다. 무너진 다음의 대화는
+  // 그게 새 기본값이다. 심판 프롬프트에도 같은 규칙이 있지만(합 예산), 실측에서 심판 혼자서는
+  // 못 지켰다(br 46%). 프롬프트는 벨트, 이건 멜빵이다.
   const loveSat = loveSaturation(state.love);
   const cushion = 1 - TUNING.lossCushion * (clamp(state.love, 0, 100) / 100);
-  const loveChange = (ld >= 0 ? ld * d.gainScale * loveSat : ld * d.lossScale * cushion) * weight;
+  const repeat = FLUTTER_TIERS.has(tier) ? Math.pow(TUNING.flutterRepeat, state.hotSeen) : 1;
+  const loveChange = (ld >= 0 ? ld * d.gainScale * loveSat * repeat : ld * d.lossScale * cushion) * weight;
   s.love = clamp(s.love + loveChange, 0, 100);
 
   if (FLUTTER_TIERS.has(tier)) s.hotSeen += 1;

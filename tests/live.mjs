@@ -226,17 +226,19 @@ async function playOne(coupleId, profile) {
 
   // 온전한 판인지 검증한다. LLM이 죽으면 판정이 전부 중립(empty)으로 흘러 그럴듯한 숫자가 나오므로
   // 이걸 걸러내지 않으면 밸런싱 데이터가 조용히 오염된다.
-  // 합 체계: 교환 14회면 합은 대략 4~5개다 (첫인상 포함). 중립(nudge·0점) 합이 절반을 넘으면
-  // 심판이 죽어 흘러간 판이다 — 그럴듯한 숫자가 나와도 밸런싱 데이터를 오염시킨다.
+  // 중립(nudge·0점) 합이 절반을 넘으면 심판이 죽어 흘러간 판이다.
+  // 판 길이는 심판의 keepGoing이 정한다 — 조기 종료된 판은 짧아도 정상이다.
+  // 그래서 '예정 교환 수'가 아니라 **실제로 오간 교환이 전부 채점됐는가**를 본다.
   const judgedEx = res.state.history.reduce((a, h) => a + (h.exchanges || 0), 0);
+  const played = engine.transcript.filter(t => t.who === 'client').length;
   const neutral = res.state.history.filter(h => h.tier === 'nudge' && h.rawLove === 0).length;
   const degenerate = llm.usage.calls < 8
-    || (!res.aborted && judgedEx < res.difficulty.textTurns + res.difficulty.talkTurns - 1)
+    || (!res.aborted && judgedEx !== played)
     || neutral > res.state.history.length / 2;
   if (degenerate) {
     return {
       coupleId, profile, difficulty: c.difficulty,
-      error: `불완전한 판 (호출 ${llm.usage.calls}회, 채점된 교환 ${judgedEx}, 중립 합 ${neutral}/${res.state.history.length})`,
+      error: `불완전한 판 (호출 ${llm.usage.calls}회, 채점 ${judgedEx}/${played}교환, 중립 합 ${neutral}/${res.state.history.length})`,
       usage: { ...llm.usage },
     };
   }

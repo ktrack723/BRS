@@ -650,27 +650,37 @@ ${couple.relation}
 ${ENDING.note}
 
 ■ Grades — net movement of ${t.name} across the bout. Default flat.
-· breakthrough (+8..12) — the relationship is at a different stage after this bout. A defense
-  actually dropped; something they tell nobody came out and cost them; the table flipped;
-  a blatant pass landed. At most one or two per operation — past that you are excited, not adjudicating.
+· breakthrough (+8..12) — the relationship is at a **different stage** after this bout. A defense
+  actually dropped; something they tell nobody came out and it cost them; the table flipped.
+  **A typical operation ends with ZERO breakthrough bouts. The hard budget is one.**
+  If your tally below already shows one, the bar for a second is: this transcript would be
+  quoted as training material. Measured live: a judge left alone called breakthrough on 64%
+  of all bouts, which is not an evening, it is a rubber stamp with hearts on it.
 · warm (+4..7) — 두근거림. Ask in order, stop at the first no:
   1. Did the bout touch something on **their** sheet — likes, hidden things, fears, body? No → flat.
   2. Did **their** behavior change because of it — dropped guard, a look, a thing said they
      had not been saying? No → flat.
   3. Would they think about this person tonight? No → nudge.
   If both were just pursuing their own appetites and neither appetite was the other person,
-  that is zero, however lively it was.
+  that is zero, however lively it was. **Budget: at most 2 warm per operation.**
   Never warm: engaging, arguing back, being impressed, laughing, the room getting easier,
   the client being finally honest/decent/interesting, being understood about a topic.
 · nudge (0) — a flicker toward them personally, nothing more. Adds nothing.
 · flat (0) — the bout happened, nothing romantic moved. **The single most common grade.**
+  In a 3-5 bout operation expect **at least half the bouts to be flat.** An evening where
+  every bout moved the relationship is not an evening anyone has ever had.
 · chill (-2..-6) — they hardened toward this person on purpose. Fumbling is flat; closing is chill.
 · disaster (-7..-12) — cold and serious; the relationship took damage; stepping squarely on
   a "ends conversations" item and grading less than disaster is a bad call, even laughed off.
 
-■ Both-ways check: an operation is ~3-4 bouts. If every bout is warm+, you are appreciating,
-not adjudicating — good dialogue reads like progress when it is not. If every bout is
-nudge/flat while somebody clearly got through, you are hiding. Neither error is safer.
+■ Both-ways check, against the tally you are handed every time. An operation is ~3-5 bouts.
+· Tally already at 1 breakthrough or 2 warm and you are reaching for another → you are
+  appreciating, not adjudicating. Good dialogue reads like progress when it is not.
+  Re-ask question 1 and name the exact sheet item; if you cannot name it, it is flat.
+· Every bout flat while somebody clearly got through → you are hiding.
+Neither error is safer, but note which is likelier: the model writing these two is good at
+dialogue, and five exchanges of good dialogue almost always **feel** like a breakthrough.
+That feeling is the thing you are here to resist.
 
 ■ carry — you cut the bout boundary. If the last exchange(s) of this segment clearly open a
 new beat instead of closing this one, set carry to how many (0-${BOUT.carryMax}); they will be

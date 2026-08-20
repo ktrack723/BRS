@@ -56,6 +56,20 @@ test('잘 굴러간 대화(flat/nudge 합)는 호감을 한 점도 못 올린다
   assert.equal(s.hotSeen, 0);
 });
 
+test('반복 감쇠 — 두 번째 무너짐은 첫 번째만큼 크지 않다', () => {
+  let s = initialState(D);
+  s = applyBout(s, D, J('breakthrough'), { exchanges: 5 });
+  const first = s.lastDelta.love;
+  s = applyBout(s, D, J('breakthrough'), { exchanges: 5 });
+  const second = s.lastDelta.love;
+  assert.ok(second < first * 0.75, `반복이 안 접힌다 (${first} → ${second})`);
+  // 깎이는 쪽에는 감쇠가 없다 — 실수는 몇 번째든 실수다
+  let t = { ...initialState(D), love: 50, hotSeen: 3 };
+  const drop = applyBout(t, D, J('chill'), {}).lastDelta.love;
+  const t2 = { ...initialState(D), love: 50, hotSeen: 0 };
+  assert.equal(drop, applyBout(t2, D, J('chill'), {}).lastDelta.love, '감쇠가 손실에까지 번졌다');
+});
+
 test('두근거린 합만 호감을 민다', () => {
   let s = initialState(D);
   s = applyBout(s, D, J('warm'), { exchanges: 5 });
@@ -191,16 +205,17 @@ test('세 난이도 모두, 좋은 합 흐름은 넘고 밋밋한 흐름은 못 
     for (const t of tiers) s = applyBout(s, d, J(t), { exchanges: 4 });
     return verdict(s, d);
   };
-  const STRONG = ['warm', 'breakthrough', 'warm', 'warm'];
+  // 반복 감쇠 아래에서 '좋은 흐름'은 무너짐이 두 번 있는 저녁이다. 헬은 이걸로도 간신히 넘는다.
+  const STRONG = ['breakthrough', 'warm', 'breakthrough', 'warm'];
   const WEAK = ['flat', 'nudge', 'flat', 'chill'];
   for (const name of ['쉬움', '보통', '헬']) {
     assert.ok(run(name, STRONG).accepted, `${name}: 좋은 흐름이 못 넘으면 도달 불가능한 게임이다`);
     assert.ok(!run(name, WEAK).accepted, `${name}: 밋밋한 흐름이 성사되면 안 된다`);
   }
-  // 절반쯤 되는 흐름은 쉬움만 넘는다 — 난이도가 실제로 갈라야 한다
-  const MID = ['warm', 'flat', 'warm', 'flat'];
-  assert.ok(run('쉬움', MID).accepted, '쉬움: 절반의 흐름이면 넘는다');
-  assert.ok(!run('헬', MID).accepted, '헬: 절반의 흐름으로는 부족하다');
+  // 무너짐 하나 + 두근 하나면 쉬움은 넘고 헬은 못 넘는다 — 난이도가 실제로 갈라야 한다
+  const MID = ['breakthrough', 'warm', 'flat', 'flat'];
+  assert.ok(run('쉬움', MID).accepted, '쉬움: 무너짐+두근이면 넘는다');
+  assert.ok(!run('헬', MID).accepted, '헬: 그걸로는 부족하다');
 });
 
 test('성적 등급이 여유 폭으로 갈린다', () => {
