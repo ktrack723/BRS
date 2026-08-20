@@ -283,8 +283,13 @@ test('대사 길이에 상한이 있다', async () => {
     P.targetAgentSystem(c, 'talk', ''),
   ]) {
     assert.match(sys, /Never exceed two sentences/, '길이 상한이 없다 — 읽는 사람이 지친다');
-    assert.match(sys, /Personality lives in word choice and\s+attitude, not word count/,
-      '짧게 쓰되 성격은 남으라는 지시가 없다');
+    assert.match(sys, /The longer you run, the blurrier the character gets/,
+      '길게 쓰면 인물이 뭉개진다는 근거가 없다');
+    // 예전엔 "성격은 단어 선택에 산다"고 했는데, 그게 잘 쓴 대사를 만들라는 지시로 작동했다.
+    // 이 사람들은 연애 경험 0인 국민이다. 좋은 대사를 겨냥하면 그 전제가 죽는다.
+    assert.match(sys, /Do not aim for a good line/, '좋은 대사를 겨냥하지 말라는 지시가 없다');
+    assert.match(sys, /If your turn would work in a sitcom, it is wrong/, '시트콤 금지가 없다');
+    assert.match(sys, /\[YOU ARE NOT GOOD AT THIS\]/, '사회성 결여 전제가 없다');
   }
 });
 
@@ -372,14 +377,24 @@ test('warm의 판정 기준이 부정형만으로 되어 있지 않다', async (
   const sys = P.judgeSystem(COUPLE_BY_ID['os-war']);
   // "이건 warm이 아니다" 목록만 있고 "이건 warm이다" 목록이 없으면 심판은 nudge로 도망친다
   const positives = [
-    'they volunteered something nobody asked for',
+    'they gave up something about themselves that costs them to say',
     'they dropped a register they had been holding all game',
+    'they let go of a piece of what they walked in holding against the client',
     'they conceded a point they had been defending',
   ];
   for (const line of positives) {
     assert.ok(sys.includes(line), `warm의 긍정 기준이 없다: ${line}`);
   }
   assert.match(sys, /these are nudge, not warm/, 'warm의 부정 기준도 남아 있어야 한다');
+  // 대화가 잘 굴러가는 것과 관계가 진전된 것은 다르다. 이걸 안 박아두면
+  // 심판이 재치 있는 주고받기를 전부 warm으로 읽는다 (실측: 전 프로필 warm 이상 50~60%).
+  assert.match(sys, /The change has to be \*\*toward this person\*\*, not toward the conversation/,
+    'warm이 대화 윤활에 붙는 걸 막는 문장이 없다');
+  assert.match(sys, /a clever exchange, a well-matched joke, a rhythm that worked/,
+    '잘 쓴 대사가 warm이 아니라는 게 안 적혀 있다');
+  // 그리고 반대쪽 — 어색함을 냉각으로 오독하면 판이 반대로 무너진다
+  assert.match(sys, /Hardening, not fumbling/, 'chill이 서투름과 구분되지 않는다');
+  assert.match(sys, /It is the baseline/, '이 둘의 기준선이 망한 대화라는 게 안 적혀 있다');
 });
 
 test('턴별 판정 지시에도 양방향 의심이 걸려 있다', async () => {
@@ -717,5 +732,66 @@ test('의뢰인과 상대는 장벽 분석을 안 받는다', async () => {
       assert.ok(!/THE THING IN THE WAY/.test(sys), `${c.id}/${who}: 장벽 규칙이 인물에게 갔다`);
       assert.ok(!/barrierAddressed/.test(sys), `${c.id}/${who}: 판정 필드명이 새어나갔다`);
     }
+  }
+});
+
+// ── 추악함이 충분히 들어가 있는가 ─────────────────────────────────────
+// "성격이 있고 하자가 있고 애초에 안 맞는 사람들"이 실제로 데이터에 있는지 기계가 본다.
+// 프롬프트만 사납고 데이터가 순하면 두 에이전트는 멀쩡하게 대화한다 (실측으로 겪었다).
+test('선을 넘어본 기록이 전원에게 있고, 프롬프트가 그걸 과거형으로 못 박는다', () => {
+  const seen = new Set();
+  for (const { at, p } of people) {
+    const n = p.flaw.nerve;
+    assert.ok(n && n.length >= 15, `${at}: 넘어본 선이 너무 짧다`);
+    assert.ok(!seen.has(n), `${at}: 넘어본 선을 돌려쓴다 — ${n}`);
+    seen.add(n);
+  }
+  // 데이터는 대부분 "이러이러하면 이렇게 한다"는 성향으로 쓰여 있다(실측 94건 중 43건).
+  // 헤더는 「이미 넘어본 선」인데 내용이 가정법이면 인물이 짊어진 게 없어진다.
+  // 그래서 프롬프트가 그걸 이미 저지른 일로 못 박는다 — 구체적인 때와 사람까지.
+  const c = COUPLES[0];
+  const sys = P.clientAgentSystem(c, { outfitDesc: '', coaching: '', speech: '' }, 'talk', { name: '요원' });
+  assert.match(sys, /Read that as history, not as a policy/, '성향이 과거로 못 박히지 않는다');
+  assert.match(sys, /You have already done it — more than once, and\s+recently/, '반복성이 없다');
+  assert.match(sys, /a specific time, a specific person it happened to/, '피해자가 특정되지 않는다');
+  assert.match(sys, /Do not confess it as a flaw/, '하자를 고백하면 참회물이 된다');
+});
+
+
+test('상대를 어떻게 보는지가 전원에게 있고, 구체적이다', () => {
+  for (const { at, p } of people) {
+    assert.ok(p.regard, `${at}: 상대를 어떻게 보는지가 없다`);
+    assert.ok(p.regard.length >= 20, `${at}: 너무 뭉뚱그려져 있다 — ${p.regard}`);
+  }
+  // 문구를 돌려쓰면 94명이 같은 사람이 된다
+  const all = people.map(x => x.regard || x.p.regard);
+  assert.equal(new Set(all).size, all.length, '상대를 보는 시선이 중복된다');
+});
+
+test('두 에이전트 프롬프트에 사회성 결여가 기본 전제로 깔려 있다', () => {
+  const c = COUPLES[0];
+  for (const sys of [
+    P.clientAgentSystem(c, { outfitDesc: '', coaching: '', speech: '' }, 'talk', { name: '요원' }),
+    P.targetAgentSystem(c, 'talk', ''),
+  ]) {
+    assert.match(sys, /You have never done this\. Not once/, '연애 경험 0이라는 전제가 없다');
+    assert.match(sys, /You are not witty and this is not banter/, '재치 금지가 없다');
+    assert.match(sys, /Silence happens and you do not rescue it/, '침묵을 메우지 말라는 지시가 없다');
+    assert.match(sys, /You are not endearing about it/, '서투름이 귀엽게 처리될 여지가 있다');
+    // 그리고 이 전제가 '착하게 굴어라'로 읽히면 안 된다 — 추악함이 그 위에 얹혀야 한다
+    assert.match(sys, /THESE PEOPLE ARE NOT GOOD PEOPLE/, '추악함 블록이 사라졌다');
+    assert.match(sys, /LINES YOU HAVE ALREADY CROSSED/, '넘어본 선이 안 실린다');
+  }
+});
+
+test('상대가 원한을 들고 앉는다', () => {
+  for (const c of COUPLES.slice(0, 8)) {
+    const sys = P.targetAgentSystem(c, 'talk', '');
+    assert.ok(sys.includes(c.target.regard), `${c.id}: 상대가 뭘 당했는지 프롬프트에 없다`);
+    assert.match(sys, /WHAT THIS PERSON HAS ALREADY DONE TO YOU/, `${c.id}: 원한 블록 표제가 없다`);
+    // 의뢰인 쪽은 반한 것과 별개로 솔직히 별로인 게 같이 들어가야 한다
+    const cs = P.clientAgentSystem(c, { outfitDesc: '', coaching: '', speech: '' }, 'talk', { name: '요원' });
+    assert.ok(cs.includes(c.client.regard), `${c.id}: 의뢰인이 상대를 어떻게 보는지가 없다`);
+    assert.match(cs, /AND THE PART YOU DO NOT SAY OUT LOUD/, `${c.id}: 속마음 블록 표제가 없다`);
   }
 });
