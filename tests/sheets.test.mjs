@@ -295,7 +295,7 @@ test('대사 길이에 상한이 있다', async () => {
     // 이 사람들은 연애 경험 0인 국민이다. 좋은 대사를 겨냥하면 그 전제가 죽는다.
     assert.match(sys, /Do not aim for a good line/, '좋은 대사를 겨냥하지 말라는 지시가 없다');
     assert.match(sys, /If your turn would work in a sitcom, it is wrong/, '시트콤 금지가 없다');
-    assert.match(sys, /\[YOU ARE NOT GOOD AT THIS\]/, '사회성 결여 전제가 없다');
+    assert.match(sys, /\[YOU ARE NOT A FUNCTIONING SOCIAL PERSON\]/, '사회성 결여 전제가 없다');
   }
 });
 
@@ -386,16 +386,20 @@ test('warm의 판정 기준이 부정형만으로 되어 있지 않다', async (
     'they gave up something about themselves that costs them to say',
     'they dropped a register they had been holding all game',
     'they let go of a piece of what they walked in holding against the client',
-    'they conceded a point they had been defending',
+    'they did something to keep the other one sitting there longer',
   ];
   for (const line of positives) {
     assert.ok(sys.includes(line), `warm의 긍정 기준이 없다: ${line}`);
   }
-  assert.match(sys, /these are nudge, not warm/, 'warm의 부정 기준도 남아 있어야 한다');
+  assert.match(sys, /are \*\*not\*\* warm, however good they look on the page/,
+    'warm의 부정 기준도 남아 있어야 한다');
   // 대화가 잘 굴러가는 것과 관계가 진전된 것은 다르다. 이걸 안 박아두면
   // 심판이 재치 있는 주고받기를 전부 warm으로 읽는다 (실측: 전 프로필 warm 이상 50~60%).
-  assert.match(sys, /The change has to be \*\*toward this person\*\*, not toward the conversation/,
+  assert.match(sys, /\*\*a defense came off, toward this person\.\*\* Not toward the topic/,
     'warm이 대화 윤활에 붙는 걸 막는 문장이 없다');
+  // 주제에 대해 잘 통하는 것은 취미지 고백이 아니다
+  assert.match(sys, /That is a hobby, not a confession/,
+    '주제에 열리는 것과 사람에게 열리는 것이 구분 안 된다');
   assert.match(sys, /a clever exchange, a well-matched joke, a rhythm that worked/,
     '잘 쓴 대사가 warm이 아니라는 게 안 적혀 있다');
   // 그리고 반대쪽 — 어색함을 냉각으로 오독하면 판이 반대로 무너진다
@@ -787,10 +791,19 @@ test('두 에이전트 프롬프트에 사회성 결여가 기본 전제로 깔�
     P.clientAgentSystem(c, { outfitDesc: '', coaching: '', speech: '' }, 'talk', { name: '요원' }),
     P.targetAgentSystem(c, 'talk', ''),
   ]) {
-    assert.match(sys, /You have never done this\. Not once/, '연애 경험 0이라는 전제가 없다');
+    // 서투른 게 아니라 **정상적으로 작동하지 않는** 것이어야 한다.
+    assert.match(sys, /Something in you does not do this and never did/, '사회적 결함이 전제가 아니다');
     assert.match(sys, /You are not witty and this is not banter/, '재치 금지가 없다');
     assert.match(sys, /Silence happens and you do not rescue it/, '침묵을 메우지 말라는 지시가 없다');
     assert.match(sys, /You are not endearing about it/, '서투름이 귀엽게 처리될 여지가 있다');
+    // 오타쿠 × 히키코모리의 질감 — 한 주제에만 유창하고, 몸을 어떻게 둘지 모른다
+    assert.match(sys, /You have exactly one subject you can speak freely about/,
+      '아무도 안 물어본 한 주제에만 유창한 성질이 없다');
+    assert.match(sys, /Your body is a problem you have not solved/, '몸 둘 바를 모르는 성질이 없다');
+    // 그리고 대화가 성립하지 않는 것이 기본값이어야 한다
+    assert.match(sys, /mostly do not manage a conversation at all/,
+      '대화가 성립 안 하는 것이 기본값으로 안 적혀 있다');
+    assert.match(sys, /two monologues on unrelated subjects/, '서로 딴소리하는 질감이 없다');
     // 그리고 이 전제가 '착하게 굴어라'로 읽히면 안 된다 — 추악함이 그 위에 얹혀야 한다
     assert.match(sys, /THESE PEOPLE ARE NOT GOOD PEOPLE/, '추악함 블록이 사라졌다');
     assert.match(sys, /LINES YOU HAVE ALREADY CROSSED/, '넘어본 선이 안 실린다');
@@ -1001,5 +1014,76 @@ test('대화 불능에 뚫리는 조건이 있고, 그게 노력이 아니다', 
     assert.match(sys, /landing on the\s+\*\*specific\*\* thing/, `${c.id}: 정확히 맞혀야 한다는 조건이 없다`);
     assert.match(sys, /Not a topic near it\. It\./, `${c.id}: 근처 화제로도 뚫리게 돼 있다`);
     assert.match(sys, /Then it costs, and it closes again/, `${c.id}: 한 번 뚫리면 계속 열려 있다`);
+  }
+});
+
+// ── 호감이 무엇을 재는가 ─────────────────────────────────────────
+// 실측: "말 그대로 연애 감정이다" 한 줄만 주면 심판은 **대화가 굴러가는 것**을 잰다.
+// 준비 전무가 55~64를 찍은 이유가 그거였다 — 유능한 모형 둘이 마주 앉으면 대화는 굴러가니까.
+// 회사 동료랑 매일 즐겁게 얘기해도 그 동료와 사랑에 빠지지는 않는다. 거기가 기준선이다.
+test('호감의 기준선이 0이고, 잘 굴러간 대화는 0점이다', () => {
+  const sys = P.judgeSystem(COUPLE_BY_ID['os-war']);
+  assert.match(sys, /\*\*The base rate for two people talking is zero\.\*\*/,
+    '대화의 기준선이 0이라는 문장이 없다');
+  assert.match(sys, /falls in love\s+with none of those colleagues/,
+    '동료와 사랑에 빠지지 않는다는 근거가 없다');
+  assert.match(sys, /an exchange that simply worked earns \*\*zero\*\*/,
+    '잘 굴러간 대화가 0점이라고 안 적혀 있다');
+  assert.match(sys, /Zero is not a punishment here/, '0이 벌점으로 읽힐 여지가 있다');
+  // 무엇이 호감이 아닌지 / 무엇이 호감인지 둘 다 있어야 한다 (양방향)
+  assert.match(sys, /None of this is 호감, however well it went/, '호감이 아닌 것 목록이 없다');
+  assert.match(sys, /호감 moves only when something happens that a colleague could not have caused/,
+    '호감이 움직이는 조건이 없다');
+  assert.match(sys, /would either of them think about it again that night/,
+    '판별 질문이 없다 — 이게 없으면 심판이 사례 목록만 대조한다');
+  // 주제에 열리는 것과 사람에게 열리는 것을 구분해야 한다
+  assert.match(sys, /understood about a \*\*subject\*\*/, '주제에 대한 이해가 호감으로 읽힌다');
+});
+
+test('flat이 최빈값이고, 대화가 굴러간 것은 전부 flat이다', () => {
+  const sys = P.judgeSystem(COUPLE_BY_ID['os-war']);
+  assert.match(sys, /grading \*\*romantic movement only\*\*/, '무엇을 재는지가 등급 표제에 없다');
+  assert.match(sys, /Default is flat/, '기본값이 flat이 아니다');
+  assert.match(sys, /it should be the single most common one you give/, 'flat이 최빈값이 아니다');
+  assert.match(sys, /All of this is flat: a lively volley, a joke that worked/,
+    '잘 굴러간 대화가 flat이라는 목록이 없다');
+  assert.match(sys, /graded on conversation quality, not on feeling/,
+    'flat이 적은 판이 잘못된 채점이라는 경고가 없다');
+  // nudge가 "대화가 계속됐다"로 돌아가면 안 된다 — 그게 원래 버그였다
+  assert.match(sys, /it is not "the conversation continued"/, 'nudge가 대화 지속으로 되돌아갔다');
+  assert.match(sys, /a flicker toward them personally/, 'nudge의 기준이 사람 쪽이 아니다');
+});
+
+// 분위기는 호감을 막을 수만 있고 만들어낼 수는 없다.
+test('심판 예산이 flat 우위로 잡혀 있다', async () => {
+  const S = await import('../js/scoring.js');
+  for (const key of ['쉬움', '보통', '헬']) {
+    const c = COUPLES.find(x => x.difficulty === key);
+    const sys = P.judgeSystem(c);
+    const d = S.DIFFICULTIES[key];
+    const turns = d.textTurns + d.talkTurns;
+    const flat = Math.max(4, Math.round(turns * 0.45));
+    const hot = Math.max(1, Math.round(turns * 0.06)) + Math.max(1, Math.round(turns * 0.12));
+    assert.ok(flat >= hot * 2, `${key}: flat 예산이 warm 이상 예산의 두 배가 안 된다 (flat ${flat} / hot ${hot})`);
+    assert.ok(sys.includes(`expect **${flat} or more.**`), `${key}: flat 예산이 프롬프트에 없다`);
+    assert.ok(sys.includes(`should land near **${hot}**`), `${key}: warm 이상 예산이 프롬프트에 없다`);
+  }
+});
+
+// "대화가 제대로 성립 자체를 하면 안 된다" — 두 사람을 붙여놓으면 대화가 아니라
+// 각자의 실패가 서로를 스쳐 지나가야 한다.
+test('두 사람을 붙여놓으면 대화가 성립하지 않는 것이 기본값이다', () => {
+  for (const c of COUPLES.slice(0, 5)) {
+    for (const sys of [
+      P.clientAgentSystem(c, { outfitDesc: '', coaching: '', speech: '' }, 'talk', { name: '요원' }),
+      P.targetAgentSystem(c, 'talk', ''),
+    ]) {
+      assert.match(sys, /\*\*Put the two of you together\s+and what happens is mostly not a conversation\*\*/,
+        `${c.id}: 둘을 붙였을 때 대화가 안 된다는 전제가 없다`);
+      assert.match(sys, /two people running their own failure at each\s+other, missing, and carrying on/,
+        `${c.id}: 서로 스쳐 지나가는 질감이 없다`);
+      assert.match(sys, /Do not quietly repair it into an exchange/,
+        `${c.id}: 모형이 조용히 대화로 복구하는 걸 막는 문장이 없다`);
+    }
   }
 });

@@ -139,11 +139,14 @@ test('무전 배분은 기획서대로 문자 1회 / 대면 2회로 고정', () 
 
 // ── tier 밴드 ────────────────────────────────────────────
 test('심판이 뭘 뱉든 tier 밴드 안으로 강제된다', () => {
-  assert.equal(bandLove('flat', 9), 1, 'flat인데 +9를 주면 +1로 깎인다');
+  // flat은 이제 정확히 0이다 — "대화는 있었고 마음은 안 움직였다"에 점수를 주면
+  // 잡담 19턴이 성공선을 넘긴다. 회사 동료끼리 얘기한다고 사랑에 빠지지 않는다.
+  assert.equal(bandLove('flat', 9), 0, 'flat인데 +9를 주면 0으로 깎인다');
+  assert.equal(bandLove('flat', -9), 0, 'flat은 마이너스도 0이다 — 그냥 아무 일도 없었다는 뜻이다');
   assert.equal(bandLove('breakthrough', 2), 7, 'breakthrough인데 +2면 밴드 하한으로 올린다');
   assert.equal(bandLove('disaster', 5), -6);
   assert.equal(bandLove('chill', 0), -2);
-  assert.equal(bandLove('nudge', 100), 3);
+  assert.equal(bandLove('nudge', 100), 2);
   assert.equal(bandLove('없는tier', 5), 5, '모르는 tier면 원값을 -10~10으로만 자른다');
 });
 
@@ -244,18 +247,27 @@ test('공기는 심판이 갱신하고, 안 주면 직전 값이 유지된다', 
 });
 
 // ── 분위기 ───────────────────────────────────────────────
-test('분위기는 호감 획득 배율이다', () => {
+// 분위기는 호감을 **막을 수만 있고 만들어낼 수는 없다.**
+// 예전엔 0.30~1.60배였고, 그건 "분위기가 좋았다"를 "사랑에 빠졌다"로 환산하는 장치였다.
+// 즐거운 잡담이 점수를 만들어내면 안 된다 — 회사 동료끼리도 즐겁게 얘기한다.
+test('분위기는 호감을 억누르기만 하고 증폭하지는 않는다', () => {
   assert.ok(moodMultiplier(0) < moodMultiplier(50));
-  assert.ok(moodMultiplier(50) < moodMultiplier(100));
+  assert.ok(moodMultiplier(50) < moodMultiplier(80));
   assert.equal(moodMultiplier(0), TUNING.moodMultFloor);
-  assert.equal(moodMultiplier(100), TUNING.moodMultFloor + TUNING.moodMultSpan);
+  assert.equal(moodMultiplier(100), TUNING.moodMultCap, '분위기가 최고여도 배율이 1을 넘지 않는다');
+  assert.equal(moodMultiplier(80), TUNING.moodMultCap, '분위기 80이면 이미 상한이다');
+  assert.ok(moodMultiplier(100) <= 1, '분위기로 호감이 증폭되면 안 된다');
 });
 
 test('같은 판정이라도 분위기가 낮으면 호감이 덜 오른다', () => {
   const d = diffOf('보통');
   const hi = applyTurn({ ...initialState(d), mood: 95 }, d, J('warm'));
   const lo = applyTurn({ ...initialState(d), mood: 5 }, d, J('warm'));
-  assert.ok(hi.lastDelta.love > lo.lastDelta.love * 2);
+  // 폭은 좁혔지만 방향은 유지된다 — 험악한 방에서는 같은 판정이 덜 남는다
+  assert.ok(hi.lastDelta.love > lo.lastDelta.love,
+    `분위기가 높은 쪽이 더 남아야 한다 (hi ${hi.lastDelta.love} / lo ${lo.lastDelta.love})`);
+  assert.ok(hi.lastDelta.love < lo.lastDelta.love * 2,
+    '분위기 하나로 두 배 이상 갈리면 그건 호감이 아니라 분위기를 재는 것이다');
 });
 
 test('분위기는 높을수록 올리기 어렵다 (포화)', () => {

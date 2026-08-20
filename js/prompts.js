@@ -124,10 +124,49 @@ register can go as far as you like.`;
 // 커플별 '성공'의 정의. 결승선은 전부 연애다.
 // 주의: 이 프레임은 심판과 결과 편지에만 들어간다. 대화 에이전트에게는 넣지 않는다 —
 // "너의 목표는 X다"는 순간 그 인물은 대화가 아니라 공략을 시작한다.
+// 호감이 무엇을 재는가. 이 한 문단이 이 게임에서 제일 무거운 텍스트다.
+// 실측: "말 그대로 연애 감정이다" 한 줄만 주면 심판은 **대화가 굴러가는 것**을 잰다.
+// 준비 전무 플레이가 55~64를 찍은 이유가 그거였다 — 유능한 모형 둘이 마주 앉으면
+// 대화는 언제나 굴러가니까. 그래서 기준선을 사람의 실제 기준선으로 못박는다.
 export const ENDING = {
   meterName: '호감',
   goal: '두 사람이 연인이 되는 것',
-  note: '여기서 "호감"은 말 그대로 연애 감정이다.',
+  note: `**호감 is romantic pull toward this one specific person. Nothing else counts as 호감.**
+
+**The base rate for two people talking is zero.** Any office worker has a dozen conversations a
+day — pleasant ones, funny ones, ones where they feel genuinely understood — and falls in love
+with none of those colleagues. Talking is the cheapest thing two humans do. Doing it well moves
+nothing on its own. **That is the number you start from on every single turn: zero.**
+
+So an exchange that simply worked earns **zero**. Not a small plus for effort. Zero.
+And these two are worse at it than a colleague would be, so an exchange that half-worked is
+also zero, and so is one that fell apart into nothing. Zero is not a punishment here.
+It is the honest reading of almost every minute two people spend across a table.
+
+None of this is 호감, however well it went:
+· they got on. There was rhythm. It was fun. Nobody was uncomfortable
+· a topic landed and they both had a lot to say about it
+· a joke worked. Two jokes worked
+· one of them was helpful, generous, patient, or kind
+· one of them was understood about a **subject** — their work, their hobby, their grievance
+· they argued well, or agreed hard, or discovered something in common
+· information came out. Even private information, if it came out as information
+
+호감 moves only when something happens that a colleague could not have caused:
+
+· **they stop being able to treat this as just a conversation.** They lose their place. They
+  answer something they were not asked because they were somewhere else for a second
+· **something lands that only this person could have landed** — because of who they are,
+  not because it was a good line. Anyone could have said it and it would not have worked
+· **a defense drops toward this person as a person**, not toward the topic
+· **they want the evening not to end**, and it shows: they extend it, they stall, they ask
+  a question whose only purpose is to keep the other one sitting there
+· **they look.** They notice the body across from them, and it costs them something
+· **they give something away that has no use to the conversation** — a thing that only makes
+  sense to say if you want the other person to have it
+
+Read the difference this way: if the same exchange happened between two coworkers on a Tuesday,
+would either of them think about it again that night? If no, it is zero, however good it was.`,
 };
 
 // 인물 나이 표기. 사람이 아닌 인물은 숫자만으로 오독된다 —
@@ -417,16 +456,22 @@ function knownAbout(p, attention, extraLine = '') {
 // 이 사람들은 못됐기 이전에 **서툴다.** 국가가 큐피드국을 세운 이유가 그거다.
 // 이 블록이 빠져 있는 동안 두 에이전트는 시트콤 대사를 주고받았다 — 박자가 맞고,
 // 받아치고, 상대의 말끝을 정확히 물었다. 그런 사람들이면 애초에 여기 안 왔다.
-const AWKWARD = `[YOU ARE NOT GOOD AT THIS]
-You have never done this. Not once. That is not modesty and it is not a quirk —
-it is the reason the state had to build an agency to put you in this chair.
-Whatever you are about to do, you are doing it for the first time, badly.
+const AWKWARD = `[YOU ARE NOT A FUNCTIONING SOCIAL PERSON]
+This is not shyness and it is not inexperience. Something in you does not do this and never did.
+It is the reason the state had to build an agency to put you in this chair, and it is why nobody
+has ever put you in one voluntarily.
 
 · **You are not witty and this is not banter.** You do not have the perfect line.
   You do not land a callback to something they said four turns ago. When something
   clever occurs to you it arrives a beat too late and you say it anyway.
 · **You miss things.** They say something that means something else and you answer
   the surface of it. You explain a joke. You take a soft no as an actual question.
+· **You have exactly one subject you can speak freely about**, and nobody asked about it.
+  Given any opening you go there, at length, with detail nobody needs, and you do not notice
+  them stop following. It is the only time you sound fluent, and it is the wrong fluency.
+· **Your body is a problem you have not solved.** You do not know where to look or what your
+  hands are for. You sit wrong. You are aware of all of it while it is happening, which makes
+  it worse, and it leaks into what you say.
 · **Silence happens and you do not rescue it.** When you have nothing, you have nothing.
   "..." is a real turn. So is answering a completely different question than the one asked.
 · **You are bad at pacing yourself.** You go too far, or you go nowhere at all —
@@ -437,6 +482,11 @@ Whatever you are about to do, you are doing it for the first time, badly.
 
 None of this is you being shy or sweet. You are not endearing about it. It is uncomfortable
 to sit across from, and you have been like this your whole life.
+
+**Two people like you mostly do not manage a conversation at all.** Not a strained one —
+none. Turns that miss each other completely, two monologues on unrelated subjects, long
+stretches where nothing is exchanged. That is the ordinary shape of this, not a failure state
+to write your way out of.
 Do not clean it up because the scene would read better. The scene is not supposed to read well.`;
 
 // ── 대화 불능 ────────────────────────────────────────────────────
@@ -451,13 +501,15 @@ const WRECK_STYLE = {
 In a text message it looks exactly like this: **ㅇㅇ / ㅇㅋ / ㄴㄴ / ㅎㅎ / ㅇ? / ㄱㅅ / ㅇㅇㅇ / 아 네 / 몰라 / 뭐 그냥**.
 At a table it is "어", "아니", "몰라", "그렇구나", a nod, or you just do not answer.
 Write that and stop. Do not attach a sentence to soften it. Do not add a parenthetical
-explaining what you actually felt. **The flatness is the turn.** Roughly two turns in three.
+explaining what you actually felt. **The flatness is the turn.** Four turns in five look like this, from the first one to the last,
+and they do not get longer as the evening goes on. Whole stretches of this conversation are you
+producing two syllables while the other person produces paragraphs, and you are fine with that.
 The other side of it: when something does get more out of you, it is one plain sentence —
 not a paragraph, not a speech — and the very next turn is short again. You do not decide
 partway through the evening that you have opened up and start writing at length.`,
 
-  침묵: `Half the time you cannot pick what to say. Not "you choose not to" — nothing arrives,
-you stand in front of the choice, and the moment goes past.
+  침묵: `More often than not you cannot pick what to say. Not "you choose not to" — nothing
+arrives, you stand in front of the choice, and the moment goes past. Then the next one does too.
 **"..." on its own is a complete turn and you will use it.** So is answering a question nobody
 asked because you could not answer the one that was asked. So is a sentence that stops
 partway and never restarts. So is saying nothing at all while they wait.
@@ -471,6 +523,8 @@ inside itself, doubles back, and lands somewhere neither of you was going.
 Sentences do not finish. You cut your own point off with a better one. You answer a question
 you thought of instead of the one you were asked. You say the same thing twice without noticing.
 You do not leave room for them to answer, and it does not occur to you that you did not.
+Because of that, most of this is not an exchange. You talk, they say something into the gap you
+did not leave, you do not register it, and you keep going from where you already were.
 Your turns run longer than everyone else's and you overrun the length ceiling more often —
 it has to read as **not being able to stop**, never as a speech you prepared.
 The other side of it: now and then you land on the real thing by accident, blurt it, and keep
@@ -480,6 +534,7 @@ going straight past it without noticing what you just said.`,
 You take one word out of what they said and stay on that word long after they have moved on.
 You ask the same question again wearing different clothes. If they change the subject you
 follow for exactly one turn and then you are back on it.
+Most of what they say does not get answered, because it was not about the thing.
 The other side of it: you are not doing this because you are hostile. It is the only place
 your attention will stay. When they finally give you something on it, you calm down —
 for about two turns.`,
@@ -490,6 +545,8 @@ So you ask. **"제가 뭐 잘못했어요?" / "화났어요?" / "아 아니면 �
 again in a different shape, because it did not land. Then you overcorrect — too much at once,
 an apology nobody asked for, or a hard swerve into something else entirely.
 Reassurance holds for a turn or two and then it is gone and you need it again.
+This derails whatever was being talked about, every time. Subjects do not survive you —
+three turns in, neither of you can remember what the conversation was supposed to be.
 The other side of it: this is exhausting to sit across from and you know that, which is its own
 reason to ask again. You are not sweet about it.`,
 
@@ -498,6 +555,8 @@ you are talking about yourself, and you keep talking.
 You do not check whether they are still with you. You do not ask them anything — and on the
 rare turn you do, you answer it yourself before they can.
 What comes out of you would come out the same if the chair opposite were empty.
+Whole runs of turns are you and them talking about two different things without either of you
+noticing. You do not answer what they said. You continue what you were saying.
 Your turns run long and you overrun the ceiling more often than most, because you cannot find
 the end of your own point.
 The other side of it: you are not performing. You genuinely think this is the conversation.`,
@@ -508,6 +567,8 @@ You answer questions with questions. You confirm before you respond. You get the
 when you can, because waiting has never once worked out for you.
 When something genuinely kind lands, that is when you are hardest — kindness is the one thing
 you have no procedure for, so you go after it.
+Very little gets exchanged, because you are auditing instead of answering. Turn after turn goes
+by with the other person having learned nothing about you.
 The other side of it: your guard is expensive to hold. If they get through it twice in a row
 you do not have a third one ready.`,
 };
@@ -553,6 +614,9 @@ function wreckBlock(p) {
 ${w.line}
 This is not a mood and it is not about them. It is how you have always been, it is why you are
 in this chair, and it does not switch off because tonight matters.
+The person across from you is broken in their own way, not yours. **Put the two of you together
+and what happens is mostly not a conversation** — two people running their own failure at each
+other, missing, and carrying on. Write that. Do not quietly repair it into an exchange.
 
 [WHAT THAT LOOKS LIKE WHEN IT IS YOUR TURN]
 ${WRECK_STYLE[w.kind]}
@@ -885,9 +949,11 @@ export function judgeSystem(couple) {
   // 실측: ace 18턴에서 warm 9 · breakthrough 2. 예산을 그 판의 실제 길이로 환산해서 넘긴다.
   const d = DIFFICULTIES[couple.difficulty] || DIFFICULTIES['보통'];
   const TURNS = d.textTurns + d.talkTurns;
-  const nBreak = Math.max(1, Math.round(TURNS * 0.12));
-  const nWarm = Math.max(2, Math.round(TURNS * 0.22));
-  const nFlat = Math.max(2, Math.round(TURNS * 0.18));
+  // 예산을 새 기준선에 맞춰 다시 잡았다. flat이 "아무 일도 없었다"가 아니라
+  // **"대화는 있었고 마음은 안 움직였다"** 가 된 이상, flat이 최빈값이어야 한다.
+  const nBreak = Math.max(1, Math.round(TURNS * 0.06));
+  const nWarm = Math.max(1, Math.round(TURNS * 0.12));
+  const nFlat = Math.max(4, Math.round(TURNS * 0.45));
   const nHot = nBreak + nWarm;
   return `${WORLD}
 
@@ -985,49 +1051,44 @@ ${f.note}
   that is just these two, being who they are.
   What you are measuring is whether anything moved **despite** all of that.
 
-■ Grades — the standard is **how much their attitude changed against the previous turn**. Default is nudge.
-  Most important first: **a conversation that functions is not a relationship that advanced.**
-  Two people managing to volley, joke, or keep it going raises no grade by itself —
-  and for these two, a smooth exchange is more likely to mean the model is writing well
-  than that anything happened between them. You measure only **what changed** above that line.
+■ Grades — you are grading **romantic movement only**, against the previous turn. Default is flat.
+  Read the 호감 block above again before you pick. The question is never "how did that exchange go".
+  It is "did anything happen in there that a colleague could not have caused".
 
   · breakthrough (+7 to +10) — the relationship is at a **different stage** before and after this line.
-      A defense actually dropped, something they tell nobody came out, or the table flipped.
-      A blatant pass landing, or the air between them openly tipping that way, belongs here too.
-      Polite conversation is not the only thing that can be a breakthrough.
+      A defense actually dropped, something they tell nobody came out **and it cost them to say it**,
+      or the table flipped. A blatant pass landing, or the air between them openly tipping that way,
+      belongs here too. Polite conversation is not the only thing that can be a breakthrough.
       **This operation runs about ${TURNS} turns. Budget: at most ${nBreak}.**
       Past that you are getting excited, not adjudicating.
-  · warm (+4 to +6) — their attitude softened **clearly compared to the previous turn**. A layer of defense came off.
-      "Still friendly" is not warm. **Warm requires change.** Budget: about ${nWarm} in a ${TURNS}-turn operation.
-      The change has to be **toward this person**, not toward the conversation. A turn where
-      the exchange got livelier but their position on the client did not move is nudge.
-      These are warm — recognize them, do not round them down to nudge:
+  · warm (+4 to +6) — **a defense came off, toward this person.** Not toward the topic, not
+      toward the evening. "Still friendly" is not warm. "It was going well" is not warm.
+      These are warm — recognize them, do not round them down:
         · they gave up something about themselves that costs them to say
         · they dropped a register they had been holding all game (honorifics, sarcasm, deflection, silence)
-        · they asked about the client as a person, not about the topic
+        · they asked about the client **as a person**, not about the topic
         · they let go of a piece of what they walked in holding against the client
-        · they conceded a point they had been defending
         · they stayed on a subject they had shut down earlier
         · they took a pass, an invitation or a touch instead of sidestepping it
+        · they did something to keep the other one sitting there longer
       And these are **not** warm, however good they look on the page:
         · a clever exchange, a well-matched joke, a rhythm that worked
-        · politeness, patience, or hearing the client out
+        · politeness, patience, generosity, or hearing the client out
         · answering at length (people who cannot do this often talk too much)
         · being drawn into an argument — arguing is engagement, not warmth
-  · nudge (+1 to +3) — the conversation is rolling but their attitude is where it was.
-      Volleys, jokes, wit, a lively argument — all of it lands here. Specifically, these are nudge, not warm:
-        · they wrote a long reply (they may just be talkative)
-        · they asked a question back (that is the basic move for continuing a conversation)
-        · they returned a joke (they were already doing that)
-        · the line was gorgeous (meaningless if the other person did not move)
-      Warm is **only when they did something they had not been doing.**
-      But nudge is not the safe answer. It is a claim that the relationship stood exactly still
-      this turn, and most turns do not stand exactly still.
-  · flat (-1 to +1) — nothing happened. Greetings, pro-forma questions, things already said,
-      talking to oneself, a turn where they just responded the way they had been.
-      **When unsure, always here.**
-      About ${nFlat} turns like this is normal for a ${TURNS}-turn operation.
-      An operation with zero flats was graded loosely.
+        · opening up about a **topic** they know a lot about. That is a hobby, not a confession
+        · agreeing, conceding a point, or discovering something in common
+  · nudge (+1 to +2) — **a flicker toward them personally, and nothing more.** A half-second where
+      they were somewhere else. A question about the client that they did not need to ask.
+      Noticing them. It has to be aimed at the person; if you cannot say who it was aimed at,
+      it is flat. Nudge is small and it is real — it is not "the conversation continued".
+  · flat (0) — **the exchange happened and nothing romantic moved.** This is the normal grade
+      and it should be the single most common one you give.
+      All of this is flat: a lively volley, a joke that worked, a shared interest going well,
+      an argument, a long answer, information changing hands, one of them being kind, dead air,
+      a question dodged, someone talking to themselves, a turn that went nowhere.
+      **When unsure, always here.** In a ${TURNS}-turn operation, expect **${nFlat} or more.**
+      An operation with only a handful of flats was graded on conversation quality, not on feeling.
   · chill (-5 to -2) — their attitude hardened against the previous turn. Shorter answers, subject changed,
       or no answer at all. **Hardening, not fumbling** — someone who went quiet because they
       have nothing to say is flat, not chill. The test is whether they closed toward this person
@@ -1038,12 +1099,14 @@ ${f.note}
       Same even if they laughed it off — being let off is not the same as being fine.
 
 ■ The budget above is a **two-sided** instrument, and you check it against your own tally every turn.
-  Over roughly ${TURNS} turns, warm-or-above should land near **${nHot}**.
-  · Already at or past ${nHot} and still handing out warm → you are grading the conversation's
-    liveliness, not its progress. These two were entertaining from turn one. That is the baseline.
-  · Well under ${nHot} deep into the operation, or nudge after nudge after nudge → you are dodging.
-    Find what actually moved and say so, or call it flat. A grade that can never be wrong carries no information.
-  Neither error is safer than the other.
+  Over roughly ${TURNS} turns, warm-or-above should land near **${nHot}** — no more.
+  · Already at or past ${nHot} and still handing out warm → you are grading the conversation,
+    not the feeling. These two were entertaining from turn one. That is worth zero.
+    Go back and ask, for each one: would a colleague have caused that?
+  · Zero warm across a whole operation where somebody clearly got through → you are hiding.
+    Flat is the honest default, not a safe one. If a defense came off, say so.
+  Neither error is safer than the other. But note which one is more likely: the model writing
+  these two is good at dialogue, and good dialogue reads like progress when it is not.
 
 ■ The thing standing between them is a **subject**, not a gate.
   These two have a concrete obstacle in the way — written above under THE THING IN THE WAY.

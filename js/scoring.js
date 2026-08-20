@@ -234,16 +234,21 @@ export function extraTurn(phase, tiers, mood, alreadyExtra, d) {
 export const TIER_BANDS = {
   breakthrough: [7, 10],   // 상대가 실제로 무너졌다
   warm: [4, 6],            // 눈에 띄게 호의적으로 움직였다
-  nudge: [1, 3],           // 조금 통했다 — 잘 굴러가는 대화의 대부분
-  flat: [-1, 1],           // 아무 일도 일어나지 않았다
+  nudge: [1, 2],           // 사람 쪽으로 한 번 반짝했다 — 대화가 굴러간 것과는 다르다
+  flat: [0, 0],            // 대화는 있었고 마음은 안 움직였다. **정상값이다**
   chill: [-5, -2],         // 상대가 식었다
   disaster: [-10, -6],     // 상대가 정색했다
 };
 
 // 난이도와 무관한 구조 상수.
 export const TUNING = {
-  moodMultFloor: 0.30,       // 분위기 0일 때의 호감 배율
-  moodMultSpan: 1.30,        // 분위기 100이면 0.30 + 1.30 = 1.60배
+  // 분위기는 호감을 **막을 수만 있고 만들어낼 수는 없다.**
+  // 예전 0.30~1.60배는 5.3배 폭이었고, 그건 "분위기가 좋았다"를 "사랑에 빠졌다"로 환산하는
+  // 장치였다. 즐거운 잡담이 점수를 만들어내면 안 된다 — 회사 동료끼리도 즐겁게 얘기한다.
+  // 이제 상한이 1.0이다. 험악한 방은 여전히 호감을 눌러 앉힌다(그건 실제로 그렇다).
+  moodMultFloor: 0.60,       // 분위기 0일 때의 호감 배율
+  moodMultSpan: 0.50,        // 분위기 80에서 1.0에 닿고, 그 위로는 안 올라간다
+  moodMultCap: 1.0,          // 분위기로는 증폭되지 않는다
   firstImpressionScale: 1.4, // 대면 첫인상 판정만 가중된다 (착장이 실제로 작용하는 지점)
   moodSaturation: 130,       // 분위기가 높을수록 더 올리기 어렵다. 감소분에는 적용하지 않는다
   // 호감도 같은 원리로 포화한다. 낯선 사람 → 호의는 큰 걸음이지만, 호의 → 더 큰 호의는 작은 걸음이다.
@@ -278,7 +283,8 @@ export const round1 = v => Math.round(v * 10) / 10;
 
 // 분위기 → 호감 획득 배율
 export function moodMultiplier(mood) {
-  return TUNING.moodMultFloor + (clamp(mood, 0, 100) / 100) * TUNING.moodMultSpan;
+  const m = TUNING.moodMultFloor + (clamp(mood, 0, 100) / 100) * TUNING.moodMultSpan;
+  return Math.min(TUNING.moodMultCap, m);
 }
 
 // 호감 → 호감 획득 포화. 이미 높으면 같은 판정이라도 덜 오른다.
