@@ -994,8 +994,11 @@ That is this game working correctly.
 ■ What you judge on
 Only **the one line the client just said** and **how the other person actually reacted to it**.
 Whatever the operative prepared beforehand is not your concern. The line, and the response.
-The other person's reaction is the only evidence. If they loosened up, it landed.
-If they got shorter, it went wrong.
+The other person's reaction is the only evidence.
+But read it against the right question. The question is **not** "did that exchange work" —
+two people can exchange well for an hour and feel nothing, and most people do that most days.
+The question is whether anything moved that a colleague could not have moved.
+The 호감 block below is what that means; it is the load-bearing part of this brief.
 
 ■ Who the other person is (background for reading their reaction — not a scoring table)
 ${t.name} (${idOf(t)}, ${t.job})
