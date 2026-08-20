@@ -47,6 +47,36 @@
 // ⚠ 남은 한계: good과 lazy는 여전히 잘 안 갈린다(표본 30건 기준 오차 범위).
 //    breakthrough 쪽으로는 준비가 거의 작용하지 않는다 — 갈리는 건 chill 꼬리뿐이다.
 //
+// ── 지시문 영문화 후 재계측 (40/47/54) ──────────────────────────
+// 프롬프트 지시문을 전부 영어로 옮겼더니 **점수대가 통째로 내려앉았다.** 12판을 돌려 0판 성사.
+// 원인은 난이도가 아니라 심판이었다. 판정의 63%가 nudge 한 칸에 몰렸다:
+//
+//   영문화 직후   breakthrough 3% · warm 23% · nudge 63% · flat 5% · chill 7% · disaster 0%
+//
+// nudge는 "아무 일도 없었다"가 아니라 **"절대 틀리지 않는 답"**이라서 기본값이 됐다.
+// 분포 가드가 한쪽(인심 쓰지 마라)에만 걸려 있었던 게 원인이다. 양방향으로 바꿨다 —
+// "절반 이상이 nudge면 그것도 채점이 아니라 판정 회피다. 틀릴 일 없는 등급은 정보가 없다."
+//
+//   가드 수정 후 breakthrough 4% · warm 31% · nudge 56% · flat 4% · chill 3% · disaster 1%
+//   원판정 loveDelta 평균 2.47 → 2.83
+//
+// 그리고 프로필이 다시 갈렸다 (커플 3종 × 프로필 3종 = 9판, 판정 90건):
+//
+//              ace   good   none
+//   쉬움        49     41     35
+//   보통        54     44     33
+//   헬          57     55     38
+//
+// 난이도별로 단조 분리가 살아났다. 남은 것은 성공선이 옛 판정기 기준이라는 것뿐이라
+// 54/56/60 → **40/47/54**로 내렸다. ace의 여유가 쉬움 +9 · 보통 +7 · 헬 +3이 되도록 잡았다 —
+// 숫자 자체는 헬이 더 높지만(gainScale 2.1), **여유가 가장 좁은 쪽이 헬**이라 난이도 사다리는 유지된다.
+//
+// 성공선을 내린 뒤 6판을 더 돌려 확인했다. nudge 비율 63% → 46%, flat과 chill이 살아났고
+// 게임은 다시 이길 수 있다. ⚠ 다만 **판당 편차는 여전히 ±15점**이다 —
+// 같은 커플·같은 프로필이 54였다가 65가 되고, 49였다가 36이 된다.
+// 15판을 합치면 ace 4/6 · good 2/3 · none 1/6. "잘하면 성사"가 아니라 "잘하면 3분의 2쯤 성사"다.
+// 위의 ⚠ 절과 같은 이유다 — 준비가 결과에 닿는 경로가 정보 비대칭 하나뿐이다.
+//
 //    재계측: ANTHROPIC_API_KEY=... node tests/live.mjs → node tests/sim.mjs <결과> --grid
 export const DIFFICULTIES = {
   '쉬움': {
@@ -54,7 +84,7 @@ export const DIFFICULTIES = {
     textTurns: 4, talkTurns: 5,
     radioText: 1, radioTalk: 2,   // 기획서 규정: 문자 1회, 대면 2회
     startLove: 10, startMood: 55,
-    threshold: 54, moodFloor: 25,
+    threshold: 40, moodFloor: 25,
     loveDecay: 0.0,   // 턴마다 식는 호감
     moodDrift: 0.5,   // 턴마다 흐르는 분위기 (양수면 알아서 풀린다)
     gainScale: 1.7, lossScale: 0.85,
@@ -64,7 +94,7 @@ export const DIFFICULTIES = {
     textTurns: 4, talkTurns: 5,
     radioText: 1, radioTalk: 2,
     startLove: 6, startMood: 46,
-    threshold: 56, moodFloor: 33,
+    threshold: 47, moodFloor: 33,
     loveDecay: 0.3,
     moodDrift: -0.1,
     gainScale: 1.7, lossScale: 1.0,
@@ -74,7 +104,7 @@ export const DIFFICULTIES = {
     textTurns: 4, talkTurns: 5,
     radioText: 1, radioTalk: 2,
     startLove: 3, startMood: 38,
-    threshold: 60, moodFloor: 40,
+    threshold: 54, moodFloor: 40,
     loveDecay: 0.6,
     moodDrift: -0.7,
     gainScale: 2.1, lossScale: 1.15,

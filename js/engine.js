@@ -106,8 +106,8 @@ export class Engine {
     const lines = this.transcript.map(t =>
       t.who === 'client' ? `${c.client.name}: ${t.text}`
         : t.who === 'target' ? `${c.target.name}: ${t.text}`
-          : t.who === 'radio' ? `[본부 무전(상대는 못 들음)]: ${t.text}`
-            : `[상황]: ${t.text}`);
+          : t.who === 'radio' ? `[HQ RADIO — the other person cannot hear this]: ${t.text}`
+            : `[SCENE]: ${t.text}`);
     return (limit ? lines.slice(-limit) : lines).join('\n');
   }
 
@@ -135,7 +135,7 @@ export class Engine {
     this.vibeBeats += 1;
     if (reads === 'some' && this.vibeBeats % 2 === 0) return;  // 이번 갱신은 그냥 지나간다
     this.lastVibeSent = v;
-    this.#pushUser(this.clientHist, `[지금 이 자리의 공기] ${v}`);
+    this.#pushUser(this.clientHist, `[THE AIR AT THIS TABLE RIGHT NOW] ${v}`);
   }
 
   async #gate() { while (this.paused) await sleep(120); }
@@ -150,7 +150,7 @@ export class Engine {
     this.pendingRadio = null;
     this.clientHist = [{
       role: 'user',
-      content: `[상황] 드디어 용기를 냈다. ${c.target.name}에게 먼저 보낼 첫 문자를 지금 작성해서 전송하라.`,
+      content: `[SCENE] You finally worked up the nerve. Write and send the first text to ${c.target.name}, now.`,
     }];
     this.targetHist = [];
     this.h.phase?.({ phase: 'text', turns: this.d.textTurns, radioLeft: this.radioLeft });
@@ -221,12 +221,12 @@ export class Engine {
     // 대화 내역을 이어받는다. 두 사람은 방금 주고받은 문자를 기억한 채로 마주 앉는다.
     this.lastVibeSent = null;   // 자리가 바뀌었으니 공기를 다시 알려준다
     this.#pushUser(this.clientHist,
-      `[상황 전환] 문자 작전 끝에 드디어 만났다. 장소: ${sit.place}. ${sit.intro}\n` +
-      `${c.target.name}이(가) 너를 보자마자 한 말: "${sit.outfitReaction}"\n` +
-      `이제 문자가 아니라 얼굴을 보고 말한다. 먼저 첫 마디를 건네라.`);
+      `[SCENE CHANGE] The texting worked and you are finally in front of them. Place: ${sit.place}. ${sit.intro}\n` +
+      `The first thing ${c.target.name} said on seeing you: "${sit.outfitReaction}"\n` +
+      `This is face to face now, not texting. Open with the first thing you say.`);
     this.#pushUser(this.targetHist,
-      `[상황 전환] ${sit.place}에서 ${c.client.name}을(를) 만나기로 해서 나왔다. ${sit.intro}\n` +
-      `방금 상대의 차림새를 보고 한마디 했다.`);
+      `[SCENE CHANGE] You came out to meet ${c.client.name} at ${sit.place}. ${sit.intro}\n` +
+      `You just said something about the state of their outfit.`);
     this.targetHist.push({ role: 'assistant', content: sit.outfitReaction });
 
     this.h.phase?.({ phase: 'talk', turns: this.d.talkTurns, radioLeft: this.radioLeft, place: sit.place });
@@ -328,8 +328,9 @@ export class Engine {
       // 무전 지시 주입 (상대에게는 안 들린다)
       if (this.pendingRadio) {
         this.#pushUser(this.clientHist,
-          `[본부 명령 — 지금 이 한 마디로 즉시 이행하라. 상대에게는 안 들린다]\n${this.pendingRadio}\n` +
-          `거부는 없다. 싫으면 싫은 티를 내되 하기는 한다.`);
+          `[ORDER FROM HQ — carry this out with your very next line. The other person cannot hear it]\n` +
+          `${this.pendingRadio}\n` +
+          `Refusal is not available. Show that you hate it if you hate it, but do it.`);
         this.pendingRadio = null;
       }
       // 갱신된 공기 주입
@@ -347,7 +348,7 @@ export class Engine {
       await this.h.bubble?.('client', clientMsg);
 
       // 2) [직전 턴 판정] ∥ [이번 턴 타겟 응답] — 서로 독립이므로 동시 발사
-      this.#pushUser(this.targetHist, `[${c.client.name}의 ${said}] ${clientMsg}`);
+      this.#pushUser(this.targetHist, `[${c.client.name} — ${said}] ${clientMsg}`);
       const jobs = [
         this.llm.call({
           label: `${label} 응답 ${i + 1}`,
@@ -370,7 +371,7 @@ export class Engine {
       this.targetHist.push({ role: 'assistant', content: targetMsg });
       this.transcript.push({ who: 'target', text: targetMsg });
       await this.h.bubble?.('target', targetMsg);
-      this.#pushUser(this.clientHist, `[${c.target.name}의 ${phase === 'text' ? '답장' : '말'}] ${targetMsg}`);
+      this.#pushUser(this.clientHist, `[${c.target.name} — ${phase === 'text' ? '답장' : '말'}] ${targetMsg}`);
 
       pending = { history: historyBefore, clientMsg, reaction: targetMsg, turn: `${label} ${i + 1}` };
     }

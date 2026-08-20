@@ -109,7 +109,7 @@ test('심판에게 타겟의 실제 반응이 함께 전달된다', async () => 
   const judges = llm.byLabel('판정');
   assert.ok(judges.length >= TOTAL_TURNS);
   for (const j of judges) {
-    assert.match(j.judgeUser, /상대의 실제 반응/, '반응 블록이 없으면 심판이 허공에 대고 채점한다');
+    assert.match(j.judgeUser, /THE OTHER PERSON'S ACTUAL REACTION/, '반응 블록이 없으면 심판이 허공에 대고 채점한다');
     assert.match(j.judgeUser, /타겟 응답 #|차림새가 그렇군요/, '반응 본문이 실제로 들어가 있다');
   }
   // 첫인상 판정에는 착장에 대한 첫 반응이 들어간다
@@ -122,7 +122,7 @@ test('심판이 채점하는 발언과 그 반응이 실제로 짝이 맞는다'
   await playFull(llm);
   for (const j of llm.byLabel('판정')) {
     const subject = j.judgeUser.match(/이번 발언\]\n(클라이언트 발언 #\d+)/)?.[1];
-    const reaction = j.judgeUser.match(/실제 반응\]\n(타겟 응답 #\d+)/)?.[1];
+    const reaction = j.judgeUser.match(/ACTUAL REACTION TO IT\]\n(타겟 응답 #\d+)/)?.[1];
     if (!subject || !reaction) continue; // 대면 첫 턴은 반응이 나레이션일 수 있다
     assert.equal(subject.match(/\d+/)[0], reaction.match(/\d+/)[0],
       `${subject}의 반응은 같은 번호의 타겟 응답이어야 한다 (실제: ${reaction})`);
@@ -189,7 +189,7 @@ const VIBE_JUDGE = () => {
 };
 const injectedVibes = (llm) => llm.byLabel('대면 발언')
   .flatMap(c => c.messages.map(m => String(m.content)))
-  .filter(t => t.includes('[지금 이 자리의 공기]'));
+  .filter(t => t.includes('[THE AIR AT THIS TABLE RIGHT NOW]'));
 
 test('눈치 빠른 의뢰인에게는 갱신된 공기가 그대로 전달된다', async () => {
   const sharp = COUPLES.find(c => c.client.flaw.reads === 'well');
@@ -231,7 +231,7 @@ test('같은 공기를 매 턴 반복해서 주입하지 않는다', async () =>
   await playFull(llm, { couple: sharp });
   const last = llm.byLabel('대면 발언').at(-1).messages
     .map(m => String(m.content)).join('\n');
-  const times = (last.match(/\[지금 이 자리의 공기\]/g) || []).length;
+  const times = (last.match(/\[THE AIR AT THIS TABLE RIGHT NOW\]/g) || []).length;
   // 9턴을 도는 동안 3회면 충분하다: 시작 공기 1회, 심판이 처음 갱신했을 때 1회,
   // 그리고 자리가 문자→대면으로 바뀌었을 때 1회. 값이 안 바뀌면 다시 말하지 않는다.
   assert.ok(times <= 3, `공기가 ${times}번 반복 주입됐다`);
@@ -243,7 +243,7 @@ test('타겟에게는 공기를 주입하지 않는다 (공기는 심판이 타�
   await playFull(llm);
   const leaked = llm.byLabel('대면 응답')
     .flatMap(c => c.messages.map(m => String(m.content)))
-    .some(t => t.includes('[지금 이 자리의 공기]'));
+    .some(t => t.includes('[THE AIR AT THIS TABLE RIGHT NOW]'));
   assert.equal(leaked, false);
 });
 
@@ -256,7 +256,7 @@ test('대면에서 문자 대화 내역을 이어받는다', async () => {
   assert.ok(firstTalk.length > 2, '대면 첫 발언이 빈 컨텍스트에서 시작하면 초면처럼 군다');
   assert.ok(flat.includes('클라이언트 발언 #1'), '자기가 보낸 첫 문자를 기억해야 한다');
   assert.ok(flat.includes('타겟 응답 #1'), '상대의 답장도 기억해야 한다');
-  assert.ok(flat.includes('[상황 전환]'), '자리가 바뀐 사실이 명시되어야 한다');
+  assert.ok(flat.includes('[SCENE CHANGE]'), '자리가 바뀐 사실이 명시되어야 한다');
 
   const firstTalkTarget = llm.byLabel('대면 응답')[0].messages.map(m => String(m.content)).join('\n');
   assert.ok(firstTalkTarget.includes('클라이언트 발언 #1'), '상대도 주고받은 문자를 기억한다');
@@ -278,10 +278,11 @@ test('무전은 다음 발언 프롬프트에 주입되고 배급량을 넘지 �
   // 주입 확인: 무전을 보낸 직후 발언 호출의 메시지에 그 문구가 들어 있다
   const injected = llm.byLabel('문자 발언')
     .flatMap(c => c.messages.map(m => String(m.content)))
-    .filter(t => t.includes('[본부 명령'));
+    .filter(t => t.includes('[ORDER FROM HQ'));
   assert.ok(injected.length >= 1, '무전이 클라이언트 프롬프트에 주입되지 않았다');
-  assert.ok(injected.some(t => t.includes('상대에게는 안 들린다')));
-  assert.ok(injected.some(t => t.includes('즉시 이행하라')), '무전은 부탁이 아니라 명령으로 들어가야 한다');
+  assert.ok(injected.some(t => t.includes('other person cannot hear it')));
+  assert.ok(injected.some(t => t.includes('carry this out with your very next line')),
+    '무전은 부탁이 아니라 명령으로 들어가야 한다');
 });
 
 test('무전은 그 자체로 게이지를 바꾸지 않는다 (채점 대상이 아니다)', async () => {

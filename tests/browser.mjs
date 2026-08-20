@@ -411,13 +411,17 @@ try {
     return {
       exists: !!box, text: box?.textContent || '',
       tags: [...(box?.querySelectorAll('.flaw-tag') || [])].length,
-      want: c.client.flaw.want, fixation: c.client.flaw.fixation,
+      want: c.client.flaw.want, weakness: c.client.weakness,
+      urge: c.client.flaw.urge, nerve: c.client.flaw.nerve,
       targetWant: c.target.flaw.want,
     };
   });
   check('의뢰서에 의뢰인 심리 감정이 공개된다', psych.exists && psych.tags >= 4, `배지 ${psych.tags}개`);
-  check('의뢰인이 원하는 것과 화제 회귀가 명시된다',
-    psych.text.includes(psych.want) && psych.text.includes(psych.fixation));
+  check('의뢰인의 욕망 3단과 조건반사가 전부 명시된다',
+    [psych.want, psych.urge, psych.nerve, psych.weakness].every(x => psych.text.includes(x)));
+  // 같은 문장을 의뢰서에 두 번 찍지 않는다 — 예전에는 '취약점' 줄과 심리 감정이 겹쳤다
+  check('버릇이 의뢰서에 한 번만 나온다',
+    dossier.split(psych.weakness).length - 1 === 1, `${dossier.split(psych.weakness).length - 1}회`);
   check('상대 쪽 심리 감정은 작전 전에 공개되지 않는다', !dossier.includes(psych.targetWant));
   check('지뢰 목록이 의뢰인에게 자동 전달되지 않음을 경고한다',
     /전달되지 않았다|넘어가지 않는다/.test(dossier), dossier.match(/전달되지 않았다[^.]{0,20}/)?.[0] || '없음');

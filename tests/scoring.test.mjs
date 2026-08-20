@@ -70,22 +70,31 @@ test('40명 전원에게 자기 욕구와 하자가 있다', () => {
       const f = c[who].flaw;
       assert.ok(f, `${c.id}.${who}: 하자 블록이 없다`);
       assert.ok(f.want && f.want.length > 8, `${c.id}.${who}: want이 없거나 너무 짧다`);
-      assert.ok(f.fixation && f.fixation.length > 5, `${c.id}.${who}: fixation이 없다`);
-      assert.ok(READS.includes(f.reads), `${c.id}.${who}: reads=${f.reads}`);
+      // 예전의 flaw.fixation은 weakness와 스무 건 넘게 같은 말이어서 한 필드로 합쳤다.
+      assert.equal(f.fixation, undefined, `${c.id}.${who}: fixation이 아직 남아 있다`);
+      assert.ok(c[who].weakness && c[who].weakness.length > 5, `${c.id}.${who}: 버릇이 없다`);
       assert.ok(ATT.includes(f.attention), `${c.id}.${who}: attention=${f.attention}`);
-      assert.ok(COMP.includes(f.compliance), `${c.id}.${who}: compliance=${f.compliance}`);
+      // reads/compliance는 의뢰인 전용이다. 상대 쪽에 있으면 아무 데도 안 쓰이는 값이다.
+      if (who === 'client') {
+        assert.ok(READS.includes(f.reads), `${c.id}.client: reads=${f.reads}`);
+        assert.ok(COMP.includes(f.compliance), `${c.id}.client: compliance=${f.compliance}`);
+      } else {
+        assert.equal(f.reads, undefined, `${c.id}.target: 안 쓰이는 reads가 적혀 있다`);
+        assert.equal(f.compliance, undefined, `${c.id}.target: 안 쓰이는 compliance가 적혀 있다`);
+      }
     }
   }
 });
 
 test('공기를 못 읽는 인물과 관심 없는 인물이 실제로 존재한다', () => {
   const all = COUPLES.flatMap(c => [c.client.flaw, c.target.flaw]);
-  const blind = all.filter(f => f.reads === 'none').length;
+  const clients = COUPLES.map(c => c.client.flaw);   // reads는 의뢰인에게만 있다
+  const blind = clients.filter(f => f.reads === 'none').length;
   const selfish = all.filter(f => f.attention === 'self').length;
-  // 전원이 눈치 빠르고 전원이 상대에게 관심이 많으면 그건 사람이 아니라 상담사 40명이다
-  assert.ok(blind >= 8, `공기를 아예 못 읽는 인물이 ${blind}명뿐이다`);
+  // 전원이 눈치 빠르고 전원이 상대에게 관심이 많으면 그건 사람이 아니라 상담사 62명이다
+  assert.ok(blind >= 8, `공기를 아예 못 읽는 의뢰인이 ${blind}명뿐이다`);
   assert.ok(selfish >= 8, `상대에게 관심 없는 인물이 ${selfish}명뿐이다`);
-  assert.ok(all.filter(f => f.reads === 'well').length >= 4, '반대로 눈치 빠른 인물도 있어야 한다');
+  assert.ok(clients.filter(f => f.reads === 'well').length >= 3, '반대로 눈치 빠른 인물도 있어야 한다');
 });
 
 test('난이도 세 종류가 모두 실제로 쓰인다', () => {
@@ -383,10 +392,10 @@ test('대화 프롬프트가 상대 맞추기가 아니라 자기 욕구에서 �
   const target = P.targetAgentSystem(c, 'text', '');
   for (const [name, sys, person] of [['client', client, c.client], ['target', target, c.target]]) {
     assert.ok(sys.includes(person.flaw.want), `${name}: 자기 욕구가 프롬프트에 없다`);
-    assert.ok(sys.includes(person.flaw.fixation), `${name}: 관심사가 프롬프트에 없다`);
-    assert.ok(sys.includes('저 사람을 위해서가 아니라 너를 위해서다'), `${name}: 욕구의 방향이 명시되지 않았다`);
+    assert.ok(sys.includes(person.weakness), `${name}: 버릇이 프롬프트에 없다`);
+    assert.ok(sys.includes('Not for their sake — for yours'), `${name}: 욕구의 방향이 명시되지 않았다`);
     // 자기 욕구가 상대 정보보다 먼저 나와야 한다
-    assert.ok(sys.indexOf('[네가 이 자리에서 원하는 것]') < sys.indexOf('[네가 저 사람에 대해 아는 것]'),
+    assert.ok(sys.indexOf('[WHAT YOU WANT OUT OF THIS SEAT]') < sys.indexOf('[WHAT YOU KNOW ABOUT THEM]'),
       `${name}: 상대 정보가 자기 욕구보다 먼저 나온다`);
   }
 });
@@ -421,11 +430,26 @@ test('상대에 대한 정보가 관심도에 따라 차등 지급된다', () =>
   for (const v of selfish.target.visiblePrefs) {
     assert.ok(!s1.includes(v), `attention=self인데 상대 취향을 안다: ${v}`);
   }
-  assert.ok(s1.includes('굳이 알아본 적이 없다'));
+  assert.ok(s1.includes('never got around to finding out'));
 
   const s2 = P.clientAgentSystem(caring, { coaching: '', speech: '' }, 'text', AGENT);
   assert.ok(s2.includes(caring.target.personality.join(', ')), 'attention=other면 성격은 안다');
   assert.ok(s2.includes(caring.target.visiblePrefs[0]), 'attention=other면 알려진 취향도 안다');
+});
+
+// 'other'가 상대 쪽에서 아무것도 안 늘리던 시절이 있었다 — 의뢰인에게는 visiblePrefs가 없어서
+// 조건문이 통째로 헛돌았고, 상대의 'other'는 'mixed'와 완전히 같은 프롬프트를 냈다.
+// 지금은 의뢰인의 버릇이 넘어간다. 축이 죽어 있으면 그건 데이터가 아니라 장식이다.
+test("상대 쪽 attention='other'도 실제로 한 겹을 더 준다", () => {
+  const caring = COUPLES.find(c => c.target.flaw.attention === 'other');
+  const mid = COUPLES.find(c => c.target.flaw.attention === 'mixed');
+  assert.ok(caring && mid, '테스트 전제: 두 종류 상대가 다 있어야 한다');
+
+  const s = P.targetAgentSystem(caring, 'text', '');
+  assert.ok(s.includes(caring.client.weakness), "attention='other'인데 의뢰인 버릇을 모른다");
+
+  const m = P.targetAgentSystem(mid, 'text', '');
+  assert.ok(!m.includes(mid.client.weakness), "attention='mixed'인데 의뢰인 버릇을 안다");
 });
 
 test('요원이 쓴 지침/연설이 클라이언트 시스템 프롬프트에 그대로 들어간다', () => {
@@ -443,18 +467,19 @@ test('요원이 쓴 지침/연설이 클라이언트 시스템 프롬프트에 �
 test('요원의 지침은 참고사항이 아니라 명령으로 주입된다', () => {
   const c = COUPLE_BY_ID['politics'];
   const sys = P.clientAgentSystem(c, { coaching: '선거 얘기는 꺼내지 마라', speech: '' }, 'text', AGENT);
-  assert.ok(sys.includes('[본부 명령'), '명령으로 표시되지 않는다');
-  assert.ok(sys.includes('조언이나 참고사항이 아니다'), '구속력이 명시되지 않는다');
-  assert.ok(sys.includes('이행한다'), '이행 의무가 없다');
+  assert.ok(sys.includes('[ORDERS FROM HEADQUARTERS'), '명령으로 표시되지 않는다');
+  assert.ok(sys.includes('not advice and not a suggestion'), '구속력이 명시되지 않는다');
+  assert.ok(sys.includes('carry this order out'), '이행 의무가 없다');
   // 자율 판단을 통째로 뺏지는 않는다
-  assert.ok(sys.includes('명령이 다루지 않은 상황에서는 네 판단대로 한다'), '자율 판단이 남아 있어야 한다');
+  assert.ok(sys.includes('Where the orders say nothing, you act on your own judgement'),
+    '자율 판단이 남아 있어야 한다');
 });
 
 test('명령의 결이 인물마다 다르다 — 다만 셋 다 이행한다', () => {
   const seen = new Set();
   for (const c of COUPLES) {
     const sys = P.clientAgentSystem(c, { coaching: '아무 지시', speech: '' }, 'text', AGENT);
-    assert.ok(sys.includes('이행한다'), `${c.id}: 이행 의무가 빠졌다`);
+    assert.ok(sys.includes('carry this order out'), `${c.id}: 이행 의무가 빠졌다`);
     seen.add(c.client.flaw.compliance);
   }
   assert.ok(seen.size >= 2, '전원이 같은 결이면 인물 차이가 없는 것이다');
@@ -463,9 +488,9 @@ test('명령의 결이 인물마다 다르다 — 다만 셋 다 이행한다', 
 test('준비를 비우면 그 사실이 프롬프트에 사실로 적힌다', () => {
   const c = COUPLE_BY_ID['vampire-garlic'];
   const empty = P.clientAgentSystem(c, { coaching: '', speech: '', outfitDesc: '' }, 'text', AGENT);
-  assert.ok(empty.includes('아무도 너에게 어떻게 하라고 알려주지 않았다'));
-  assert.ok(empty.includes('등 떠밀려 나왔다'));
-  assert.ok(empty.includes('평소 입던 옷'));
+  assert.ok(empty.includes('Nobody told you how to handle this'));
+  assert.ok(empty.includes('shoved out the door in silence'));
+  assert.ok(empty.includes('평소 입던 옷'), '착장은 한글 데이터 그대로 들어간다');
 });
 
 // 이번 개편의 본체. 대화 에이전트에게 연출 지시를 주면 그 인물은 대화가 아니라 공략을 시작한다.
@@ -535,9 +560,9 @@ test('심판 스키마는 tier·해설·공기를 필수로 요구한다', () =>
 
 test('심판은 판정보다 해설이 먼저라고 지시받는다', () => {
   const sys = P.judgeSystem(COUPLE_BY_ID['politics']);
-  assert.ok(sys.includes('1순위'), '우선순위가 명시되어야 한다');
-  assert.ok(/판정 불가/.test(sys), '"판정 불가" 금지가 명시되어야 한다');
-  assert.ok(sys.includes('억지로라도'), '부조리한 장면도 납득시키라는 지시가 있어야 한다');
+  assert.ok(/FIRST —/.test(sys), '우선순위가 명시되어야 한다');
+  assert.ok(/cannot adjudicate/.test(sys), '"판정 불가" 금지가 명시되어야 한다');
+  assert.ok(sys.includes('forcing it to make sense'), '부조리한 장면도 납득시키라는 지시가 있어야 한다');
 });
 
 test('결승선은 전부 연애로 통일되어 있다', () => {
@@ -564,13 +589,13 @@ test('결승선을 대화 에이전트에게 지시하지 않는다', () => {
 
 // ── 표현 수위 ────────────────────────────────────────────
 test('세계관이 창작 인물 대상 수위를 명시적으로 열어둔다', () => {
-  assert.ok(P.WORLD.includes('19금'));
-  assert.ok(P.WORLD.includes('비방'));
-  assert.ok(/순화하지 마라/.test(P.WORLD));
+  assert.ok(P.WORLD.includes('adults-only lines'));
+  assert.ok(P.WORLD.includes('slander'));
+  assert.ok(/Do not sanitize them/.test(P.WORLD));
   // 실존 인물·현실 집단 혐오만 좁게 제외한다. 이건 취향이 아니라 운영 문제다 —
   // 모형이 응답을 거부하면 공작이 그 자리에서 끊긴다.
-  assert.ok(P.WORLD.includes('실존 인물'));
-  assert.ok(P.WORLD.includes('혐오 발화'));
+  assert.ok(P.WORLD.includes('real people or real organizations'));
+  assert.ok(P.WORLD.includes('hate speech'));
 });
 
 // ── 브리핑은 LLM을 안 쓴다 ───────────────────────────────
@@ -627,8 +652,8 @@ test('자유 도형은 살아남고 쓰레기는 걸러진다', () => {
 });
 
 test('스타일링은 종족을 바꿀 수 없다고 프롬프트에 못박혀 있다', () => {
-  assert.ok(P.STYLING_SYSTEM.includes('species는 절대 바꾸지 않는다'));
-  assert.ok(P.STYLING_SYSTEM.includes('못 만드는 게 없다'), '거절하지 않는 시공업자여야 한다');
+  assert.ok(P.STYLING_SYSTEM.includes('Never change species'));
+  assert.ok(P.STYLING_SYSTEM.includes('There is nothing you cannot build'), '거절하지 않는 시공업자여야 한다');
   assert.ok(P.STYLING_SCHEMA.required.includes('clientReaction'), '거울 본 본인 반응이 필수다');
 });
 
@@ -640,7 +665,7 @@ test('준비 단계 반응 프롬프트가 두 장소를 구분한다', () => {
   assert.ok(gate.includes('정문'));
   assert.ok(interro.includes(c.client.background[0]), '반응하려면 자기가 누군지 알아야 한다');
   assert.deepEqual(P.PREP_REACT_SCHEMA.required.sort(), ['face', 'note', 'reaction']);
-  assert.ok(P.prepReactUser('speech', '', AGENT).includes('아무 말도 없었다'), '빈 입력도 장면이 된다');
+  assert.ok(P.prepReactUser('speech', '', AGENT).includes('Nothing was said'), '빈 입력도 장면이 된다');
 });
 
 // ── 구조화 출력 스키마 가드 ─────────────────────────────
@@ -704,8 +729,12 @@ test('모든 의뢰인의 결함이 사람이 읽을 수 있는 형태로 나온
   const { COUPLES, flawReport, FLAW_LABELS } = await import('../js/couples.js');
   for (const c of COUPLES) {
     const rows = flawReport(c.client);
-    assert.equal(rows.length, 3, `${c.id}: 감정 항목이 세 개여야 한다`);
-    for (const r of rows) {
+    assert.deepEqual(rows.map(r => r.key), ['reads', 'attention', 'compliance'],
+      `${c.id}: 의뢰인은 세 축이 전부 살아 있다`);
+    // 상대에게는 attention만 실효가 있다. 안 쓰이는 축을 디브리핑에 띄우면 화면이 거짓말을 한다.
+    const tRows = flawReport(c.target);
+    assert.deepEqual(tRows.map(r => r.key), ['attention'], `${c.id}: 상대는 관심 축만 나간다`);
+    for (const r of [...rows, ...tRows]) {
       assert.ok(r.axis && r.tag && r.desc, `${c.id}/${r.key}: 라벨이 비었다`);
       assert.ok(['ok', 'mid', 'bad'].includes(r.level), `${c.id}/${r.key}: 심각도가 이상하다`);
       assert.ok(r.desc.length > 10, `${c.id}/${r.key}: 설명이 너무 짧다`);
@@ -713,8 +742,8 @@ test('모든 의뢰인의 결함이 사람이 읽을 수 있는 형태로 나온
     // 축마다 모든 값에 라벨이 있어야 한다 — 하나라도 비면 화면이 빈칸으로 나간다
     for (const axis of ['reads', 'attention', 'compliance']) {
       assert.ok(FLAW_LABELS[axis][c.client.flaw[axis]], `${c.id}: ${axis}=${c.client.flaw[axis]} 라벨 없음`);
-      assert.ok(FLAW_LABELS[axis][c.target.flaw[axis]], `${c.id}: 상대 ${axis} 라벨 없음`);
     }
+    assert.ok(FLAW_LABELS.attention[c.target.flaw.attention], `${c.id}: 상대 관심 라벨 없음`);
   }
 });
 
@@ -807,7 +836,9 @@ test('제2차 강제배정은 기존 헬보다 하자가 나쁘다', async () =>
   // 하자 점수: bad 2 / mid 1 / ok 0. 두 사람 몫을 합친다.
   const score = c => ['client', 'target'].reduce((sum, who) =>
     sum + ['reads', 'attention', 'compliance'].reduce((s2, ax) => {
-      const lv = FLAW_SEVERITY[ax][c[who].flaw[ax]];
+      const v = c[who].flaw[ax];
+      if (v === undefined) return s2;   // 상대에게는 attention만 있다
+      const lv = FLAW_SEVERITY[ax][v];
       return s2 + (lv === 'bad' ? 2 : lv === 'mid' ? 1 : 0);
     }, 0), 0);
 
@@ -825,7 +856,7 @@ test('제2차 강제배정은 기존 헬보다 하자가 나쁘다', async () =>
   for (const c of newHell) {
     for (const who of ['client', 'target']) {
       assert.ok(c[who].flaw.want.length > 12, `${c.id}.${who}: want가 너무 짧다`);
-      assert.ok(c[who].flaw.fixation.length > 5, `${c.id}.${who}: fixation이 너무 짧다`);
+      assert.ok(c[who].weakness.length > 5, `${c.id}.${who}: 버릇이 너무 짧다`);
     }
   }
 });

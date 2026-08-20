@@ -52,6 +52,8 @@ const TIPS = [
   '참고 · 가위손 박은 거절하지 않는다. 폭탄을 붙이라면 붙인다.',
   '참고 · 의뢰서의 「심리 감정」이 그 인간의 하자를 전부 적어둔다. 고르기 전에 읽어라.',
   '참고 · 요원 화면에 떴다고 의뢰인이 아는 게 아니다. 지뢰 목록도 마찬가지다.',
+  '참고 · 만날 장소는 문자에서 정해진다. 지침에 적으면 화산 분화구도 예약된다.',
+  '참고 · 장소가 사람을 죽이지는 않는다. 대화를 망칠 뿐이다.',
 ];
 function loading(on, label = '') {
   $('#loading-overlay').classList.toggle('hidden', !on);
@@ -372,7 +374,6 @@ function dossierHtml(c, { full = false } = {}) {
     <p><b>외모:</b> ${c.client.appearance.map(escapeHtml).join(', ')}</p>
     <p><b>성격:</b> ${c.client.personality.map(escapeHtml).join(', ')}</p>
     <p><b>내력:</b> ${c.client.background.map(escapeHtml).join(' · ')}</p>
-    <p class="weakness"><b>취약점:</b> ${escapeHtml(c.client.weakness)} <span class="dim">— 지침으로 봉인해야 한다</span></p>
     <p class="quote">“${escapeHtml(c.client.quote)}”</p>
     ${flawHtml(c.client)}
     <hr>
@@ -411,9 +412,9 @@ function flawHtml(person) {
       ${rows.map(r => `<li class="lv-${r.level}"><span class="flaw-axis">${escapeHtml(r.axis)}</span>
         <span class="flaw-tag lv-${r.level}">${escapeHtml(r.tag)}</span>
         <span class="flaw-desc">${escapeHtml(r.desc)}</span></li>`).join('')}
-      <li class="lv-mid"><span class="flaw-axis">화제 회귀</span>
-        <span class="flaw-tag lv-mid">고정</span>
-        <span class="flaw-desc">${escapeHtml(person.flaw.fixation)}</span></li>
+      <li class="lv-mid"><span class="flaw-axis">조건반사</span>
+        <span class="flaw-tag lv-mid">가만두면 나온다</span>
+        <span class="flaw-desc">${escapeHtml(person.weakness)} — 막으려면 지침으로 봉인해야 한다</span></li>
     </ul>
   </div>`;
 }

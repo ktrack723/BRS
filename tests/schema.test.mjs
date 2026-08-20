@@ -80,7 +80,7 @@ test('필드 이름이 하필 format이나 pattern이어도 지워지지 않는�
 });
 
 test('props 상한 6개는 스키마가 아니라 프롬프트와 sanitize가 지킨다', async () => {
-  assert.match(P.STYLING_SYSTEM, /props는 최대 6개/, '상한을 프롬프트에서 지시해야 한다');
+  assert.match(P.STYLING_SYSTEM, /Max 6 props/, '상한을 프롬프트에서 지시해야 한다');
   const { sanitizeSpec } = await import('../js/avatar.js');
   const many = Array.from({ length: 10 }, (_, i) => ({
     shape: 'sphere', color: '#112233', size: 0.3, at: 'orbit', motion: 'orbit', label: `p${i}`,

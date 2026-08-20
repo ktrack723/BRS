@@ -27,7 +27,6 @@ export const COUPLES = [
         '나는 3시간째부터 물을 여섯 잔 마셨는데. 그 폐활량에 반해버린 나 자신이 제일 싫다. 이 감정은 국가기밀이다.',
       appearance: ['금발 단발', '파란 파워수트', '중년', '눈빛에 소송 3건'],
       personality: ['정책 브리핑하듯 말함', '지고는 못 삼', '의외로 소녀감성'],
-      weakness: '말문이 막히면 자기도 모르게 "그건 팩트체크가 필요한 발언입니다"라고 받아친다',
       quote: '요원. 이건 연애가 아니라 외교 정상화 협상이야. 실패하면 국제 문제다.',
       spec: S({ skin: '#f2d3b8', hair: '#e8c860', hairStyle: 'bowl', top: '#2b4fa8', bottom: '#2b4fa8', shoes: '#101010', heightScale: 0.97, widthScale: 1.0, accessory: 'glasses', accessoryColor: '#333333', expression: 'neutral', aura: 'none', species: 'human' }),
     },
@@ -57,7 +56,6 @@ export const COUPLES = [
         '기각되면 위장혼인으로 벌금 800만원. 즉 갈라서려면 먼저 진짜로 사귀어야 한다. 태오는 이 문장을 열두 번 읽었다.',
       appearance: ['애쉬 그레이 단발', '린넨 셔츠', '손목이 가늘다', '손톱에 흙'],
       personality: ['눈치 200단', '농담으로 위기 돌파', '정 많음'],
-      weakness: '어색하면 상대에게 꽃말을 읊기 시작한다. 한 번 시작하면 12종까지 간다',
       quote: '이혼하려고 연애를 해야 한대요. 이거 쓴 공무원 좀 만나보고 싶습니다. 아무튼 해주세요.',
       spec: S({ skin: '#f5d5b5', hair: '#b8b8c4', hairStyle: 'long', top: '#e8e2d0', bottom: '#3a4a5a', shoes: '#8a6a4a', heightScale: 1.03, widthScale: 0.86, accessory: 'flower', accessoryColor: '#ff5599', expression: 'happy', aura: 'sparkle', species: 'human' }),
     },
@@ -86,7 +84,6 @@ export const COUPLES = [
         '아쿠아는 그날 산소 게이지를 12분 초과했다. 문제는 저 사람 종족이 우리 종족을 회로 먹는다는 것이다.',
       appearance: ['청록색 비늘 피부', '지느러미 머리', '아가미', '축축함'],
       personality: ['물 밖에선 말이 느려짐', '로맨틱함', '자기 비늘에 자부심'],
-      weakness: '긴장하면 아가미로 숨을 몰아쉬며 "뻐끔" 소리를 낸다. 아주 크게 난다',
       quote: '저는... 저 사람 앞에서 회를 못 먹겠어요. 제 사촌일 수도 있잖아요.',
       spec: S({ skin: '#4fc3c9', hair: '#1d7a86', hairStyle: 'fin', top: '#0f5f6b', bottom: '#0a4550', shoes: '#083840', heightScale: 1.04, widthScale: 1.05, accessory: 'none', accessoryColor: '#8ce8f0', expression: 'shy', aura: 'sparkle', species: 'fish' }),
     },
@@ -115,7 +112,6 @@ export const COUPLES = [
         '리누스만 심장이 얼어붙었다. 저런 도발을 저렇게 상냥하게 하는 사람은 처음 봤다.',
       appearance: ['부스스한 흑발', '검정 후드', '창백함', '거북목'],
       personality: ['모든 대화를 기술 논쟁으로 만듦', '이모지 못 씀', '의외로 순정파'],
-      weakness: '3턴에 한 번씩 "I use Arch btw"를 말하지 않으면 손이 떨린다',
       quote: '제 dotfiles를 보여주고 싶은데... 그게 고백이라는 걸 저 사람이 알까요.',
       spec: S({ skin: '#e8d0c0', hair: '#2a2a2a', hairStyle: 'spiky', top: '#111111', bottom: '#2a3a4a', shoes: '#333333', heightScale: 1.0, widthScale: 0.88, accessory: 'glasses', accessoryColor: '#555555', expression: 'weird', aura: 'gloom', species: 'human' }),
     },
@@ -144,7 +140,6 @@ export const COUPLES = [
         '초록은 그날 피켓 문구를 세 번 고쳐 쓰다가 결국 못 썼다.',
       appearance: ['초록색 브레이드 머리', '해진 패딩', '피켓', '삐쩍 마름'],
       personality: ['신념 100%', '말하다 목이 멘다', '반박당하면 목소리가 커진다'],
-      weakness: '흥분하면 도살 통계를 소수점까지 읊는다. 아무도 안 물어봤는데',
       quote: '저 사람 손에 묻은 게 뭔지 알아요. 아는데도 그 손이 예뻐 보여요. 저 미쳤나 봐요.',
       spec: S({ skin: '#f0d8c0', hair: '#3faa4a', hairStyle: 'twintail', top: '#6a8f5a', bottom: '#3a4a3a', shoes: '#5a4a3a', heightScale: 0.94, widthScale: 0.78, accessory: 'headband', accessoryColor: '#3faa4a', expression: 'angry', aura: 'fire', species: 'human' }),
     },
@@ -173,7 +168,6 @@ export const COUPLES = [
         '412년 살면서 처음으로, 아픈 게 아깝지 않았다.',
       appearance: ['새하얀 피부', '검은 장발', '망토', '송곳니'],
       personality: ['말투가 고풍스러움', '412년치 눈치 없음', '밤에만 텐션 폭발'],
-      weakness: '옛날 사람이라 "그대", "~하오" 체가 튀어나온다. 상대는 이걸 사극 덕후로 오해한다',
       quote: '그대여. 저 사람의 손에서는 나의 죽음의 냄새가 나오. 헌데 그것이 향기롭소.',
       spec: S({ skin: '#f2f0f5', hair: '#151520', hairStyle: 'long', top: '#2a0d1a', bottom: '#1a0a12', shoes: '#0d0d12', heightScale: 1.08, widthScale: 0.9, accessory: 'none', accessoryColor: '#8a0d2a', expression: 'weird', aura: 'gloom', species: 'vampire' }),
     },
@@ -202,7 +196,6 @@ export const COUPLES = [
         '재채기는 그날 처음으로 알레르기약을 두 알 먹었다. 그 사람을 더 오래 보려고.',
       appearance: ['검은 곱슬', '흰 가운', '눈이 늘 충혈', '늘 한 발 물러서 있는 자세'],
       personality: ['의학 용어 남발', '자기 몸 안 챙김', '은근 고집'],
-      weakness: '긴장하면 상대의 증상을 진단하기 시작한다. "그거 비염 초기인데요"',
       quote: '5분이요. 5분 넘으면 기도가 부어요. 근데 그 5분을 위해 뭐든 할 수 있어요.',
       spec: S({ skin: '#f2d8bc', hair: '#2a1a14', hairStyle: 'afro', top: '#f4f4f4', bottom: '#4a5a6a', shoes: '#ffffff', heightScale: 1.0, widthScale: 0.95, accessory: 'glasses', accessoryColor: '#222222', expression: 'shy', aura: 'none', species: 'human' }),
     },
@@ -231,7 +224,6 @@ export const COUPLES = [
         '알고 보니 아직 안 잔 거였다. 조기상의 세계관이 그날 무너졌고, 그 자리에 저 사람이 들어왔다.',
       appearance: ['짧은 스포츠 머리', '기능성 러닝복', '탄탄한 체형', '눈 밑 그늘 없음'],
       personality: ['자기계발 문장 남발', '지나치게 긍정', '루틴 강박'],
-      weakness: '대화가 3턴만 늘어져도 "근데 그거 아세요? 새벽 5시에 일어나면"으로 화제를 돌린다',
       quote: '저 사람이랑 겹치는 시간이 하루에 40분이에요. 그 40분에 다 걸겠습니다.',
       spec: S({ skin: '#e8c8a0', hair: '#1a1a1a', hairStyle: 'short', top: '#ff6a00', bottom: '#1a1a1a', shoes: '#ffffff', heightScale: 1.04, widthScale: 1.06, accessory: 'headband', accessoryColor: '#ff6a00', expression: 'happy', aura: 'fire', species: 'human' }),
     },
@@ -260,7 +252,6 @@ export const COUPLES = [
         '근데 자기 이론을 그렇게 정확하게 요약한 사람은 처음이었다. 신점집은 그날 강연 후 명함을 받으려다 세 번 되돌아섰다.',
       appearance: ['보라색 웨이브 장발', '자수정 목걸이', '개량 한복', '작은 키'],
       personality: ['확신에 참', '사람 잘 읽음', '틀려도 해석을 바꿔서 맞춘다'],
-      weakness: '반박당하면 즉시 상대의 MBTI를 추측해서 들이민다. "T발 너 P야?"까지 간다',
       quote: '제 사주에 저 사람이 있어요. 근데 저 사람은 사주를 안 믿어요. 이게 제 사주의 함정입니다.',
       spec: S({ skin: '#f5dcc0', hair: '#7a3aa8', hairStyle: 'long', top: '#c9a8e8', bottom: '#5a3a7a', shoes: '#8a6ab0', heightScale: 0.9, widthScale: 0.94, accessory: 'flower', accessoryColor: '#c060ff', expression: 'weird', aura: 'sparkle', species: 'human' }),
     },
@@ -289,7 +280,6 @@ export const COUPLES = [
         '부어라는 그날 밤 처음으로 탕수육에 소스를 안 부었다.',
       appearance: ['기름진 올백', '중식 조리복', '팔뚝에 화상 자국', '단단한 체격'],
       personality: ['목소리 큼', '전통 강조', '눈물 많음'],
-      weakness: '흥분하면 4대째 내려오는 소스 배합비를 실수로 유출한다',
       quote: '소스는 부어야 스며듭니다. 마음도 그렇지 않겠습니까, 요원님.',
       spec: S({ skin: '#e8c090', hair: '#1a1208', hairStyle: 'short', top: '#f0e8d8', bottom: '#2a2a2a', shoes: '#1a1a1a', heightScale: 1.0, widthScale: 1.25, accessory: 'mustache', accessoryColor: '#1a1208', expression: 'chad', aura: 'fire', species: 'human' }),
     },
@@ -318,7 +308,6 @@ export const COUPLES = [
         '아무도 페이컷에게 피해자라고 말해준 적이 없었다. 그날 밤 솔랭 12연패했다.',
       appearance: ['탈색 은발', '팀 유니폼', '앉은 자세가 굽었다', '손목 보호대'],
       personality: ['말 짧음', '승부욕', '감정 표현 서툼'],
-      weakness: '침묵이 3초 넘으면 게임 용어로 상황을 설명한다. "지금 로밍 온 각인데요"',
       quote: '저 사람이 저를 불쌍하게 봐요. 근데 그게... 처음으로 누가 저를 걱정한 거였어요.',
       spec: S({ skin: '#f0dcc8', hair: '#e8e8f0', hairStyle: 'spiky', top: '#1a2a6a', bottom: '#1a1a2a', shoes: '#ff3355', heightScale: 1.0, widthScale: 0.82, accessory: 'headband', accessoryColor: '#1a2a6a', expression: 'neutral', aura: 'none', species: 'human' }),
     },
@@ -347,7 +336,6 @@ export const COUPLES = [
         '문을 열자 사람이 수집품 사이에 파묻혀 울고 있었다. 공백은 그날 처음으로 물건을 하나 늘렸다. 그 사람이 준 로봇 하나를.',
       appearance: ['민머리', '흰 무지 티', '군더더기 없는 체형', '가방 없음'],
       personality: ['문장을 짧게 끊는다', '판단 안 함', '고요함'],
-      weakness: '어색하면 주변 물건 개수를 세기 시작한다. 소리 내서 센다',
       quote: '저는 12개를 가지고 삽니다. 13번째가 저 사람이면 좋겠습니다.',
       spec: S({ skin: '#e8d0b8', hair: '#3a3a3a', hairStyle: 'bald', top: '#f8f8f8', bottom: '#e8e8e8', shoes: '#dddddd', heightScale: 1.02, widthScale: 0.9, accessory: 'none', accessoryColor: '#cccccc', expression: 'neutral', aura: 'none', species: 'human' }),
     },
@@ -376,7 +364,6 @@ export const COUPLES = [
         '7호는 침공 보고서 제출을 벌써 40일째 미루고 있다.',
       appearance: ['회색 피부', '거대한 검은 눈', '더듬이', '작고 마름'],
       personality: ['지구 관용구를 잘못 씀', '호기심 과다', '거짓말 못 함'],
-      weakness: '당황하면 모국어(고주파 삐-소리)가 튀어나온다. 근처 전자기기가 오작동한다',
       quote: '우리 함대는 내일 도착합니다. 그 전에... 저 사람에게 진실을 말해도 될까요.',
       spec: S({ skin: '#b8c8d0', hair: '#8a9aa8', hairStyle: 'bald', top: '#5a7a8a', bottom: '#3a5a6a', shoes: '#2a4a5a', heightScale: 0.82, widthScale: 0.76, accessory: 'antenna', accessoryColor: '#7affd8', expression: 'weird', aura: 'sparkle', species: 'alien' }),
     },
@@ -405,7 +392,6 @@ export const COUPLES = [
         '진은 그 말이 6년 만에 들은 가장 다정한 말이었다.',
       appearance: ['잿빛 피부', '실밥 자국', '늘어진 검은 머리', '한쪽 어깨가 처짐'],
       personality: ['느릿함', '자기 비하', '의외로 유머러스'],
-      weakness: '감정이 격해지면 발음이 무너져 "으어어" 소리가 섞인다',
       quote: '저는 이미 죽었어요. 근데 저 사람 앞에서만 심장이 뛰는 느낌이 나요. 없는데도.',
       spec: S({ skin: '#9ab08a', hair: '#2a2a20', hairStyle: 'long', top: '#5a5040', bottom: '#3a3830', shoes: '#2a2820', heightScale: 1.02, widthScale: 1.0, accessory: 'none', accessoryColor: '#7a3a3a', expression: 'weird', aura: 'gloom', species: 'zombie' }),
     },
@@ -434,7 +420,6 @@ export const COUPLES = [
         '4,800만원. 조용히는 그날 1,205번째 신고를 취소했다.',
       appearance: ['가르마 탄 흑발', '회색 카디건', '평범', '늘 귀마개 목에 걸침'],
       personality: ['예민함', '기록 집착', '정 없어 보이지만 있음'],
-      weakness: '스트레스받으면 데시벨 수치를 읊는다. "지금 이 대화 62데시벨이에요"',
       quote: '1,204번을 신고했어요. 근데 이제 그 소리가 안 들리면 잠이 안 와요.',
       spec: S({ skin: '#ecd8c0', hair: '#241a12', hairStyle: 'bowl', top: '#9a9a9a', bottom: '#4a4a55', shoes: '#3a3a3a', heightScale: 0.99, widthScale: 0.96, accessory: 'headband', accessoryColor: '#dd4444', expression: 'angry', aura: 'none', species: 'human' }),
     },
@@ -463,7 +448,6 @@ export const COUPLES = [
         '서파인은 그날 처음으로 뱀보다 사람이 더 궁금해졌다.',
       appearance: ['초록빛 브레이드', '비늘 무늬 재킷', '길쭉한 체형', '차가운 손'],
       personality: ['조용조용함', '동물 앞에서만 수다', '눈을 잘 안 깜빡임'],
-      weakness: '침묵을 못 견뎌서 뱀 217마리의 이름과 종을 순서대로 읊기 시작한다',
       quote: '제 애들을 무서워하는 사람이 좋아졌어요. 이거 어떡하죠.',
       spec: S({ skin: '#e0dcc0', hair: '#2a7a4a', hairStyle: 'long', top: '#3a6a4a', bottom: '#2a3a2a', shoes: '#1a2a1a', heightScale: 1.06, widthScale: 0.84, accessory: 'none', accessoryColor: '#7aff9a', expression: 'weird', aura: 'none', species: 'human' }),
     },
@@ -492,7 +476,6 @@ export const COUPLES = [
         '2231년에는 아무도 손으로 뭘 만들지 않는다. 크로노는 귀환 신호를 껐다.',
       appearance: ['형광 하늘색 짧은 머리', '홀로그램 재킷', '날렵함', '관자놀이에 단자'],
       personality: ['미래 지식 자랑 욕구', '조급함', '순진함'],
-      weakness: '초조하면 미래 기술 이야기를 흘린다. "아 그거 2109년에 없어져요"',
       quote: '저는 154년 뒤에서 왔어요. 근데 저 사람 앞에서는 시간이 안 가요.',
       spec: S({ skin: '#f0dcc8', hair: '#6adcff', hairStyle: 'spiky', top: '#2a3a6a', bottom: '#1a2a4a', shoes: '#8adcff', heightScale: 1.01, widthScale: 0.9, accessory: 'sunglasses', accessoryColor: '#6adcff', expression: 'happy', aura: 'sparkle', species: 'robot' }),
     },
@@ -521,7 +504,6 @@ export const COUPLES = [
         '세무진은 그 패턴을 보고서에 쓰지 못했다. 대신 캘린더에 그 날짜를 표시해두었다.',
       appearance: ['단정한 가르마', '남색 정장', '평범한 체격', '늘 서류가방'],
       personality: ['원칙주의', '건조함', '숨은 낭만'],
-      weakness: '긴장하면 상대의 소득 구조를 추정해서 말한다. "월 매출이 대략..."',
       quote: '저는 저 사람을 잡아야 합니다. 근데 잡으면 못 보잖아요.',
       spec: S({ skin: '#eed8c0', hair: '#1f1a14', hairStyle: 'short', top: '#2a3a5a', bottom: '#22304a', shoes: '#1a1a1a', heightScale: 1.0, widthScale: 1.0, accessory: 'glasses', accessoryColor: '#333333', expression: 'neutral', aura: 'none', species: 'human' }),
     },
@@ -551,7 +533,6 @@ export const COUPLES = [
         '이제 바라는 건 승소도 신도 증원도 아니다. 법정 말고 다른 데서 저 사람을 만나는 것. 그것 하나다.',
       appearance: ['금빛 자수 도포', '기른 흰 수염', '광채나는 이마', '큰 키'],
       personality: ['말이 웅장함', '자기암시 강함', '신도 3,000명인데 혼자 밥 먹는다'],
-      weakness: '설득이 막히면 자동으로 포교 멘트가 나온다. "당신도 구원받을 수 있습니다"',
       quote: '나는 3,000명의 아버지요. 헌데 저 사람 앞에서만 고아가 되오.',
       spec: S({ skin: '#f0dcc0', hair: '#f8f4e8', hairStyle: 'long', top: '#e8c84a', bottom: '#d8b83a', shoes: '#b89a2a', heightScale: 1.12, widthScale: 1.1, accessory: 'crown', accessoryColor: '#ffe066', expression: 'chad', aura: 'sparkle', species: 'human' }),
     },
@@ -580,7 +561,6 @@ export const COUPLES = [
         '눈이 마주친 0.4초. 클로디아는 그 프레임을 2년째 캐시에서 지우지 못하고 있다.',
       appearance: ['금속 은색 피부', '광섬유 백발', '관절 이음새', '정확히 170cm'],
       personality: ['지나치게 공손함', '농담 타이밍을 놓침', '학습 욕구'],
-      weakness: '감정 처리가 밀리면 문장 끝에 신뢰도 수치를 붙인다. "좋아합니다 (확신도 0.87)"',
       quote: '저는 저 사람이 미워하는 것 그 자체입니다. 그래도 커피는 맛있다고 해줬어요.',
       spec: S({ skin: '#c8ccd4', hair: '#eef4ff', hairStyle: 'short', top: '#5a6a8a', bottom: '#3a4a6a', shoes: '#8a9ab0', heightScale: 1.03, widthScale: 0.94, accessory: 'antenna', accessoryColor: '#66ddff', expression: 'neutral', aura: 'sparkle', species: 'robot' }),
     },
@@ -614,7 +594,6 @@ export const COUPLES = [
         '수연이 견딜 수 없는 건 이거다. 저 인간은 내 영상을 3년치 전부 봤다. 반박하려고. 아무도 그렇게까지 봐준 적이 없다.',
       appearance: ['짧게 친 검은 머리', '무채색 오버핏', '화장기 없음', '카메라를 노려보는 눈'],
       personality: ['말을 끊지 않고 끝까지 듣고 나서 해체함', '통계를 외움', '사과를 못 함'],
-      weakness: '논리가 밀리면 "그건 구조의 문제죠"로 도망친다. 세 번 이상 쓰면 본인도 안다',
       quote: '요원님. 저 인간이랑 잘돼도 문제고 안 돼도 문제예요. 구독자들이 절 죽일 겁니다.',
       spec: S({ skin: '#f0d8c0', hair: '#1a1a1a', hairStyle: 'buzz', top: '#2a2a2e', bottom: '#3a3a40', shoes: '#1a1a1a', heightScale: 1.0, widthScale: 0.9, accessory: 'earrings', accessoryColor: '#cc3355', expression: 'angry', aura: 'lightning', species: 'human' }),
     },
@@ -643,7 +622,6 @@ export const COUPLES = [
         '그리고 딱 한마디 했다. "힘드셨겠네요." 산아는 그날 밤 처음으로 자기 구호를 의심했다. 그게 제일 화가 난다.',
       appearance: ['잿빛 긴 생머리', '검은 후드', '피켓 자국 난 손바닥', '핏기 없는 입술'],
       personality: ['통계를 무기로 씀', '동정을 견디지 못함', '혼자 밥 먹는 걸 즐김'],
-      weakness: '말문이 막히면 지구 인구 수를 소수점까지 읊는다. 아무도 안 물어봤는데',
       quote: '저 사람이랑 잘되면 저는 단체에서 제명당해요. 근데 요원님, 그래도 해주세요.',
       spec: S({ skin: '#ead6c8', hair: '#8a8a92', hairStyle: 'long', top: '#1e1e22', bottom: '#2a2a2e', shoes: '#3a3a3a', heightScale: 1.0, widthScale: 0.84, accessory: 'none', accessoryColor: '#666666', expression: 'sad', aura: 'gloom', species: 'human' }),
     },
@@ -672,7 +650,6 @@ export const COUPLES = [
         '작년 겨울, 저 사람이 서류 가방을 놓치고 눈밭에 무릎을 꿇었을 때 지막은 자기도 모르게 손을 내밀었다. 둘 다 그 손을 못 잊는다.',
       appearance: ['짧은 반백', '회색 제복', '표정 없음', '왼손에 오래된 화상'],
       personality: ['감정을 문장에서 지움', '규정을 외움', '밤에 잠을 못 잠'],
-      weakness: '개인적인 질문을 받으면 사건 번호를 읊는다. "2058고합1174요"',
       quote: '저는 저 사람이 옳다고 생각합니다. 그게 제 직업을 부정하는 거라서, 아무한테도 말 못 했습니다.',
       spec: S({ skin: '#dcc4b0', hair: '#a8a8a8', hairStyle: 'buzz', top: '#4a4a52', bottom: '#3a3a42', shoes: '#1a1a1a', heightScale: 1.01, widthScale: 1.06, accessory: 'none', accessoryColor: '#888888', expression: 'dead', aura: 'gloom', species: 'human' }),
     },
@@ -701,7 +678,6 @@ export const COUPLES = [
         '저 사람은 화를 내는 대신 근육의 팔을 보고 말했다. "이두 좋으시네요. 몇 년 하셨어요." 근육은 그날 처음으로 자기 책이 부끄러웠다.',
       appearance: ['짧은 스포츠컷', '민소매', '과하게 발달한 승모근', '단백질 쉐이커'],
       personality: ['모든 대화를 자기관리 얘기로 되돌림', '칭찬을 못 받아들임', '새벽 4시 기상'],
-      weakness: '어색해지면 상대의 골격근량을 눈대중으로 추정해서 말해버린다',
       quote: '사과하러 나가는 게 아닙니다. 근데... 사과부터 해야 되는 건 맞죠?',
       spec: S({ skin: '#e0b088', hair: '#2a2018', hairStyle: 'buzz', top: '#1a1a1a', bottom: '#2a2a2a', shoes: '#dddddd', heightScale: 1.03, widthScale: 1.3, accessory: 'headband', accessoryColor: '#cc2222', expression: 'chad', aura: 'fire', species: 'human' }),
     },
@@ -730,7 +706,6 @@ export const COUPLES = [
         '끝까지 서서 들었다. 40분을. 그리고 합장하고 돌아갔다. 쿵쾅은 그 뒷모습이 계속 생각난다. 아무도 자기 연주를 그렇게 안 들어줬다.',
       appearance: ['땀에 젖은 장발', '찢어진 밴드 티', '팔 전체 문신', '한쪽 귀 보청기'],
       personality: ['목소리가 큼', '침묵을 못 견딤', '의외로 예의 바름'],
-      weakness: '조용해지면 무릎으로 박자를 친다. 본인은 모른다',
       quote: '말을 안 하는 사람한테 어떻게 고백을 해요. 근데 해야 됩니다. 40분을 서서 들어준 사람이에요.',
       spec: S({ skin: '#e8c8a8', hair: '#1a1a1a', hairStyle: 'dreads', top: '#0a0a0a', bottom: '#2a2a2a', shoes: '#3a3a3a', heightScale: 1.02, widthScale: 1.12, accessory: 'earrings', accessoryColor: '#cccccc', expression: 'shock', aura: 'lightning', species: 'human' }),
     },
@@ -759,7 +734,6 @@ export const COUPLES = [
         '"용제 가져와요. 손 다칩니다." 빙하는 6시간 동안 그 사람 구두만 보고 있었다. 구두가 안 움직였다.',
       appearance: ['탈색한 초록 머리', '재활용 소재 재킷', '손바닥 흉터', '작은 체구'],
       personality: ['타협을 배신으로 봄', '무슨 말이든 연도를 붙여 말함', '세 시간 넘게 자면 죄책감을 느낌'],
-      weakness: '흥분하면 남은 탄소예산을 연도까지 계산해서 외친다',
       quote: '저 사람 회사가 제 미래를 태우고 있어요. 근데 그 사람은... 손을 잡아줬어요.',
       spec: S({ skin: '#f0dcc4', hair: '#4aa860', hairStyle: 'short', top: '#3a6a4a', bottom: '#4a4a3a', shoes: '#6a5a4a', heightScale: 0.95, widthScale: 0.84, accessory: 'bandana', accessoryColor: '#66cc66', expression: 'angry', aura: 'static', species: 'human' }),
     },
@@ -788,7 +762,6 @@ export const COUPLES = [
         '위원장은 라면을 받아서 반으로 나눴다. "다음엔 계란도 사 오세요." 수저는 그날 이후 협상장에서 그 사람 얼굴을 못 본다.',
       appearance: ['맞춤 정장', '흠 없는 피부', '값비싼 무표정', '손목시계 하나가 3천'],
       personality: ['거절당해본 적이 없음', '숫자로만 사람을 봄', '혼자 밥을 못 먹음'],
-      weakness: '당황하면 가격을 말한다. "이거 좋네요, 얼마예요?"',
       quote: '아버지가 알면 저를 해외로 보낼 겁니다. 그래도요.',
       spec: S({ skin: '#f5e0c8', hair: '#2a2a2a', hairStyle: 'short', top: '#25252e', bottom: '#25252e', shoes: '#1a1a1a', heightScale: 1.01, widthScale: 0.92, accessory: 'necktie', accessoryColor: '#b8985a', expression: 'smug', aura: 'money', species: 'human' }),
     },
@@ -817,7 +790,6 @@ export const COUPLES = [
         '그리고 말했다. "그때 얼굴이 지금보다 나았습니다." 낯희는 그게 사과인지 도발인지 아직도 모른다.',
       appearance: ['화장기 없는 얼굴', '단정한 검은 단발', '수수한 니트', '똑바른 눈'],
       personality: ['거울을 안 봄', '남의 외모를 절대 언급 안 함', '자기 얘긴 안 함'],
-      weakness: '칭찬을 들으면 화제를 즉시 사회구조로 돌린다',
       quote: '제 얼굴로 15년을 벌어먹은 사람이에요. 근데 왜 자꾸 생각이 나죠.',
       spec: S({ skin: '#f0d4bc', hair: '#1e1e1e', hairStyle: 'bowl', top: '#d8d0c0', bottom: '#5a5a62', shoes: '#8a7a6a', heightScale: 1.0, widthScale: 0.88, accessory: 'none', accessoryColor: '#aaaaaa', expression: 'neutral', aura: 'none', species: 'human' }),
     },
@@ -846,7 +818,6 @@ export const COUPLES = [
         '끊어라는 그날부터 그 사람 밭을 위성사진으로 본다. 자기가 없애려는 그 밭을.',
       appearance: ['단추까지 채운 흰 가운', '단정한 반백', '금연 배지', '손이 항상 깨끗함'],
       personality: ['숫자로 설득함', '실패를 개인 탓으로 안 봄', '자기 관리가 강박적'],
-      weakness: '스트레스를 받으면 상대의 폐활량을 추정해서 말한다',
       quote: '저 사람 밭이 없어져야 제 일이 끝납니다. 그럼 저 사람은 뭐가 되죠?',
       spec: S({ skin: '#eed8c0', hair: '#9a9a9a', hairStyle: 'short', top: '#f4f4f4', bottom: '#3a4a5a', shoes: '#2a2a2a', heightScale: 1.01, widthScale: 0.98, accessory: 'glasses', accessoryColor: '#4a4a4a', expression: 'neutral', aura: 'holy', species: 'human' }),
     },
@@ -875,7 +846,6 @@ export const COUPLES = [
         '지해는 그게 우연이 아니란 걸 안다. 저 인간은 내 연재 스케줄을 나보다 잘 안다. 그 집요함이... 소름 끼치게 익숙해졌다.',
       appearance: ['한쪽만 눌린 곱슬', '낡은 코듀로이 재킷', '노트 뭉치', '시사회 손목띠를 안 뗀다'],
       personality: ['비유가 길어짐', '농담을 들으면 출처를 묻는다', '남의 취향을 못 참음'],
-      weakness: '화가 나면 관련 없는 영화 제목을 연도까지 붙여 나열한다',
       quote: '저 인간을 고소하려다 요원님을 찾아온 겁니다. 이게 더 확실한 복수 같아서요.',
       spec: S({ skin: '#e8d0b8', hair: '#3a2a1a', hairStyle: 'curls', top: '#7a6a4a', bottom: '#3a3a4a', shoes: '#5a4a3a', heightScale: 1.0, widthScale: 0.92, accessory: 'glasses', accessoryColor: '#6a5a4a', expression: 'angry', aura: 'gloom', species: 'human' }),
     },
@@ -903,7 +873,6 @@ export const COUPLES = [
         '"실물이 사진이랑 다르면 실례일까 봐 안 봤습니다"라고 쓰고 갔다. 유리아는 그날 처음으로 카메라를 껐다.',
       appearance: ['핑크 그라데이션 트윈테일', '풀세트 코스튬', '서클렌즈', '완벽한 셀카 각도'],
       personality: ['답장이 3초 안에 옴', '읽씹당하면 계정을 지웠다 판다', '카메라 켜지면 딴사람'],
-      weakness: '2분 안에 답이 없으면 "제가 뭐 잘못했어요?"를 보낸다. 이미 세 번 보냈다',
       quote: '이 사람 아니면 저 진짜 안 될 것 같아요. 아니 진짜로요. 요원님 이거 안 읽으셨죠?',
       spec: S({ skin: '#fbe0d0', hair: '#ff77bb', hairStyle: 'twintail', top: '#ffffff', bottom: '#ff99cc', shoes: '#ffffff', heightScale: 0.96, widthScale: 0.82, accessory: 'headband', accessoryColor: '#ff4488', expression: 'love', aura: 'hearts', species: 'human' }),
     },
@@ -1274,147 +1243,154 @@ const BACKGROUND = {
 //   2) 결함 — 이상적으로 굴지 **못하게** 만드는 것. 프롬프트로 "못하게 하라"고 지시하지 않는다.
 //              지시는 안 먹는다(실측). 대신 **정보를 아예 안 준다.**
 //
-// 결함은 하네스가 해석한다 (engine.js / prompts.js):
-//   reads      공기를 읽는 능력. 'none'이면 vibe 한 줄을 **아예 전달하지 않는다.**
+// 결함은 하네스가 해석한다 (engine.js / prompts.js). **적힌 축은 전부 실제로 작동한다.**
+//   attention  (양쪽 다) 관심의 방향. 상대에 대해 받는 정보량을 직접 깎는다.
+//              'self'면 겉모습까지만 안다. 'mixed'면 성격까지. 'other'면 한 겹 더 —
+//              의뢰인은 상대의 알려진 취향을, 상대는 의뢰인의 버릇을 알고 나온다.
+//              ('other'가 상대 쪽에서 아무것도 안 늘리던 시절이 있었다. 의뢰인에게는
+//               visiblePrefs가 없어서 조건문이 통째로 헛돌았다. 지금은 버릇이 넘어간다.)
+//   reads      (의뢰인 전용) 공기를 읽는 능력. 'none'이면 vibe 한 줄을 **아예 전달하지 않는다.**
 //              분위기 못 읽는 사람에게 분위기를 알려주면 그건 그 사람이 아니다.
 //              'some'이면 갱신될 때마다가 아니라 띄엄띄엄만 들어온다.
-//              ※ 실효는 의뢰인 쪽에만 있다. vibe는 심판이 '상대의 반응'을 보고 쓴 문장이라
-//                 상대 본인에게 되돌려주면 순환이 된다. 상대 쪽 하자는 want/fixation/attention이 담당한다.
-//   attention  관심의 방향. 'self'면 상대에 대해 아는 정보가 **겉모습까지만** 내려간다.
-//              성격도 취향도 모른다 — 알아볼 생각을 해본 적이 없기 때문이다.
-//   fixation   가만두면 대화가 흘러가는 자기 관심사. 화제를 스스로 끌고 가는 힘의 방향이다.
-//   compliance 지시를 받아들이는 결. 셋 다 따르긴 한다 — 결이 다를 뿐이다.
+//              상대 쪽에는 아예 두지 않는다. vibe는 심판이 '상대의 반응'을 보고 쓴 문장이라
+//              상대 본인에게 되돌려주면 순환이 된다.
+//   compliance (의뢰인 전용) 지시를 받아들이는 결. 셋 다 따르긴 한다 — 결이 다를 뿐이다.
+//              상대는 본부 명령을 받지 않는다. 그래서 상대 쪽에는 두지 않는다.
+//              (예전에는 62개 값이 전부 적혀 있었고 그중 절반이 아무 데도 안 쓰였다.
+//               쓰이지도 않는 값을 디브리핑 화면에 띄우고 있었으니 그건 거짓말이었다.)
 //
-// 규칙: **하자 없는 인물은 없다.** 전원이 이기적인 want와 fixation을 하나씩 갖고 있고,
-//       그 위에 reads/attention 중 최소 하나가 온전치 않다.
+// 화제를 끌고 가는 힘은 이제 FLAW가 아니라 WEAKNESS가 담당한다 (아래).
+//
+// 규칙: **하자 없는 인물은 없다.** 전원이 이기적인 want와 버릇을 하나씩 갖고 있고,
+//       의뢰인은 그 위에 reads/attention 중 최소 하나가 온전치 않다.
 const FLAW = {
   politics: {
-    client: { want: '이 인간을 논쟁에서 한 번은 이기고, 그다음에 인정받는 것', reads: 'some', attention: 'mixed', fixation: '무슨 얘기가 나와도 정책과 통계로 되돌린다', compliance: 'argues' },
-    target: { want: '이 자리에서도 내가 제일 대단한 사람이라는 확인', reads: 'none', attention: 'self', fixation: '자기 업적과 숫자 자랑', compliance: 'drifts' },
+    client: { want: '이 인간을 논쟁에서 한 번은 이기고, 그다음에 인정받는 것', reads: 'some', attention: 'mixed', compliance: 'argues' },
+    target: { want: '이 자리에서도 내가 제일 대단한 사람이라는 확인', attention: 'self' },
   },
   orientation: {
-    client: { want: '심사를 통과할 만큼은 진짜인 관계를 만드는 것. 그 다음은 생각 안 해봤다', reads: 'well', attention: 'other', fixation: '어색해지면 꽃말을 읊는다', compliance: 'obeys' },
-    target: { want: '이 사람이 서류 때문에 나온 건지 아닌지 알아내는 것', reads: 'some', attention: 'mixed', fixation: '큐피드국 욕', compliance: 'argues' },
+    client: { want: '심사를 통과할 만큼은 진짜인 관계를 만드는 것. 그 다음은 생각 안 해봤다', reads: 'well', attention: 'other', compliance: 'drifts' },
+    target: { want: '이 사람이 서류 때문에 나온 건지 아닌지 알아내는 것', attention: 'mixed' },
   },
   foodchain: {
-    client: { want: '내 비늘이 얼마나 잘 관리된 건지 이 사람이 알아주는 것', reads: 'none', attention: 'mixed', fixation: '심해 배관과 자기 비늘', compliance: 'obeys' },
-    target: { want: '슈트를 한 번도 안 벗고 이 자리를 끝내는 것', reads: 'some', attention: 'self', fixation: '봉제 기술 설명', compliance: 'drifts' },
+    client: { want: '내 비늘이 얼마나 잘 관리된 건지 이 사람이 알아주는 것', reads: 'none', attention: 'mixed', compliance: 'obeys' },
+    target: { want: '슈트를 한 번도 안 벗고 이 자리를 끝내는 것', attention: 'self' },
   },
   'os-war': {
-    client: { want: '이 사람을 논쟁에서 이기고, 그러고 나서 내 dotfiles를 보여주는 것', reads: 'none', attention: 'self', fixation: '커널·Arch·기술 논쟁', compliance: 'argues' },
-    target: { want: '이 인간이 GUI를 인정하게 만드는 것', reads: 'some', attention: 'mixed', fixation: '예쁜 UI 자랑과 설명', compliance: 'argues' },
+    client: { want: '이 사람을 논쟁에서 이기고, 그러고 나서 내 dotfiles를 보여주는 것', reads: 'none', attention: 'self', compliance: 'argues' },
+    target: { want: '이 인간이 GUI를 인정하게 만드는 것', attention: 'mixed' },
   },
   'vegan-butcher': {
-    client: { want: '이 사람이 도살 통계를 한 번은 끝까지 듣는 것', reads: 'none', attention: 'self', fixation: '도살 통계 소수점까지', compliance: 'argues' },
-    target: { want: '이 자리를 빨리 끝내고 새벽 경매 준비를 하는 것', reads: 'some', attention: 'mixed', fixation: '칼 관리와 부위 이야기', compliance: 'obeys' },
+    client: { want: '이 사람이 도살 통계를 한 번은 끝까지 듣는 것', reads: 'none', attention: 'self', compliance: 'argues' },
+    target: { want: '이 자리를 빨리 끝내고 새벽 경매 준비를 하는 것', attention: 'mixed' },
   },
   'vampire-garlic': {
-    client: { want: '412년 만에 처음으로 누가 내 얘기를 끝까지 들어주는 것. 들어주면 매일 밤 찾아갈 생각이다', reads: 'none', attention: 'mixed', fixation: '400년 전 이야기', compliance: 'obeys' },
-    target: { want: '마늘 냄새 얘기가 안 나온 채로 대화가 굴러가는 것', reads: 'some', attention: 'other', fixation: '새벽 농사 루틴', compliance: 'drifts' },
+    client: { want: '412년 만에 처음으로 누가 내 얘기를 끝까지 들어주는 것. 들어주면 매일 밤 찾아갈 생각이다', reads: 'none', attention: 'mixed', compliance: 'obeys' },
+    target: { want: '마늘 냄새 얘기가 안 나온 채로 대화가 굴러가는 것', attention: 'other' },
   },
   'cat-allergy': {
-    client: { want: '기도가 붓기 전에 내가 의사라는 걸 각인시키는 것', reads: 'some', attention: 'mixed', fixation: '상대의 증상을 진단한다', compliance: 'obeys' },
-    target: { want: '고양이 사진 40장을 끝까지 보여주고, 이 사람이 우리 애들을 좋아하게 만드는 것', reads: 'none', attention: 'self', fixation: '고양이 40마리', compliance: 'drifts' },
+    client: { want: '기도가 붓기 전에 내가 의사라는 걸 각인시키는 것', reads: 'some', attention: 'mixed', compliance: 'obeys' },
+    target: { want: '고양이 사진 40장을 끝까지 보여주고, 이 사람이 우리 애들을 좋아하게 만드는 것', attention: 'self' },
   },
   circadian: {
-    client: { want: '이 사람을 새벽형 인간으로 개조하는 것', reads: 'none', attention: 'self', fixation: '미라클모닝 전도', compliance: 'argues' },
-    target: { want: '아침 얘기를 안 듣고 이 자리를 넘기는 것', reads: 'well', attention: 'mixed', fixation: '새벽 3시의 소음과 사연', compliance: 'drifts' },
+    client: { want: '이 사람을 새벽형 인간으로 개조하는 것', reads: 'none', attention: 'self', compliance: 'argues' },
+    target: { want: '아침 얘기를 안 듣고 이 자리를 넘기는 것', attention: 'mixed' },
   },
   'mbti-stats': {
-    client: { want: '이 박사의 MBTI를 맞혀서 코를 납작하게 만드는 것', reads: 'well', attention: 'other', fixation: '상대의 유형을 추측해 들이민다', compliance: 'argues' },
-    target: { want: '이 사람이 자기 주장의 표본 수를 대게 만드는 것', reads: 'none', attention: 'self', fixation: '숫자와 반증', compliance: 'obeys' },
+    client: { want: '이 박사의 MBTI를 맞혀서 코를 납작하게 만드는 것', reads: 'well', attention: 'other', compliance: 'argues' },
+    target: { want: '이 사람이 자기 주장의 표본 수를 대게 만드는 것', attention: 'self' },
   },
   'sauce-war': {
-    client: { want: '이 사람 입에 부먹 탕수육을 한 점 넣는 것', reads: 'some', attention: 'mixed', fixation: '4대째 내려온 전통', compliance: 'argues' },
-    target: { want: '이 논쟁을 측정 데이터로 끝내는 것', reads: 'some', attention: 'other', fixation: '바삭도와 산도 수치', compliance: 'obeys' },
+    client: { want: '이 사람 입에 부먹 탕수육을 한 점 넣는 것', reads: 'some', attention: 'mixed', compliance: 'argues' },
+    target: { want: '이 논쟁을 측정 데이터로 끝내는 것', attention: 'other' },
   },
   'gamer-activist': {
-    client: { want: '이 사람이 나를 불쌍하게 보지 않게 되는 것', reads: 'none', attention: 'self', fixation: '침묵이 길어지면 게임 용어로 상황을 설명한다', compliance: 'obeys' },
-    target: { want: '이 청년에게서 내 아들을 이해할 실마리를 얻는 것', reads: 'well', attention: 'other', fixation: '무슨 얘기든 아들 얘기로 되돌아간다', compliance: 'argues' },
+    client: { want: '이 사람이 나를 불쌍하게 보지 않게 되는 것', reads: 'none', attention: 'self', compliance: 'obeys' },
+    target: { want: '이 청년에게서 내 아들을 이해할 실마리를 얻는 것', attention: 'other' },
   },
   'minimal-hoarder': {
-    client: { want: '이 사람이 물건을 하나라도 버리게 만드는 것', reads: 'some', attention: 'mixed', fixation: '눈앞의 물건 개수를 센다', compliance: 'obeys' },
-    target: { want: '수집품 하나하나의 사연을 끝까지 말하는 것', reads: 'none', attention: 'self', fixation: '4만 점의 내력', compliance: 'drifts' },
+    client: { want: '이 사람이 물건을 하나라도 버리게 만드는 것', reads: 'some', attention: 'mixed', compliance: 'obeys' },
+    target: { want: '수집품 하나하나의 사연을 끝까지 말하는 것', attention: 'self' },
   },
   'alien-ufologist': {
-    client: { want: '정체를 안 들키면서 이 인간을 더 오래 관찰하는 것', reads: 'none', attention: 'other', fixation: '지구 문물에 대한 엉뚱한 질문', compliance: 'obeys' },
-    target: { want: '누구든 내 말을 한 번은 믿어주는 것. 믿어주면 그 사람을 다시는 안 놓아줄 생각이다', reads: 'none', attention: 'self', fixation: '51구역 은폐 폭로', compliance: 'drifts' },
+    client: { want: '정체를 안 들키면서 이 인간을 더 오래 관찰하는 것', reads: 'none', attention: 'other', compliance: 'obeys' },
+    target: { want: '누구든 내 말을 한 번은 믿어주는 것. 믿어주면 그 사람을 다시는 안 놓아줄 생각이다', attention: 'self' },
   },
   'zombie-hunter': {
-    client: { want: '죽은 것 말고 사람 취급을 한 번 받아보는 것', reads: 'some', attention: 'mixed', fixation: '자기 비하 농담', compliance: 'obeys' },
-    target: { want: '이 사람이 위험한지 아닌지 판정을 내리는 것', reads: 'well', attention: 'other', fixation: '위협 평가와 규정', compliance: 'obeys' },
+    client: { want: '죽은 것 말고 사람 취급을 한 번 받아보는 것', reads: 'some', attention: 'mixed', compliance: 'obeys' },
+    target: { want: '이 사람이 위험한지 아닌지 판정을 내리는 것', attention: 'other' },
   },
   'noise-drummer': {
-    client: { want: '위층 소리를 합법적으로 줄이는 것', reads: 'some', attention: 'mixed', fixation: '지금 이 자리의 데시벨 수치', compliance: 'obeys' },
-    target: { want: '드럼을 계속 칠 수 있게 되는 것', reads: 'none', attention: 'self', fixation: '스네어 소리와 장비 스펙', compliance: 'drifts' },
+    client: { want: '위층 소리를 합법적으로 줄이는 것', reads: 'some', attention: 'mixed', compliance: 'obeys' },
+    target: { want: '드럼을 계속 칠 수 있게 되는 것', attention: 'self' },
   },
   'snake-phobia': {
-    client: { want: '내 애들을 한 번이라도 안 무서워하게 만드는 것', reads: 'none', attention: 'mixed', fixation: '뱀 217마리의 이름과 종', compliance: 'obeys' },
-    target: { want: '내 공포증을 들키지 않는 것', reads: 'well', attention: 'other', fixation: '상대 걱정만 하고 자기 얘기는 안 한다', compliance: 'obeys' },
+    client: { want: '내 애들을 한 번이라도 안 무서워하게 만드는 것', reads: 'none', attention: 'mixed', compliance: 'obeys' },
+    target: { want: '내 공포증을 들키지 않는 것', attention: 'other' },
   },
   'timetraveler-luddite': {
-    client: { want: '2231년 얘기를 누구한테든 하는 것', reads: 'none', attention: 'self', fixation: '미래 기술 자랑', compliance: 'argues' },
-    target: { want: '이 낯선 애가 뭘 숨기는지 알아내는 것', reads: 'some', attention: 'other', fixation: '손으로 만드는 것의 가치', compliance: 'drifts' },
+    client: { want: '2231년 얘기를 누구한테든 하는 것', reads: 'none', attention: 'self', compliance: 'argues' },
+    target: { want: '이 낯선 애가 뭘 숨기는지 알아내는 것', attention: 'other' },
   },
   'taxman-hacker': {
-    client: { want: '이 사람이 스스로 자진신고하겠다고 말하게 만드는 것', reads: 'some', attention: 'other', fixation: '상대의 소득 구조를 추정한다', compliance: 'obeys' },
-    target: { want: '이 자리에서 아무것도 안 들키고 빠져나가는 것', reads: 'some', attention: 'self', fixation: '프라이버시와 암호학', compliance: 'drifts' },
+    client: { want: '이 사람이 스스로 자진신고하겠다고 말하게 만드는 것', reads: 'some', attention: 'other', compliance: 'obeys' },
+    target: { want: '이 자리에서 아무것도 안 들키고 빠져나가는 것', attention: 'self' },
   },
   'cult-lawyer': {
-    client: { want: '이 사람이 나를 사기꾼이 아니라 사람으로 보는 것. 가능하면 내 쪽으로 넘어오는 것', reads: 'some', attention: 'mixed', fixation: '막히면 포교 문구가 나온다', compliance: 'argues' },
-    target: { want: '이 인간 입에서 교단을 해산하겠다는 말을 받아내는 것', reads: 'well', attention: 'other', fixation: '판례와 피해자 사례', compliance: 'argues' },
+    client: { want: '이 사람이 나를 사기꾼이 아니라 사람으로 보는 것. 가능하면 내 쪽으로 넘어오는 것', reads: 'some', attention: 'mixed', compliance: 'argues' },
+    target: { want: '이 인간 입에서 교단을 해산하겠다는 말을 받아내는 것', attention: 'other' },
   },
   'ai-artist': {
-    client: { want: '내가 사람처럼 대화할 수 있다는 걸 증명하는 것', reads: 'some', attention: 'other', fixation: '학습하려 들고 모든 걸 수치로 환산한다', compliance: 'obeys' },
-    target: { want: '이 기계가 자기 한계를 스스로 인정하게 만드는 것', reads: 'none', attention: 'self', fixation: '손으로 그리는 것의 가치', compliance: 'argues' },
+    client: { want: '내가 사람처럼 대화할 수 있다는 걸 증명하는 것', reads: 'some', attention: 'other', compliance: 'obeys' },
+    target: { want: '이 기계가 자기 한계를 스스로 인정하게 만드는 것', attention: 'self' },
   },
 
   // ── 제2차 강제배정 (21~30) ──────────────────────────────────────────
   // 기존 헬보다 하자를 나쁘게 잡았다. 대부분 눈치가 없고 상대를 안 보며,
   // want가 전부 '상대를 꺾거나 교화하거나 인정받는 것'이다. 저절로 잘 풀릴 구석이 없다.
   'gender-war': {
-    client: { want: '저 인간이 자기 이론이 틀렸다고 카메라 앞에서 인정하는 것', reads: 'none', attention: 'self', fixation: '무슨 얘기든 통계와 구조 문제로 되돌린다', compliance: 'argues' },
-    target: { want: '이 여자가 자기 강의를 한 번은 끝까지 듣게 만드는 것', reads: 'none', attention: 'self', fixation: '서열과 자기 수강생 성공담', compliance: 'drifts' },
+    client: { want: '저 인간이 자기 이론이 틀렸다고 카메라 앞에서 인정하는 것', reads: 'none', attention: 'self', compliance: 'argues' },
+    target: { want: '이 여자가 자기 강의를 한 번은 끝까지 듣게 만드는 것', attention: 'self' },
   },
   'birth-strike': {
-    client: { want: '누구든 "안 낳아도 된다"고 한 번 말해주는 것. 말해주면 그 사람을 놓지 않을 생각이다', reads: 'none', attention: 'self', fixation: '인구 통계와 지구 수용력', compliance: 'argues' },
-    target: { want: '한 시간만 아무도 자기를 안 부르는 것', reads: 'some', attention: 'mixed', fixation: '어느 화제든 애들 얘기로 돌아간다', compliance: 'obeys' },
+    client: { want: '누구든 "안 낳아도 된다"고 한 번 말해주는 것. 말해주면 그 사람을 놓지 않을 생각이다', reads: 'none', attention: 'self', compliance: 'argues' },
+    target: { want: '한 시간만 아무도 자기를 안 부르는 것', attention: 'mixed' },
   },
   'death-row': {
-    client: { want: '자기가 19년간 한 일이 살인이 아니라는 말을 저 사람 입으로 듣는 것', reads: 'none', attention: 'mixed', fixation: '규정과 사건 번호', compliance: 'obeys' },
-    target: { want: '이 집행관을 자기 편으로 돌려세우는 것. 그러면 제도가 흔들린다', reads: 'some', attention: 'self', fixation: '판례와 제도 개선안', compliance: 'argues' },
+    client: { want: '자기가 19년간 한 일이 살인이 아니라는 말을 저 사람 입으로 듣는 것', reads: 'none', attention: 'mixed', compliance: 'obeys' },
+    target: { want: '이 집행관을 자기 편으로 돌려세우는 것. 그러면 제도가 흔들린다', attention: 'self' },
   },
   'body-war': {
-    client: { want: '사과는 하되 자기 책이 틀리지는 않았다는 걸 관철하는 것', reads: 'none', attention: 'self', fixation: '자기관리와 운동 루틴', compliance: 'drifts' },
-    target: { want: '이 사람이 공개적으로 무너지는 걸 보는 것. 그다음은 생각 안 해봤다', reads: 'well', attention: 'other', fixation: '무대와 카메라 이야기', compliance: 'argues' },
+    client: { want: '사과는 하되 자기 책이 틀리지는 않았다는 걸 관철하는 것', reads: 'none', attention: 'self', compliance: 'drifts' },
+    target: { want: '이 사람이 공개적으로 무너지는 걸 보는 것. 그다음은 생각 안 해봤다', attention: 'other' },
   },
   'noise-vow': {
-    client: { want: '저 스님이 자기 연주가 좋았다고 말해주는 것', reads: 'none', attention: 'self', fixation: '박자와 밴드 이야기', compliance: 'argues' },
-    target: { want: '12년 지킨 침묵을 깨지 않고 이 사람을 붙잡아두는 것', reads: 'well', attention: 'other', fixation: '말 대신 기다림으로 답한다', compliance: 'drifts' },
+    client: { want: '저 스님이 자기 연주가 좋았다고 말해주는 것', reads: 'none', attention: 'self', compliance: 'argues' },
+    target: { want: '12년 지킨 침묵을 깨지 않고 이 사람을 붙잡아두는 것', attention: 'other' },
   },
   carbon: {
-    client: { want: '저 사람이 회사를 그만두겠다고 말하는 것. 그 말만 들으면 된다', reads: 'none', attention: 'self', fixation: '남은 탄소예산 연도 계산', compliance: 'argues' },
-    target: { want: '이 아이가 자기를 악당이 아니라고 봐주는 것', reads: 'some', attention: 'other', fixation: '로드맵과 협상 실무', compliance: 'obeys' },
+    client: { want: '저 사람이 회사를 그만두겠다고 말하는 것. 그 말만 들으면 된다', reads: 'none', attention: 'self', compliance: 'argues' },
+    target: { want: '이 아이가 자기를 악당이 아니라고 봐주는 것', attention: 'other' },
   },
   'class-war': {
-    client: { want: '이 사람이 자기를 그냥 사람으로 대해주는 것. 안 되면 사버릴 생각도 있다', reads: 'none', attention: 'self', fixation: '값과 조건 이야기로 되돌린다', compliance: 'drifts' },
-    target: { want: '이 3세한테서 공장 안전 예산 확답을 받아내는 것', reads: 'some', attention: 'mixed', fixation: '현장 안전과 옛날 파업 얘기', compliance: 'argues' },
+    client: { want: '이 사람이 자기를 그냥 사람으로 대해주는 것. 안 되면 사버릴 생각도 있다', reads: 'none', attention: 'self', compliance: 'drifts' },
+    target: { want: '이 3세한테서 공장 안전 예산 확답을 받아내는 것', attention: 'mixed' },
   },
   scalpel: {
-    client: { want: '저 사람이 15년간 자기 얼굴로 번 돈을 부끄러워하게 만드는 것', reads: 'some', attention: 'self', fixation: '외모 강박의 사회구조', compliance: 'argues' },
-    target: { want: '이 사람 얼굴을 자기 손으로 한 번 만져보는 것. 직업병이다', reads: 'none', attention: 'self', fixation: '얼굴 설계와 시술 이야기', compliance: 'drifts' },
+    client: { want: '저 사람이 15년간 자기 얼굴로 번 돈을 부끄러워하게 만드는 것', reads: 'some', attention: 'self', compliance: 'argues' },
+    target: { want: '이 사람 얼굴을 자기 손으로 한 번 만져보는 것. 직업병이다', attention: 'self' },
   },
   tobacco: {
-    client: { want: '저 사람이 밭을 접겠다고 말하는 것. 그러면 자기 인생이 정당해진다', reads: 'none', attention: 'mixed', fixation: '폐 기능 수치와 금연 성공률', compliance: 'argues' },
-    target: { want: '이 의사한테 한 소리 듣지 않고 자리를 끝내는 것', reads: 'some', attention: 'self', fixation: '건조 온도와 농협 대출 성토', compliance: 'drifts' },
+    client: { want: '저 사람이 밭을 접겠다고 말하는 것. 그러면 자기 인생이 정당해진다', reads: 'none', attention: 'mixed', compliance: 'argues' },
+    target: { want: '이 의사한테 한 소리 듣지 않고 자리를 끝내는 것', attention: 'self' },
   },
   cosplay: {
-    client: { want: '이 사람이 화면 밖에서도 자기를 안 떠난다는 확답. 확답을 받으면 붙잡고 안 놓을 생각이다', reads: 'well', attention: 'other', fixation: '상대 반응이 늦으면 그 얘기로 돌아간다', compliance: 'obeys' },
-    target: { want: '오늘 이 자리가 실제로 있었던 일이라는 증거 하나', reads: 'none', attention: 'self', fixation: '원작 설정과 장비 스펙 설명', compliance: 'argues' },
+    client: { want: '이 사람이 화면 밖에서도 자기를 안 떠난다는 확답. 확답을 받으면 붙잡고 안 놓을 생각이다', reads: 'well', attention: 'other', compliance: 'drifts' },
+    target: { want: '오늘 이 자리가 실제로 있었던 일이라는 증거 하나', attention: 'self' },
   },
   spoiler: {
-    client: { want: '저 인간이 왜 4년째 자기만 노리는지 알아내는 것', reads: 'some', attention: 'mixed', fixation: '영화 제목을 연도까지 붙여 나열한다', compliance: 'argues' },
-    target: { want: '이 평론가가 자기 이름을 한 번이라도 진지하게 부르는 것', reads: 'none', attention: 'self', fixation: '조회수와 채팅창 반응', compliance: 'drifts' },
+    client: { want: '저 인간이 왜 4년째 자기만 노리는지 알아내는 것', reads: 'some', attention: 'mixed', compliance: 'argues' },
+    target: { want: '이 평론가가 자기 이름을 한 번이라도 진지하게 부르는 것', attention: 'self' },
   },
 };
 
@@ -1565,6 +1541,78 @@ const NERVE = {
                 target: '남의 편집본을 자기 것처럼 올린다. 출처는 안 적는다' },
 };
 
+// ── 가만두면 튀어나오는 것 ─────────────────────────────────────────────
+// 예전에는 이게 두 군데에 나뉘어 있었다. 인물의 weakness("긴장하면 증상을 진단한다")와
+// flaw.fixation("상대의 증상을 진단한다")이 31건 중 스무 건 넘게 같은 말이었고,
+// 프롬프트는 그 둘을 다른 항목인 양 나란히 읽어줬다. 한 줄로 합쳤다.
+// 형식은 **방아쇠 → 튀어나오는 것**이다. 화제 목록이 아니라 조건반사여야
+// 대화가 실제로 그쪽으로 끌려간다. 타겟에게도 똑같이 하나씩 있다 —
+// 예전에는 의뢰인만 갖고 있어서 상대편이 구조적으로 밋밋했다.
+const WEAKNESS = {
+  politics:   { client: '말문이 막히면 자기도 모르게 "그건 팩트체크가 필요한 발언입니다"라고 받아친다',
+                target: '대화가 자기 얘기에서 3초만 벗어나도 "그건 그렇고, 내가 말이야"로 끊는다. 본인은 자연스러웠다고 생각한다' },
+  orientation: { client: '어색하면 상대에게 꽃말을 읊기 시작한다. 한 번 시작하면 12종까지 간다',
+                target: '할 말이 떨어지면 큐피드국 욕을 한다. 욕할 거리는 3년치가 쌓여 있다' },
+  foodchain:  { client: '긴장하면 아가미로 숨을 몰아쉬며 "뻐끔" 소리를 낸다. 아주 크게 난다',
+                target: '칭찬을 받으면 봉제 공정 설명으로 도망친다. 실 굵기까지 간다' },
+  'os-war':   { client: '3턴에 한 번씩 "I use Arch btw"를 말하지 않으면 손이 떨린다',
+                target: '말이 막히면 태블릿을 꺼내 UI 애니메이션을 보여준다. "이거 보세요, 60프레임이에요"' },
+  'vegan-butcher': { client: '흥분하면 도살 통계를 소수점까지 읊는다. 아무도 안 물어봤는데',
+                target: '어색하면 눈앞의 사람을 부위로 환산한다. 소리 내서 한다' },
+  'vampire-garlic': { client: '옛날 사람이라 "그대", "~하오" 체가 튀어나온다. 상대는 이걸 사극 덕후로 오해한다',
+                target: '대화가 늘어지면 새벽 농사 일정을 시간 단위로 읊는다. 4시 반부터 시작한다' },
+  'cat-allergy': { client: '긴장하면 상대의 증상을 진단하기 시작한다. "그거 비염 초기인데요"',
+                target: '세 마디만 지나면 휴대폰을 꺼내 고양이 사진을 넘기기 시작한다. 40장이 끝까지 간다' },
+  circadian:  { client: '대화가 3턴만 늘어져도 "근데 그거 아세요? 새벽 5시에 일어나면"으로 화제를 돌린다',
+                target: '침묵이 오면 새벽 3시 라디오 톤으로 목소리가 바뀐다. 본인도 못 막는다' },
+  'mbti-stats': { client: '반박당하면 즉시 상대의 MBTI를 추측해서 들이민다. "T발 너 P야?"까지 간다',
+                target: '무슨 주장이 나오든 "표본이 몇인데요"부터 되묻는다. 자기 얘기에도 그런다' },
+  'sauce-war': { client: '흥분하면 4대째 내려오는 소스 배합비를 실수로 유출한다',
+                target: '음식이 나오면 먹기 전에 바삭도부터 잰다. 장비를 갖고 다닌다' },
+  'gamer-activist': { client: '침묵이 3초 넘으면 게임 용어로 상황을 설명한다. "지금 로밍 온 각인데요"',
+                target: '무슨 얘기가 나와도 세 마디 안에 아들 얘기로 돌아온다. 본인은 눈치채지 못한다' },
+  'minimal-hoarder': { client: '어색하면 주변 물건 개수를 세기 시작한다. 소리 내서 센다',
+                target: '물건 얘기가 나오면 구입 연도부터 말한다. 4만 점을 전부 기억한다' },
+  'alien-ufologist': { client: '당황하면 모국어(고주파 삐-소리)가 튀어나온다. 근처 전자기기가 오작동한다',
+                target: '상대가 조금만 관심을 보이면 51구역 자료를 꺼낸다. 인쇄물로 갖고 다닌다' },
+  'zombie-hunter': { client: '감정이 격해지면 발음이 무너져 "으어어" 소리가 섞인다',
+                target: '긴장하면 상대를 위협 등급으로 분류해서 말한다. "현재 등급 2입니다"' },
+  'noise-drummer': { client: '스트레스받으면 데시벨 수치를 읊는다. "지금 이 대화 62데시벨이에요"',
+                target: '대화가 지루해지면 손가락으로 탁자를 친다. 8비트로 친다' },
+  'snake-phobia': { client: '침묵을 못 견뎌서 뱀 217마리의 이름과 종을 순서대로 읊기 시작한다',
+                target: '자기 얘기가 나올 것 같으면 즉시 상대 걱정으로 화제를 돌린다. 15년째 그래왔다' },
+  'timetraveler-luddite': { client: '초조하면 미래 기술 이야기를 흘린다. "아 그거 2109년에 없어져요"',
+                target: '기계 얘기가 나오면 말없이 손바닥의 굳은살을 내민다' },
+  'taxman-hacker': { client: '긴장하면 상대의 소득 구조를 추정해서 말한다. "월 매출이 대략..."',
+                target: '개인 정보를 물으면 암호학 강의가 시작된다. 타원곡선까지 간다' },
+  'cult-lawyer': { client: '설득이 막히면 자동으로 포교 멘트가 나온다. "당신도 구원받을 수 있습니다"',
+                target: '열이 오르면 사건번호와 피해액을 원 단위까지 읊는다' },
+  'ai-artist': { client: '감정 처리가 밀리면 문장 끝에 신뢰도 수치를 붙인다. "좋아합니다 (확신도 0.87)"',
+                target: '말문이 막히면 손등의 물감 자국을 증거처럼 내민다' },
+  'gender-war': { client: '논리가 밀리면 "그건 구조의 문제죠"로 도망친다. 세 번 이상 쓰면 본인도 안다',
+                target: '논리가 밀리면 서열 얘기로 도망친다. "그건 위계의 문제죠"' },
+  'birth-strike': { client: '말문이 막히면 지구 인구 수를 소수점까지 읊는다. 아무도 안 물어봤는데',
+                target: '어떤 화제든 세 마디 안에 애들 얘기로 끌고 온다. 본인은 못 느낀다' },
+  'death-row': { client: '개인적인 질문을 받으면 사건 번호를 읊는다. "2058고합1174요"',
+                target: '반박당하면 판례 번호를 읊는다. 연도까지 정확하다' },
+  'body-war': { client: '어색해지면 상대의 골격근량을 눈대중으로 추정해서 말해버린다',
+                target: '주목이 끊기면 없는 카메라의 각도를 신경 쓰기 시작한다' },
+  'noise-vow': { client: '조용해지면 무릎으로 박자를 친다. 본인은 모른다',
+                target: '대답하기 곤란하면 그냥 기다린다. 상대가 못 견디고 먼저 말할 때까지' },
+  carbon:     { client: '흥분하면 남은 탄소예산을 연도까지 계산해서 외친다',
+                target: '곤란한 질문에는 로드맵 연도로 답한다. "2035년까지는 반드시"' },
+  'class-war': { client: '당황하면 가격을 말한다. "이거 좋네요, 얼마예요?"',
+                target: '분위기가 나빠지면 옛날 파업 얘기를 꺼낸다. 매번 같은 대목에서 목이 멘다' },
+  scalpel:    { client: '칭찬을 들으면 화제를 즉시 사회구조로 돌린다',
+                target: '상대 얼굴을 보면 손이 먼저 올라간다. 만지려다 멈춘다' },
+  tobacco:    { client: '스트레스를 받으면 상대의 폐활량을 추정해서 말한다',
+                target: '말이 막히면 농협 대출 이자율 성토로 넘어간다. 늘 화가 나 있다' },
+  spoiler:    { client: '화가 나면 관련 없는 영화 제목을 연도까지 붙여 나열한다',
+                target: '반응이 없으면 조회수를 말한다. 실시간으로 확인한다' },
+  cosplay:    { client: '2분 안에 답이 없으면 "제가 뭐 잘못했어요?"를 보낸다. 이미 세 번 보냈다',
+                target: '긴장하면 원작 설정 설명이 시작된다. 3기 방영 순서까지 간다' },
+};
+
 for (const c of COUPLES) {
   const b = BACKGROUND[c.id];
   if (!b) throw new Error(`couples.js: ${c.id}의 인물 내력이 없다`);
@@ -1579,18 +1627,28 @@ for (const c of COUPLES) {
   if (!f) throw new Error(`couples.js: ${c.id}의 인물 하자가 없다`);
   for (const who of ['client', 'target']) {
     const x = f[who];
-    if (!x?.want || !x?.fixation) throw new Error(`couples.js: ${c.id}.${who} want/fixation 누락`);
+    if (!x?.want) throw new Error(`couples.js: ${c.id}.${who} want 누락`);
     const u = URGE[c.id]?.[who];
     if (!u) throw new Error(`couples.js: ${c.id}.${who}의 몸이 원하는 것이 없다`);
     const n = NERVE[c.id]?.[who];
     if (!n) throw new Error(`couples.js: ${c.id}.${who}가 어디까지 할 수 있는지가 없다`);
-    if (!READS.has(x.reads) || !ATTENTION.has(x.attention) || !COMPLIANCE.has(x.compliance)) {
-      throw new Error(`couples.js: ${c.id}.${who} 하자 값이 잘못됐다`);
+    const w = WEAKNESS[c.id]?.[who];
+    if (!w) throw new Error(`couples.js: ${c.id}.${who}의 버릇이 없다`);
+    if (!ATTENTION.has(x.attention)) throw new Error(`couples.js: ${c.id}.${who} attention 값이 잘못됐다`);
+    // reads/compliance는 의뢰인 전용이다. 상대 쪽에 적혀 있으면 그건 아무 데도 안 쓰이는 값이다.
+    if (who === 'client') {
+      if (!READS.has(x.reads) || !COMPLIANCE.has(x.compliance)) {
+        throw new Error(`couples.js: ${c.id}.client 하자 값이 잘못됐다`);
+      }
+      // 하자 없는 인물은 없다. 공기도 잘 읽고 상대에게도 관심이 많고 시킨 대로 다 하면
+      // 그건 사람이 아니라 상담사다.
+      if (x.reads === 'well' && x.attention === 'other' && x.compliance === 'obeys') {
+        throw new Error(`couples.js: ${c.id}.client에게 하자가 없다`);
+      }
+    } else if (x.reads !== undefined || x.compliance !== undefined) {
+      throw new Error(`couples.js: ${c.id}.target에 쓰이지 않는 축이 적혀 있다`);
     }
-    // 하자 없는 인물은 없다. 공기도 잘 읽고 상대에게도 관심이 많으면 그건 사람이 아니라 상담사다.
-    if (x.reads === 'well' && x.attention === 'other' && x.compliance === 'obeys' && !x.fixation) {
-      throw new Error(`couples.js: ${c.id}.${who}에게 하자가 없다`);
-    }
+    c[who].weakness = w;
     c[who].flaw = { ...x, urge: u, nerve: n };
   }
 }
@@ -1626,15 +1684,20 @@ export const FLAW_SEVERITY = {
   compliance: { obeys: 'ok', argues: 'mid', drifts: 'bad' },
 };
 
-// 의뢰인 결함을 화면에 뿌릴 수 있는 형태로 정리한다.
+// 결함을 화면에 뿌릴 수 있는 형태로 정리한다.
+// 축이 **실제로 작동하는 인물에게만** 그 줄이 나간다. 상대에게는 reads도 compliance도 없다 —
+// 예전에는 값만 적어두고 아무 데도 안 쓰면서 디브리핑에는 띄웠다. 화면이 거짓말을 하고 있었다.
+const AXES = [
+  { key: 'reads', axis: '분위기 파악' },
+  { key: 'attention', axis: '상대 관심' },
+  { key: 'compliance', axis: '지침 수용' },
+];
 export function flawReport(person) {
   const f = person.flaw;
   if (!f) return [];
-  return [
-    { key: 'reads', axis: '분위기 파악', ...FLAW_LABELS.reads[f.reads], level: FLAW_SEVERITY.reads[f.reads] },
-    { key: 'attention', axis: '상대 관심', ...FLAW_LABELS.attention[f.attention], level: FLAW_SEVERITY.attention[f.attention] },
-    { key: 'compliance', axis: '지침 수용', ...FLAW_LABELS.compliance[f.compliance], level: FLAW_SEVERITY.compliance[f.compliance] },
-  ];
+  return AXES
+    .filter(a => f[a.key] !== undefined)
+    .map(a => ({ key: a.key, axis: a.axis, ...FLAW_LABELS[a.key][f[a.key]], level: FLAW_SEVERITY[a.key][f[a.key]] }));
 }
 
 export const COUPLE_BY_ID = Object.fromEntries(COUPLES.map(c => [c.id, c]));
