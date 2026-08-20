@@ -294,15 +294,25 @@ try {
     await page.evaluate(() => window.__game.state.agent.name) === AGENT_NAME);
   await page.screenshot({ path: `${SHOTS}/1-intro.png` });
 
-  // 교육 슬라이드가 전부 그려지는지
+  // 교육 슬라이드가 전부 그려지는지 (한 장 = 도형 삽화 한 컷 + 문장 한 줄)
   const slideCount = await page.evaluate(() => document.querySelectorAll('#intro-dots .dot').length);
   const coupleCount = await page.evaluate(() => window.__game.COUPLES.length);
-  const slideTexts = [];
+  check('신입 교육이 대여섯 장으로 압축됐다', slideCount >= 5 && slideCount <= 6, `${slideCount}장`);
+  const slideTexts = [], slideLines = [];
+  let artCount = 0, shapeMin = Infinity;
   for (let i = 0; i < slideCount; i++) {
     slideTexts.push(await page.textContent('#intro-slides'));
+    slideLines.push((await page.textContent('.slide-line')).trim());
+    artCount += await page.locator('.slide-art svg.art').count();
+    shapeMin = Math.min(shapeMin,
+      await page.locator('.slide-art svg.art :is(circle, rect, path, polygon, polyline)').count());
     if (i < slideCount - 1) await page.click('#btn-intro-next');
   }
   check(`신입 교육 ${slideCount}장이 모두 다른 내용으로 그려진다`, new Set(slideTexts).size === slideCount, `${slideCount}장`);
+  check('모든 장에 도형으로 조립한 삽화가 한 컷씩 있다', artCount === slideCount, `${artCount}컷`);
+  check('삽화가 도형 여러 개를 합쳐 만들어졌다', shapeMin >= 5, `최소 ${shapeMin}개`);
+  const longest = Math.max(...slideLines.map(t => t.length));
+  check('설명이 장당 한 줄로 끝난다', longest <= 90, `최장 ${longest}자`);
   check('교육에 준비 단계가 채점되지 않음이 명시된다',
     slideTexts.some(t => /채점(하지 않는다|되지 않는다|\s*대상이 아니다)/.test(t)));
   check('교육에 대화 규칙이 없음이 명시된다',

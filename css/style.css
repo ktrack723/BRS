@@ -325,23 +325,47 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 /* ══════════════════════════════════════════════════════════
    신입 교육
    ══════════════════════════════════════════════════════════ */
-.intro-panel { max-width: 900px; margin: var(--s5) auto; }
+.intro-panel { max-width: 780px; margin: var(--s5) auto; }
 .intro-head { display: flex; justify-content: space-between; align-items: center; gap: var(--s3); }
 .intro-step { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--ink-mid); }
 .slide { padding: var(--s4) 0 var(--s2); }
-.slide-art {
-  text-align: center; margin: 0 0 var(--s4);
-  font-family: var(--font-mono); font-size: var(--fs-sm);
-  font-weight: 500; letter-spacing: .14em; color: var(--ink-soft);
-  padding-bottom: var(--s2); border-bottom: 1px solid var(--dlg-edge);
+.slide-art { display: flex; justify-content: center; margin: 0 0 var(--s5); }
+.slide-art .art { width: 100%; max-width: 420px; height: auto; }
+.slide-line {
+  font-size: clamp(14.5px, 2.1vw, 17px); line-height: 1.85;
+  text-align: center; max-width: 30em; margin: 0 auto; color: var(--ink);
 }
-.slide h3 { font-size: clamp(17px, 2.6vw, 21px); text-align: center; color: var(--file); margin-bottom: var(--s4); }
-.slide p { font-size: var(--fs-md); line-height: 1.95; max-width: 44em; margin: 0 auto; }
-.slide b { font-weight: 600; background: linear-gradient(transparent 62%, rgba(109,84,23,.25) 62%); }
-.slide-warn {
-  display: block; margin-top: var(--s3); color: #6b1519; font-weight: 600;
-  border-left: 3px solid var(--stamp); padding-left: var(--s3);
-}
+.slide-line b { font-weight: 600; background: linear-gradient(transparent 62%, rgba(109,84,23,.25) 62%); }
+
+/* 삽화 팔레트 — 도형에 직접 색을 쓰지 않고 전부 토큰을 통한다 */
+.slide-art .a-ink   { fill: var(--ink); }
+.slide-art .a-soft  { fill: var(--ink-soft); }
+.slide-art .a-file  { fill: var(--file); }
+.slide-art .a-stamp { fill: var(--stamp); }
+.slide-art .a-paper { fill: var(--paper); stroke: var(--ink-soft); stroke-width: 2; }
+.slide-art .a-box,
+.slide-art .a-track { fill: var(--dlg-dim); stroke: var(--ink-soft); stroke-width: 2; }
+.slide-art .a-tag   { fill: var(--dlg-lit); stroke: var(--ink-soft); stroke-width: 2; }
+.slide-art .a-bub-c { fill: var(--dlg-lit); stroke: var(--file); stroke-width: 2; }
+.slide-art .a-bub-t { fill: var(--dlg-lit); stroke: var(--stamp); stroke-width: 2; }
+.slide-art .a-line  { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
+.slide-art .a-dash  { fill: none; stroke: var(--ink-soft); stroke-width: 2.5; stroke-dasharray: 7 5; }
+.slide-art .a-thr   { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-dasharray: 5 4; }
+.slide-art .a-crack,
+.slide-art .a-block { fill: none; stroke: var(--stamp); stroke-width: 4.5; stroke-linejoin: round; stroke-linecap: round; }
+.slide-art .a-scribble { fill: none; stroke: var(--ink-soft); stroke-width: 3.5; stroke-linejoin: round; stroke-linecap: round; }
+.slide-art .a-seal  { fill: none; stroke: var(--stamp); stroke-width: 2.5; }
+
+.slide-art text { text-anchor: middle; font-family: var(--font-mono); }
+.slide-art .e { text-anchor: end; }
+.slide-art .a-cap    { fill: var(--ink-mid); font-size: 11.5px; font-weight: 500; }
+.slide-art .a-key    { fill: var(--ink); font-family: var(--font-ui); font-size: 13.5px; font-weight: 600; }
+.slide-art .a-tag-t  { fill: var(--ink); font-family: var(--font-ui); font-size: 13px; font-weight: 600; }
+.slide-art .a-hdr    { fill: var(--title-fg); font-size: 13px; font-weight: 600; }
+.slide-art .a-seal-t { fill: var(--stamp); font-size: 15px; font-weight: 700; }
+.slide-art .a-seal-t.big { font-size: 19px; }
+.slide-art .a-q      { fill: var(--ink-soft); font-size: 30px; font-weight: 700; }
+
 .intro-nav { display: flex; align-items: center; gap: var(--s3); justify-content: space-between; margin-top: var(--s4); }
 .intro-dots { display: flex; gap: var(--s2); }
 .intro-dots .dot {
