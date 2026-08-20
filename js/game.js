@@ -375,7 +375,7 @@ function dossierHtml(c, { full = false } = {}) {
     <p><b>성격:</b> ${c.client.personality.map(escapeHtml).join(', ')}</p>
     <p><b>내력:</b> ${c.client.background.map(escapeHtml).join(' · ')}</p>
     <p class="quote">“${escapeHtml(c.client.quote)}”</p>
-    ${flawHtml(c.client)}
+    ${flawHtml(c.client, c.tripwire)}
     <hr>
     <h3>상대 · ${escapeHtml(c.target.name)} <small>(${escapeHtml(P.idOf(c.target))}, ${escapeHtml(c.target.job)})</small></h3>
     <p><b>외모:</b> ${c.target.appearance.map(escapeHtml).join(', ')}</p>
@@ -397,7 +397,7 @@ function dossierHtml(c, { full = false } = {}) {
 
 // 의뢰인 심리 감정. flaw 데이터를 그대로 요원에게 보여준다.
 // 이걸 숨겨두면 지침이 왜 씹히는지, 공기를 왜 못 읽는지 플레이어가 영영 알 수 없다.
-function flawHtml(person) {
+function flawHtml(person, tripwire = null) {
   const rows = flawReport(person);
   if (!rows.length) return '';
   return `<div class="flaw-box">
@@ -414,8 +414,12 @@ function flawHtml(person) {
         <span class="flaw-desc">${escapeHtml(r.desc)}</span></li>`).join('')}
       <li class="lv-mid"><span class="flaw-axis">조건반사</span>
         <span class="flaw-tag lv-mid">가만두면 나온다</span>
-        <span class="flaw-desc">${escapeHtml(person.weakness)} — 막으려면 지침으로 봉인해야 한다</span></li>
+        <span class="flaw-desc">${escapeHtml(person.weakness)}</span></li>
     </ul>
+    ${tripwire ? `<p class="tripwire"><b>⚠ 이 버릇은 상대의 접촉 금지 항목을 정통으로 밟는다 —</b>
+      「${escapeHtml(tripwire.redLine)}」<br>
+      <span class="dim">지침으로 이 버릇을 직접 봉인하지 않으면, 아무것도 안 해도 이 인간은 저기를 밟는다.
+      한 번도 아니고 여러 번. 그게 이 의뢰가 기본값으로 파탄나는 경로다.</span></p>` : ''}
   </div>`;
 }
 
@@ -436,7 +440,9 @@ function targetBriefHtml(c) {
     <p class="redline-box"><b>질색:</b> ${c.target.redLines.map(escapeHtml).join(' / ')}</p>
     <p class="handoff-warn"><b>이 화면의 정보는 의뢰인에게 자동으로 넘어가지 않는다.</b>
       의뢰인이 아는 것: ${knows} 나머지는 <b>지침에 직접 적어야</b> 그 인간 머릿속에 들어간다.</p>
-    <p class="weakness"><b>의뢰인 취약점:</b> ${escapeHtml(c.client.weakness)}</p>
+    <p class="weakness"><b>의뢰인 조건반사:</b> ${escapeHtml(c.client.weakness)}</p>
+    <p class="tripwire"><b>⚠ 저게 그대로 「${escapeHtml(c.tripwire.redLine)}」를 밟는다.</b>
+      <span class="dim">여기서 봉인하지 않으면 밟는다.</span></p>
     ${comply ? `<p class="brief-flaw lv-${comply.level}"><b>의뢰인 지침 수용:</b>
       ${escapeHtml(comply.tag)} — ${escapeHtml(comply.desc)}</p>` : ''}`;
 }

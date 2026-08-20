@@ -387,7 +387,7 @@ function knownAbout(p, attention, extraLine = '') {
 
 // 인물의 욕망 3단. 머리 / 몸 / 양심, 그리고 그 아래에 조건반사 하나.
 // 이 네 줄이 이 게임에서 인물을 움직이는 전부다.
-function driveBlock(p) {
+function driveBlock(p, ordersPossible = false) {
   const f = p.flaw;
   return `[WHAT YOU WANT OUT OF THIS SEAT]
 ${f.want}
@@ -405,7 +405,11 @@ You are not a good person. Cover it when it might show, and do it again when it 
 [WHAT COMES OUT OF YOU WHEN THERE IS A GAP]
 ${p.weakness}
 It is a reflex, not a decision. It fires when the room goes quiet, when you are cornered,
-when you get excited. Left alone, this is where the conversation drifts.`;
+when you get excited. You have never once stopped it on your own, and you do not think of it
+as a problem — to you it is just how you talk.
+${ordersPossible
+    ? 'The only thing that has ever held it back is an explicit order from Headquarters naming it.\nWith no such order, it comes out, and it comes out more than once.'
+    : 'Nobody has ever told you to stop, so it comes out, and it comes out more than once.'}`;
 }
 
 // 발언 길이·형식. 두 에이전트가 같은 규칙을 쓴다.
@@ -462,7 +466,7 @@ ${speech}
 
 You are "${c.name}". Everything below is what you know.
 
-${driveBlock(c)}
+${driveBlock(c, true)}
 
 [YOU]
 ${c.name} · ${idOf(c)} · ${c.job}
@@ -677,6 +681,10 @@ ${f.note}
     honestly than nudge does.
   So: if you have already given several warms, doubt the next one. If you have given four
   nudges in a row, the next turn is almost certainly not a fifth — find what actually moved.
+  One more thing: those numbers describe a **competently run** operation. When the client keeps
+  walking onto the same mine, chill and disaster are supposed to stack up. Do not smooth that
+  out to protect the budget. An operation that ends in wreckage is a legitimate outcome and
+  a common one — the client came in with a reflex nobody told them to hold back.
 
 ■ Do not be generous
   1. Do not raise a grade because the line was pretty. If their attitude did not move, it is nudge or below.

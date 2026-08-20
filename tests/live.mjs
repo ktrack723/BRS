@@ -20,7 +20,7 @@
 
 import { LlmClient } from '../js/llm.js';
 import { Engine } from '../js/engine.js';
-import { COUPLES, COUPLE_BY_ID } from '../js/couples.js';
+import { COUPLES, COUPLE_BY_ID, flawReport } from '../js/couples.js';
 import { diffOf } from '../js/scoring.js';
 import { resolveTestModel, TEST_MODEL } from './test-model.mjs';
 import fs from 'node:fs';
@@ -60,10 +60,20 @@ const AGENT_RADIO_SCHEMA = {
 
 function dossierText(c) {
   // 진짜 플레이어가 보는 것과 똑같은 정보만. hiddenPrefs는 개수만.
+  // ※ 여기가 실제 의뢰서보다 얇으면 ace 프로필의 실측치가 사람보다 낮게 나온다.
+  //    화면의 「심리 감정」 블록에 있는 것은 여기에도 있어야 한다.
+  const rep = flawReport(c.client).map(r => `  · ${r.axis}: ${r.tag} — ${r.desc}`).join('\n');
   return `[클라이언트] ${c.client.name} (${c.client.age}, ${c.client.job})
 사연: ${c.client.story}
 성격: ${c.client.personality.join(', ')}
-치명적 약점: ${c.client.weakness}
+[심리 감정 — 의뢰서에 인쇄되어 나온다]
+  · 이 자리에서 원하는 것: ${c.client.flaw.want}
+  · 몸이 원하는 것: ${c.client.flaw.urge}
+  · 이미 넘어본 선: ${c.client.flaw.nerve}
+${rep}
+  · 조건반사(가만두면 나온다): ${c.client.weakness}
+⚠ 저 조건반사는 상대의 접촉 금지 항목 「${c.tripwire.redLine}」를 정통으로 밟는다.
+   지침으로 직접 봉인하지 않으면 아무것도 안 해도 저기를 밟고, 한 번으로 끝나지 않는다.
 [타겟] ${c.target.name} (${c.target.age}, ${c.target.job})
 성격: ${c.target.personality.join(', ')}
 알려진 취향: ${c.target.visiblePrefs.join(' / ')}
@@ -82,7 +92,8 @@ const AGENT_SYSTEM = `너는 큐피드국의 베테랑 공작요원이다. 의�
 대신 그 인간이 어떤 사람으로 그 자리에 앉을지를 정해줘라.
 
 - styling: 상대의 알려진 취향에 맞춘 착장 태그 3~5개. 질색 항목을 건드리는 착장은 금지.
-- coaching: 반드시 (a) 의뢰인의 약점을 봉인하는 금지 조항, (b) 무슨 태도로 대화할지의 실행 조항,
+- coaching: 반드시 (a) 의뢰인의 **조건반사를 이름으로 지목해서 금지**하는 조항 — 이게 제일 중요하다.
+  그 버릇은 상대의 지뢰를 밟고, 한 번 막아도 다시 나온다. 되풀이해서 못 박아라. (b) 무슨 태도로 대화할지의 실행 조항,
   (c) 질색 항목 회피 조항, (d) 상대가 말을 아끼거나 화제를 돌릴 때 어떻게 할지의 판단 기준을 모두 포함.
   8문장 이내, 명령형.
 - speech: 의뢰인 사연 속 구체적 장면을 짚어 자부심으로 뒤집는 연설. 4문장 이내.

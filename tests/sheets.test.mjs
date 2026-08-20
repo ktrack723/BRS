@@ -412,3 +412,71 @@ test('버릇이 방아쇠와 결과를 둘 다 담고 있다', () => {
     seen.set(p.weakness, at);
   }
 });
+
+// ── 아무것도 안 하면 밟는다 ───────────────────────────────────────────
+// 예전에는 의뢰인의 조건반사가 그냥 웃긴 버릇이었다. 아가미로 뻐끔거리고 물건 개수를 셌다.
+// 상대에게 아무 상처도 못 냈고, 그래서 실측 disaster 비율이 0~1%였다.
+// 살릴 것이 없으면 살리는 게임이 아니다. 지금은 전원이 지뢰를 하나씩 밟는다.
+test('의뢰인 전원의 조건반사가 상대의 지뢰를 실제로 밟는다', () => {
+  const share = (a, b) => {
+    const cut = t => String(t).replace(/[^가-힣a-zA-Z0-9]+/g, ' ').split(' ').filter(w => w.length >= 2);
+    const A = cut(a);
+    return cut(b).some(w => A.some(x => x.includes(w) || w.includes(x)));
+  };
+  for (const c of COUPLES) {
+    assert.ok(c.tripwire, `${c.id}: 지뢰선이 없다`);
+    const { index, redLine } = c.tripwire;
+    assert.ok(Number.isInteger(index) && c.target.redLines[index] === redLine,
+      `${c.id}: 지뢰선 인덱스가 목록과 안 맞는다`);
+    // 선언만 하고 실제로는 안 밟는 걸 막는다
+    assert.ok(share(c.client.weakness, redLine),
+      `${c.id}: 버릇이 지뢰를 안 밟는다\n  버릇: ${c.client.weakness}\n  지뢰: ${redLine}`);
+  }
+});
+
+test('지뢰선이 세 항목에 고루 퍼져 있다', () => {
+  // 전부 0번 지뢰만 밟으면 지뢰 목록 세 줄 중 두 줄이 장식이 된다
+  const dist = {};
+  for (const c of COUPLES) dist[c.tripwire.index] = (dist[c.tripwire.index] || 0) + 1;
+  assert.equal(Object.keys(dist).length, 3, `지뢰선이 ${Object.keys(dist).join('/')}번에만 몰렸다`);
+  for (const [i, n] of Object.entries(dist)) {
+    assert.ok(n >= 3, `${i}번 지뢰를 밟는 커플이 ${n}건뿐이다`);
+  }
+});
+
+test('자동 파멸 조합은 살릴 구석이 구조적으로 없다', () => {
+  const doom = COUPLES.filter(c => c.category === '자동파멸');
+  assert.ok(doom.length >= 3, `자동 파멸 조합이 ${doom.length}건뿐이다`);
+  for (const c of doom) {
+    assert.equal(c.difficulty, '헬', `${c.id}: 자동 파멸인데 헬이 아니다`);
+    const f = c.client.flaw;
+    // 공기를 못 읽고(피해를 눈치 못 챔) · 상대를 안 보고 · 한 번 시키면 다시 돌아간다
+    assert.equal(f.reads, 'none', `${c.id}: 의뢰인이 공기를 읽는다 — 스스로 수습해버린다`);
+    assert.equal(f.attention, 'self', `${c.id}: 의뢰인이 상대를 본다`);
+    assert.equal(f.compliance, 'drifts', `${c.id}: 지침 한 번이면 끝난다 — 자동 파멸이 아니다`);
+  }
+});
+
+test('지침이 없으면 조건반사가 나온다는 사실이 프롬프트에 있다', async () => {
+  const P = await import('../js/prompts.js');
+  const c = COUPLES[0];
+  const AG = { name: '요원', gender: '기밀' };
+  const bare = P.clientAgentSystem(c, { coaching: '', speech: '', outfitDesc: '' }, 'talk', AG);
+  assert.match(bare, /You have never once stopped it on your own/, '스스로 못 막는다는 사실이 없다');
+  assert.match(bare, /The only thing that has ever held it back is an explicit order/,
+    '지침만이 버릇을 막는다는 경로가 안 적혀 있다');
+  assert.match(bare, /it comes out more than once/, '한 번만 나오면 지침 한 줄로 끝난다');
+  // 상대는 본부 명령을 못 받는다. 명령 얘기를 넣으면 없는 레버를 있다고 말하는 셈이다.
+  const t = P.targetAgentSystem(c, 'talk', '');
+  assert.ok(!/explicit order from Headquarters/.test(t), '상대에게 본부 명령 얘기가 갔다');
+  assert.match(t, /Nobody has ever told you to stop/, '상대 쪽 문구가 없다');
+});
+
+test('심판이 반복해서 밟힌 지뢰를 예산 때문에 덮지 않는다', async () => {
+  const P = await import('../js/prompts.js');
+  const { COUPLE_BY_ID } = await import('../js/couples.js');
+  const sys = P.judgeSystem(COUPLE_BY_ID['os-war']);
+  assert.match(sys, /chill and disaster are supposed to stack up/, '피해 누적이 허용되지 않는다');
+  assert.match(sys, /Do not smooth that\s+out to protect the budget/, '예산이 상한으로 작동한다');
+  assert.match(sys, /An operation that ends in wreckage is a legitimate outcome/, '파탄이 정상 결과가 아니다');
+});

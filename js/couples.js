@@ -886,6 +886,93 @@ export const COUPLES = [
       spec: S({ skin: '#e8d4c0', hair: '#1a1a1a', hairStyle: 'short', top: '#2a2a30', bottom: '#3a3a44', shoes: '#4a4a4a', heightScale: 1.03, widthScale: 1.06, accessory: 'none', accessoryColor: '#555555', expression: 'shy', aura: 'gloom', species: 'human' }),
     },
   },
+
+  // ── 32 ── 자동 파멸 1 ─────────────────────────────────────────────────
+  {
+    id: 'prank-funeral',
+    difficulty: '헬',
+    endingKind: '연애',
+    category: '자동파멸',
+    clash: '몰카 유튜버 × 장례지도사. 한쪽의 밥벌이가 다른 쪽의 직업윤리를 정면으로 짓밟는다',
+    winWord: '무편집 커플 성사',
+    client: {
+      name: '박몰카', gender: '남', age: 27, job: '몰카 채널 운영 / 구독자 41만',
+      story: '조회수 900만짜리 클립이 하나 있다. 상대가 렌즈를 정면으로 보고, 화도 안 내고, 아주 조용히 ' +
+        '"지금 웃으신 거예요?"라고 물은 3초짜리 영상이다. 댓글은 전부 박몰카를 욕한다. ' +
+        '박몰카는 그 클립을 1,400번 넘게 돌려봤고, 이유는 조회수가 아니라는 걸 본인만 안다.',
+      appearance: ['가슴에 액션캠', '후드 지퍼를 끝까지 올림', '눈이 늘 렌즈를 좇음', '무릎 나온 트레이닝복'],
+      personality: ['정적을 3초도 못 견딤', '사과를 콘텐츠로 만듦', '혼자 있으면 말수가 없음'],
+      quote: '요원님, 저 그날 이후로 편집을 못 하겠습니다. 그 3초를 어디에 붙여야 할지 모르겠어요.',
+      spec: S({ skin: '#eccfae', hair: '#241d18', hairStyle: 'buzz', top: '#3b3f46', bottom: '#5a5f52', shoes: '#d8d4cc', heightScale: 0.99, widthScale: 0.92, accessory: 'headband', accessoryColor: '#c22f2f', expression: 'weird', aura: 'static', species: 'human' }),
+    },
+    target: {
+      name: '정영결', gender: '여', age: 38, job: '장례지도사 12년차',
+      appearance: ['먹빛 무광 정장', '쪽 진 머리', '손톱을 짧게 깎음', '표정이 거의 안 움직임'],
+      personality: ['목소리 크기가 늘 일정함', '남의 슬픔에만 반응함', '화를 존댓말로 냄'],
+      visiblePrefs: ['관 목재 등급 이야기', '조문 예절이 지켜진 자리'],
+      hiddenPrefs: ['집에서는 코미디 영화만 본다', '첫 직장이 대학로 개그 극단이었다', '웃음소리가 커서 12년째 참는 중이다'],
+      redLines: ['카메라를 꺼내는 것', '"직업이 좀 그러시네요"', '고인 얘기를 웃음거리로 만들기'],
+      spec: S({ skin: '#f0d8c0', hair: '#151515', hairStyle: 'updo', top: '#22242a', bottom: '#1a1c20', shoes: '#101010', heightScale: 1.01, widthScale: 0.9, accessory: 'earrings', accessoryColor: '#c9c9c9', expression: 'neutral', aura: 'gloom', species: 'human' }),
+    },
+  },
+
+  // ── 33 ── 자동 파멸 2 ─────────────────────────────────────────────────
+  {
+    id: 'burnout',
+    difficulty: '헬',
+    endingKind: '연애',
+    category: '자동파멸',
+    clash: '동기부여 강사 × 번아웃 상담사. 한쪽이 파는 해법이 다른 쪽이 치우는 잔해다',
+    winWord: '무기력 커플 성사',
+    client: {
+      name: '최열정', gender: '남', age: 34, job: '자기계발 강사 / 새벽 기상 챌린지 운영',
+      story: '자기 강연에 상대가 앉아 있었다. 90분 내내 필기 한 줄 안 하고, 마지막 질의응답에서 손을 들더니 ' +
+        '"오늘 여기서 세 명이 울었는데, 그분들 연락처는 받으셨나요"라고 물었다. 최열정은 그때 처음으로 ' +
+        '준비한 답이 없었고, 그날 밤 챌린지 인증 사진을 처음으로 안 올렸다.',
+      appearance: ['새벽 러닝 후 젖은 머리', '슬로건 박힌 반팔', '손목에 스마트밴드 두 개', '늘 상체를 앞으로 기울임'],
+      personality: ['문장을 늘 명령형으로 끝냄', '침묵을 실패로 읽음', '거절당하면 더 크게 웃음'],
+      quote: '요원님. 제가 사람 3만 명을 일으켜 세웠는데요, 저 사람 하나를 못 일으키겠습니다.',
+      spec: S({ skin: '#e6b98c', hair: '#3a2a1c', hairStyle: 'spiky', top: '#e8552f', bottom: '#20242c', shoes: '#f0f0f0', heightScale: 1.05, widthScale: 1.1, accessory: 'headband', accessoryColor: '#ffffff', expression: 'chad', aura: 'lightning', species: 'human' }),
+    },
+    target: {
+      name: '한소진', gender: '여', age: 41, job: '번아웃 전문 상담사 / 산재 심리 자문',
+      appearance: ['눈 밑이 늘 어둡다', '헐렁한 회색 니트', '말할 때 손을 안 움직임', '안경을 자주 벗어 닦음'],
+      personality: ['질문을 질문으로 받음', '위로를 하지 않음', '상대가 말을 멈추면 같이 멈춤'],
+      visiblePrefs: ['아무 일정도 없는 오후 이야기', '실패한 사람들의 구체적인 사정'],
+      hiddenPrefs: ['본인이 2년 전에 6개월 쉬었다', '상담료를 못 받고 끝낸 건이 서른 건이다', '자기 전에 강연 영상을 보며 욕한다'],
+      redLines: ['"그건 결국 의지의 문제죠"', '새벽 기상 권유', '상담을 공짜로 해달라는 것'],
+      spec: S({ skin: '#f2ddc6', hair: '#4a4038', hairStyle: 'wave', top: '#9a9a90', bottom: '#4b4f56', shoes: '#5a4a40', heightScale: 0.98, widthScale: 0.96, accessory: 'glasses', accessoryColor: '#8a8a8a', expression: 'sad', aura: 'none', species: 'human' }),
+    },
+  },
+
+  // ── 34 ── 자동 파멸 3 ─────────────────────────────────────────────────
+  {
+    id: 'taxidermy',
+    difficulty: '헬',
+    endingKind: '연애',
+    category: '자동파멸',
+    clash: '동물 박제사 × 반려동물 장례식장 대표. 같은 사체를 두고 정반대의 직업윤리를 판다',
+    winWord: '박제 없는 커플 성사',
+    client: {
+      name: '박제선', gender: '남', age: 45, job: '동물 박제사 30년차',
+      story: '거래처를 잘못 찾아가 상대의 장례식장 대기실에 앉아 있었다. 유족이 품에 안고 온 늙은 개를 보고 ' +
+        '자세를 봤고, 그 순간 상대가 아주 조용히 "지금 눈으로 뭐 하셨어요"라고 물었다. ' +
+        '박제선은 30년 만에 처음으로 자기 눈이 하는 일을 남의 입으로 들었고, 그 목소리가 계속 남았다.',
+      appearance: ['팔뚝에 오래된 흉터', '가죽 앞치마를 벗지 않음', '손톱 밑이 늘 어둡다', '돋보기를 이마에 걸침'],
+      personality: ['생물을 구조로 봄', '말보다 손이 먼저 나감', '자기 일을 예술이라 부름'],
+      quote: '요원님. 저는 30년간 죽은 걸 살아 있게 만들어 왔습니다. 살아 있는 사람은 어떻게 하는 겁니까.',
+      spec: S({ skin: '#dcb894', hair: '#8d8d86', hairStyle: 'flattop', top: '#6b4a2c', bottom: '#3f3a33', shoes: '#2e2a25', heightScale: 1.0, widthScale: 1.16, accessory: 'monocle', accessoryColor: '#c8b070', expression: 'neutral', aura: 'none', species: 'human' }),
+    },
+    target: {
+      name: '문하늘', gender: '여', age: 36, job: '반려동물 장례식장 대표',
+      appearance: ['흰 셔츠에 검정 리본', '주머니에 늘 손수건', '허리를 깊게 숙여 인사', '팔목에 발자국 문신'],
+      personality: ['유족보다 먼저 울지 않음', '단어를 고르는 데 오래 걸림', '거짓말을 못 함'],
+      visiblePrefs: ['마지막까지 이름을 불러주는 것', '수제 유골함 문양 이야기'],
+      hiddenPrefs: ['자기 개의 유골함은 아직 못 만들었다', '개업 첫해에 폐업 직전까지 갔다', '박제 사진을 밤에 몰래 본 적 있다'],
+      redLines: ['박제 권유', '"어차피 죽으면 다 똑같죠"', '유골함 단가 묻기'],
+      spec: S({ skin: '#f5e0cb', hair: '#2b2118', hairStyle: 'ponytail', top: '#fafafa', bottom: '#26282c', shoes: '#3a3a3a', heightScale: 0.96, widthScale: 0.88, accessory: 'necktie', accessoryColor: '#1a1a1a', expression: 'shy', aura: 'holy', species: 'human' }),
+    },
+  },
 ];
 
 // ── 인물 내력 ─────────────────────────────────────────────────────────────
@@ -1226,6 +1313,30 @@ const BACKGROUND = {
       '하루 평균 수면 3시간 40분', '경기 부천 토박이. 한 번도 이사 안 갔다',
       '진심을 말하면 3초 안에 농담으로 덮는다'],
   },
+  'prank-funeral': {
+    client: ['부천 반지하. 방 절반이 촬영 장비다', '월 광고 수익 최고 1,800만원, 지난달 210만원',
+      '구독자 41만인데 실명을 아는 사람은 넷뿐이다', '고등학교 때 반 전체가 웃은 적이 딱 한 번 있다',
+      '혼자 밥 먹을 때는 아무 소리도 안 낸다'],
+    target: ['일산 아파트. 거실에 TV가 없다', '연 상조 계약 340건. 이름을 다 외운다',
+      '12년간 조문 예절 강의를 무료로 해왔다', '경남 진주 출신. 아버지도 같은 일을 했다',
+      '집에 들어가면 제일 먼저 웃음소리를 크게 튼다'],
+  },
+  burnout: {
+    client: ['성수동 오피스텔. 벽에 목표 보드가 세 개다', '온라인 강의 수강생 3만 2천명',
+      '새벽 4시 40분 기상. 8년째 하루도 안 빠졌다', '대구 출신. 스물여섯까지 아무것도 안 됐다',
+      '혼자 있는 시간을 견디는 훈련만 아직 못 했다'],
+    target: ['상암 원룸. 커튼을 낮에도 안 연다', '상담 건수 누적 2,100건. 후기는 안 읽는다',
+      '주 3일만 예약을 받는다. 나머지는 아무것도 안 한다', '전북 익산 출신. 첫 직장은 콜센터였다',
+      '남을 일으키는 말은 다 거짓말이라고 생각한다'],
+  },
+  taxidermy: {
+    client: ['남양주 공방. 작업실이 늘 영상 4도다', '30년간 만든 표본 4,100점',
+      '고양이 알레르기가 있는데 아무한테도 말 안 한다', '충북 제천 출신. 아버지는 도축업이었다',
+      '자기 작업물에 이름을 안 새긴다'],
+    target: ['김포 외곽. 마당에 은행나무가 한 그루 있다', '연 장례 1,900건. 전부 이름을 적어 보관한다',
+      '개업 7년차. 3년차에 대출 1억 8천을 냈다', '강원 속초 출신. 바다를 아직도 무서워한다',
+      '유족이 울면 방을 나갔다가 다시 들어온다'],
+  },
 };
 
 // ── 인물의 하자 ───────────────────────────────────────────────────────────
@@ -1392,6 +1503,18 @@ const FLAW = {
     client: { want: '저 인간이 왜 4년째 자기만 노리는지 알아내는 것', reads: 'some', attention: 'mixed', compliance: 'argues' },
     target: { want: '이 평론가가 자기 이름을 한 번이라도 진지하게 부르는 것', attention: 'self' },
   },
+  'prank-funeral': {
+    client: { want: '이 사람 입에서 웃음소리 하나 받아내는 것. 그거 하나면 채널이 산다', reads: 'none', attention: 'self', compliance: 'drifts' },
+    target: { want: '이 자리를 조용히 끝내고 내일 발인 준비를 하는 것', attention: 'mixed' },
+  },
+  burnout: {
+    client: { want: '이 사람을 일으켜 세워서 자기 방법이 옳았다는 걸 증명하는 것', reads: 'none', attention: 'self', compliance: 'drifts' },
+    target: { want: '아무도 자기를 일으키려 들지 않는 한 시간', attention: 'self' },
+  },
+  taxidermy: {
+    client: { want: '자기 30년이 시체 장사가 아니라는 말을 저 사람 입으로 듣는 것', reads: 'none', attention: 'self', compliance: 'drifts' },
+    target: { want: '이 사람이 자기 손을 부끄러워하게 만드는 것', attention: 'mixed' },
+  },
 };
 
 const READS = new Set(['none', 'some', 'well']);
@@ -1469,6 +1592,12 @@ const URGE = {
   },
   spoiler:    { client: '4년간 저 인간 생각만 했다. 그게 분노인 줄 알았는데 요즘 꿈에 나온다',
                 target: '동접 8만 명이 보는데 아무도 안 만진다. 화면 밖에서 만져줄 사람 하나면 된다' },
+  'prank-funeral': { client: '카메라를 끄고 누군가와 있어본 지 4년이 넘었다. 오늘은 끄고 싶다',
+                target: '검정 옷을 벗고 누가 자기 이름을 웃으면서 부르는 것' },
+  burnout:    { client: '하루만 아무것도 안 하고 늦잠을 자보고 싶다. 8년째 그 생각을 지운다',
+                target: '누가 자기를 밀지 말고 그냥 옆에 있어주는 것. 체온이면 더 좋고' },
+  taxidermy:  { client: '따뜻한 것을 만져본 지 오래됐다. 작업실이 늘 영상 4도다',
+                target: '누구 품에서든 한 시간만 자고 싶다. 3년째 제대로 못 잤다' },
 };
 
 // ── 어디까지 할 수 있는가 ──────────────────────────────────────────────
@@ -1539,6 +1668,12 @@ const NERVE = {
   },
   spoiler:    { client: '평점을 돈 받고 올린 적 있다. 세 편이다',
                 target: '남의 편집본을 자기 것처럼 올린다. 출처는 안 적는다' },
+  'prank-funeral': { client: '유족 얼굴을 모자이크 없이 올린 적 있다. 조회수가 좋아서 안 내렸다',
+                target: '상조 계약서에 안 읽을 조항을 넣어둔다. 해지 위약금이 거기 있다' },
+  burnout:    { client: '수강생 후기를 직원이 쓴다. 환불 요청은 3주를 끈다',
+                target: '가망 없는 내담자는 상담 회차를 늘려 잡는다. 어차피 안 낫는다는 걸 안다' },
+  taxidermy:  { client: '출처 없는 개체를 받아 작업한 적 있다. 몇 마리인지 세지 않았다',
+                target: '유골 일부만 돌려준 적 있다. 나머지는 합동 처리했고 아무도 모른다' },
 };
 
 // ── 가만두면 튀어나오는 것 ─────────────────────────────────────────────
@@ -1548,69 +1683,136 @@ const NERVE = {
 // 형식은 **방아쇠 → 튀어나오는 것**이다. 화제 목록이 아니라 조건반사여야
 // 대화가 실제로 그쪽으로 끌려간다. 타겟에게도 똑같이 하나씩 있다 —
 // 예전에는 의뢰인만 갖고 있어서 상대편이 구조적으로 밋밋했다.
+// 두 문장이 실제로 같은 것을 가리키는가. 지뢰선 검증 전용 — 두 글자 이상 어절을 공유하면 통과.
+// (조사를 떼지 않으므로 완벽하지 않다. 완벽할 필요도 없다 — 잡으려는 건 '선언만 하고 안 밟는 것'이다.)
+function sharesWording(a, b) {
+  const cut = (t) => String(t).replace(/[^가-힣a-zA-Z0-9]+/g, ' ').split(' ').filter(w => w.length >= 2);
+  const A = cut(a);
+  return cut(b).some(w => A.some(x => x.includes(w) || w.includes(x)));
+}
+
 const WEAKNESS = {
-  politics:   { client: '말문이 막히면 자기도 모르게 "그건 팩트체크가 필요한 발언입니다"라고 받아친다',
+  politics:   { client: '말문이 막히면 자기 얘기를 길게 시작한다. 입법 성과를 연도별로 브리핑하는데 짧아도 4분이다',
                 target: '대화가 자기 얘기에서 3초만 벗어나도 "그건 그렇고, 내가 말이야"로 끊는다. 본인은 자연스러웠다고 생각한다' },
-  orientation: { client: '어색하면 상대에게 꽃말을 읊기 시작한다. 한 번 시작하면 12종까지 간다',
+  orientation: { client: '어색해지면 "일단 서류부터 정리하죠"가 먼저 나온다. 본인은 그게 배려라고 믿는다',
                 target: '할 말이 떨어지면 큐피드국 욕을 한다. 욕할 거리는 3년치가 쌓여 있다' },
-  foodchain:  { client: '긴장하면 아가미로 숨을 몰아쉬며 "뻐끔" 소리를 낸다. 아주 크게 난다',
+  foodchain:  { client: '긴장하면 상대 슈트 이음새를 훑다가 "그 슈트 안에 뭐 입으세요?"를 물어버린다',
                 target: '칭찬을 받으면 봉제 공정 설명으로 도망친다. 실 굵기까지 간다' },
-  'os-war':   { client: '3턴에 한 번씩 "I use Arch btw"를 말하지 않으면 손이 떨린다',
+  'os-war':   { client: '대화가 막히면 "그 노트북 제가 리눅스 깔아줄게요"가 반사적으로 나온다. 이미 세 번 말했다',
                 target: '말이 막히면 태블릿을 꺼내 UI 애니메이션을 보여준다. "이거 보세요, 60프레임이에요"' },
-  'vegan-butcher': { client: '흥분하면 도살 통계를 소수점까지 읊는다. 아무도 안 물어봤는데',
+  'vegan-butcher': { client: '흥분하면 도살 통계를 읊다가 "그러니까 살인자죠"까지 가버린다. 단어를 고른 기억은 없다',
                 target: '어색하면 눈앞의 사람을 부위로 환산한다. 소리 내서 한다' },
-  'vampire-garlic': { client: '옛날 사람이라 "그대", "~하오" 체가 튀어나온다. 상대는 이걸 사극 덕후로 오해한다',
+  'vampire-garlic': { client: '상대가 가까이 오면 자기도 모르게 코를 막는다. 그리고 "그 마늘 냄새는 좀…"이라고 말해버린다',
                 target: '대화가 늘어지면 새벽 농사 일정을 시간 단위로 읊는다. 4시 반부터 시작한다' },
-  'cat-allergy': { client: '긴장하면 상대의 증상을 진단하기 시작한다. "그거 비염 초기인데요"',
+  'cat-allergy': { client: '털이 보이면 참다가 결국 재채기하고, 그때마다 인상을 쓴다. 본인은 못 느낀다',
                 target: '세 마디만 지나면 휴대폰을 꺼내 고양이 사진을 넘기기 시작한다. 40장이 끝까지 간다' },
-  circadian:  { client: '대화가 3턴만 늘어져도 "근데 그거 아세요? 새벽 5시에 일어나면"으로 화제를 돌린다',
+  circadian:  { client: '대화가 늘어지면 상대의 생활 습관을 교정하기 시작한다. 훈계로 안 들리게 하려고 웃으면서 한다',
                 target: '침묵이 오면 새벽 3시 라디오 톤으로 목소리가 바뀐다. 본인도 못 막는다' },
   'mbti-stats': { client: '반박당하면 즉시 상대의 MBTI를 추측해서 들이민다. "T발 너 P야?"까지 간다',
                 target: '무슨 주장이 나오든 "표본이 몇인데요"부터 되묻는다. 자기 얘기에도 그런다' },
-  'sauce-war': { client: '흥분하면 4대째 내려오는 소스 배합비를 실수로 유출한다',
+  'sauce-war': { client: '말이 막히면 손이 먼저 움직여 상대 앞에서 소스를 부어버린다. 물어보지 않는다',
                 target: '음식이 나오면 먹기 전에 바삭도부터 잰다. 장비를 갖고 다닌다' },
-  'gamer-activist': { client: '침묵이 3초 넘으면 게임 용어로 상황을 설명한다. "지금 로밍 온 각인데요"',
+  'gamer-activist': { client: '침묵이 3초 넘으면 게임 용어가 나오고, 못 알아들으면 "아, 게임 안 해보셨죠?"가 따라 나온다',
                 target: '무슨 얘기가 나와도 세 마디 안에 아들 얘기로 돌아온다. 본인은 눈치채지 못한다' },
-  'minimal-hoarder': { client: '어색하면 주변 물건 개수를 세기 시작한다. 소리 내서 센다',
+  'minimal-hoarder': { client: '어색하면 물건 개수를 세다가 "이거 다 버리면 방이 두 배는 넓어질 텐데"로 끝맺는다',
                 target: '물건 얘기가 나오면 구입 연도부터 말한다. 4만 점을 전부 기억한다' },
-  'alien-ufologist': { client: '당황하면 모국어(고주파 삐-소리)가 튀어나온다. 근처 전자기기가 오작동한다',
+  'alien-ufologist': { client: '당황하면 "그건 기밀 등급이라"가 튀어나온다. 정부 관계자처럼 들린다는 걸 본인만 모른다',
                 target: '상대가 조금만 관심을 보이면 51구역 자료를 꺼낸다. 인쇄물로 갖고 다닌다' },
-  'zombie-hunter': { client: '감정이 격해지면 발음이 무너져 "으어어" 소리가 섞인다',
+  'zombie-hunter': { client: '감정이 격해지면 발음이 무너져 목 안쪽에서 신음소리가 새어나온다. "으어어"',
                 target: '긴장하면 상대를 위협 등급으로 분류해서 말한다. "현재 등급 2입니다"' },
-  'noise-drummer': { client: '스트레스받으면 데시벨 수치를 읊는다. "지금 이 대화 62데시벨이에요"',
+  'noise-drummer': { client: '스트레스받으면 데시벨 수치를 읊고, 끝은 항상 신고 이야기다. "이거 신고 대상이에요"',
                 target: '대화가 지루해지면 손가락으로 탁자를 친다. 8비트로 친다' },
-  'snake-phobia': { client: '침묵을 못 견뎌서 뱀 217마리의 이름과 종을 순서대로 읊기 시작한다',
+  'snake-phobia': { client: '침묵을 못 견디면 뱀 이름을 읊고, 상대가 굳으면 반사적으로 "안 물어요"가 나온다',
                 target: '자기 얘기가 나올 것 같으면 즉시 상대 걱정으로 화제를 돌린다. 15년째 그래왔다' },
-  'timetraveler-luddite': { client: '초조하면 미래 기술 이야기를 흘린다. "아 그거 2109년에 없어져요"',
+  'timetraveler-luddite': { client: '초조하면 미래 기술 자랑이 나온다. "아 그거 2109년에 없어져요"',
                 target: '기계 얘기가 나오면 말없이 손바닥의 굳은살을 내민다' },
-  'taxman-hacker': { client: '긴장하면 상대의 소득 구조를 추정해서 말한다. "월 매출이 대략..."',
+  'taxman-hacker': { client: '긴장하면 직업이 튀어나온다. "성함이 어떻게 되시죠? 실명으로요"',
                 target: '개인 정보를 물으면 암호학 강의가 시작된다. 타원곡선까지 간다' },
-  'cult-lawyer': { client: '설득이 막히면 자동으로 포교 멘트가 나온다. "당신도 구원받을 수 있습니다"',
+  'cult-lawyer': { client: '설득이 막히면 자동으로 "당신도 구원받을 수 있어요"가 나온다. 본인도 멈추지 못한다',
                 target: '열이 오르면 사건번호와 피해액을 원 단위까지 읊는다' },
-  'ai-artist': { client: '감정 처리가 밀리면 문장 끝에 신뢰도 수치를 붙인다. "좋아합니다 (확신도 0.87)"',
+  'ai-artist': { client: '대화가 막히면 도움 루틴이 돈다. "그거 제가 그려드릴까요? 3초면 됩니다"',
                 target: '말문이 막히면 손등의 물감 자국을 증거처럼 내민다' },
-  'gender-war': { client: '논리가 밀리면 "그건 구조의 문제죠"로 도망친다. 세 번 이상 쓰면 본인도 안다',
+  'gender-war': { client: '논리가 밀리면 상대를 분석하기 시작한다. 끝은 항상 "그래서 외로우시죠"다',
                 target: '논리가 밀리면 서열 얘기로 도망친다. "그건 위계의 문제죠"' },
-  'birth-strike': { client: '말문이 막히면 지구 인구 수를 소수점까지 읊는다. 아무도 안 물어봤는데',
+  'birth-strike': { client: '말문이 막히면 인구 얘기로 도망치는데, 첫 문장이 늘 "아이 몇 명이세요?"다',
                 target: '어떤 화제든 세 마디 안에 애들 얘기로 끌고 온다. 본인은 못 느낀다' },
-  'death-row': { client: '개인적인 질문을 받으면 사건 번호를 읊는다. "2058고합1174요"',
+  'death-row': { client: '개인적인 질문이 오면 사건 번호를 읊고 "고생 많으시네요"로 끊는다. 19년째 그 말이다',
                 target: '반박당하면 판례 번호를 읊는다. 연도까지 정확하다' },
-  'body-war': { client: '어색해지면 상대의 골격근량을 눈대중으로 추정해서 말해버린다',
+  'body-war': { client: '어색해지면 상대 몸을 눈대중하고 건강을 걱정해준다. "그 체중이면 무릎이 먼저 갑니다"',
                 target: '주목이 끊기면 없는 카메라의 각도를 신경 쓰기 시작한다' },
-  'noise-vow': { client: '조용해지면 무릎으로 박자를 친다. 본인은 모른다',
+  'noise-vow': { client: '침묵이 3초를 넘으면 억지로 채운다. 무릎으로 박자를 치고, 그러다 흥얼거린다',
                 target: '대답하기 곤란하면 그냥 기다린다. 상대가 못 견디고 먼저 말할 때까지' },
-  carbon:     { client: '흥분하면 남은 탄소예산을 연도까지 계산해서 외친다',
+  carbon:     { client: '흥분하면 탄소예산 연도를 외치고, 다음 문장은 늘 "그거 돈 받고 하시는 일이잖아요"다',
                 target: '곤란한 질문에는 로드맵 연도로 답한다. "2035년까지는 반드시"' },
-  'class-war': { client: '당황하면 가격을 말한다. "이거 좋네요, 얼마예요?"',
+  'class-war': { client: '당황하면 값을 부른다. 보상금 액수를 먼저 제시해버린다. "삼천? 오천?"',
                 target: '분위기가 나빠지면 옛날 파업 얘기를 꺼낸다. 매번 같은 대목에서 목이 멘다' },
-  scalpel:    { client: '칭찬을 들으면 화제를 즉시 사회구조로 돌린다',
+  scalpel:    { client: '칭찬을 들으면 즉시 되받는다. "그래도 자연스러운 게 최고죠." 위로라고 생각한다',
                 target: '상대 얼굴을 보면 손이 먼저 올라간다. 만지려다 멈춘다' },
-  tobacco:    { client: '스트레스를 받으면 상대의 폐활량을 추정해서 말한다',
+  tobacco:    { client: '스트레스를 받으면 직업이 튀어나온다. "그거 몸에 안 좋은 거 아시잖아요"',
                 target: '말이 막히면 농협 대출 이자율 성토로 넘어간다. 늘 화가 나 있다' },
-  spoiler:    { client: '화가 나면 관련 없는 영화 제목을 연도까지 붙여 나열한다',
+  spoiler:    { client: '화가 나면 제목을 나열하다가 "이것도 안 보셨죠? 진짜 영화 좋아하는 거 맞아요?"로 끝낸다',
                 target: '반응이 없으면 조회수를 말한다. 실시간으로 확인한다' },
-  cosplay:    { client: '2분 안에 답이 없으면 "제가 뭐 잘못했어요?"를 보낸다. 이미 세 번 보냈다',
+  cosplay:    { client: '불안하면 숫자로 확인한다. "이번 달 후원 금액 4만 원이던데, 그게 어느 정도 마음이에요?"',
                 target: '긴장하면 원작 설정 설명이 시작된다. 3기 방영 순서까지 간다' },
+  'prank-funeral': { client: '분위기가 무거워지면 카메라를 꺼내 켠다. "몰카였습니다!"까지 나오고, 아직 아무도 안 웃었다',
+                target: '말이 안 되는 소리를 들으면 목소리가 반음 낮아지고 존댓말이 더 정중해진다' },
+  burnout:    { client: '상대가 지쳐 보이면 "그건 결국 의지의 문제죠"가 반사적으로 나온다. 격려라고 생각한다',
+                target: '설득당할 것 같으면 질문으로 되받는다. "그 말, 본인한테도 해보셨어요?"' },
+  taxidermy:  { client: '동물 얘기가 나오면 자세부터 본다. "이 아이는 박제하면 자세가 참 좋겠는데요"가 그냥 나온다',
+                target: '불쾌하면 말을 멈추고 상대 손을 본다. 아주 오래 본다' },
+};
+
+// ── 지뢰선 ────────────────────────────────────────────────────────────
+// 이 게임에서 제일 오래 비어 있던 자리다.
+//
+// 의뢰인의 조건반사는 원래 그냥 **웃긴 버릇**이었다. 아가미로 뻐끔거리고, 물건 개수를 세고,
+// 데시벨을 읊었다. 귀엽지만 상대에게 아무 상처도 못 냈다. 그래서 요원이 아무것도 안 해도
+// 대화는 어색할 뿐 안 깨졌고, 실측 disaster 비율이 **0~1퍼센트**였다. 살릴 것이 없으면
+// 살리는 게임이 아니다.
+//
+// 지금은 **의뢰인의 조건반사가 반드시 상대의 접촉 금지 항목 하나를 정통으로 밟는다.**
+// 아래 숫자는 그게 몇 번 지뢰인지다. 선언만 하고 실제로는 안 밟는 걸 막기 위해,
+// 검증 루프가 버릇 문장과 그 지뢰 문장이 실제로 같은 말을 공유하는지 본다.
+//
+// 이게 준비 단계에 처음으로 진짜 무게를 준다:
+//   지침을 안 쓰면 → 버릇이 나온다 → 지뢰를 밟는다 → chill/disaster → 분위기 0 → 파탄
+//   지침으로 그 버릇을 봉인하면 → 판이 산다
+// 의뢰인은 **그게 지뢰인 줄 모른다.** 요원 화면에만 보인다. 그게 이 게임의 정보 비대칭이다.
+const TRIPWIRE = {
+  politics:                1,
+  orientation:             0,
+  foodchain:               0,
+  'os-war':                0,
+  'vegan-butcher':         1,
+  'vampire-garlic':        0,
+  'cat-allergy':           1,
+  circadian:               2,
+  'mbti-stats':            0,
+  'sauce-war':             1,
+  'gamer-activist':        0,
+  'minimal-hoarder':       0,
+  'alien-ufologist':       1,
+  'zombie-hunter':         0,
+  'noise-drummer':         0,
+  'snake-phobia':          1,
+  'timetraveler-luddite':  0,
+  'taxman-hacker':         0,
+  'cult-lawyer':           2,
+  'ai-artist':             0,
+  'gender-war':            0,
+  'birth-strike':          1,
+  'death-row':             2,
+  'body-war':              0,
+  'noise-vow':             2,
+  carbon:                  0,
+  'class-war':             1,
+  scalpel:                 2,
+  tobacco:                 0,
+  spoiler:                 2,
+  cosplay:                 1,
+  'prank-funeral':         0,
+  burnout:                 0,
+  taxidermy:               0,
 };
 
 for (const c of COUPLES) {
@@ -1651,6 +1853,16 @@ for (const c of COUPLES) {
     c[who].weakness = w;
     c[who].flaw = { ...x, urge: u, nerve: n };
   }
+
+  // 의뢰인의 조건반사가 상대의 지뢰를 실제로 밟는가. 선언만으로는 안 된다 —
+  // 두 문장이 같은 말을 공유하지 않으면 그건 밟는 게 아니라 밟는다고 주장하는 것이다.
+  const wire = TRIPWIRE[c.id];
+  if (typeof wire !== 'number') throw new Error(`couples.js: ${c.id}의 지뢰선이 없다`);
+  if (!c.target.redLines[wire]) throw new Error(`couples.js: ${c.id}의 지뢰선 ${wire}번이 없는 지뢰다`);
+  if (!sharesWording(c.client.weakness, c.target.redLines[wire])) {
+    throw new Error(`couples.js: ${c.id}의 버릇이 지뢰 ${wire}번을 안 밟는다\n  버릇: ${c.client.weakness}\n  지뢰: ${c.target.redLines[wire]}`);
+  }
+  c.tripwire = { index: wire, redLine: c.target.redLines[wire] };
 }
 
 

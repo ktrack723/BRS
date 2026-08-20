@@ -383,7 +383,11 @@ try {
   // 난이도 필터
   await page.click('.filter-tab[data-f="헬"]');
   const hellCards = await page.locator('.couple-card').count();
-  check('난이도 필터가 동작한다', hellCards > 0 && hellCards < 20, `헬 ${hellCards}장`);
+  // 상수로 박아두면 의뢰가 늘 때마다 여기가 터진다. 검사하려는 건 "걸러지는가"다.
+  const expectHell = await page.evaluate(() => window.__game.COUPLES.filter(c => c.difficulty === '헬').length);
+  const total = await page.evaluate(() => window.__game.COUPLES.length);
+  check('난이도 필터가 동작한다',
+    hellCards === expectHell && hellCards < total, `헬 ${hellCards}/${total}장 (기대 ${expectHell})`);
   await page.click('.filter-tab[data-f="전체"]');
   await page.screenshot({ path: `${SHOTS}/3-roster.png`, fullPage: true });
 
@@ -422,6 +426,15 @@ try {
   // 같은 문장을 의뢰서에 두 번 찍지 않는다 — 예전에는 '취약점' 줄과 심리 감정이 겹쳤다
   check('버릇이 의뢰서에 한 번만 나온다',
     dossier.split(psych.weakness).length - 1 === 1, `${dossier.split(psych.weakness).length - 1}회`);
+  // 아무것도 안 하면 왜 파탄나는지를 요원이 미리 볼 수 있어야 한다.
+  // 이걸 안 알려주면 그건 개성이 아니라 그냥 숨겨둔 함정이다.
+  const wire = await page.evaluate(() => {
+    const name = document.querySelector('#dossier-box h3').textContent;
+    const c = window.__game.COUPLES.find(x => name.includes(x.client.name));
+    return { redLine: c.tripwire.redLine, box: document.querySelector('#dossier-box .tripwire')?.textContent || '' };
+  });
+  check('의뢰서가 그 버릇이 밟을 지뢰를 지목한다',
+    wire.box.includes(wire.redLine) && /지침으로/.test(wire.box), wire.box.slice(0, 60).replace(/\s+/g, ' '));
   check('상대 쪽 심리 감정은 작전 전에 공개되지 않는다', !dossier.includes(psych.targetWant));
   check('지뢰 목록이 의뢰인에게 자동 전달되지 않음을 경고한다',
     /전달되지 않았다|넘어가지 않는다/.test(dossier), dossier.match(/전달되지 않았다[^.]{0,20}/)?.[0] || '없음');
