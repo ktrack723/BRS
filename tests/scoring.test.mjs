@@ -146,7 +146,7 @@ test('심판이 뭘 뱉든 tier 밴드 안으로 강제된다', () => {
   assert.equal(bandLove('breakthrough', 2), 7, 'breakthrough인데 +2면 밴드 하한으로 올린다');
   assert.equal(bandLove('disaster', 5), -6);
   assert.equal(bandLove('chill', 0), -2);
-  assert.equal(bandLove('nudge', 100), 2);
+  assert.equal(bandLove('nudge', 100), 0, 'nudge는 0점이다 — 반짝임은 끌림이 아니다');
   assert.equal(bandLove('없는tier', 5), 5, '모르는 tier면 원값을 -10~10으로만 자른다');
 });
 
@@ -156,14 +156,20 @@ test('모르는 등급은 중립으로 떨어진다 — 이것이 유일하게 �
   assert.equal(normalizeTier(undefined), 'flat');
 });
 
+// nudge와 flat은 이제 둘 다 0점이다 — 두근두근이 아니면 증가량이 없다.
+// 사다리는 warm 위에서만 의미가 있다.
 test('tier가 높을수록 호감이 더 오른다 (동일 조건)', () => {
   const d = diffOf('보통');
   const base = initialState(d);
-  const order = ['disaster', 'chill', 'flat', 'nudge', 'warm', 'breakthrough'];
+  const order = ['disaster', 'chill', 'flat', 'warm', 'breakthrough'];
   const gains = order.map(t => applyTurn(base, d, J(t)).lastDelta.love);
   for (let i = 1; i < gains.length; i++) {
     assert.ok(gains[i] > gains[i - 1], `${order[i]}(${gains[i]})가 ${order[i - 1]}(${gains[i - 1]})보다 커야 한다`);
   }
+  // nudge와 flat은 같은 자리다 — 둘 다 0점이고, 차이는 해설과 분위기에만 남는다
+  const nudge = applyTurn(base, d, J('nudge')).lastDelta.love;
+  const flat = applyTurn(base, d, J('flat')).lastDelta.love;
+  assert.equal(nudge, flat, 'nudge가 flat보다 호감을 더 준다 — 반짝임은 끌림이 아니다');
 });
 
 test('flat 판정만 반복하면 성공선에 절대 못 닿는다', () => {
@@ -233,7 +239,9 @@ test('호감도 포화한다 — 이미 높으면 같은 판정이 덜 오른다
   // 하락에는 포화가 걸리지 않는다
   const loDown = applyTurn({ ...initialState(d), love: 5, mood: 60 }, d, J('chill'));
   const hiDown = applyTurn({ ...initialState(d), love: 85, mood: 60 }, d, J('chill'));
-  assert.equal(loDown.lastDelta.love, hiDown.lastDelta.love, '떨어질 땐 위치와 무관하게 그대로 떨어진다');
+  // 0.1은 반올림 오차다 — 실제 하락폭은 같고, round1이 부동소수점 꼬리를 다르게 자른다
+  assert.ok(Math.abs(loDown.lastDelta.love - hiDown.lastDelta.love) < 0.2,
+    `떨어질 땐 위치와 무관하게 그대로 떨어진다 (${loDown.lastDelta.love} vs ${hiDown.lastDelta.love})`);
 });
 
 test('공기는 심판이 갱신하고, 안 주면 직전 값이 유지된다', () => {
@@ -995,50 +1003,51 @@ test('사후 보고에 장벽 항목이 항상 있다', async () => {
   }
 });
 
-// ── 두근거림 관문 ────────────────────────────────────────────────
-// 분위기가 아무리 좋아도, 대화가 아무리 잘 굴러가도 여기서 막힌다.
-// 이 선 위로는 실제로 마음이 움직인 턴(warm 이상)으로만 올라간다.
-// 프롬프트로만 말하면 심판이 빠져나간다 — 규칙으로 박아야 한다.
-test('잘 굴러간 대화만으로는 두근거림 관문을 못 넘는다', async () => {
+// ── 두근두근이 아니면 증가량이 0이다 ─────────────────────────
+// 한동안 「관문 40」을 뒀다 — 대화만으로는 40에서 막히는 구조. 그건 우회로였다.
+// 규칙을 직접 쓴다: nudge도 flat도 0점이고, 오르는 건 warm 이상뿐이다.
+test('잘 굴러간 대화는 호감을 한 점도 못 올린다', async () => {
   const S = await import('../js/scoring.js');
   const d = S.diffOf('쉬움');
   let s = S.initialState(d);
+  const start = s.love;
   for (let i = 0; i < 30; i++) {
     s = S.applyTurn(s, d, { tier: 'nudge', loveDelta: 2, moodDelta: 3, vibe: 'v', revealed: '' });
   }
-  assert.equal(Math.round(s.love), S.TUNING.likingCeiling,
-    `nudge를 30턴 쌓아도 관문에서 멈춰야 한다 (실제 ${Math.round(s.love)})`);
   assert.ok(s.mood > 80, '테스트 전제: 분위기는 최고여야 한다');
+  assert.ok(s.love <= start,
+    `nudge를 30턴 쌓고 분위기가 최고여도 호감이 오르면 안 된다 (${start} → ${Math.round(s.love)})`);
 });
 
-test('관문 위로는 warm 이상만 민다', async () => {
+test('호감을 올리는 건 warm 이상뿐이다', async () => {
   const S = await import('../js/scoring.js');
   const d = S.diffOf('쉬움');
-  let s = S.initialState(d);
-  for (let i = 0; i < 30; i++) {
-    s = S.applyTurn(s, d, { tier: 'nudge', loveDelta: 2, moodDelta: 3, vibe: 'v', revealed: '' });
+  const base = S.initialState(d);
+  for (const tier of ['flat', 'nudge']) {
+    const r = S.applyTurn(base, d, { tier, loveDelta: 9, moodDelta: 4, vibe: 'v', revealed: '' });
+    assert.ok(r.love <= base.love, `${tier}이 호감을 올렸다 — 심판이 뭘 뱉든 0이어야 한다`);
   }
-  const atCeiling = s.love;
-  const warm = S.applyTurn(s, d, { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '' });
-  assert.ok(warm.love > atCeiling, 'warm이 관문을 못 넘겼다');
-  const nudge = S.applyTurn(s, d, { tier: 'nudge', loveDelta: 2, moodDelta: 3, vibe: 'v', revealed: '' });
-  assert.equal(Math.round(nudge.love), Math.round(atCeiling), 'nudge가 관문 위로 한 점이라도 보탰다');
-  // 관문을 넘은 뒤에도 nudge는 못 보탠다
-  const after = S.applyTurn(warm, d, { tier: 'nudge', loveDelta: 2, moodDelta: 3, vibe: 'v', revealed: '' });
-  assert.ok(after.love <= warm.love, '관문 위에서 nudge가 호감을 올렸다');
+  for (const tier of ['warm', 'breakthrough']) {
+    const r = S.applyTurn(base, d, { tier, loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '' });
+    assert.ok(r.love > base.love, `${tier}이 호감을 못 올렸다`);
+    assert.ok(S.FLUTTER_TIERS.has(tier), `${tier}이 두근거린 등급 집합에 없다`);
+  }
+  assert.ok(!S.FLUTTER_TIERS.has('nudge'), 'nudge가 두근거린 등급에 들어가 있다');
 });
 
-test('관문은 올라가는 쪽만 막는다 — 손실은 그대로 적용된다', async () => {
+test('관문 상수가 남아 있지 않다', async () => {
   const S = await import('../js/scoring.js');
-  const d = S.diffOf('쉬움');
+  assert.equal(S.TUNING.likingCeiling, undefined, '관문 상수가 아직 살아 있다');
+});
+
+test('사이가 나쁘면 깎이고, 호감은 0에서 바닥을 친다', async () => {
+  const S = await import('../js/scoring.js');
+  const d = S.diffOf('헬');
   let s = S.initialState(d);
-  for (let i = 0; i < 10; i++) {
-    s = S.applyTurn(s, d, { tier: 'warm', loveDelta: 6, moodDelta: 3, vibe: 'v', revealed: '' });
+  for (let i = 0; i < 8; i++) {
+    s = S.applyTurn(s, d, { tier: 'disaster', loveDelta: -9, moodDelta: -5, vibe: 'v', revealed: '' });
   }
-  assert.ok(s.love > S.TUNING.likingCeiling, '테스트 전제: 관문 위여야 한다');
-  const before = s.love;
-  const chilled = S.applyTurn(s, d, { tier: 'chill', loveDelta: -4, moodDelta: -3, vibe: 'v', revealed: '' });
-  assert.ok(chilled.love < before, '관문 위에서 손실이 안 먹었다');
+  assert.equal(s.love, 0, '호감이 0 아래로 내려갔거나 안 깎였다');
 });
 
 test('평범하게 굴러가다 무미건조하게 끝나면 호감은 0 근처다', async () => {

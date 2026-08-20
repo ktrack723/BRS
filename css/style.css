@@ -1121,15 +1121,6 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 /* 대화 불능 — 결함 축과 다른 색이어야 한다. 이건 성향이 아니라 출력 형태다 */
 .flaw-tag.wreck { border-color: #5a3f7a; background: #ece4f2; color: #3d2755; }
 /* 상대가 들고 오는 것 — 지뢰(붉은색)와 다르다. 이건 피할 것이 아니라 겨눌 것이다 */
-/* 두근거림 관문 — 잘 굴러간 대화는 여기까지만 온다. 성공선(붉은 눈금)과 구분되게 둔다 */
-.meter-ceiling {
-  position: absolute; top: -2px; bottom: -2px; width: 2px;
-  background: repeating-linear-gradient(to bottom, #5a3f7a 0 3px, transparent 3px 6px);
-  pointer-events: none; z-index: 2;
-}
-.meter-ceiling.passed { background: #5a3f7a; opacity: 0.35; }
-.meter-fill.love.capped { background-image: repeating-linear-gradient(45deg, rgba(90,63,122,.35) 0 6px, transparent 6px 12px); }
-
 .regard-box {
   margin: var(--s2) 0 0; padding: var(--s1) var(--s2);
   border: 1px solid #5a3f7a; border-left-width: 4px; background: #f4f0f8;

@@ -970,7 +970,6 @@ export function judgeSystem(couple) {
   // nudge에도 예산을 건다. 이게 없으면 심판은 flat을 안 쓰고 nudge로 도망친다 —
   // 실측: flat 18% · nudge 34%. nudge는 "아무 일도 없었다"가 아니라 **틀릴 일이 없는 답**이다.
   const nNudge = Math.max(2, Math.round(TURNS * 0.25));
-  const LIKING_CEILING = TUNING.likingCeiling;
   const nHot = nBreak + nWarm;
   return `${WORLD}
 
@@ -1076,14 +1075,14 @@ ${f.note}
   that is just these two, being who they are.
   What you are measuring is whether anything moved **despite** all of that.
 
-■ **The meter has a ceiling you cannot lift with conversation.**
-  호감 cannot rise past **${LIKING_CEILING}** on nudges and flats, however many of them there are and
-  however well the evening goes. Above that line the meter only moves on turns you called
-  **warm or breakthrough** — turns where something actually fluttered.
-  This is enforced in the rules, not by you, so do not try to compensate for it: never inflate
-  a turn to warm because the operation "deserves" to get past the line. If it stalls at ${LIKING_CEILING},
-  that is the correct reading of an evening where two people talked and nothing happened.
-  A pleasant, well-run, funny, nothing-happened evening is supposed to end there.
+■ **Only a flutter moves the meter. Everything else is exactly zero.**
+  This is enforced in the rules, not by you: **nudge and flat both add nothing at all.**
+  Not a small amount — nothing. An evening of good conversation between two people who never
+  once felt that lurch ends on the number it started on. That is the correct outcome and it is
+  the ordinary one. chill and disaster still take points off; 호감 bottoms out at 0.
+  So the only question that changes a number is: **did anything actually flutter this turn?**
+  Do not inflate a turn to warm because the operation would otherwise "go nowhere".
+  Going nowhere is what almost every evening between two people does.
 
 ■ Grades — you are grading **romantic movement only**, against the previous turn. Default is flat.
   Read the 호감 block above again before you pick. The question is never "how did that exchange go".
@@ -1095,16 +1094,31 @@ ${f.note}
       belongs here too. Polite conversation is not the only thing that can be a breakthrough.
       **This operation runs about ${TURNS} turns. Budget: at most ${nBreak}.**
       Past that you are getting excited, not adjudicating.
-  · warm (+4 to +6) — **a defense came off, toward this person, and something fluttered.**
-      두근거림. The half-beat where the other person's body registers before their head does.
-      Not toward the topic, not toward the evening. "Still friendly" is not warm.
-      "It was going well" is not warm. **"That was a good exchange" is not warm.**
+  · warm (+4 to +6) — **두근거림.** Set this bar where Korean couples set it in 밀당 —
+      the push-and-pull, where the whole game is who moves first and neither will admit they
+      are playing. That is the standard. Not "they warmed up". Not "they opened up".
+      The half-beat where the other person's body registers before their head does, and then
+      they have to do something about the fact that it showed.
+      Concretely, one of these actually happened:
+        · **they got caught.** Something went across their face or their voice before they
+          could manage it, and both of them know it was seen
+        · **they had to look away, and then look back.** The turn cost them composure
+        · **they tested.** They pushed to see what the other one would do — pulled back a step
+          to check whether they get followed. That is 밀당, and it only happens once the
+          feeling is already there
+        · **they conceded ground they had been holding for a reason**, and the concession was
+          about the person, not about the argument
+        · **the register broke.** Honorifics slipped, or the sarcasm stopped mid-sentence,
+          or a "요" fell off the end of a word and neither of them fixed it
+        · **they wanted the other one to stay** and did something clumsy about it
       Before you write warm, name the source out loud: **which line, and what about this
       specific person made that line land?** If your answer is "it was well said" or "the
       conversation had built up to it", it was not warm. Wit is not a source. Rapport is not
       a source. Rhythm is not a source. The source has to be something in who they are —
       what they want, what they are afraid of, what was done to them, what they look like —
       that this particular line reached.
+      **A pleasant, articulate, mutually-understood exchange with none of the above in it
+      is flat.** Two people can talk beautifully for an hour with nothing happening.
       These are warm — recognize them, do not round them down:
         · they gave up something about themselves that costs them to say
         · they dropped a register they had been holding all game (honorifics, sarcasm, deflection, silence)
@@ -1120,10 +1134,11 @@ ${f.note}
         · being drawn into an argument — arguing is engagement, not warmth
         · opening up about a **topic** they know a lot about. That is a hobby, not a confession
         · agreeing, conceding a point, or discovering something in common
-  · nudge (+1 to +2) — **a flicker toward them personally, and nothing more.** A half-second where
-      they were somewhere else. A question about the client that they did not need to ask.
-      Noticing them. It has to be aimed at the person; if you cannot say who it was aimed at,
-      it is flat. Nudge is small and it is real — it is not "the conversation continued".
+  · nudge (**0 points**) — a flicker toward them personally, and nothing more. A half-second
+      where they were somewhere else. A question about the client they did not need to ask.
+      **This adds nothing to 호감** — it is a note for the commentary and it moves the air,
+      not the feeling. Liking someone a little is not being pulled toward them.
+      Use it when something was aimed at the person but did not cost either of them anything.
       **Budget: about ${nNudge} in a ${TURNS}-turn operation, and no more.**
       Nudge is the grade you reach for when you do not want to commit, and that is exactly why
       it is capped. Before you write it, say out loud who the flicker was aimed at and what it

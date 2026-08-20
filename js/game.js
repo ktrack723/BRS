@@ -2,7 +2,7 @@
 import { LlmClient, RefusalError } from './llm.js';
 import * as P from './prompts.js';
 import { Engine, prepReaction } from './engine.js';
-import { DIFFICULTIES, diffOf, TUNING } from './scoring.js';
+import { DIFFICULTIES, diffOf } from './scoring.js';
 import { COUPLES, flawReport, FLAW_LABELS, WRECK_LABELS } from './couples.js';
 import { AvatarViewer, sanitizeSpec, renderThumb } from './avatar.js';
 import { sfx, startBgm, toggleBgm, unlockAudio } from './audio.js';
@@ -257,17 +257,22 @@ const SLIDES = [
     line: '저 둘의 <b>대화에는 규칙이 없다</b>. 아무 데로나 흘러가고, 무슨 일이 벌어지든 심판은 진지한 얼굴로 채점한다.',
   },
   {
-    art: aSvg('호감 막대가 관문 눈금에서 딱 멈춰 선 계기판',
-      aCap(160, 20, `관문 ${TUNING.likingCeiling}`)
-      + '<text class="a-key e" x="48" y="55">호감</text>'
-      + '<rect class="a-track" x="60" y="36" width="248" height="26"/>'
-      + '<rect class="a-stamp" x="62" y="38" width="98" height="22"/>'
-      + '<path class="a-thr" d="M160 26V72"/>'
-      // 관문 위쪽에만 하트를 얹는다 — 저 선을 넘기는 건 두근거린 턴뿐이다
-      + '<g class="a-stamp"><rect x="227" y="11" width="14" height="14" transform="rotate(45 234 18)"/>'
-      + '<circle cx="229.05" cy="13.05" r="7"/><circle cx="238.95" cy="13.05" r="7"/></g>'
-      + aCap(110, 88, '대화만으로는') + aCap(234, 88, '두근거린 턴만'), 12),
-    line: `대화가 잘 굴러가는 것에는 점수를 주지 않는다. 호감은 <b>${TUNING.likingCeiling}</b>에서 막히고, 그 위로는 <b>실제로 두근거린 순간</b>으로만 올라간다.`,
+    // 턴 여섯 칸 중 넷은 0점 도장, 둘만 하트. 오른 호감은 전부 그 둘이 민 것이다.
+    art: aSvg('턴 여섯 칸 중 넷에 0점이 찍히고 두 칸에만 하트가 얹혀 호감 막대를 미는 그림',
+      [0, 1, 2, 3, 4, 5].map((i) => {
+        const x = 14 + i * 52;
+        const heart = i === 2 || i === 4;
+        return `<rect class="a-track" x="${x}" y="10" width="40" height="40" rx="4"/>`
+          + (heart
+            ? `<g class="a-stamp"><rect x="${x + 12}" y="${20}" width="13" height="13" transform="rotate(45 ${x + 18.5} 26.5)"/>`
+              + `<circle cx="${x + 13.6}" cy="${21.6}" r="6.5"/><circle cx="${x + 23.4}" cy="${21.6}" r="6.5"/></g>`
+            : `<text class="a-seal-t" x="${x + 20}" y="${37}">0</text>`);
+      }).join('')
+      + '<text class="a-key e" x="34" y="88">호감</text>'
+      + '<rect class="a-track" x="60" y="70" width="248" height="24"/>'
+      + '<rect class="a-stamp" x="62" y="72" width="86" height="20"/>'
+      + aCap(150, 116, '오른 건 전부 두 칸이 민 것이다'), 4),
+    line: '대화가 잘 굴러가는 것에는 <b>한 점도</b> 주지 않는다. 호감은 <b>실제로 두근거린 턴</b>에서만 오르고, 나머지는 전부 <b>0점</b>이다.',
   },
   {
     art: aSvg('심리 감정과 지뢰와 현안이 적힌 의뢰서에서 의뢰인 쪽으로 가는 길이 붉은 가위표로 막힌 그림',
@@ -675,13 +680,7 @@ let stageViewer = null;
 function meterUpdate(s) {
   $('#meter-love-name').textContent = P.ENDING.meterName;
   $('#meter-love-fill').style.width = s.love + '%';
-  // 두근거림 관문 — 잘 굴러간 대화는 여기까지만 온다. 그 위는 warm 이상만 민다.
-  const cx = $('#meter-ceiling');
-  if (cx) {
-    cx.style.left = TUNING.likingCeiling + '%';
-    cx.classList.toggle('passed', s.love > TUNING.likingCeiling);
-  }
-  $('#meter-love-fill').classList.toggle('capped', s.love >= TUNING.likingCeiling - 1 && s.love <= TUNING.likingCeiling);
+
   $('#meter-mood-fill').style.width = s.mood + '%';
   $('#meter-love-num').textContent = s.love;
   $('#meter-mood-num').textContent = s.mood;

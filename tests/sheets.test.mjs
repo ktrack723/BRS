@@ -395,7 +395,11 @@ test('warm의 판정 기준이 부정형만으로 되어 있지 않다', async (
     'warm의 부정 기준도 남아 있어야 한다');
   // 대화가 잘 굴러가는 것과 관계가 진전된 것은 다르다. 이걸 안 박아두면
   // 심판이 재치 있는 주고받기를 전부 warm으로 읽는다 (실측: 전 프로필 warm 이상 50~60%).
-  assert.match(sys, /\*\*a defense came off, toward this person, and something fluttered\.\*\*/,
+  assert.match(sys, /\*\*두근거림\.\*\* Set this bar where Korean couples set it in 밀당/,
+    'warm의 기준이 밀당 수준으로 안 잡혀 있다');
+  assert.match(sys, /who moves first and neither will admit they\s+are playing/,
+    '밀당의 정의가 안 적혀 있다');
+  assert.match(sys, /A pleasant, articulate, mutually-understood exchange with none of the above in it\s+is flat/,
     'warm이 대화 윤활에 붙는 걸 막는 문장이 없다');
   // 두근거림의 출처를 대라고 시켜야 한다 — 안 그러면 "잘 쓴 대사"가 출처가 된다
   assert.match(sys, /which line, and what about this\s+specific person made that line land\?/,
@@ -1054,9 +1058,15 @@ test('flat이 최빈값이고, 대화가 굴러간 것은 전부 flat이다', ()
     '잘 굴러간 대화가 flat이라는 목록이 없다');
   assert.match(sys, /graded on conversation quality, not on feeling/,
     'flat이 적은 판이 잘못된 채점이라는 경고가 없다');
-  // nudge가 "대화가 계속됐다"로 돌아가면 안 된다 — 그게 원래 버그였다
-  assert.match(sys, /it is not "the conversation continued"/, 'nudge가 대화 지속으로 되돌아갔다');
-  assert.match(sys, /a flicker toward them personally/, 'nudge의 기준이 사람 쪽이 아니다');
+  // nudge는 이제 0점이다. 반짝임은 호감이지 끌림이 아니다.
+  assert.match(sys, /· nudge \(\*\*0 points\*\*\)/, 'nudge가 아직 점수를 준다');
+  assert.match(sys, /\*\*This adds nothing to 호감\*\*/, 'nudge가 0점이라는 게 명시 안 돼 있다');
+  assert.match(sys, /Liking someone a little is not being pulled toward them/,
+    '호감과 끌림의 구분이 없다');
+  // 규칙 계층이 그걸 강제한다는 것도 심판이 알아야 한다
+  assert.match(sys, /\*\*nudge and flat both add nothing at all\.\*\*/,
+    '증가량 0이 규칙으로 박혀 있다는 안내가 없다');
+  assert.ok(!/ceiling you cannot lift/.test(sys), '관문 블록이 아직 남아 있다');
 });
 
 // 분위기는 호감을 막을 수만 있고 만들어낼 수는 없다.

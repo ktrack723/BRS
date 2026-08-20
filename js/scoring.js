@@ -174,7 +174,7 @@ export const DIFFICULTIES = {
     threshold: 60, moodFloor: 25,
     loveDecay: 0.0,   // 턴마다 식는 호감
     moodDrift: 0.5,   // 턴마다 흐르는 분위기 (양수면 알아서 풀린다)
-    gainScale: 2.6, lossScale: 1.30,
+    gainScale: 3.0, lossScale: 1.45,
   },
   '보통': {
     key: 'normal', badge: '보통',
@@ -184,7 +184,7 @@ export const DIFFICULTIES = {
     threshold: 66, moodFloor: 33,
     loveDecay: 0.3,
     moodDrift: -0.1,
-    gainScale: 3.4, lossScale: 1.55,
+    gainScale: 4.0, lossScale: 1.75,
   },
   '헬': {
     key: 'hell', badge: '헬',
@@ -194,7 +194,7 @@ export const DIFFICULTIES = {
     threshold: 70, moodFloor: 40,
     loveDecay: 0.6,
     moodDrift: -0.7,
-    gainScale: 3.8, lossScale: 1.75,
+    gainScale: 4.6, lossScale: 2.00,
   },
 };
 
@@ -234,7 +234,7 @@ export function extraTurn(phase, tiers, mood, alreadyExtra, d) {
 export const TIER_BANDS = {
   breakthrough: [7, 10],   // 상대가 실제로 무너졌다
   warm: [4, 6],            // 눈에 띄게 호의적으로 움직였다
-  nudge: [1, 2],           // 사람 쪽으로 한 번 반짝했다 — 대화가 굴러간 것과는 다르다
+  nudge: [0, 0],           // 사람 쪽으로 반짝했다. 그래도 **끌림은 아니다 — 0점이다**
   flat: [0, 0],            // 대화는 있었고 마음은 안 움직였다. **정상값이다**
   chill: [-5, -2],         // 상대가 식었다
   disaster: [-10, -6],     // 상대가 정색했다
@@ -259,27 +259,23 @@ export const TUNING = {
   // 강압 성사에 필요한 누적 압박. hard 두 번 + soft 한 번쯤이면 사람이 묶인다.
   // 한 번의 협박으로 성사되면 무전 한 방짜리 게임이 된다.
   coerceMin: 5,
-  // ── 두근거림 관문과 획득 배율 ─────────────────────────────
-  // 관문은 **절대값(40)이고 배율을 안 탄다.** 그래서 배율을 올리면 격차가 증폭된다 —
-  // 두근거림이 없는 판은 아무리 대화가 잘 굴러가도 40에 묶이고,
-  // 있는 판만 그 위로 간다. 배율을 올린 건 그 위쪽 사거리를 벌리기 위해서다.
-  //   gainScale  쉬움 1.7→2.6 · 보통 1.7→3.4 · 헬 2.1→3.8
-  //   lossScale도 같이 올렸다(약 1.5배). 안 그러면 chill이 상대적으로 무의미해진다.
-  // ── 두근거림 관문 ──────────────────────────────────────────
-  // 분위기가 아무리 좋아도, 대화가 아무리 잘 굴러가도 여기서 막힌다.
-  // 이 선 위로는 **warm 이상**, 즉 실제로 마음이 움직인 턴으로만 올라간다.
-  // 프롬프트로만 말하면 심판이 빠져나간다(실측: flat 18% · nudge 34%). 규칙으로 박는다.
-  //   · 관문 아래: nudge가 쌓여서 여기까지는 온다
-  //   · 관문 위:   nudge는 한 점도 못 보탠다. 두근거린 턴만 민다
-  //   · 손실은 언제나 그대로 적용된다 — 관문은 올라가는 쪽만 막는다
-  likingCeiling: 40,
+  // ── 호감은 두근거린 턴에서만 오른다 ────────────────────────
+  // 한동안 「관문 40」을 뒀다 — 대화만으로는 40에서 막히고 그 위는 warm 이상만 미는 구조.
+  // 그건 우회로였다. 규칙을 직접 쓰는 게 맞다: **두근두근이 아니면 증가량이 0이다.**
+  // nudge도 flat도 0점이다. 잘 굴러간 대화에는 한 점도 안 붙는다.
+  // chill·disaster는 그대로 깎는다. 호감은 0에서 바닥을 친다.
+  //   gainScale  쉬움 3.0 · 보통 4.0 · 헬 4.6
+  // 두근두근의 기준을 한국 커플 밀당 수준으로 올린 만큼 그 턴이 드물어진다.
+  // 그래서 한 번의 값을 올렸다 — **다섯 번이면 성공선에 닿는다.**
+  //   두근 3회 51 / 54 / 52   4회 59 / 63 / 62   5회 67 / 72 / 71   (성공선 60 / 66 / 70)
+  // lossScale도 같이 올렸다. 안 그러면 chill이 상대적으로 무의미해진다.
   moodGainScale: 1.0,        // 분위기 이득 쪽 감쇠. 예전 0.75는 분위기가 아예 안 오르게 만들었다
   disasterMood: -5,          // 상대가 정색하면 자리가 식는다. 등급에서 나오는 결과지 별도 판정이 아니다
   breakthroughMood: 3,       // 반대로 방어선이 무너진 순간엔 공기도 같이 풀린다
 };
 
-// 관문을 넘길 수 있는 등급. 「사람 쪽으로 방어선이 내려간」 턴만이다.
-// nudge는 여기 없다 — 반짝임은 호감이지 끌림이 아니다.
+// **호감을 올릴 수 있는 유일한 등급.** 두근거린 턴만이다.
+// nudge는 여기 없다 — 반짝임은 호감이지 끌림이 아니고, 끌림이 아니면 0점이다.
 export const FLUTTER_TIERS = new Set(['warm', 'breakthrough']);
 
 // 심판의 tier에 맞춰 loveDelta를 밴드 안으로 강제한다.
@@ -368,13 +364,7 @@ export function applyTurn(state, d, judge, opts = {}) {
   const loveChange = scaled * mult - d.loveDecay;
 
   s.mood = moodAfter;
-  // 두근거림 관문. 잘 굴러간 대화는 여기까지만 올라온다 —
-  // 그 위는 실제로 마음이 움직인 턴(warm 이상)만 민다.
-  let loveAfter = s.love + loveChange;
-  if (loveChange > 0 && !FLUTTER_TIERS.has(tier)) {
-    loveAfter = Math.min(loveAfter, Math.max(before.love, TUNING.likingCeiling));
-  }
-  s.love = clamp(loveAfter, 0, 100);
+  s.love = clamp(s.love + loveChange, 0, 100);
   s.turns += 1;
 
   // 사망은 판정에 딸려 오지만 수치 계산과는 무관하다. 한 번 정해지면 뒤집히지 않는다.
@@ -528,9 +518,9 @@ export function debrief(state, d, v, couple, transcript = '') {
     value: `${hot}회`,
     ok: hot > 0,
     text: hot === 0
-      ? `한 번도 없었다. 대화가 얼마나 잘 굴러갔든 호감은 ${TUNING.likingCeiling}에서 막힌다 — ` +
+      ? '한 번도 없었다. 그래서 호감은 시작한 자리에서 한 발짝도 안 움직였다 — ' +
         '합이 맞고 농담이 통하는 건 채점 대상이 아니다. 저 사람이라서 닿는 말이 하나도 없었다.'
-      : `${hot}번 있었다. 관문 ${TUNING.likingCeiling} 위로 올라간 건 전부 이 순간들이 민 것이다.`,
+      : `${hot}번 있었다. 오른 호감은 전부 이 순간들이 민 것이다. 나머지 턴은 한 점도 안 보탰다.`,
   });
   notes.push({
     key: 'secrets', label: '상대가 감춰둔 이야기',
