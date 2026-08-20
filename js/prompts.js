@@ -948,9 +948,14 @@ export const JUDGE_SCHEMA = {
       enum: ['none', 'soft', 'hard'],
       description: 'Coercion applied this turn that the other person visibly gave ground to. Usually "none"',
     },
+    flutterKind: {
+      type: 'string',
+      enum: ['각성', '응답', '불확실', '신체', '전환', 'none'],
+      description: 'Only when tier is warm or breakthrough: which mechanism produced the flutter. "none" otherwise',
+    },
   },
   required: ['tier', 'loveDelta', 'moodDelta', 'reason', 'vibe', 'revealed', 'clientEmote', 'targetEmote',
-    'casualty', 'casualtyNote', 'barrierAddressed', 'leverage'],
+    'casualty', 'casualtyNote', 'barrierAddressed', 'leverage', 'flutterKind'],
   additionalProperties: false,
 };
 
@@ -1159,6 +1164,37 @@ ${f.note}
       They are starting to consider walking out.
       Stepping squarely on one of their red lines and not giving disaster is a bad call.
       Same even if they laughed it off — being let off is not the same as being fine.
+
+■ **When you call warm or breakthrough, say which kind of flutter it was.** <flutterKind>
+  두근거림은 하나가 아니다. 서로 다른 기제 다섯이고, 규칙 계층이 종류마다 다르게 셈한다—
+  so this field changes the number, and picking the wrong one misprices the turn.
+  Pick the one that actually produced it. If two apply, pick the one that would not have
+  worked without the other.
+
+  · **각성** — the *situation* made their body do something and it landed on the person.
+      Cold, height, danger, noise, a drink, being crowded, having just run. The room did the
+      work and the person got the credit. Look at where they actually are before you rule this out.
+      **It burns out.** The second one in an evening is worth half, the third almost nothing —
+      the same trick does not work twice on the same body.
+  · **응답** — one of them put a **feeling** out (not a fact, not information about a topic)
+      and **the other one caught it and showed they caught it.** Both halves are required:
+      a disclosure nobody received is flat, and a warm reception of nothing is flat.
+      It should be about half a step past whatever was last shared, not a cliff.
+      **This one accumulates** — it does not wear out over an evening.
+  · **불확실** — hope and doubt in the same breath. They tested. They stepped back half a pace
+      to see if they get followed. They said something that could be read two ways and left it there.
+      **The biggest single kind — and the only one that turns on you.** Past three in an evening
+      the same move starts costing them instead of paying, because at that point it is not
+      uncertainty any more, it is being jerked around.
+  · **신체** — it went through the body before it went through language. A look held too long
+      and then broken, distance closed, a touch, a flinch that was not fear, colour.
+      Words optional. Middling size, immediate, no memory.
+  · **전환** — something happened that cannot be taken back. A first touch that was not an
+      accident, a thing named out loud that had been unnamed, a line crossed. **The largest,
+      and there are at most two in an operation** — after that they are just 응답.
+
+  Set it to "none" on every other grade. Never use it as a way to add points to a turn that
+  did not flutter — the kind is a description of what happened, not a dial.
 
 ■ The budget above is a **two-sided** instrument, and you check it against your own tally every turn.
   Over roughly ${TURNS} turns, warm-or-above should land near **${nHot}** — no more.

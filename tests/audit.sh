@@ -65,6 +65,11 @@ chk "관문 위는 warm 이상만 민다" "grep -q 'FLUTTER_TIERS' js/scoring.js
 chk "규칙이 플레이어에게 보인다 (교육·사후보고)" "grep -q '두근거린 순간' js/scoring.js && grep -q '실제로 두근거린 턴' js/game.js && grep -q '0점' js/game.js"
 chk "분위기는 호감을 증폭하지 않는다 (상한 1.0)" "node -e \"import('./js/scoring.js').then(m=>process.exit(m.moodMultiplier(100)<=1?0:1))\""
 chk "하자가 사람을 향하는 것은 이동이 아니다" "grep -q 'pattern running, not the person moving' js/prompts.js"
+chk "두근거림이 종류로 갈린다 (5종)" "node -e \"import('./js/scoring.js').then(m=>process.exit(Object.keys(m.FLUTTER_KINDS).length===5?0:1))\""
+chk "각성 전이는 급격히 포화 (Dutton & Aron)" "node -e \"import('./js/scoring.js').then(m=>{const d=m.diffOf('보통');let s=m.initialState(d),g=[];for(let i=0;i<2;i++){const b=s.love;s=m.applyTurn(s,d,{tier:'warm',loveDelta:5,moodDelta:3,vibe:'v',revealed:'',flutterKind:'각성'});g.push(s.love-b)}process.exit(g[1]<g[0]*0.6?0:1)})\""
+chk "밀당은 양날 — 넘기면 깎인다 (Knobloch)" "node -e \"import('./js/scoring.js').then(m=>{const d=m.diffOf('보통');let s=m.initialState(d),g=0;for(let i=0;i<4;i++){const b=s.love;s=m.applyTurn(s,d,{tier:'warm',loveDelta:5,moodDelta:3,vibe:'v',revealed:'',flutterKind:'불확실'});g=s.love-b}process.exit(g<0?0:1)})\""
+chk "심판이 두근거림 종류를 고른다" "grep -q 'flutterKind' js/prompts.js && grep -q \"'flutterKind'\" js/prompts.js"
+chk "종류가 플레이어에게 보인다 (턴표·사후보고)" "grep -q 'tt-flutter' js/game.js && grep -q '종류별' js/scoring.js"
 echo
 echo "── 절대 들어가면 안 되는 것 ──"
 chk "저장소 어디에도 실제 API 키 없음 (자리표시자는 허용)" "! grep -rnE 'sk-ant-api03-[A-Za-z0-9_-]{20,}' --exclude-dir=.git ."

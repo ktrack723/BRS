@@ -2,7 +2,7 @@
 import { LlmClient, RefusalError } from './llm.js';
 import * as P from './prompts.js';
 import { Engine, prepReaction } from './engine.js';
-import { DIFFICULTIES, diffOf } from './scoring.js';
+import { DIFFICULTIES, diffOf, FLUTTER_KINDS } from './scoring.js';
 import { COUPLES, flawReport, FLAW_LABELS, WRECK_LABELS } from './couples.js';
 import { AvatarViewer, sanitizeSpec, renderThumb } from './avatar.js';
 import { sfx, startBgm, toggleBgm, unlockAudio } from './audio.js';
@@ -949,6 +949,7 @@ async function gotoResult() {
       `<tr class="${h.dLove > 0 ? 'good' : h.dLove < 0 ? 'bad' : ''}">` +
       `<td>${h.turn}${h.firstImpression ? '·착장' : ''}${h.revealed ? '·발견' : ''}` +
       `${h.barrier ? '<b class="tt-barrier">·현안</b>' : ''}` +
+      `${h.flutterKind ? `<b class="tt-flutter${h.flutterFlipped ? ' flipped' : ''}">·${escapeHtml((FLUTTER_KINDS[h.flutterKind] || {}).tag || h.flutterKind)}</b>` : ''}` +
       `${h.leverage && h.leverage !== 'none' ? `<b class="tt-lev">·압박</b>` : ''}</td>` +
       `<td>${h.dMood >= 0 ? '+' : ''}${h.dMood}</td>` +
       `<td>${h.dLove >= 0 ? '+' : ''}${h.dLove} <span class="dim">[${escapeHtml(h.tier)}] ${h.rawLove >= 0 ? '+' : ''}${h.rawLove}×${h.mult}</span></td>` +

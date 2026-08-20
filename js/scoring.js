@@ -284,6 +284,27 @@ export const TUNING = {
   breakthroughMood: 3,       // 반대로 방어선이 무너진 순간엔 공기도 같이 풀린다
 };
 
+// ── 두근거림의 종류 ──────────────────────────────────────────────────
+// 두근거림은 하나가 아니다. 심리학 쪽 이론들이 서로 다른 기제 여럿을 가리킨다.
+// 그래서 **세기(warm→breakthrough)가 아니라 종류**로 가른다. 종류마다 점수 성질이 다르다.
+//
+//   각성  Dutton & Aron(1974) 흔들다리 — 비연애적 출처의 생리적 각성이 상대에게 오귀인된다.
+//         Sternberg의 '열정'처럼 초반에 정점을 찍고 하강하므로 **급격히 포화**시킨다.
+//         이 게임은 데이트 장소를 요원이 정한다. 그 자유도가 여기로 들어온다.
+//   응답  Reis & Shaver 친밀 과정 모델 — 친밀 = 자기개방 + 상대개방 + **상대의 응답성**.
+//         감정 개방이 사실 개방보다 훨씬 강한 예측인자다. 친밀은 쌓이므로 **감쇠가 없다**.
+//   불확실 Tennov의 리머런스 — 희망과 불확실이 섞여 있어야 유지되고, 어느 쪽이든 확실해지면 끝난다.
+//         다만 Knobloch: 과한 불확실은 끌림을 꺾는 쪽이 더 흔하다. 그래서 **양날**로 만든다.
+//   신체  Moore(1985)의 비언어 구애 신호 52종 — 말과 별개의 축. 즉발이고 중간 크기다.
+//   전환  Baxter & Bullis(1986) 전환점 — 되돌릴 수 없는 사건. 판당 몇 번 안 나오고 제일 크다.
+export const FLUTTER_KINDS = {
+  각성:   { mult: 1.15, tag: '각성 전이', decay: 0.5,  desc: '자리가 만든 흥분이 상대 쪽으로 잘못 넘어갔다' },
+  응답:   { mult: 1.00, tag: '응답',      decay: 1.0,  desc: '감정을 내놨고, 상대가 그걸 받았다' },
+  불확실: { mult: 1.25, tag: '밀당',      decay: 1.0,  desc: '희망과 불확실이 섞였다. 떠보고 물러섰다', flipAfter: 3 },
+  신체:   { mult: 0.85, tag: '몸이 먼저', decay: 1.0,  desc: '말보다 몸이 먼저 나갔다' },
+  전환:   { mult: 1.50, tag: '전환점',    decay: 1.0,  desc: '되돌릴 수 없는 것이 지나갔다', capPerGame: 2 },
+};
+
 // **호감을 올릴 수 있는 유일한 등급.** 두근거린 턴만이다.
 // nudge는 여기 없다 — 반짝임은 호감이지 끌림이 아니고, 끌림이 아니면 0점이다.
 export const FLUTTER_TIERS = new Set(['warm', 'breakthrough']);
@@ -335,6 +356,9 @@ export function initialState(d) {
     barrierCleared: false,
     // 강압 누적. hard 2점 · soft 1점. 호감이 모자라도 이게 쌓이면 묶인다.
     leverage: 0,
+    // 두근거림을 종류별로 센다. 각성은 반복될수록 죽고, 밀당은 과하면 뒤집히고,
+    // 전환점은 판당 상한이 있다. 그 판정을 하려면 지금까지의 횟수를 알아야 한다.
+    flutters: {},
   };
 }
 
@@ -370,7 +394,24 @@ export function applyTurn(state, d, judge, opts = {}) {
   //    배율과 포화는 둘 다 '발언 시점'의 값을 쓴다. 이득 쪽만 포화시킨다 — 떨어질 땐 그대로 떨어진다.
   const mult = moodMultiplier(before.mood);
   const loveSat = loveSaturation(before.love);
-  const scaled = (ld >= 0 ? ld * d.gainScale * loveSat : ld * d.lossScale) * weight;
+
+  // 두근거린 턴이면 **종류**에 따라 값이 달라진다. 이론이 종류마다 다른 곡선을 말한다.
+  const kind = FLUTTER_TIERS.has(tier) ? (FLUTTER_KINDS[judge.flutterKind] ? judge.flutterKind : '응답') : '';
+  let kindMult = 1;
+  let flipped = false;
+  if (kind) {
+    const K = FLUTTER_KINDS[kind];
+    const seen = s.flutters[kind] || 0;          // 이 판에서 이 종류가 이미 몇 번 나왔나
+    kindMult = K.mult * Math.pow(K.decay, seen); // 각성은 decay 0.5 — 두 번째부터 반토막
+    // 밀당은 양날이다. 적당하면 제일 크게 밀지만, 넘기면 그때부터 깎는다.
+    // (Knobloch: 과한 불확실은 끌림을 키우기보다 꺾는 쪽이 더 흔하다)
+    if (K.flipAfter && seen >= K.flipAfter) { kindMult = -K.mult; flipped = true; }
+    // 전환점은 판당 상한이 있다. 넘으면 평범한 응답으로 떨어진다.
+    if (K.capPerGame && seen >= K.capPerGame) kindMult = FLUTTER_KINDS['응답'].mult;
+    s.flutters = { ...s.flutters, [kind]: seen + 1 };
+  }
+
+  const scaled = (ld >= 0 ? ld * d.gainScale * loveSat * kindMult : ld * d.lossScale) * weight;
   const loveChange = scaled * mult - d.loveDecay;
 
   s.mood = moodAfter;
@@ -393,7 +434,7 @@ export function applyTurn(state, d, judge, opts = {}) {
     mood: round1(s.mood - before.mood),
     love: round1(s.love - before.love),
     rawMood: md, rawLove: ld, tier, judgeTier: judge.tier || '?',
-    mult: round1(mult),
+    mult: round1(mult), flutterKind: kind, flutterFlipped: flipped,
     revealed: fresh,
     vibe: s.vibe,
     firstImpression: !!opts.firstImpression,
@@ -404,6 +445,7 @@ export function applyTurn(state, d, judge, opts = {}) {
     dMood: s.lastDelta.mood, dLove: s.lastDelta.love,
     mood: Math.round(s.mood), love: Math.round(s.love),
     rawMood: md, rawLove: ld, tier, judgeTier: judge.tier || '?', mult: s.lastDelta.mult,
+    flutterKind: kind, flutterFlipped: flipped,
     revealed: fresh, firstImpression: !!opts.firstImpression,
     // 장벽·압박은 이제 판을 끝내는 조건이다. 턴 기록에 안 남으면 사후에 왜 졌는지 못 짚는다.
     barrier: judge.barrierAddressed === true, leverage: judge.leverage || 'none',
@@ -522,15 +564,24 @@ export function debrief(state, d, v, couple, transcript = '') {
   });
   // 두근거림 관문. 여기서 멈춘 판은 "못했다"가 아니라 "아무 일도 없었다"다.
   // 그 차이를 안 알려주면 플레이어는 게이지가 고장 났다고 생각한다.
-  const hot = state.history.filter(h => h.tier === 'warm' || h.tier === 'breakthrough').length;
+  const hotTurns = state.history.filter(h => h.tier === 'warm' || h.tier === 'breakthrough');
+  const hot = hotTurns.length;
+  // 종류별로 갈라서 보여준다. 어디에 무엇이 붙었는지 모르면 다음 판에 고칠 수가 없다.
+  const byKind = {};
+  for (const h of hotTurns) if (h.flutterKind) byKind[h.flutterKind] = (byKind[h.flutterKind] || 0) + 1;
+  const kindLine = Object.entries(byKind)
+    .map(([k, n]) => `${(FLUTTER_KINDS[k] || {}).tag || k} ${n}`).join(' · ');
+  const flipped = hotTurns.filter(h => h.flutterFlipped).length;
   notes.push({
     key: 'flutter', label: '두근거린 순간',
-    value: `${hot}회`,
+    value: hot === 0 ? '0회' : `${hot}회 — ${kindLine}`,
     ok: hot > 0,
     text: hot === 0
       ? '한 번도 없었다. 그래서 호감은 시작한 자리에서 한 발짝도 안 움직였다 — ' +
         '합이 맞고 농담이 통하는 건 채점 대상이 아니다. 저 사람이라서 닿는 말이 하나도 없었다.'
-      : `${hot}번 있었다. 오른 호감은 전부 이 순간들이 민 것이다. 나머지 턴은 한 점도 안 보탰다.`,
+      : `${hot}번 있었다. 오른 호감은 전부 이 순간들이 민 것이다. 나머지 턴은 한 점도 안 보탰다.` +
+        (byKind['각성'] > 1 ? ` 각성 전이는 같은 저녁에 두 번째부터 반토막이다 — ${byKind['각성']}번 썼다.` : '') +
+        (flipped ? ` 그리고 밀당을 ${flipped}번 넘겼다. 그 지점부터는 밀 때마다 깎였다.` : ''),
   });
   notes.push({
     key: 'secrets', label: '상대가 감춰둔 이야기',

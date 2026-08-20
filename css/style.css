@@ -1120,6 +1120,10 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 .flaw-tag.lv-bad { border-color: var(--stamp); background: #f0e0dd; color: #6b1519; }
 /* 대화 불능 — 결함 축과 다른 색이어야 한다. 이건 성향이 아니라 출력 형태다 */
 .flaw-tag.wreck { border-color: #5a3f7a; background: #ece4f2; color: #3d2755; }
+/* 두근거림 종류 — 어느 기제가 밀었는지. 뒤집힌 밀당은 붉게 */
+.turn-table .tt-flutter { color: #7a3f6a; margin-left: 3px; }
+.turn-table .tt-flutter.flipped { color: var(--stamp); }
+
 /* 상대가 들고 오는 것 — 지뢰(붉은색)와 다르다. 이건 피할 것이 아니라 겨눌 것이다 */
 .regard-box {
   margin: var(--s2) 0 0; padding: var(--s1) var(--s2);

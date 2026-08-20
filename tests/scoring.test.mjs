@@ -1064,3 +1064,102 @@ test('평범하게 굴러가다 무미건조하게 끝나면 호감은 0 근처�
     assert.ok(s.love < d.threshold / 3, `${key}: 무미건조한 판이 성공선의 1/3을 넘었다`);
   }
 });
+
+// ── 두근거림의 종류 ──────────────────────────────────────────────
+// 두근거림은 하나가 아니다. 이론들이 서로 다른 기제 여럿을 가리킨다.
+// 세기가 아니라 **종류**로 갈랐고, 종류마다 점수 곡선이 다르다.
+test('각성 전이는 급격히 포화한다 — 같은 트릭은 두 번 안 먹는다', async () => {
+  const S = await import('../js/scoring.js');
+  const d = S.diffOf('보통');
+  let s = S.initialState(d);
+  const gains = [];
+  for (let i = 0; i < 4; i++) {
+    const b = s.love;
+    s = S.applyTurn(s, d, { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '', flutterKind: '각성' });
+    gains.push(s.love - b);
+  }
+  assert.ok(gains[1] < gains[0] * 0.6, `두 번째 각성이 반토막 아래여야 한다 (${gains[0].toFixed(1)} → ${gains[1].toFixed(1)})`);
+  assert.ok(gains[3] < gains[0] * 0.15, '네 번째 각성은 거의 0이어야 한다');
+  // 응답은 같은 조건에서 안 죽는다 — 친밀은 쌓인다 (Reis & Shaver)
+  let r = S.initialState(d);
+  const rGains = [];
+  for (let i = 0; i < 4; i++) {
+    const b = r.love;
+    r = S.applyTurn(r, d, { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '', flutterKind: '응답' });
+    rGains.push(r.love - b);
+  }
+  assert.ok(rGains[3] > rGains[0] * 0.5, `응답은 네 번째도 살아 있어야 한다 (${rGains[0].toFixed(1)} → ${rGains[3].toFixed(1)})`);
+  assert.ok(rGains[3] > gains[3] * 5, '응답이 각성보다 훨씬 오래 간다');
+});
+
+test('밀당은 양날이다 — 넘기면 깎는다', async () => {
+  const S = await import('../js/scoring.js');
+  const d = S.diffOf('보통');
+  let s = S.initialState(d);
+  const gains = [];
+  for (let i = 0; i < 5; i++) {
+    const b = s.love;
+    s = S.applyTurn(s, d, { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '', flutterKind: '불확실' });
+    gains.push(s.love - b);
+  }
+  const limit = S.FLUTTER_KINDS['불확실'].flipAfter;
+  for (let i = 0; i < limit; i++) assert.ok(gains[i] > 0, `${i + 1}번째 밀당은 아직 올려야 한다`);
+  assert.ok(gains[limit] < 0, `${limit + 1}번째 밀당부터는 깎여야 한다 (실제 ${gains[limit].toFixed(1)})`);
+  assert.equal(s.history.at(-1).flutterFlipped, true, '뒤집힌 게 기록에 안 남는다');
+  // 적당한 밀당은 제일 크게 민다 (Tennov: 희망과 불확실의 혼합)
+  let r = S.initialState(d);
+  r = S.applyTurn(r, d, { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '', flutterKind: '응답' });
+  assert.ok(gains[0] > r.love - d.startLove, '첫 밀당이 응답보다 커야 한다');
+});
+
+test('전환점은 판당 상한이 있다', async () => {
+  const S = await import('../js/scoring.js');
+  const d = S.diffOf('보통');
+  let s = S.initialState(d);
+  const gains = [];
+  for (let i = 0; i < 4; i++) {
+    const b = s.love;
+    s = S.applyTurn(s, d, { tier: 'breakthrough', loveDelta: 8, moodDelta: 4, vibe: 'v', revealed: '', flutterKind: '전환' });
+    gains.push(s.love - b);
+  }
+  const cap = S.FLUTTER_KINDS['전환'].capPerGame;
+  assert.ok(gains[cap] < gains[0] * 0.6, `${cap + 1}번째 전환점부터는 평범해져야 한다`);
+});
+
+test('종류를 안 주거나 모르는 값이면 응답으로 떨어진다', async () => {
+  const S = await import('../js/scoring.js');
+  const d = S.diffOf('보통');
+  const base = S.initialState(d);
+  const a = S.applyTurn(base, d, { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '' });
+  const b = S.applyTurn(base, d, { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '', flutterKind: '없는종류' });
+  const c = S.applyTurn(base, d, { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '', flutterKind: '응답' });
+  assert.equal(a.love, c.love, '종류가 없으면 응답으로 처리돼야 한다');
+  assert.equal(b.love, c.love, '모르는 종류면 응답으로 떨어져야 한다');
+  assert.equal(a.history.at(-1).flutterKind, '응답');
+});
+
+test('두근거리지 않은 턴에는 종류가 안 붙는다', async () => {
+  const S = await import('../js/scoring.js');
+  const d = S.diffOf('보통');
+  const base = S.initialState(d);
+  for (const tier of ['flat', 'nudge', 'chill']) {
+    const r = S.applyTurn(base, d, { tier, loveDelta: 5, moodDelta: 1, vibe: 'v', revealed: '', flutterKind: '전환' });
+    assert.equal(r.history.at(-1).flutterKind, '', `${tier}에 두근거림 종류가 붙었다`);
+    assert.deepEqual(r.flutters, {}, `${tier}이 종류 집계를 건드렸다`);
+  }
+});
+
+test('사후 보고가 두근거림을 종류별로 갈라 보여준다', async () => {
+  const S = await import('../js/scoring.js');
+  const { COUPLE_BY_ID } = await import('../js/couples.js');
+  const c = COUPLE_BY_ID['politics'];
+  const d = S.diffOf(c.difficulty);
+  let s = S.initialState(d);
+  for (const k of ['각성', '각성', '응답', '불확실']) {
+    s = S.applyTurn(s, d, { tier: 'warm', loveDelta: 5, moodDelta: 3, vibe: 'v', revealed: '', flutterKind: k });
+  }
+  const note = S.debrief(s, d, S.verdict(s, d), c, '').notes.find(n => n.key === 'flutter');
+  assert.match(note.value, /4회/, '총 횟수가 없다');
+  assert.match(note.value, /각성 전이 2/, '종류별 집계가 없다');
+  assert.match(note.text, /각성 전이는 같은 저녁에 두 번째부터 반토막/, '각성 반복 경고가 없다');
+});
