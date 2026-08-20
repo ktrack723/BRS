@@ -951,7 +951,8 @@ async function gotoResult() {
       `<tr class="${h.dLove > 0 ? 'good' : h.dLove < 0 ? 'bad' : ''}">` +
       `<td>${h.turn}${h.firstImpression ? '·착장' : ''}${h.revealed ? '·발견' : ''}` +
       `${h.barrier ? '<b class="tt-barrier">·현안</b>' : ''}` +
-      `${h.leverage && h.leverage !== 'none' ? `<b class="tt-lev">·압박</b>` : ''}</td>` +
+      `${h.leverage && h.leverage !== 'none' ? `<b class="tt-lev">·압박</b>` : ''}` +
+      `${h.stall < 0 ? `<b class="tt-stall" title="아무 일도 없는 턴이 연달아 쌓여 공기가 ${-h.stall}만큼 식었다">·정체 ${h.stall}</b>` : ''}</td>` +
       `<td>${h.dMood >= 0 ? '+' : ''}${h.dMood}</td>` +
       `<td>${h.dLove >= 0 ? '+' : ''}${h.dLove} <span class="dim">[${escapeHtml(h.tier)}] ${h.rawLove >= 0 ? '+' : ''}${h.rawLove}×${h.mult}</span></td>` +
       `<td>${h.love} / ${h.mood}</td>` +

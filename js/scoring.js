@@ -171,20 +171,20 @@ export const DIFFICULTIES = {
     textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,   // 기획서 규정: 문자 1회, 대면 2회
     startLove: 10, startMood: 55,
-    threshold: 68, moodFloor: 0,
+    threshold: 66, moodFloor: 0,
     loveDecay: 0.0,   // 턴마다 식는 호감
     moodDrift: 0.5,   // 턴마다 흐르는 분위기 (양수면 알아서 풀린다)
-    gainScale: 4.5, lossScale: 1.45,
+    gainScale: 2.4, lossScale: 1.45,
   },
   '보통': {
     key: 'normal', badge: '보통',
     textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,
     startLove: 6, startMood: 46,
-    threshold: 74, moodFloor: 0,
+    threshold: 72, moodFloor: 0,
     loveDecay: 0.3,
     moodDrift: -0.1,
-    gainScale: 4.0, lossScale: 1.75,
+    gainScale: 4.5, lossScale: 1.75,
   },
   '헬': {
     key: 'hell', badge: '헬',
@@ -194,7 +194,7 @@ export const DIFFICULTIES = {
     threshold: 78, moodFloor: 0,
     loveDecay: 0.6,
     moodDrift: -0.7,
-    gainScale: 3.6, lossScale: 2.00,
+    gainScale: 2.4, lossScale: 2.00,
   },
 };
 
@@ -272,7 +272,7 @@ export const TUNING = {
   // 그건 우회로였다. 규칙을 직접 쓰는 게 맞다: **두근두근이 아니면 증가량이 0이다.**
   // nudge도 flat도 0점이다. 잘 굴러간 대화에는 한 점도 안 붙는다.
   // chill·disaster는 그대로 깎는다. 호감은 0에서 바닥을 친다.
-  //   gainScale  쉬움 4.5 · 보통 4.0 · 헬 3.6
+  //   gainScale  쉬움 2.4 · 보통 4.5 · 헬 2.4
   //
   // 이 셋은 **실측 12판의 판정 시퀀스를 그대로 재생해서** 고른 값이다(합성 가정이 아니다).
   // 라이브에서 판당 두근거림이 난이도별로 이렇게 갈렸다:
@@ -287,6 +287,19 @@ export const TUNING = {
   //
   // ⚠ circadian ace는 두근거림이 **0회**라 배율로는 못 고친다(0은 곱해도 0).
   //    독백 × 단답은 서로에게 닿을 통로가 없다. 조합 쪽 문제로 남아 있다.
+  //
+  // ── 정체 감쇠 투입 후 16판으로 다시 맞췄다 (2.4 / 4.5 / 2.4) ──
+  // 배율이 난이도 순서를 안 따르는 게 이상해 보이지만, 소재 밀도가 그렇다:
+  //
+  //   난이도  판당 두근  판당 원판정+  판당 원판정−  판당 턴
+  //   헬        10.3        64.0        −19.5      15.8
+  //   쉬움      10.2        59.8        −23.2      19.3
+  //   보통       5.3        27.2        −24.8      13.5     ← 재료가 절반이다
+  //
+  // gapjil·vtuber·os-war는 대화가 굴러가지 않는 조합이라 두근거림 자체가 적게 나온다.
+  // 맞는 대응은 성공선을 내리는 게 아니라 그 난이도의 배율을 올리는 것이다 —
+  // 성공선을 내리면 준비 안 한 판까지 같이 넘어온다.
+  // 쉬움·헬은 반대로 4.5/3.6에서는 ace가 전부 100에 붙어 해상도가 죽어 있었다.
 
   // 정체 감쇠 계수. 무의미한 턴이 n번째로 연달아 오면 분위기가 n×이만큼 깎인다.
   // 한 턴에 −k씩 붙으니 누적은 연속 길이의 제곱이다 — 8연은 1연 여덟 번의 4.5배로 문다.
@@ -297,6 +310,7 @@ export const TUNING = {
   // 최대치인데, 이건 정색(disaster −5)보다 무겁다. 네 턴 연속으로 아무 일도 없는 자리는 실제로 그렇다.
   stallMood: 2.2,
   stallCap: 4,               // 연속 무의미 턴의 감쇠 상한. 4연 이후로는 더 나빠지지 않는다
+  stallFloor: 8,             // 정체만으로는 분위기를 여기 아래로 못 민다. 파탄은 정색의 몫이다
   // 손실 완충. 호감 100에서 깎임이 (1 − 이 값)배가 된다. 0이면 완충 없음.
   // 0 → 격차 +16.8 · 0.5 → +20.0 · 0.85 → +23.0. 0.85는 실수를 거의 안 물어서 0.5에서 끊었다.
   lossCushion: 0.5,
@@ -432,10 +446,14 @@ export function applyTurn(state, d, judge, opts = {}) {
   // 한 턴에 −k씩 붙으므로 **연속 길이의 제곱으로 누적된다** — 8연은 1연 여덟 번의 4.5배다.
   // 상대는 지루한 대화를 오래 견뎌주지 않는다. 그게 여기서 재려는 전부다.
   s.dullRun = DULL_TIERS.has(tier) ? s.dullRun + 1 : 0;
-  // 다만 무한정 나빠지지는 않는다. 지루함에도 바닥이 있다 —
-  // 상한이 없으면 무의미한 턴이 길어지는 것만으로 자리가 반드시 깨져서,
-  // 격차가 아니라 중단 횟수를 재는 숫자가 된다(실측: 상한 없이 계수 3에서 12판 중 6판 파탄).
-  const stallMood = -TUNING.stallMood * Math.min(s.dullRun, TUNING.stallCap);
+  // 다만 무한정 나빠지지는 않는다. 지루함에도 바닥이 둘 있다.
+  //  ① 연속 길이 상한 — 없으면 무의미한 턴이 길어지는 것만으로 격차가 아니라 중단을 재게 된다.
+  //  ② **정체는 자리를 식히지만 깨뜨리지는 못한다.** 자리를 깨는 건 정색이지 지루함이 아니다.
+  //     이걸 안 막으면 16판 중 6판이 "심심해서 파탄"으로 끝난다(실측 ace 3 · none 3).
+  //     그건 판정이 아니라 타이머다. 정체분은 stallFloor 아래로는 못 밀어넣는다.
+  const wantStall = -TUNING.stallMood * Math.min(s.dullRun, TUNING.stallCap);
+  const beforeStall = clamp(s.mood + moodGain + tierMood + d.moodDrift, 0, 100);
+  const stallMood = -Math.min(-wantStall, Math.max(0, beforeStall - TUNING.stallFloor));
   const moodChange = moodGain + tierMood + stallMood + d.moodDrift;
   const moodAfter = clamp(s.mood + moodChange, 0, 100);
 
@@ -492,6 +510,9 @@ export function applyTurn(state, d, judge, opts = {}) {
     dMood: s.lastDelta.mood, dLove: s.lastDelta.love,
     mood: Math.round(s.mood), love: Math.round(s.love),
     rawMood: md, rawLove: ld, tier, judgeTier: judge.tier || '?', mult: s.lastDelta.mult,
+    // 정체 감쇠가 이 턴에 얼마나 붙었는가. 턴 표가 이걸 그대로 띄운다 —
+    // 규칙이 점수를 깎았으면 어디서 깎였는지 화면에 있어야 한다.
+    stall: round1(stallMood),
     revealed: fresh, firstImpression: !!opts.firstImpression,
     // 장벽·압박은 이제 판을 끝내는 조건이다. 턴 기록에 안 남으면 사후에 왜 졌는지 못 짚는다.
     barrier: judge.barrierAddressed === true, leverage: judge.leverage || 'none',

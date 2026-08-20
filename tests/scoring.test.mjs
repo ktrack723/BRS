@@ -267,6 +267,21 @@ test('아무 일도 없는 턴이 연달아 쌓이면 공기가 식는다', () =
   assert.ok(Math.abs(drops[5] - drops[4]) < 0.01, '상한 뒤로는 더 나빠지지 않는다');
 });
 
+test('정체만으로는 자리가 깨지지 않는다 — 파탄은 정색의 몫이다', () => {
+  // 판 길이보다 훨씬 긴 무의미한 흐름을 넣어도 자리가 남아 있어야 한다.
+  // (난이도 흐름 moodDrift는 별개의 규칙이라 헬처럼 흐름이 센 쪽은 그것만으로도 식는다.
+  //  여기서 보는 건 정체분이 혼자 바닥을 뚫느냐다.)
+  const d = diffOf('보통');
+  let s = { ...initialState(d), mood: 46 };
+  for (let i = 0; i < 20; i++) s = applyTurn(s, d, J('flat', { moodDelta: 0 }));
+  assert.ok(s.mood > 0, `무의미한 턴만으로 자리가 깨졌다 (분위기 ${s.mood})`);
+  assert.ok(!failureReason(s), '심심해서 파탄나면 그건 판정이 아니라 타이머다');
+  // 반대로 정색은 자리를 깬다. 지루함과 적의를 같은 것으로 두면 안 된다.
+  let hostile = { ...initialState(d), mood: 46 };
+  for (let i = 0; i < 8; i++) hostile = applyTurn(hostile, d, J('disaster', { moodDelta: -9 }));
+  assert.equal(failureReason(hostile), 'mood', '정색이 이어지는데도 자리가 유지된다');
+});
+
 test('두근거림 한 번이면 정체 계수가 처음으로 돌아간다', () => {
   const d = diffOf('보통');
   let s = { ...initialState(d), mood: 70 };
@@ -1201,10 +1216,21 @@ test('분위기는 여전히 두 가지 일을 한다 — 배율과 파탄', asy
 // 성공선은 실측에서 뽑았다. 판정 시퀀스를 고정하고 성공선만 움직여 갈리는 지점을 찾았다.
 test('성공선이 실측 분포 위에 있다', async () => {
   const S = await import('../js/scoring.js');
-  assert.equal(S.diffOf('쉬움').threshold, 68);
-  assert.equal(S.diffOf('보통').threshold, 74);
+  // 라이브 16판(하이쿠, 커플 8 × 프로필 2)의 판정 시퀀스를 재생해 맞춘 값이다.
+  assert.equal(S.diffOf('쉬움').threshold, 66);
+  assert.equal(S.diffOf('보통').threshold, 72);
   assert.equal(S.diffOf('헬').threshold, 78);
   // 난이도가 올라갈수록 성공선도 올라간다
   const th = ['쉬움', '보통', '헬'].map(k => S.diffOf(k).threshold);
   for (let i = 1; i < th.length; i++) assert.ok(th[i] > th[i - 1], '난이도 사다리가 깨졌다');
+});
+
+// 배율은 난이도 순서를 안 따른다. 소재 밀도가 그렇기 때문이다 —
+// 보통 조합(gapjil·vtuber·os-war)은 판당 두근거림이 5.3회로 쉬움·헬의 절반이다.
+// 이건 실수가 아니라 실측이라, 누가 "사다리가 뒤집혔다"며 되돌리지 못하게 못을 박아둔다.
+test('보통의 배율이 가장 높다 — 그 조합들만 소재가 마르기 때문이다', async () => {
+  const S = await import('../js/scoring.js');
+  const g = k => S.diffOf(k).gainScale;
+  assert.ok(g('보통') > g('쉬움') && g('보통') > g('헬'),
+    '보통 배율을 내리면 그 난이도만 도달 불가능해진다 (실측 판당 두근 5.3회 대 10.2·10.3회)');
 });
