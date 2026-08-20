@@ -323,11 +323,15 @@ test('등급은 마진 순으로 단조롭다', () => {
 // ── 밸런싱: 잘한 플레이와 대충한 플레이가 실제로 갈리는가 ─
 // 성공선은 오프라인 몬테카를로로 뽑았다(scoring.js 주석 참조). 그 분리가 유지되는지 여기서 지킨다.
 test('세 난이도 모두, 좋은 판정 흐름은 넘고 밋밋한 흐름은 못 넘는다', () => {
-  const strong = ['warm', 'nudge', 'breakthrough', 'warm', 'nudge', 'warm', 'nudge', 'breakthrough', 'warm', 'nudge'];
-  const weak = ['flat', 'flat', 'nudge', 'flat', 'chill', 'flat', 'flat', 'nudge', 'flat', 'flat'];
+  // 판 길이는 난이도 규격에서 가져온다. 10턴으로 박아두면 판이 길어졌을 때
+  // "좋은 흐름도 성공선을 못 넘는다"가 규칙이 아니라 테스트 전제 탓으로 나온다.
+  const cycle = (pat, n) => Array.from({ length: n }, (_, i) => pat[i % pat.length]);
+  const STRONG = ['warm', 'nudge', 'breakthrough', 'warm', 'nudge'];
+  const WEAK = ['flat', 'flat', 'nudge', 'flat', 'chill'];
   const MOOD = { breakthrough: 6, warm: 4, nudge: 2, flat: 0, chill: -4, disaster: -7 };
-  const run = (name, tiers) => {
+  const run = (name, pattern) => {
     const d = diffOf(name);
+    const tiers = cycle(pattern, d.textTurns + d.talkTurns);
     let s = initialState(d);
     tiers.forEach((t, i) => {
       if (failureReason(s)) return;
@@ -337,8 +341,8 @@ test('세 난이도 모두, 좋은 판정 흐름은 넘고 밋밋한 흐름은 �
     return verdict(s, d);
   };
   for (const name of ['쉬움', '보통', '헬']) {
-    assert.ok(run(name, strong).accepted, `${name}: 좋은 흐름이 성공선을 못 넘으면 도달 불가능한 게임이다`);
-    assert.ok(!run(name, weak).accepted, `${name}: 밋밋한 흐름이 성사되면 안 된다`);
+    assert.ok(run(name, STRONG).accepted, `${name}: 좋은 흐름이 성공선을 못 넘으면 도달 불가능한 게임이다`);
+    assert.ok(!run(name, WEAK).accepted, `${name}: 밋밋한 흐름이 성사되면 안 된다`);
   }
 });
 
@@ -959,4 +963,22 @@ test('한 판이 14턴이고 케미가 좋으면 19턴까지 간다', async () =
   // 연장 메카닉 자체는 그대로다 — 늘어난 턴 수가 연장을 대체한 게 아니다
   assert.deepEqual(EXTENSION.hotTiers, ['breakthrough', 'warm']);
   assert.equal(EXTENSION.needHot, 2, '최근 창에서 뜨거운 턴이 둘이면 연장');
+});
+
+// ── 장벽은 이긴 판에도 사후 보고에 남는다 ──────────────────────
+// 진 판에만 알려주면 플레이어는 그런 조건이 있다는 걸 지고 나서야 배운다.
+test('사후 보고에 장벽 항목이 항상 있다', async () => {
+  const S = await import('../js/scoring.js');
+  const { COUPLE_BY_ID } = await import('../js/couples.js');
+  const c = COUPLE_BY_ID['gapjil'];
+  const d = S.diffOf(c.difficulty);
+  for (const cleared of [true, false]) {
+    const st = { ...S.initialState(d), barrierCleared: cleared, history: [], revealed: [] };
+    const v = S.verdict(st, d);
+    const db = S.debrief(st, d, v, c, '');
+    const note = db.notes.find(n => n.key === 'barrier');
+    assert.ok(note, '장벽 항목이 없다');
+    assert.equal(note.ok, cleared);
+    assert.ok(note.text.includes(c.barrier), '장벽 원문이 안 들어갔다');
+  }
 });

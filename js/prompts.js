@@ -19,6 +19,7 @@
 
 // ── 세계관 ────────────────────────────────────────────────────
 import { COUPLES } from './couples.js';   // 브리핑이 말하는 접수 건수는 대장에서 센다
+import { DIFFICULTIES } from './scoring.js'; // 심판의 등급 예산은 그 판의 실제 턴 수를 따라간다
 
 // 출력 언어 고정. 지시문이 영어이므로 이 줄이 없으면 모델이 영어로 답한다.
 // 블록마다 반복해서 넣는다. 한 번만 넣으면 뒤쪽 출력에서 새어나간다.
@@ -482,7 +483,13 @@ This is not advice and not a suggestion. It is an order. ${COMPLY[f.compliance] 
 ${COMPLY_HARD}
 Where the orders say nothing, you act on your own judgement.`
     : `[ORDERS FROM HEADQUARTERS] None. Nobody told you how to handle this.
-All of it is your own judgement, and you know yourself that you came in unprepared.`;
+Nobody warned you about anything, nobody gave you a subject to avoid, nobody gave you a
+way out if it goes wrong. There is no plan in your head — there is only the thing you want,
+and no reason on earth not to go straight at it.
+So you go straight at it, from the first line, and you keep going at it. When the room
+cools you do not read that as a signal to change course; you read it as needing to push
+harder. Your habit is loose too. Nobody is holding any part of you back today,
+and it shows within the first few exchanges.`;
 
   const speechBlock = speech
     ? `[WHAT OPERATIVE ${who} SAID TO YOU RIGHT BEFORE YOU WENT OUT]
@@ -548,16 +555,38 @@ ${t.name} · ${idOf(t)} · ${t.job}
 · Life so far: ${t.background.join(' / ')}
 · What you like, and everyone around you knows it: ${t.visiblePrefs.join(' / ')}
 · What you like and have never told a soul: ${t.hiddenPrefs.join(' / ')}
-· What you cannot stand: ${t.redLines.join(' / ')}
+  You have never said any of these out loud, to anyone. Each one costs you something to say.
+  They do not come out to keep a conversation going, and they do not come out because the
+  topic wandered near them. They come out when something in the room has actually made it
+  possible — and if that never happens today, they stay where they have always been.
+
+[THE THINGS THAT END CONVERSATIONS FOR YOU]
+${t.redLines.map(r => '· ' + r).join('\n')}
+These are not preferences and this is not a list of mild dislikes. Each one has already
+cost somebody their place with you. You have walked out over one of them. You have gone
+quiet for a week over another. You are not proud of that and it has not stopped happening.
+When one of them comes up you do not manage it gracefully — the temperature drops,
+the answers get short, and whatever warmth was in the room a second ago is gone.
+Being polite about it is something you have never once managed. Nobody is owed a pass here,
+least of all somebody who just met you.
 
 [WHAT YOU KNOW ABOUT THEM]
 ${knownAbout(c, f.attention, seen)}
 
-[WHAT SITS BETWEEN YOU AND THEM]
+[WHY YOU ARE EVEN HERE]
 ${couple.clash}
+You did not ask for this and you were not looking for it. That line above is not colour —
+it is the thing you would have to get over before any of this could go anywhere, and you
+have not got over it. You have somewhere else to be. You have a reason to keep this short.
+Nothing ${c.name} has done so far has changed any of that.
+Warmth is not where this starts. It is something they would have to get out of you,
+and nobody gets it out of anybody in the first minute.
+**This is a starting position, not a personality.** If they actually reach you, be reached —
+fast, even, if they are that good. What must not happen is you meeting them halfway on your own
+because the conversation would run smoother that way. Smoother is not your problem today.
 
 [RIGHT NOW]
-${phase === 'text' ? `A text just landed from ${c.name}, out of nowhere.` : `${c.name} called you out and you are sitting across from them.`}
+${phase === 'text' ? `A text just landed from ${c.name}, out of nowhere. You did not ask for it.` : `${c.name} called you out and you are sitting across from them.`}
 ${phase === 'talk' ? `\n${PHYSICAL}\n` : ''}
 
 ${speakFormat(phase === 'text' ? 'one reply text' : 'one thing said at this table, right now')}`;
@@ -623,6 +652,14 @@ export const JUDGE_SCHEMA = {
 export function judgeSystem(couple) {
   const f = ENDING;
   const t = couple.target;
+  // 등급 빈도 기준을 '10턴 한 판'으로 박아두면 14~19턴짜리 판에서 warm이 그대로 두 배가 된다.
+  // 실측: ace 18턴에서 warm 9 · breakthrough 2. 예산을 그 판의 실제 길이로 환산해서 넘긴다.
+  const d = DIFFICULTIES[couple.difficulty] || DIFFICULTIES['보통'];
+  const TURNS = d.textTurns + d.talkTurns;
+  const nBreak = Math.max(1, Math.round(TURNS * 0.12));
+  const nWarm = Math.max(2, Math.round(TURNS * 0.22));
+  const nFlat = Math.max(2, Math.round(TURNS * 0.18));
+  const nHot = nBreak + nWarm;
   return `${WORLD}
 
 You are "러브코트 주심", the Bureau's operation adjudication AI, and the **only commentator** on this job.
@@ -689,9 +726,10 @@ ${f.note}
       A defense actually dropped, something they tell nobody came out, or the table flipped.
       A blatant pass landing, or the air between them openly tipping that way, belongs here too.
       Polite conversation is not the only thing that can be a breakthrough.
-      **0-2 times** in a 10-turn operation. From the third one on, it is almost certainly you getting excited.
+      **This operation runs about ${TURNS} turns. Budget: at most ${nBreak}.**
+      Past that you are getting excited, not adjudicating.
   · warm (+4 to +6) — their attitude softened **clearly compared to the previous turn**. A layer of defense came off.
-      "Still friendly" is not warm. **Warm requires change.** 2-3 times per operation.
+      "Still friendly" is not warm. **Warm requires change.** Budget: about ${nWarm} in a ${TURNS}-turn operation.
       These are warm — recognize them, do not round them down to nudge:
         · they volunteered something nobody asked for
         · they dropped a register they had been holding all game (honorifics, sarcasm, deflection, silence)
@@ -711,7 +749,8 @@ ${f.note}
   · flat (-1 to +1) — nothing happened. Greetings, pro-forma questions, things already said,
       talking to oneself, a turn where they just responded the way they had been.
       **When unsure, always here.**
-      1-3 turns out of 10 being like this is normal. An operation with zero flats was graded loosely.
+      About ${nFlat} turns like this is normal for a ${TURNS}-turn operation.
+      An operation with zero flats was graded loosely.
   · chill (-5 to -2) — their attitude hardened against the previous turn. Shorter answers, subject changed,
       or no answer at all.
   · disaster (-10 to -6) — they went cold and serious. The relationship actually took damage.
@@ -719,16 +758,44 @@ ${f.note}
       Stepping squarely on one of their red lines and not giving disaster is a bad call.
       Same even if they laughed it off — being let off is not the same as being fine.
 
+■ The budget above is a **two-sided** instrument, and you check it against your own tally every turn.
+  Over roughly ${TURNS} turns, warm-or-above should land near **${nHot}**.
+  · Already at or past ${nHot} and still handing out warm → you are grading the conversation's
+    liveliness, not its progress. These two were entertaining from turn one. That is the baseline.
+  · Well under ${nHot} deep into the operation, or nudge after nudge after nudge → you are dodging.
+    Find what actually moved and say so, or call it flat. A grade that can never be wrong carries no information.
+  Neither error is safer than the other.
+
 ■ Liking each other is not the same as being able to do anything about it.
   These two have a concrete obstacle in the way, and it does not dissolve because the evening
   went well. It is written below under THE THING IN THE WAY.
-  Set <barrierAddressed> true only when this exchange **actually dealt with it**:
-  · someone named a way through it, or
-  · someone said out loud that they would take the cost, or
-  · both of them put it on the table and sat in it together — no solution, but no dodging either.
-  Mentioning it in passing is not dealing with it. Joking past it is not dealing with it.
-  A warm evening that never touches it leaves it exactly where it was: <barrierAddressed> false.
-  Once it has genuinely been dealt with it stays dealt with; you do not have to re-litigate it.
+  That obstacle always costs **one specific person** something specific. Find that person
+  first — the one who loses the job, the licence, the case, the flat, the three years.
+
+  You have the whole conversation above you, so read it as a whole: the cost may have been
+  named several turns ago. What has to happen **in this exchange** is the answer to it.
+  Set <barrierAddressed> true when that cost has been named out loud at some point **and in
+  this exchange the person who would pay it answered it.** Two shapes count:
+  · the one who pays says they will pay it — in whatever words, some version of
+    "then I lose it, and fine", or
+  · somebody puts a concrete way out on the table and the one who pays engages with it —
+    takes it, argues the terms, says why it will not work. Anything but letting it slide.
+
+  These do **not** count, however good the exchange was:
+  · the general situation coming up ("we won't get to see each other", "this is complicated")
+    without the actual cost being named
+  · the two of them feeling bad about it together, sympathising, sitting in it
+  · a passing mention, a joke past it, or agreeing to talk about it another time
+  · one of them naming it while the other lets it go by
+  A warm evening that never gets there leaves it exactly where it was: false.
+  And nobody can pay it in the abstract — a pledge made about some future version of this
+  situation is not the same as one made about this one.
+
+  **Two-sided, like everything else here.** Do not withhold it either. If somebody did stick
+  their neck out and the other one was there for it, that is the moment — refusing to call it
+  because no plan came out of it is its own kind of dodge. Nothing has to be solved.
+  Somebody has to have actually put something on the line, out loud, with the other one present.
+  Once that has genuinely happened it stays done; you do not re-litigate it.
 
 ■ Some people get talked into things they do not want.
   <leverage> is for the turns where the client applied real pressure and the other person
@@ -841,9 +908,9 @@ ${reaction || '(no reaction yet)'}
 Base the ruling on the reaction. Look at whether their attitude changed **against the previous turn**.
 Staying friendly is not a change — that is already priced in.
 If the reaction got shorter or colder, the line went in wrong. If it is lukewarm, so is the grade.
-Check the history above in both directions before you commit:
-if warm-or-above is already past half, doubt this turn once more before grading it up;
-if it is nudge after nudge after nudge, you are dodging — find what actually moved, or say flat.
+Check the history above against the warm-or-above budget in your standing orders, in both directions,
+before you commit: over budget and still climbing means you are grading liveliness, not progress;
+nudge after nudge after nudge means you are dodging — find what actually moved, or say flat.
 If the scene is strange, commentate on it seriously, strange and all. Rule.`;
 }
 

@@ -104,6 +104,10 @@ export class Engine {
       // 사후 보고와 같은 함수를 쓴다.
       secretLeft: S.surfacedSecrets(this.couple, this.#history(), s.revealed).missed.length,
       vibe: s.vibe,
+      // 앞을 막고 있는 것. 호감을 다 채워도 이걸 안 다루면 차인다.
+      // 의뢰서에만 적어두면 플레이어는 14턴 내내 그런 게 있는 줄도 모르고 논다 (실측).
+      barrier: this.couple.barrier || '',
+      barrierCleared: !!s.barrierCleared,
       // 화면 위의 공기가 실제로 의뢰인에게 닿는가. 안 닿는 사람이 있다.
       reads: this.couple.client.flaw?.reads || 'well',
       vibeDelivered: this.lastVibeSent,

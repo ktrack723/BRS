@@ -1223,6 +1223,81 @@ export const COUPLES = [
       spec: S({ skin: '#e8cbaa', hair: '#332a22', hairStyle: 'ponytail', top: '#c8b89a', bottom: '#4a4438', shoes: '#7a6a58', heightScale: 0.94, widthScale: 1.08, accessory: 'bandana', accessoryColor: '#c05a4a', expression: 'happy', aura: 'none', species: 'human' }),
     },
   },
+  // ── 45 ── 구조적 불일치 5 ─────────────────────────────────────────────
+  {
+    id: 'asmr', difficulty: '쉬움', endingKind: '연애', category: '청각',
+    clash: 'ASMR 5년차와 이명 환자. 한 사람의 목소리 대역이 다른 사람 귀에서 24시간 울린다',
+    winWord: '주파수 커플 성사',
+    client: {
+      name: '백소음', gender: '여', age: 29, job: 'ASMR 크리에이터 / 구독 31만',
+      story: '5년간 댓글 하나를 기다렸다. "덕분에 잤어요." 그런데 저 사람은 매 영상마다 정확히 반대를 적었다. ' +
+        '"오늘도 못 잤습니다. 3분 12초쯤 그 소리요." 백소음은 그 타임스탬프를 전부 찾아봤고, 전부 자기 숨소리였다.',
+      appearance: ['늘 헤드폰을 목에 걸고 있음', '손톱을 아주 짧게 깎음', '목소리가 작다', '실내용 슬리퍼로 다님'],
+      personality: ['소리로 사람을 기억함', '조용해지면 말을 더 함', '남의 숨소리를 흉내 냄'],
+      quote: '요원님. 5년 동안 저한테 못 잤다고 말해준 사람은 저 사람 하나예요.',
+      spec: S({ skin: '#f6e3d4', hair: '#c7b6a8', hairStyle: 'wave', top: '#efe6f2', bottom: '#b9aec6', shoes: '#f2f2f2', heightScale: 0.95, widthScale: 0.9, accessory: 'headband', accessoryColor: '#d8cfe4', expression: 'shy', aura: 'bubbles', species: 'human' }),
+    },
+    target: {
+      name: '윙윙', gender: '남', age: 34, job: '시립도서관 사서 / 이명 3년차',
+      appearance: ['귀를 자주 만짐', '카디건 소매가 늘어남', '눈 밑이 어둡다', '손에 늘 도서 라벨'],
+      personality: ['소리를 숫자로 말함', '사과를 먼저 함', '조용한 곳을 먼저 찾음'],
+      visiblePrefs: ['서가 청구기호 이야기', '아무 소리도 안 나는 시간'],
+      hiddenPrefs: ['그 채널을 3년째 끄지 못한다', '못 잔 날짜를 전부 적어뒀다', '이명이 사라지면 그 사람이 사라진다고 생각한다'],
+      redLines: ['"그냥 참으면 되잖아요"', '"조용한 데로 가면 낫죠"', '자기 목소리를 직접 들려주려는 시도'],
+      spec: S({ skin: '#eddcc8', hair: '#3a3128', hairStyle: 'short', top: '#7a8574', bottom: '#4a4a52', shoes: '#5c4a3a', heightScale: 1.02, widthScale: 0.94, accessory: 'glasses', accessoryColor: '#2a2a2a', expression: 'sad', aura: 'static', species: 'human' }),
+    },
+  },
+
+  // ── 46 ──
+  {
+    id: 'spice', difficulty: '쉬움', endingKind: '연애', category: '위장',
+    clash: '매운맛 챌린지 유튜버와 그 사람 위를 매달 들여다보는 내시경 전문의',
+    winWord: '위장 커플 성사',
+    client: {
+      name: '캡사이신', gender: '여', age: 27, job: '매운맛 챌린지 유튜버 / 구독 62만',
+      story: '한 달에 한 번 내시경을 받는다. 저 사람은 매번 화면을 보며 딱 한 마디만 한다. "또 오셨네요." ' +
+        '아무도 말리지 않는 삶에서 유일하게 걱정하는 얼굴이었고, 캡사이신은 그 얼굴을 보려고 다음 달 촬영을 잡는다.',
+      appearance: ['입술이 늘 부어 있음', '가방에 우유 두 팩', '눈물자국을 안 지움', '손끝이 빨갛다'],
+      personality: ['모든 걸 스코빌로 환산함', '아프다는 말을 안 함', '카메라가 없으면 조용함'],
+      quote: '요원님, 저 걱정해주는 사람이 담당의밖에 없는데요. 그게 이상한 겁니까?',
+      spec: S({ skin: '#fadfd2', hair: '#e0483a', hairStyle: 'ponytail', top: '#ff5a3c', bottom: '#2c2c34', shoes: '#ffffff', heightScale: 0.94, widthScale: 0.9, accessory: 'earrings', accessoryColor: '#ff2a2a', expression: 'weird', aura: 'fire', species: 'human' }),
+    },
+    target: {
+      name: '위성곤', gender: '남', age: 38, job: '소화기내과 전문의 / 내시경 6,000건',
+      appearance: ['수술모 자국이 이마에 남음', '손이 아주 차갑다', '가운 주머니가 늘 무겁다', '말할 때 눈을 안 피함'],
+      personality: ['최악의 경우부터 말함', '농담에 1초 늦게 웃음', '남의 식사를 관찰함'],
+      visiblePrefs: ['담백한 죽 이야기', '검사 결과가 깨끗한 날'],
+      hiddenPrefs: ['그 채널 영상을 전부 봤다', '진료기록에 사적인 메모를 한 줄 남긴 적 있다', '한 번도 촬영을 말린 적이 없는 자신을 미워한다'],
+      redLines: ['"이 정도는 괜찮아요"', '촬영분을 직접 보여주려는 것', '"선생님도 한번 드셔보세요"'],
+      spec: S({ skin: '#f0ddc9', hair: '#2a2622', hairStyle: 'short', top: '#f4f6f8', bottom: '#3a4250', shoes: '#e8e8e8', heightScale: 1.05, widthScale: 1.0, accessory: 'mask', accessoryColor: '#dfe8ef', expression: 'neutral', aura: 'none', species: 'human' }),
+    },
+  },
+
+  // ── 47 ──
+  {
+    id: 'recycle', difficulty: '쉬움', endingKind: '연애', category: '분리수거',
+    clash: '분리수거 감시원과 남의 폐기물로 작품을 만드는 설치미술가. 신고 누적 41건이 서로다',
+    winWord: '재활용 커플 성사',
+    client: {
+      name: '최분리', gender: '남', age: 44, job: '아파트 분리수거 감시원 12년차',
+      story: '41번을 신고했다. 42번째 새벽, 저 사람이 가져간 폐자재가 시립미술관 로비에 서 있는 걸 봤다. ' +
+        '작품 설명에 "이것은 누군가 열두 해 동안 정확하게 분류해 둔 것들이다"라고 적혀 있었다. 최분리는 그 앞에서 40분을 서 있었다.',
+      appearance: ['형광 조끼를 사복 위에 입음', '집게를 늘 들고 다님', '장갑 자국이 손목에 남음', '모자를 눌러씀'],
+      personality: ['재질을 소리 내어 분류함', '규정 조항을 외움', '고맙다는 말에 자리를 뜬다'],
+      quote: '요원님, 12년을 했는데 아무도 고맙다고 안 했습니다. 저 사람만 빼고요.',
+      spec: S({ skin: '#e6cdb0', hair: '#4a4038', hairStyle: 'buzz', top: '#d8e02a', bottom: '#3a4a3a', shoes: '#5a4a3a', heightScale: 1.0, widthScale: 1.08, accessory: 'hat', accessoryColor: '#d8e02a', expression: 'neutral', aura: 'none', species: 'human' }),
+    },
+    target: {
+      name: '주워담', gender: '여', age: 36, job: '설치미술가 / 폐기물 작업 9년차',
+      appearance: ['작업복에 페인트가 층층이', '손등에 오래된 흉터', '머리를 아무렇게나 묶음', '주머니가 늘 불룩함'],
+      personality: ['남의 물건을 먼저 집음', '설명을 안 함', '한밤중에 전화함'],
+      visiblePrefs: ['녹슨 것의 색 이야기', '아직 아무도 안 가져간 새벽'],
+      hiddenPrefs: ['41건 전부 그 사람이 신고한 걸 안다', '신고서 필체를 알아본다', '과태료 고지서를 한 장도 안 버렸다'],
+      redLines: ['"그거 쓰레기잖아요"', '과태료 액수 언급', '"규칙은 규칙이죠"'],
+      spec: S({ skin: '#e8cfb8', hair: '#5c4632', hairStyle: 'updo', top: '#8a7a5a', bottom: '#4a4438', shoes: '#3a3a3a', heightScale: 0.98, widthScale: 0.96, accessory: 'bandana', accessoryColor: '#a83a2a', expression: 'smug', aura: 'question', species: 'human' }),
+    },
+  },
+
 ];
 
 // ── 인물 내력 ─────────────────────────────────────────────────────────────
@@ -1647,6 +1722,25 @@ const BACKGROUND = {
     target: ['상봉동 반지하. 분식집은 작년에 접었다', '채무 원금 1억 4천, 이자 포함 2억이 넘는다',
       '25년간 새벽 4시에 일어났다', '전북 익산 출신. 남편은 8년 전에 갔다', '아직도 밥을 두 그릇 한다'],
   },
+
+  asmr: {
+    client: ['원룸 방음 공사에 900만원을 썼다', '월 수익 340만원. 절반이 광고다',
+      '하루 녹음 6시간, 편집 5시간', '충북 제천 출신. 소리 없는 집에서 자랐다', '자기 영상을 틀어놓고 잔다'],
+    target: ['도서관에서 걸어서 4분 거리에 산다', '연봉 3,600. 이명 치료비가 매달 22만원',
+      '3년간 이비인후과 다섯 곳을 돌았다', '경기 부천 출신. 어머니도 이명이 있었다', '조용한 방에서 제일 크게 들린다'],
+  },
+  spice: {
+    client: ['위벽 미란 4회, 식도염 2회 진단', '월 수익 1,100만원. 병원비는 경비 처리한다',
+      '한 달에 한 번 내시경', '부산 출신. 집에서는 아무도 매운 걸 못 먹는다', '카메라를 끄면 아무것도 안 먹는다'],
+    target: ['병원에서 도보 2분 오피스텔', '주 6일, 하루 내시경 22건',
+      '10년간 담당 환자를 한 명도 못 말렸다', '대구 출신. 아버지가 위암이었다', '퇴근하면 죽만 먹는다'],
+  },
+  recycle: {
+    client: ['임대아파트 12동 관리사무소 옆방', '월급 218만원. 12년째 같은 자리',
+      '새벽 5시부터 8시까지가 본업', '전남 순천 출신. 아버지가 고물상을 했다', '집에 아무것도 안 쌓아둔다'],
+    target: ['성수동 지하 작업실. 창문이 없다', '연 수입 불규칙. 작년은 1,400만원',
+      '재료비를 한 번도 낸 적이 없다', '인천 출신. 어릴 때 이사를 열한 번 했다', '작품을 팔면 잠을 못 잔다'],
+  },
 };
 
 // ── 인물의 하자 ───────────────────────────────────────────────────────────
@@ -1865,6 +1959,19 @@ const FLAW = {
     client: { want: '자기가 11년간 한 일이 사람 잡는 일이 아니었다는 말을 듣는 것', reads: 'some', attention: 'other', compliance: 'obeys' },
     target: { want: '오늘도 이 사람을 굶기지 않고 보내는 것', attention: 'other' },
   },
+
+  asmr: {
+    client: { want: '자기 목소리가 누군가를 실제로 재웠다는 증거를 받는 것', reads: 'some', attention: 'self', compliance: 'obeys' },
+    target: { want: '이 소리가 언제 시작됐는지 정확한 날짜를 같이 찾아내는 것', attention: 'other' },
+  },
+  spice: {
+    client: { want: '자기가 먹는 걸 말리지 않고 끝까지 봐주는 사람 하나', reads: 'well', attention: 'self', compliance: 'drifts' },
+    target: { want: '이 사람이 다음 달에도 살아서 예약을 잡는 것', attention: 'other' },
+  },
+  recycle: {
+    client: { want: '자기가 지킨 규칙이 쓸모없는 짓이 아니었다는 말을 듣는 것', reads: 'none', attention: 'other', compliance: 'argues' },
+    target: { want: '누가 버린 걸 자기가 가져가도 되는 이유를 남한테서 듣는 것', attention: 'self' },
+  },
 };
 
 const READS = new Set(['none', 'some', 'well']);
@@ -1968,6 +2075,13 @@ const URGE = {
                 target: '누가 자기한테도 잘못이 아니라고 말해주는 것. 몸이 먼저 반응할 것 같다' },
   debt:       { client: '누가 자기 이름을 직함 없이 부르는 것',
                 target: '누구 등이라도 한 번 쓸어주고 싶다. 3년째 아무도 안 왔다' },
+
+  asmr:    { client: '누가 자기 옆에서 진짜로 잠드는 걸 보고 싶다',
+             target: '한 번만 아무 소리 없이 안겨 있어보고 싶다' },
+  spice:   { client: '누가 자기 손을 붙잡고 그만하라고 말려주면 좋겠다',
+             target: '차가운 손을 누가 싫어하지 않고 잡아주면 좋겠다' },
+  recycle: { client: '누가 자기 물건을 함부로 가져가도 화가 안 나는지 보고 싶다',
+             target: '누가 자기 작업실에서 안 나가고 밤을 새워주면 좋겠다' },
 };
 
 // ── 어디까지 할 수 있는가 ──────────────────────────────────────────────
@@ -2064,6 +2178,13 @@ const NERVE = {
                 target: '피해자 명단을 언론에 팔았다. 300만원이고 장부에는 운영비라고 적었다' },
   debt:       { client: '회수 실적 때문에 가족이 보는 앞에서 압박한 적 있다',
                 target: '보증 선 사람 이름을 아직 안 밝힌다. 밝히면 그쪽이 무너진다' },
+
+  asmr:    { client: '못 잤다는 댓글을 골라서 영상 소재로 썼다. 조회수가 세 배였다',
+             target: '이명이 심해진 날짜를 그 사람 업로드 일정대로 고쳐서 진료기록에 넣었다. 두 번 했다' },
+  spice:   { client: '응급실 간 날을 촬영분에 넣었다. 그 편이 제일 잘 나갔다',
+             target: '말리면 안 올 걸 알고 두 번은 그냥 보냈다. 검사비가 병원 실적이었다' },
+  recycle: { client: '신고 41건 중 아홉 건은 규정 위반이 아니었다. 그냥 얼굴을 보려고 넣었다',
+             target: '남의 유품을 두 번 가져다 썼다. 유족이 찾으러 왔을 때 모른다고 했다' },
 };
 
 // ── 그냥 이상한 버릇 ──────────────────────────────────────────────────
@@ -2201,6 +2322,13 @@ const WEAKNESS = {
                 target: '남의 말을 들을 때 고개를 너무 오래 끄덕인다. 상대가 불안해진다' },
   debt:       { client: '대화가 끊기면 상대 집 구조를 소리 내어 확인한다. 직업병이다',
                 target: '곤란하면 뭐라도 먹으라고 내민다. 지금 가진 게 없어도 내민다' },
+
+  asmr:    { client: '말하다 말고 상대 뒤쪽 소음을 먼저 짚는다. 냉장고 돌아가는 것까지 짚는다',
+             target: '문장 끝마다 지금 몇 헤르츠쯤 들린다고 덧붙인다. 아무도 안 물어봤다' },
+  spice:   { client: '아무 숫자나 스코빌로 환산해서 말한다. 날씨도 사람도 전부 스코빌이다',
+             target: '남의 말에 임상적으로는, 을 먼저 붙이고 시작한다. 회식 자리에서도 그런다' },
+  recycle: { client: '눈에 띄는 물건마다 재질을 소리 내어 분류한다. 남의 물건도 한다',
+             target: '남이 내려놓은 걸 보면 손이 먼저 나간다. 양해는 늘 나중에 구한다' },
 };
 
 // ── 성향 충돌 ─────────────────────────────────────────────────────────
@@ -2266,6 +2394,10 @@ const COLLISION = {
   'grade-fraud':             { redLine: 2, why: '왜 자기를 통과시켰는지를 캐려면 결국 그 등급표가 무슨 근거냐를 따지게 된다. 사람을 어떻게 등급으로 나누냐는 말이 그 끝이다' },
   pyramid:                   { redLine: 0, why: '자기가 미움받지 않는다는 확인을 받으려면 어떻게 여기까지 왔는지를 말해야 한다. 12년치 직급 이야기가 통째로 딸려 나온다' },
   debt:                      { redLine: 2, why: '11년이 사람 잡는 일이 아니었다는 말을 들으려면 이 건이 잘 끝났다는 걸 보여야 한다. 그러려면 이제 정리하셔야죠가 나온다' },
+
+  asmr:                      { redLine: 2, why: '자기 목소리가 누군가를 재웠다는 증거를 받으려면 결국 자기 목소리를 직접 들려주려는 시도로 간다' },
+  spice:                     { redLine: 1, why: '자기가 먹는 걸 끝까지 봐주는 사람을 원하니까 결국 촬영분을 직접 보여주려는 것으로 간다' },
+  recycle:                   { redLine: 2, why: '자기가 지킨 규칙이 쓸모없는 짓이 아니었다는 말을 들으려면 결국 규칙은 규칙이죠 쪽으로 간다' },
 };
 
 // ── 현실 장벽 ─────────────────────────────────────────────────────────
@@ -2325,6 +2457,10 @@ const BARRIER = {
   'grade-fraud':             '서류상의 위조가 드러나면 등급표는 8년 경력이 끝난다. 이미 여섯 번 눈감아줬다',
   pyramid:                   '구출식의 모임 회원 마흔 명이 정상위를 상대로 소송 중이다. 사귀면 모임이 해산된다',
   debt:                      '독촉만이 담당자인 채로 사귀면 회수가 무효가 되고 오분식의 면책 결정도 취소된다',
+
+  asmr:                      '윙윙의 이명은 백소음의 목소리 대역에서 악화된다. 곁에 두는 쪽을 택하면 윙윙은 남은 청력을 잃는다',
+  spice:                     '위성곤이 담당의인 채로 사귀면 면허가 정지된다. 담당을 넘기면 캡사이신은 그 병원 응급 시술 대상에서 빠진다',
+  recycle:                   '최분리가 넣은 신고 41건이 주워담의 전시 지원금 심사에 걸려 있다. 사귀면 이의신청이 전부 기각된다',
 };
 
 for (const c of COUPLES) {

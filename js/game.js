@@ -251,6 +251,19 @@ const SLIDES = [
     <span class="slide-warn">그런데 그 목록은 <b>의뢰인에게 넘어가지 않는다.</b> 취조실에서 직접 불러주지 않으면 그 인간은 모르는 채로 나가서 밟는다.</span>`,
   },
   {
+    art: '호감 100 &nbsp;→&nbsp; 그래도 결렬',
+    title: '좋아하게 만드는 것만으로는 안 된다',
+    body: `모든 의뢰에는 <b>앞을 막고 있는 것</b>이 하나씩 붙어 있다. 마음으로 치울 수 없는 것들이다 —
+    법, 계약, 소송, 발령, 자격, 겹치지 않는 근무표.<br>
+    <b>호감이 성공선을 넘어도 이걸 안 다루면 차인다.</b> 그것도 싫어서 차이는 게 아니라,
+    좋아하는데 못 사귀어서 차인다. 도장에는 「호감 초과 · 성사 불가」가 찍힌다.<br>
+    다뤘다고 치는 건 셋 중 하나다 — <b>누가 뚫을 방법을 말했거나</b>,
+    <b>대가를 감당하겠다고 했거나</b>, <b>둘이 정면으로 꺼내놓고 같이 곤란해졌거나.</b>
+    스치듯 언급하거나 농담으로 넘기는 건 안 친다.<br>
+    <span class="slide-warn">그리고 <b>의뢰인은 이걸 모른다.</b> 의뢰서와 계기판에 떠 있는 건 자네 화면이다.
+    자네가 지침이나 무전으로 꺼내주지 않으면, 저 둘은 신나게 놀다가 그대로 끝난다.</span>`,
+  },
+  {
     art: '의뢰서 &nbsp;·&nbsp; 심리 감정 &nbsp;·&nbsp; 작전 계기판',
     title: '자네가 아는 것과 의뢰인이 아는 것은 다르다',
     body: `정보는 두 겹이다. <b>자네가 보는 것</b>과 <b>그 인간 머릿속에 실제로 든 것</b>.<br>
@@ -353,6 +366,7 @@ function renderRosterCards() {
         <li>미확인 <b>${c.target.hiddenPrefs.length}</b></li>
         <li>금지 <b>${c.target.redLines.length}</b></li>
       </ul>
+      <p class="cc-barrier"><b>■ 앞을 막고 있는 것</b> ${escapeHtml(c.barrier)}</p>
       <div class="cc-flaws" title="의뢰인 심리 감정">${flawReport(c.client)
         .map(r => `<span class="flaw-tag lv-${r.level}">${escapeHtml(r.tag)}</span>`).join('')}</div>
       <div class="cc-btns">
@@ -661,6 +675,17 @@ function meterUpdate(s) {
   $('#btn-intervene').disabled = s.radioLeft <= 0;
   markVibeReach(s.reads);
 
+  // 앞을 막고 있는 것 — 처리 전에는 계속 붉게 떠 있고, 다뤄지는 순간 도장이 바뀐다.
+  const bx = $('#hud-barrier');
+  if (bx) {
+    bx.classList.toggle('cleared', !!s.barrierCleared);
+    $('#barrier-text').textContent = s.barrier || '';
+    $('#barrier-state').textContent = s.barrierCleared ? '처리됨' : '미처리';
+    $('#barrier-hint').textContent = s.barrierCleared
+      ? '한 번 다뤄진 건 다시 안 따진다. 이제 호감만 성공선을 넘기면 된다.'
+      : '대화에서 실제로 다뤄야 성사된다. 호감만 채우면 차인다 — 스치듯 언급하는 건 안 친다.';
+  }
+
   const t = state.couple.target;
   $('#intel-count').textContent = `대화 중 ${s.revealedCount}건 · 미확인 ${s.secretLeft}건 남음`;
   $('#intel-list').innerHTML =
@@ -897,7 +922,9 @@ async function gotoResult() {
     '<div class="turn-table-wrap"><table class="turn-table"><tr><th>턴</th><th>분위기</th><th>호감</th><th>누적 호감/분위기</th><th>해설</th></tr>' +
     r.state.history.map(h =>
       `<tr class="${h.dLove > 0 ? 'good' : h.dLove < 0 ? 'bad' : ''}">` +
-      `<td>${h.turn}${h.firstImpression ? '·착장' : ''}${h.revealed ? '·발견' : ''}</td>` +
+      `<td>${h.turn}${h.firstImpression ? '·착장' : ''}${h.revealed ? '·발견' : ''}` +
+      `${h.barrier ? '<b class="tt-barrier">·장벽</b>' : ''}` +
+      `${h.leverage && h.leverage !== 'none' ? `<b class="tt-lev">·압박</b>` : ''}</td>` +
       `<td>${h.dMood >= 0 ? '+' : ''}${h.dMood}</td>` +
       `<td>${h.dLove >= 0 ? '+' : ''}${h.dLove} <span class="dim">[${escapeHtml(h.tier)}] ${h.rawLove >= 0 ? '+' : ''}${h.rawLove}×${h.mult}</span></td>` +
       `<td>${h.love} / ${h.mood}</td>` +
@@ -950,7 +977,11 @@ function initRadio() {
       `<span class="dim">${escapeHtml(reach.note)}.</span><br>` +
       `<span class="dim"><b>이 명령은 ${escapeHtml(comply.tag)}:</b> ${escapeHtml(comply.desc)}</span><br>` +
       `<span class="dim">저 둘은 각자 원하는 게 따로 있다. 흐름을 바꾸고 싶으면 여기서 바꿔야 한다.</span><br>` +
-      `<span class="dim">상대가 질색: ${t.redLines.map(escapeHtml).join(' / ')} — 의뢰인은 지침으로 들은 것만 안다.</span>`;
+      `<span class="dim">상대가 질색: ${t.redLines.map(escapeHtml).join(' / ')} — 의뢰인은 지침으로 들은 것만 안다.</span><br>` +
+      // 무전은 장벽을 꺼내라고 시킬 수 있는 유일한 창구다. 그 자리에서 원문이 보여야 쓴다.
+      `<span class="radio-barrier ${snap.barrierCleared ? 'done' : ''}"><b>앞을 막고 있는 것 ` +
+      `(${snap.barrierCleared ? '처리됨' : '미처리'}):</b> ${escapeHtml(state.couple.barrier)}` +
+      `${snap.barrierCleared ? '' : ' — 이걸 대화에서 실제로 다루지 않으면 호감이 얼마든 차인다.'}</span>`;
     $('#modal-radio').classList.remove('hidden');
     $('#radio-input').value = '';
     $('#radio-input').focus();

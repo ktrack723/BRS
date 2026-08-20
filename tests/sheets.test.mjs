@@ -386,8 +386,11 @@ test('턴별 판정 지시에도 양방향 의심이 걸려 있다', async () =>
   const P = await import('../js/prompts.js');
   // 분포 가드는 시스템 프롬프트에도 있지만, 실제 판단이 일어나는 자리는 매 턴의 사용자 메시지다.
   const u = P.judgeUser('...', '클라이언트 발언', '상대 반응', ['nudge', 'nudge', 'nudge', 'nudge']);
-  assert.match(u, /if warm-or-above is already past half/, '위쪽 의심이 없다');
-  assert.match(u, /if it is nudge after nudge after nudge, you are dodging/, '아래쪽 의심이 없다');
+  // 가드는 '절반'이라는 고정 숫자를 버리고 시스템 프롬프트의 등급 예산을 참조한다 —
+  // 판 길이가 난이도마다 다르므로 문턱도 그 판을 따라가야 한다.
+  assert.match(u, /against the warm-or-above budget in your standing orders/, '예산 참조가 없다');
+  assert.match(u, /over budget and still climbing/, '위쪽 의심이 없다');
+  assert.match(u, /nudge after nudge after nudge means you are dodging/, '아래쪽 의심이 없다');
 });
 
 // ── 네 요소가 서로 다른 말을 하는가 ───────────────────────────────────
@@ -668,7 +671,7 @@ test('난이도가 한쪽으로 쏠려 있지 않다', () => {
 });
 
 // ── 좋아해도 못 사귄다 ────────────────────────────────────────────────
-test('44건 전부에 구체적인 현실 장벽이 있다', () => {
+test('의뢰 대장 전건에 구체적인 현실 장벽이 있다', () => {
   for (const c of COUPLES) {
     assert.ok(c.barrier, `${c.id}: 현실 장벽이 없다`);
     assert.ok(c.barrier.length >= 25, `${c.id}: 장벽이 너무 뭉뚱그려져 있다 — ${c.barrier}`);
@@ -688,7 +691,14 @@ test('장벽과 압박이 심판에게 실제로 전달된다', async () => {
     const sys = P.judgeSystem(c);
     assert.ok(sys.includes(c.barrier), `${c.id}: 심판이 장벽을 모른다`);
     assert.match(sys, /THE THING IN THE WAY/, '장벽 블록 표제가 없다');
-    assert.match(sys, /Mentioning it in passing is not dealing with it/, '스치듯 언급도 통과된다');
+    // 문턱이 조여졌다: 상황을 같이 안타까워하는 것만으로는 안 되고,
+    // 대가를 치를 사람이 그 자리에서 답을 해야 한다.
+    assert.match(sys, /a passing mention, a joke past it/, '스치듯 언급도 통과된다');
+    assert.match(sys, /the two of them feeling bad about it together, sympathising/,
+      '같이 안타까워하는 것만으로 통과된다');
+    assert.match(sys, /the person who\s+would pay it answered it/, '대가를 치를 사람의 응답을 안 본다');
+    // 그래도 양방향이어야 한다 — 한쪽만 조이면 심판은 안전한 쪽(false)으로 도망친다.
+    assert.match(sys, /Do not withhold it either/, '장벽 판정 가드가 한쪽만 걸려 있다');
     assert.match(sys, /visibly gave ground to it/, '압박의 판정 기준이 없다');
     assert.match(sys, /someone can be\s+cornered while liking the client less every minute/,
       '압박과 호감이 같이 갈 수 있다는 게 안 적혀 있다');

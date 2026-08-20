@@ -251,7 +251,11 @@ async function playOne(coupleId, profile) {
     judgments: res.state.history.map(h => ({
       tier: h.tier, moodDelta: h.rawMood, loveDelta: h.rawLove,
       revealed: h.revealed || '', firstImpression: !!h.firstImpression,
+      barrier: !!h.barrier, leverage: h.leverage || 'none',
     })),
+    // 왜 이렇게 끝났는가. 호감만 봐서는 차임과 결렬이 구분되지 않는다.
+    reason: res.verdict.reason, barrierCleared: !!res.state.barrierCleared,
+    leverageTotal: res.state.leverage || 0, casualty: res.state.casualty,
     rawLove: res.state.history.map(h => h.rawLove),
     rawMood: res.state.history.map(h => h.rawMood),
     curve: res.state.history.map(h => [h.love, h.mood]),

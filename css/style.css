@@ -712,6 +712,28 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 #intel-list .unknown { color: var(--ink-soft); }
 #redline-list .mine { color: #6b1519; }
 
+/* 계기판의 장벽 칸 — 판을 제일 자주 끝내는 조건이라 판 내내 떠 있어야 한다.
+   지뢰(붉은색)와 구분되게 서류 청색 계열로 두되, 미처리 동안은 눈에 걸리게 둔다. */
+.hud-barrier {
+  margin: var(--s2) 0 0;
+  padding: var(--s1) var(--s2);
+  border: 1px solid var(--stamp);
+  border-left-width: 4px;
+  background: #f5e9e7;
+}
+.hud-barrier h4 {
+  display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2);
+  margin: 0 0 4px;
+}
+.hud-barrier p { margin: 0; font-size: var(--fs-sm); line-height: 1.5; }
+.hud-barrier .dim { font-size: var(--fs-xs); margin-top: 4px; }
+.barrier-state {
+  font-family: var(--font-mono); font-size: var(--fs-xs); font-weight: 700;
+  padding: 1px 6px; border: 1px solid var(--stamp); color: #6b1519; background: #fff;
+}
+.hud-barrier.cleared { border-color: var(--ok); background: #e9eee4; }
+.hud-barrier.cleared .barrier-state { border-color: var(--ok); color: #24401f; }
+
 /* 기록물 인용 블록 */
 .chat-window {
   height: min(62vh, 460px); overflow-y: auto;
@@ -1074,6 +1096,14 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 .flaw-tag.lv-bad { border-color: var(--stamp); background: #f0e0dd; color: #6b1519; }
 
 /* 로스터 카드 하단 결함 배지 — 조합을 고르기 전에 보여야 한다 */
+/* 대장 카드의 장벽 한 줄 — 맡기 전에 보여야 한다. 의뢰서를 안 열어보는 플레이어가 대부분이다. */
+.cc-barrier {
+  margin: var(--s1) 0 0; padding: 4px var(--s1);
+  border-left: 3px solid var(--stamp); background: #f5e9e7;
+  font-size: var(--fs-xs); line-height: 1.45; color: var(--ink-mid);
+}
+.cc-barrier b { color: var(--stamp-deep); }
+
 .cc-flaws { display: flex; flex-wrap: wrap; gap: 4px; margin: var(--s2) 0 0; }
 
 /* 요원은 아는데 의뢰인은 모르는 정보. 이 경계가 이 게임의 핵심이다 */
@@ -1175,3 +1205,16 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 }
 /* 넘어본 선은 나머지와 결이 다르다. 이건 자랑이 아니라 약점이다 */
 .flaw-want.dirty { border-left: 3px solid var(--stamp); padding-left: var(--s2); }
+
+/* 사후 턴표에서 판을 끝낸 조건을 짚어준다 — 어느 턴에 장벽이 다뤄졌고 어느 턴에 압박이 먹혔는지. */
+.turn-table .tt-barrier { color: var(--ok); }
+.turn-table .tt-lev { color: var(--stamp-deep); }
+
+/* 무전 모달의 장벽 줄 — 요원이 지시를 쓰는 바로 그 자리에서 보여야 쓴다. */
+.radio-barrier {
+  display: block; margin-top: 6px; padding: 4px var(--s1);
+  border-left: 3px solid var(--stamp); background: #f5e9e7; font-size: var(--fs-sm); line-height: 1.5;
+}
+.radio-barrier b { color: var(--stamp-deep); }
+.radio-barrier.done { border-left-color: var(--ok); background: #e9eee4; }
+.radio-barrier.done b { color: #24401f; }

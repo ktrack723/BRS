@@ -102,6 +102,29 @@
 // 다만 이제 **호감은 더 이상 주된 관문이 아니다.** 실측에서 결렬의 대부분이 barrier다 —
 // 게이지는 다 찼는데 아무도 앞을 막은 얘기를 안 꺼낸 것이다. 그게 의도한 모양이다.
 //
+// ── 판이 길어진 뒤의 재밸런싱 (60/72/78) ────────────────────────
+// 라이브 18판(커플 3 × 프로필 3 × 2회)을 다시 재고 나서 알게 된 것:
+//
+//   **호감으로는 준비 수준이 안 갈린다.** 호감 분포가 ace 46~79 · good 38~92 · none 52~78로
+//   완전히 겹친다. 유능한 에이전트 둘을 14~19턴 마주 앉히면 대화가 잘 굴러가고, 호감은
+//   대화 품질을 재므로 결국 높게 끝난다. 프롬프트를 어느 쪽으로 조여도 이건 안 뒤집힌다 —
+//   인물을 차갑게 만들면 무너질 방어선이 늘어나서 breakthrough가 오히려 더 나온다.
+//
+//   갈리는 건 **장벽**이다. 같은 18판에서 ace 3/3 처리 · good 0/3 · none 1/3.
+//   의뢰인도 상대도 장벽을 모른다. 요원만 의뢰서에서 읽는다. 그래서 준비가 사는 자리는
+//   "얼마나 좋아하게 만드는가"가 아니라 "앞을 막은 걸 꺼내게 만드는가"다.
+//
+// 그래서 성공선을 실측 중앙값 근처로 올렸다 — 호감을 장식이 아니라 진짜 관문으로 되돌리되,
+// 판을 끝내는 건 여전히 장벽이게 둔다.
+//
+//   쉬움 50 → 66 · 보통 56 → 72 · 헬 66 → 76
+//
+// 27판(커플 3 × 프로필 3 × 3회) 실측 중앙값은 쉬움 72 · 보통 75 · 헬 66이었다.
+// **호감은 난이도별로 안 갈린다.** gainScale 2.1이 헬의 가혹한 출발과 감쇠를 상쇄해서,
+// 숫자만 보면 헬이 제일 안 어려워 보인다. 그러니 성공선으로 난이도를 표현하려 들면 안 된다 —
+// 난이도는 이미 startLove·moodFloor·감쇠·lossScale과 조합 자체가 지고 있다.
+// 성공선은 실측 중앙 구간에 놓고, 눈에 읽히도록만 완만하게 올린다.
+//
 //    재계측: ANTHROPIC_API_KEY=... node tests/live.mjs → node tests/sim.mjs <결과> --grid
 export const DIFFICULTIES = {
   '쉬움': {
@@ -109,7 +132,7 @@ export const DIFFICULTIES = {
     textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,   // 기획서 규정: 문자 1회, 대면 2회
     startLove: 10, startMood: 55,
-    threshold: 50, moodFloor: 25,
+    threshold: 66, moodFloor: 25,
     loveDecay: 0.0,   // 턴마다 식는 호감
     moodDrift: 0.5,   // 턴마다 흐르는 분위기 (양수면 알아서 풀린다)
     gainScale: 1.7, lossScale: 0.85,
@@ -119,7 +142,7 @@ export const DIFFICULTIES = {
     textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,
     startLove: 6, startMood: 46,
-    threshold: 56, moodFloor: 33,
+    threshold: 72, moodFloor: 33,
     loveDecay: 0.3,
     moodDrift: -0.1,
     gainScale: 1.7, lossScale: 1.0,
@@ -129,7 +152,7 @@ export const DIFFICULTIES = {
     textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,
     startLove: 3, startMood: 38,
-    threshold: 66, moodFloor: 40,
+    threshold: 76, moodFloor: 40,
     loveDecay: 0.6,
     moodDrift: -0.7,
     gainScale: 2.1, lossScale: 1.15,
@@ -313,6 +336,8 @@ export function applyTurn(state, d, judge, opts = {}) {
     mood: Math.round(s.mood), love: Math.round(s.love),
     rawMood: md, rawLove: ld, tier, judgeTier: judge.tier || '?', mult: s.lastDelta.mult,
     revealed: fresh, firstImpression: !!opts.firstImpression,
+    // 장벽·압박은 이제 판을 끝내는 조건이다. 턴 기록에 안 남으면 사후에 왜 졌는지 못 짚는다.
+    barrier: judge.barrierAddressed === true, leverage: judge.leverage || 'none',
     reason: judge.reason || '', vibe: s.vibe,
   });
   return s;
@@ -417,8 +442,18 @@ export function debrief(state, d, v, couple, transcript = '') {
     value: `${state.revealed.length}건`,
     ok: state.revealed.length > 0,
     text: state.revealed.length === 0
-      ? '대화 내내 상대의 새로운 면이 한 번도 안 나왔다. 아홉 턴을 인사만 주고받은 셈이다.'
+      ? `대화 내내 상대의 새로운 면이 한 번도 안 나왔다. ${state.history.length}턴을 인사만 주고받은 셈이다.`
       : state.revealed.slice(0, 4).join(' · '),
+  });
+  // 장벽은 이 게임에서 판을 제일 자주 끝내는 조건이다. 진 판에만 알려주면
+  // 플레이어는 그런 게 있다는 걸 지고 나서야 배운다. 이긴 판에도 적어준다.
+  notes.push({
+    key: 'barrier', label: '앞을 막고 있던 것',
+    value: state.barrierCleared ? '대화에서 다뤄짐' : '끝내 안 나옴',
+    ok: !!state.barrierCleared,
+    text: state.barrierCleared
+      ? `${couple.barrier} — 이 얘기가 실제로 테이블에 올라왔다. 그래서 성사 자격이 생겼다.`
+      : `${couple.barrier} — 아무도 이 얘기를 꺼내지 않았다. 호감이 얼마든 이걸 두고는 이어질 수 없다.`,
   });
   notes.push({
     key: 'secrets', label: '상대가 감춰둔 이야기',

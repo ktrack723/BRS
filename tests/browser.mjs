@@ -392,6 +392,10 @@ try {
   await page.screenshot({ path: `${SHOTS}/3-roster.png`, fullPage: true });
 
   // 의뢰서 상세 모달
+  const cardBar = await page.evaluate(() =>
+    document.querySelector('.couple-card .cc-barrier')?.textContent || '');
+  check('대장 카드에 앞을 막고 있는 것이 인쇄된다', cardBar.length > 10, cardBar.slice(0, 44));
+
   await page.locator('.couple-card .cc-detail').first().click();
   await page.waitForSelector('#modal-dossier:not(.hidden)');
   const dossier = await page.textContent('#dossier-box');
@@ -569,6 +573,19 @@ try {
   check('시작 시점부터 공기 한 줄이 떠 있다',
     (await page.textContent('#vibe-text')).length > 3, await page.textContent('#vibe-text'));
 
+  // 앞을 막고 있는 것 — 이제 판을 제일 자주 끝내는 조건이다. 의뢰서 모달이 아니라
+  // 계기판에 판 내내 떠 있어야 한다. 안 보이면 플레이어는 그런 게 있는 줄도 모르고 논다.
+  const hudBar = await page.evaluate(() => ({
+    barrier: window.__game.state.couple.barrier,
+    text: document.querySelector('#hud-barrier #barrier-text')?.textContent || '',
+    state: document.querySelector('#hud-barrier #barrier-state')?.textContent || '',
+    hint: document.querySelector('#hud-barrier #barrier-hint')?.textContent || '',
+    visible: !!document.querySelector('#hud-barrier')?.offsetParent,
+  }));
+  check('계기판에 앞을 막고 있는 것이 떠 있다', hudBar.visible && hudBar.text === hudBar.barrier, hudBar.text.slice(0, 40));
+  check('계기판이 장벽 처리 여부를 표시한다', /미처리|처리됨/.test(hudBar.state), hudBar.state);
+  check('계기판이 호감만으로는 안 된다고 알려준다', /차인다/.test(hudBar.hint));
+
   // 무전 개입
   await page.waitForFunction(() => !document.querySelector('#btn-intervene').disabled, null, { timeout: ms(60000) });
   await page.click('#btn-intervene');
@@ -577,6 +594,8 @@ try {
   const redOf = await page.evaluate(() => window.__game.state.couple.target.redLines);
   check('무전 모달이 지금 공기를 보여준다', /지금 공기/.test(radioCtx), radioCtx.slice(0, 40));
   check('무전 모달이 상대의 질색 항목을 다시 보여준다', redOf.every(r => radioCtx.includes(r)));
+  check('무전 모달이 앞을 막고 있는 것을 다시 보여준다',
+    radioCtx.includes(await page.evaluate(() => window.__game.state.couple.barrier)));
   check('무전 모달이 대화를 멈춰둔다', await page.evaluate(() => window.__game.state.engine.paused === true));
   await page.fill('#radio-input', '지금 상대가 말하다 말았다. 그게 뭐였냐고 물어봐라.');
   await page.click('#btn-radio-send');
