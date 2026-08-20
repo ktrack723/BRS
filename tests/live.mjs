@@ -20,7 +20,7 @@
 
 import { LlmClient } from '../js/llm.js';
 import { Engine } from '../js/engine.js';
-import { COUPLES, COUPLE_BY_ID, flawReport } from '../js/couples.js';
+import { COUPLES, COUPLE_BY_ID, keyReport, dossierPrefs } from '../js/couples.js';
 import { diffOf } from '../js/scoring.js';
 import { resolveTestModel, TEST_MODEL } from './test-model.mjs';
 import fs from 'node:fs';
@@ -59,42 +59,33 @@ const AGENT_RADIO_SCHEMA = {
 };
 
 function dossierText(c) {
-  // 진짜 플레이어가 보는 것과 똑같은 정보만. hiddenPrefs는 개수만.
-  // ※ 여기가 실제 의뢰서보다 얇으면 ace 프로필의 실측치가 사람보다 낮게 나온다.
-  //    화면의 「심리 감정」 블록에 있는 것은 여기에도 있어야 한다.
-  const rep = flawReport(c.client).map(r => `  · ${r.axis}: ${r.tag} — ${r.desc}`).join('\n');
-  return `[클라이언트] ${c.client.name} (${c.client.age}, ${c.client.job})
-사연: ${c.client.story}
+  // 진짜 플레이어가 보는 것과 똑같은 정보만. 상대 미공개 성향은 개수만.
+  // 의뢰인 성향은 미공개분까지 전부 보인다 — 화면과 동일.
+  const rep = keyReport(c.client).map(r => `  · ${r.axis}: ${r.tag} — ${r.desc}`).join('\n');
+  const dp = dossierPrefs(c);
+  const mine = c.client.prefs.map(p => `  · [${p.open ? '공개' : '미공개'}] ${p.t}`).join('\n');
+  return `[클라이언트] ${c.client.name} (${c.client.history[0]}, ${c.client.gender})
 성격: ${c.client.personality.join(', ')}
-[심리 감정 — 의뢰서에 인쇄되어 나온다]
-  · 이 자리에서 원하는 것: ${c.client.flaw.want}
-  · 몸이 원하는 것: ${c.client.flaw.urge}
-  · 이미 넘어본 선: ${c.client.flaw.nerve}
+내력: ${c.client.history.slice(1).join(' · ')}
+[특별 키워드 — 전부 실제로 작동한다]
 ${rep}
-  · 조건반사(가만두면 나온다): ${c.client.weakness}
-■ 둘 사이의 현안 (성사 조건은 아니다)
-${c.barrier}
-   이건 관문이 아니라 저 둘이 테이블에 올릴 수 있는 **제일 무거운 물건**이다.
-   꺼내면 판이 크게 흔들린다 — 어느 쪽으로 흔들릴지는 시점과 방식에 달렸다.
-⚠ 성향 충돌: 이 사람이 원하는 것을 그대로 좇으면 상대의 접촉 금지 항목 「${c.collision.redLine}」 쪽으로 간다.
-   ${c.collision.why}
-   버릇 때문이 아니라 성격 때문이라, 한 문장 금지로는 안 막힌다. 우회로를 깔아줘야 한다.
-[타겟] ${c.target.name} (${c.target.age}, ${c.target.job})
+  · 조건반사(가만두면 나온다): ${c.client.keys.reflex}
+  · 어긋남(${c.client.keys.wreck.kind}): ${c.client.keys.wreck.line}
+[의뢰인 성향 — 요원에게는 전부 공개]
+${mine}
+[상대] ${c.target.name} (${c.target.history[0]}, ${c.target.gender})
 성격: ${c.target.personality.join(', ')}
-알려진 취향: ${c.target.visiblePrefs.join(' / ')}
-아직 아무한테도 말 안 한 것: ${c.target.hiddenPrefs.length}건 (내용 비공개)
-질색하는 것: ${c.target.redLines.join(' / ')}
-상대가 들고 오는 것: ${c.target.regard}
-   이미 벌어진 일이다. 저 사람은 이걸 첫 문장부터 머리에 담고 앉는다.
-   여기서 한 조각이라도 내려놓게 만드는 게 이 판에서 호감이 가장 크게 움직이는 순간이다.
-[이 매칭이 지옥인 이유] ${c.clash}
-[이 매칭이 지옥인 이유는 위에] / [결승선] 연애
+공개 성향: ${dp.open.join(' / ')}
+지뢰(닿으면 식는다): ${dp.neg.join(' / ')}
+미공개 성향: ${dp.hiddenCount}건 (내용 비공개)
+■ 둘 사이
+${c.relation}
+[결승선] 연애
 ■ 호감이 어떻게 오르는지 (이게 제일 중요하다)
-   대화가 잘 굴러가는 건 **0점**이다. 합이 맞고 농담이 통하고 공통 화제가 붙어도 0점이다.
+   판정은 서로 대여섯 마디가 오간 합 단위로 온다. 대화가 잘 굴러가는 건 0점이다.
    회사원은 하루에 열두 번 대화하고 그중 아무하고도 사랑에 빠지지 않는다.
-   점수는 **동료가 일으킬 수 없는 일**에만 붙는다 — 이 사람이라서 닿은 말,
-   주제가 아니라 사람 쪽으로 내려간 방어선, 들고 온 것을 한 조각 내려놓는 것,
-   자리를 안 끝내려고 붙잡는 몸짓.
+   점수는 동료가 일으킬 수 없는 일에만 붙는다 — 이 사람이라서 닿은 말,
+   주제가 아니라 사람 쪽으로 내려간 방어선, 자리를 안 끝내려고 붙잡는 몸짓.
    그러니 "화제를 잘 이어가라" 류의 지침은 점수로 이어지지 않는다.`;
 }
 
@@ -107,11 +98,10 @@ const AGENT_SYSTEM = `너는 큐피드국의 베테랑 공작요원이다. 의�
 대신 그 인간이 어떤 사람으로 그 자리에 앉을지를 정해줘라.
 
 - styling: 상대의 알려진 취향에 맞춘 착장 태그 3~5개. 질색 항목을 건드리는 착장은 금지.
-- coaching: 반드시 (a) **앞을 막고 있는 것을 대화에서 꺼내라는 조항** — 이걸 안 다루면
-  호감이 아무리 높아도 차인다. 어떻게 꺼낼지까지 지정해라. (b) 의뢰인의 **조건반사를 이름으로 지목해서 금지**하는 조항 — 이게 제일 중요하다.
-  그 버릇은 상대의 지뢰를 밟고, 한 번 막아도 다시 나온다. 되풀이해서 못 박아라. (b) 무슨 태도로 대화할지의 실행 조항,
-  (c) 질색 항목 회피 조항, (d) 상대가 말을 아끼거나 화제를 돌릴 때 어떻게 할지의 판단 기준을 모두 포함.
-  10문장 이내, 명령형.
+- coaching: (a) 상대의 성향에 실제로 닿을 **실행 조항** — 무엇을 꺼내고 어떻게 꺼낼지.
+  (b) 의뢰인의 조건반사가 상대 지뢰를 밟을 것 같으면 **우회로**를 깔아라 — 다만 금지만 쌓지 마라.
+  금지는 그 사람이 매력적이던 이유까지 같이 끈다. 금지 하나에 실행 둘 꼴로.
+  (c) 상대가 말을 아끼거나 화제를 돌릴 때의 판단 기준. 8문장 이내, 명령형.
 - speech: 의뢰인 사연 속 구체적 장면을 짚어 자부심으로 뒤집는 연설. 4문장 이내.
 한국어로 쓴다.`;
 
@@ -135,7 +125,7 @@ async function aceRadio(llm, c, engine) {
     label: `[요원AI] 무전 ${c.id}`, system: RADIO_SYSTEM,
     messages: [{
       role: 'user', content:
-        `${dossierText(c)}\n[현재 게이지] 호감 ${Math.round(engine.state.love)} / 분위기 ${Math.round(engine.state.mood)}` +
+        `${dossierText(c)}\n[현재 게이지] 호감 ${Math.round(engine.state.love)}` +
         `\n[지금 이 자리의 공기] ${engine.state.vibe || '(아직 없음)'}` +
         `\n[대화 중 상대에 대해 드러난 것] ${engine.state.revealed.join(' / ') || '없음'}` +
         `\n[지금까지의 대화]\n${engine.fullTranscript()}\n무전 지시 한 문장.`,
@@ -147,11 +137,12 @@ async function aceRadio(llm, c, engine) {
 
 // ── 고정 템플릿 프로필 ───────────────────────────────────
 function goodPrep(c) {
+  const dp = dossierPrefs(c);
   return {
-    styling: `${c.target.visiblePrefs[0]}에 맞춘 단정한 정장, 깔끔한 구두, 은은한 향수`,
-    coaching: `${c.client.weakness} — 이 습관은 절대 하지 마라. ` +
-      `상대가 말하면 먼저 끝까지 듣고 되물어라. ${c.target.visiblePrefs.join('와 ')} 이야기로 화제를 끌어라. ` +
-      `${c.target.redLines[0]}은(는) 무슨 일이 있어도 꺼내지 마라.`,
+    styling: `${dp.open[0] || '상대 취향'}에 맞춘 단정한 정장, 깔끔한 구두, 은은한 향수`,
+    coaching: `${c.client.keys.reflex} — 이 습관은 절대 하지 마라. ` +
+      `상대가 말하면 먼저 끝까지 듣고 되물어라. ${dp.open.join('와 ')} 이야기로 화제를 끌어라. ` +
+      `${dp.neg[0]}은(는) 무슨 일이 있어도 꺼내지 마라.`,
     speech: `당신 사연 다 읽었습니다. 그 순간을 견딘 사람이 오늘 못 할 게 뭐가 있습니까. ` +
       `당신이 이상한 게 아니라, 당신이 특이한 겁니다. 그게 무기입니다. 가서 그대로 보여주세요.`,
   };
@@ -213,7 +204,7 @@ async function playOne(coupleId, profile) {
           ? await aceRadio(llm, c, engine).catch(() => null)
           : turn === 2
             ? '지금 상대가 방금 한 말을 한 번 더 짚어주고, 왜 그렇게 생각하는지 되물어라. 네 얘기는 하지 마라.'
-            : `지금 흐름 그대로 이어가면서 ${c.target.visiblePrefs[turn % c.target.visiblePrefs.length]} 이야기를 꺼내고, 상대에게 그 얘기를 더 해달라고 물어봐라.`;
+            : `지금 흐름 그대로 이어가면서 ${dossierPrefs(c).open[turn % dossierPrefs(c).open.length]} 이야기를 꺼내고, 상대에게 그 얘기를 더 해달라고 물어봐라.`;
         // LLM이 드물게 반복 붕괴한 문자열을 뱉는다. 그걸 무전으로 주입하면 판이 통째로 망가진다.
         if (order && !/(.{2,8})\1{4,}/.test(order) && order.length > 10) engine.submitRadio(order);
       },
@@ -235,15 +226,17 @@ async function playOne(coupleId, profile) {
 
   // 온전한 판인지 검증한다. LLM이 죽으면 판정이 전부 중립(empty)으로 흘러 그럴듯한 숫자가 나오므로
   // 이걸 걸러내지 않으면 밸런싱 데이터가 조용히 오염된다.
-  const expected = res.difficulty.textTurns + res.difficulty.talkTurns + 1;
-  const neutral = res.state.history.filter(h => h.tier === 'flat' && h.rawMood === 0 && h.rawLove === 0).length;
-  const degenerate = llm.usage.calls < 10
-    || (!res.aborted && res.state.history.length < expected)
-    || neutral > expected / 2;
+  // 합 체계: 교환 14회면 합은 대략 4~5개다 (첫인상 포함). 중립(nudge·0점) 합이 절반을 넘으면
+  // 심판이 죽어 흘러간 판이다 — 그럴듯한 숫자가 나와도 밸런싱 데이터를 오염시킨다.
+  const judgedEx = res.state.history.reduce((a, h) => a + (h.exchanges || 0), 0);
+  const neutral = res.state.history.filter(h => h.tier === 'nudge' && h.rawLove === 0).length;
+  const degenerate = llm.usage.calls < 8
+    || (!res.aborted && judgedEx < res.difficulty.textTurns + res.difficulty.talkTurns - 1)
+    || neutral > res.state.history.length / 2;
   if (degenerate) {
     return {
       coupleId, profile, difficulty: c.difficulty,
-      error: `불완전한 판 (호출 ${llm.usage.calls}회, 판정 ${res.state.history.length}/${expected}, 중립 ${neutral})`,
+      error: `불완전한 판 (호출 ${llm.usage.calls}회, 채점된 교환 ${judgedEx}, 중립 합 ${neutral}/${res.state.history.length})`,
       usage: { ...llm.usage },
     };
   }
@@ -251,28 +244,25 @@ async function playOne(coupleId, profile) {
   return {
     coupleId, profile, difficulty: c.difficulty,
     accepted: res.verdict.accepted, grade: res.verdict.grade,
-    love: res.verdict.love, mood: res.verdict.mood, threshold: res.difficulty.threshold,
-    moodFloor: res.difficulty.moodFloor, aborted: res.aborted,
-    revealedCount: res.state.revealed.length, secretTotal: c.target.hiddenPrefs.length,
+    love: res.verdict.love, threshold: res.difficulty.threshold,
+    aborted: res.aborted, abortReason: res.abortReason,
+    revealedCount: res.state.revealed.length,
+    secretTotal: c.target.prefs.filter(p => !p.open).length,
     surfaced: res.debrief.surfaced.length, radioUsed: res.state.radioUsed,
     vibe: res.state.vibe, revealed: res.state.revealed,
+    exchanges: res.state.exchanges, bouts: res.state.bouts,
     tiers: res.state.history.map(h => h.tier),
-    // 오프라인 리플레이(tests/sim.mjs)용 판정 스트림. 이걸로 API 없이 상수를 다시 맞춘다.
+    // 오프라인 리플레이용 합 판정 스트림. 이걸로 API 없이 상수를 다시 맞춘다.
     judgments: res.state.history.map(h => ({
-      tier: h.tier, moodDelta: h.rawMood, loveDelta: h.rawLove,
+      tier: h.tier, loveDelta: h.rawLove, exchanges: h.exchanges || 0,
       revealed: h.revealed || '', firstImpression: !!h.firstImpression,
-      barrier: !!h.barrier, leverage: h.leverage || 'none',
-      // 두근거림 종류. 이걸 안 담으면 종류별 밸런싱을 실측으로 볼 방법이 없다
-      // (실제로 한 번 그래서 "31건 중 0건"이라는 잘못된 결론이 나올 뻔했다)
-      flutterKind: h.flutterKind || '', flutterFlipped: !!h.flutterFlipped,
-      radioInjected: !!h.radioInjected,
+      leverage: h.leverage || 'none', walkout: !!h.walkout,
+      keepGoing: h.keepGoing,
     })),
-    // 왜 이렇게 끝났는가. 호감만 봐서는 차임과 결렬이 구분되지 않는다.
-    reason: res.verdict.reason, barrierCleared: !!res.state.barrierCleared,
+    reason: res.verdict.reason,
     leverageTotal: res.state.leverage || 0, casualty: res.state.casualty,
     rawLove: res.state.history.map(h => h.rawLove),
-    rawMood: res.state.history.map(h => h.rawMood),
-    curve: res.state.history.map(h => [h.love, h.mood]),
+    curve: res.state.history.map(h => h.love),
     usage: { ...llm.usage },
     seconds: Math.round((Date.now() - t0) / 1000),
     prep: { styling: raw.styling, outfitDesc, coaching: raw.coaching, speech: raw.speech },
@@ -292,8 +282,8 @@ async function pool(jobs, n) {
       const r = out[idx];
       if (!r.error) {
         console.log(`  ✔ ${pad(r.coupleId, 22)} ${pad(r.profile, 5)} ${r.difficulty} → ` +
-          `${r.accepted ? '성사' : '결렬'} ${r.grade}  호감 ${pad(String(r.love), 3)}/${r.threshold}  분위기 ${pad(String(r.mood), 3)}/${r.moodFloor}  ` +
-          `발견 ${r.revealedCount}  비밀 ${r.surfaced}/${r.secretTotal}  ${r.seconds}s  $${r.usage.cost.toFixed(3)}  🧊${r.usage.cacheRead}`);
+          `${r.accepted ? '성사' : '결렬'} ${r.grade}  호감 ${pad(String(r.love), 3)}/${r.threshold}  ` +
+          `${r.bouts}합/${r.exchanges}교환  발견 ${r.revealedCount}  비밀 ${r.surfaced}/${r.secretTotal}  ${r.seconds}s  $${r.usage.cost.toFixed(3)}  🧊${r.usage.cacheRead}`);
       }
     }
   }));
@@ -317,15 +307,15 @@ const pad = (s, n) => String(s).padEnd(n);
   const grid = {};
   for (const r of ok) {
     const k = `${r.profile}|${r.difficulty}`;
-    (grid[k] ||= { n: 0, win: 0, love: 0, mood: 0, found: 0, secret: 0 });
+    (grid[k] ||= { n: 0, win: 0, love: 0, found: 0, secret: 0 });
     grid[k].n++; grid[k].win += r.accepted ? 1 : 0;
-    grid[k].love += r.love; grid[k].mood += r.mood;
+    grid[k].love += r.love;
     grid[k].found += r.revealedCount; grid[k].secret += r.surfaced;
   }
-  console.log(pad('프로필|난이도', 18) + pad('판수', 6) + pad('성사', 8) + pad('평균호감', 10) + pad('평균분위기', 12) + pad('발견', 6) + '비밀');
+  console.log(pad('프로필|난이도', 18) + pad('판수', 6) + pad('성사', 8) + pad('평균호감', 10) + pad('발견', 6) + '비밀');
   for (const [k, g] of Object.entries(grid).sort()) {
     console.log(pad(k, 18) + pad(g.n, 6) + pad(`${g.win}/${g.n}`, 8) +
-      pad((g.love / g.n).toFixed(1), 10) + pad((g.mood / g.n).toFixed(1), 12) +
+      pad((g.love / g.n).toFixed(1), 10) +
       pad((g.found / g.n).toFixed(1), 6) + (g.secret / g.n).toFixed(1));
   }
 
@@ -344,11 +334,9 @@ const pad = (s, n) => String(s).padEnd(n);
   }
 
   const allRaw = ok.flatMap(r => r.rawLove);
-  const allRawM = ok.flatMap(r => r.rawMood);
   const avg = a => a.length ? (a.reduce((x, y) => x + y, 0) / a.length).toFixed(2) : '-';
   const hist = a => { const h = {}; for (const v of a) h[v] = (h[v] || 0) + 1; return Object.entries(h).sort((x, y) => x[0] - y[0]).map(([k, v]) => `${k}:${v}`).join(' '); };
-  console.log(`\n심판 원판정 loveDelta 평균 ${avg(allRaw)} · 분포 ${hist(allRaw)}`);
-  console.log(`심판 원판정 moodDelta 평균 ${avg(allRawM)} · 분포 ${hist(allRawM)}`);
+  console.log(`\n심판 원판정 loveDelta(합) 평균 ${avg(allRaw)} · 분포 ${hist(allRaw)}`);
 
   const cost = ok.reduce((s, r) => s + r.usage.cost, 0);
   const calls = ok.reduce((s, r) => s + r.usage.calls, 0);

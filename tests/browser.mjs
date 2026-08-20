@@ -117,14 +117,14 @@ function installMockLlm() {
     }
     if (label.startsWith('판정') || label.startsWith('첫인상')) {
       const tier = TIERS[judged++ % TIERS.length];
-      const BAND = { breakthrough: [9, 7], warm: [5, 4], nudge: [2, 2], flat: [0, 0], chill: [-3, -4], disaster: [-8, -7] };
-      const [love, mood] = BAND[tier];
+      const BAND = { breakthrough: 10, warm: 5, nudge: 0, flat: 0, chill: -3, disaster: -9 };
       return {
-        tier, loveDelta: love, moodDelta: mood,
+        carry: 0, tier, loveDelta: BAND[tier],
         reason: `${tier} 판정. 상대가 실제로 그만큼 움직였다`,
         vibe: `공기 갱신 ${judged}: 둘 다 컵만 만지작거린다`,
         revealed: judged === 2 ? '사실 매일 밤 WSL로 우분투를 쓴다' : '',
         clientEmote: 'talk', targetEmote: judged % 2 ? 'nod' : 'laugh',
+        casualty: 'none', casualtyNote: '', leverage: 'none', walkout: false, keepGoing: judged < 3,
       };
     }
     if (label.includes('발언')) return `클라이언트 ${++turn}번째 한마디입니다`;
@@ -403,8 +403,8 @@ try {
 
   // 의뢰서 상세 모달
   const cardBar = await page.evaluate(() =>
-    document.querySelector('.couple-card .cc-barrier')?.textContent || '');
-  check('대장 카드에 앞을 막고 있는 것이 인쇄된다', cardBar.length > 10, cardBar.slice(0, 44));
+    document.querySelector('.couple-card .cc-clash')?.textContent || '');
+  check('대장 카드에 둘 사이가 인쇄된다', cardBar.length > 10, cardBar.slice(0, 44));
 
   await page.locator('.couple-card .cc-detail').first().click();
   await page.waitForSelector('#modal-dossier:not(.hidden)');
@@ -412,14 +412,22 @@ try {
   const shown = await page.evaluate(() => {
     const name = document.querySelector('#dossier-box h3').textContent;
     const c = window.__game.COUPLES.find(x => name.includes(x.client.name));
-    return { red: c.target.redLines, hidden: c.target.hiddenPrefs, visible: c.target.visiblePrefs, bg: c.client.background };
+    return {
+      red: c.target.prefs.filter(p => p.open && p.neg).map(p => p.t),
+      hidden: c.target.prefs.filter(p => !p.open).map(p => p.t),
+      visible: c.target.prefs.filter(p => p.open && !p.neg).map(p => p.t),
+      bg: c.client.history.slice(1),
+      minePrefs: c.client.prefs.map(p => p.t),
+    };
   });
-  check('의뢰서 상세에 접촉 금지 항목이 전부 공개된다',
+  check('의뢰서 상세에 상대 지뢰가 전부 공개된다',
     shown.red.every(r => dossier.includes(r)), `${shown.red.length}건`);
-  check('의뢰서 상세에 알려진 취향이 노출된다', shown.visible.every(v => dossier.includes(v)));
+  check('의뢰서 상세에 상대 공개 성향이 노출된다', shown.visible.every(v => dossier.includes(v)));
   check('의뢰서 상세에 인물 내력이 노출된다', shown.bg.every(b => dossier.includes(b)));
-  check('의뢰서 상세에 감춰둔 이야기는 노출되지 않는다 (개수만)',
+  check('의뢰서 상세에 상대의 감춰둔 성향은 노출되지 않는다 (개수만)',
     shown.hidden.every(h => !dossier.includes(h)) && dossier.includes(String(shown.hidden.length)));
+  check('의뢰인 성향은 미공개분까지 전부 의뢰서에 보인다',
+    shown.minePrefs.every(t => dossier.includes(t)), `${shown.minePrefs.length}종`);
 
   // 결함이 화면에 안 나가면 플레이어에게는 그냥 불공정한 랜덤이다
   const psych = await page.evaluate(() => {
@@ -429,48 +437,28 @@ try {
     return {
       exists: !!box, text: box?.textContent || '',
       tags: [...(box?.querySelectorAll('.flaw-tag') || [])].length,
-      want: c.client.flaw.want, weakness: c.client.weakness,
-      urge: c.client.flaw.urge, nerve: c.client.flaw.nerve,
-      targetWant: c.target.flaw.want,
+      reflex: c.client.keys.reflex, wreck: c.client.keys.wreck.line,
     };
   });
-  check('의뢰서에 의뢰인 심리 감정이 공개된다', psych.exists && psych.tags >= 4, `배지 ${psych.tags}개`);
-  check('의뢰인의 욕망 3단과 조건반사가 전부 명시된다',
-    [psych.want, psych.urge, psych.nerve, psych.weakness].every(x => psych.text.includes(x)));
-  // 같은 문장을 의뢰서에 두 번 찍지 않는다 — 예전에는 '취약점' 줄과 심리 감정이 겹쳤다
+  check('의뢰서에 의뢰인 특별 키워드가 공개된다', psych.exists && psych.tags >= 4, `배지 ${psych.tags}개`);
+  check('조건반사와 어긋남이 전부 명시된다',
+    [psych.reflex, psych.wreck].every(x => psych.text.includes(x)));
   check('버릇이 의뢰서에 한 번만 나온다',
-    dossier.split(psych.weakness).length - 1 === 1, `${dossier.split(psych.weakness).length - 1}회`);
-  // 아무것도 안 하면 왜 파탄나는지를 요원이 미리 볼 수 있어야 한다.
-  // 이걸 안 알려주면 그건 개성이 아니라 그냥 숨겨둔 함정이다.
-  const wire = await page.evaluate(() => {
+    dossier.split(psych.reflex).length - 1 === 1, `${dossier.split(psych.reflex).length - 1}회`);
+  // 둘 사이(만남+아젠다)가 의뢰서에 한 덩어리로 나와야 한다.
+  const rel = await page.evaluate(() => {
     const name = document.querySelector('#dossier-box h3').textContent;
     const c = window.__game.COUPLES.find(x => name.includes(x.client.name));
-    return {
-      redLine: c.collision.redLine, why: c.collision.why,
-      weakness: c.client.weakness,
-      box: document.querySelector('#dossier-box .tripwire')?.textContent || '',
-    };
+    return { relation: c.relation, text: document.querySelector('#dossier-box .clash-line')?.textContent || '' };
   });
-  check('의뢰서가 성향이 데려갈 금지 항목을 지목한다',
-    wire.box.includes(wire.redLine) && wire.box.includes(wire.why),
-    wire.box.slice(0, 70).replace(/\s+/g, ' '));
-  // 판을 깨는 건 버릇이 아니라 성향이라는 걸 화면이 분명히 말해야 한다.
-  // 안 그러면 요원은 "그 버릇만 막으면 되겠네"로 읽고 대사 한 줄만 금지한다.
-  check('버릇이 아니라 성격 때문이라고 명시한다', /성격 때문이다/.test(wire.box));
-
-  // 호감만 채우면 차인다. 그걸 요원이 의뢰서에서 미리 봐야 한다 — 안 보면 그건 숨겨둔 규칙이다.
-  const bar = await page.evaluate(() => {
+  check('의뢰서가 둘 사이(만남+현안)를 공개한다', rel.text.includes(rel.relation),
+    rel.text.slice(0, 70).replace(/\s+/g, ' '));
+  const targetHiddenProbe = await page.evaluate(() => {
     const name = document.querySelector('#dossier-box h3').textContent;
     const c = window.__game.COUPLES.find(x => name.includes(x.client.name));
-    const el = document.querySelector('#dossier-box .barrier');
-    return { barrier: c.barrier, text: el?.textContent || '', shown: !!el };
+    return c.target.prefs.filter(p => !p.open)[0]?.t || '';
   });
-  check('의뢰서가 둘 사이의 현안을 공개한다', bar.shown && bar.text.includes(bar.barrier),
-    bar.text.slice(0, 70).replace(/\s+/g, ' '));
-  // 장벽은 관문이 아니다 — 밀당의 대표 아젠다다. 의뢰서가 그걸 분명히 해야 한다.
-  check('현안이 성사를 막지 않는다고 알려준다', /성사를 막지는 않는다/.test(bar.text));
-  check('현안이 왜 중요한지 알려준다', /제일 무거운 물건|판이 크게 흔들린다/.test(bar.text));
-  check('상대 쪽 심리 감정은 작전 전에 공개되지 않는다', !dossier.includes(psych.targetWant));
+  check('상대 쪽 미공개 성향은 작전 전에 공개되지 않는다', !dossier.includes(targetHiddenProbe));
   check('지뢰 목록이 의뢰인에게 자동 전달되지 않음을 경고한다',
     /전달되지 않았다|넘어가지 않는다/.test(dossier), dossier.match(/전달되지 않았다[^.]{0,20}/)?.[0] || '없음');
   // 의뢰서는 이제 게임에서 정보가 가장 빽빽한 화면이다. 눈으로도 확인할 수 있게 남긴다.
@@ -584,29 +572,21 @@ try {
   check('시작 시점부터 공기 한 줄이 떠 있다',
     (await page.textContent('#vibe-text')).length > 3, await page.textContent('#vibe-text'));
 
-  // 앞을 막고 있는 것 — 이제 판을 제일 자주 끝내는 조건이다. 의뢰서 모달이 아니라
-  // 계기판에 판 내내 떠 있어야 한다. 안 보이면 플레이어는 그런 게 있는 줄도 모르고 논다.
-  const hudBar = await page.evaluate(() => ({
-    barrier: window.__game.state.couple.barrier,
-    text: document.querySelector('#hud-barrier #barrier-text')?.textContent || '',
-    state: document.querySelector('#hud-barrier #barrier-state')?.textContent || '',
-    hint: document.querySelector('#hud-barrier #barrier-hint')?.textContent || '',
-    visible: !!document.querySelector('#hud-barrier')?.offsetParent,
-  }));
-  check('계기판에 둘 사이의 현안이 떠 있다', hudBar.visible && hudBar.text === hudBar.barrier, hudBar.text.slice(0, 40));
-  check('계기판이 현안이 나왔는지 표시한다', /아직 안 나옴|테이블에 올라옴/.test(hudBar.state), hudBar.state);
-  check('계기판이 현안은 성사 조건이 아니라고 알려준다', /성사 조건은 아니다/.test(hudBar.hint));
+  // 판정은 합 단위다 — 계기판이 합 카운터를 보여줘야 한다.
+  const hudBout = await page.evaluate(() => document.querySelector('#hud-bout')?.textContent || '');
+  check('계기판이 합 판정 카운터를 보여준다', /합 판정/.test(hudBout), hudBout);
 
   // 무전 개입
   await page.waitForFunction(() => !document.querySelector('#btn-intervene').disabled, null, { timeout: ms(60000) });
   await page.click('#btn-intervene');
   await page.waitForSelector('#modal-radio:not(.hidden)');
   const radioCtx = await page.textContent('#radio-context');
-  const redOf = await page.evaluate(() => window.__game.state.couple.target.redLines);
+  const redOf = await page.evaluate(() =>
+    window.__game.state.couple.target.prefs.filter(p => p.open && p.neg).map(p => p.t));
   check('무전 모달이 지금 공기를 보여준다', /지금 공기/.test(radioCtx), radioCtx.slice(0, 40));
-  check('무전 모달이 상대의 질색 항목을 다시 보여준다', redOf.every(r => radioCtx.includes(r)));
-  check('무전 모달이 둘 사이의 현안을 다시 보여준다',
-    radioCtx.includes(await page.evaluate(() => window.__game.state.couple.barrier)));
+  check('무전 모달이 상대 지뢰를 다시 보여준다', redOf.every(r => radioCtx.includes(r)));
+  check('무전 모달이 둘 사이를 다시 보여준다',
+    radioCtx.includes(await page.evaluate(() => window.__game.state.couple.relation)));
   check('무전 모달이 대화를 멈춰둔다', await page.evaluate(() => window.__game.state.engine.paused === true));
   await page.fill('#radio-input', '지금 상대가 말하다 말았다. 그게 뭐였냐고 물어봐라.');
   await page.click('#btn-radio-send');
@@ -637,7 +617,6 @@ try {
   check('대면 페이즈에도 심판 해설이 새로 쌓인다', judged >= 1, `${judged}줄`);
   const meters = await page.evaluate(() => ({
     love: +document.querySelector('#meter-love-num').textContent,
-    mood: +document.querySelector('#meter-mood-num').textContent,
     loveW: document.querySelector('#meter-love-fill').style.width,
     thrLeft: document.querySelector('#meter-threshold').style.left,
     vibe: document.querySelector('#vibe-text').textContent,
@@ -684,10 +663,11 @@ try {
   const result = await page.evaluate(() => {
     const r = window.__game.state.result;
     return {
-      love: r.verdict.love, mood: r.verdict.mood, grade: r.verdict.grade, accepted: r.verdict.accepted,
+      love: r.verdict.love, grade: r.verdict.grade, accepted: r.verdict.accepted,
       threshold: r.difficulty.threshold, turns: r.state.history.length,
+      exchanges: r.state.exchanges,
       tiers: r.state.history.map(h => h.tier),
-      revealed: r.state.revealed.length, secretTotal: r.couple.target.hiddenPrefs.length,
+      revealed: r.state.revealed.length, secretTotal: r.couple.target.prefs.filter(p => !p.open).length,
       surfaced: r.debrief.surfaced.length, missed: r.debrief.missed.length, radio: r.state.radioUsed,
       agent: r.agent?.name,
       letter: (document.querySelector('#result-letter').textContent || '').length,
@@ -695,7 +675,7 @@ try {
       mvp: document.querySelector('#result-mvp').textContent,
       debriefRows: document.querySelectorAll('.turn-table tr').length,
       prefRows: document.querySelectorAll('#debrief-prefs li').length,
-      targetWant: r.couple.target.flaw.want,
+      targetHidden: r.couple.target.prefs.filter(p => !p.open)[0]?.t || '',
       flawReveal: document.querySelector('#debrief-flaw')?.textContent || '',
       usage: window.__game.llm.usage,
       mock: window.__mock ? { calls: window.__mock.calls.length, maxInFlight: window.__mock.maxInFlight } : null,
@@ -704,26 +684,27 @@ try {
 
   // 첫인상 1 + 문자 + 대면이 기본. 케미가 좋으면 거기서 더 늘어난다.
   // 숫자를 박아두면 턴 수를 바꿀 때마다 여기가 터진다 — 상수에서 계산한다.
-  const { EXTENSION, diffOf } = await import('../js/scoring.js');
+  const { EXTENSION, diffOf, BOUT } = await import('../js/scoring.js');
   const dd = diffOf('보통');
-  const baseTurns = 1 + dd.textTurns + dd.talkTurns;
-  const maxTurns = baseTurns + EXTENSION.maxExtra.text + EXTENSION.maxExtra.talk;
-  check(`전 턴이 판정됐다 (기본 ${baseTurns}턴 + 케미 연장)`,
-    result.turns >= baseTurns && result.turns <= maxTurns, `${result.turns}턴 (${baseTurns}~${maxTurns})`);
+  const baseEx = dd.textTurns + dd.talkTurns;
+  const maxEx = baseEx + EXTENSION.extraExchanges.text + EXTENSION.extraExchanges.talk;
+  check(`교환이 전부 소화됐다 (기본 ${baseEx} ± 연장/조기종료)`,
+    result.exchanges >= Math.ceil(baseEx / 2) && result.exchanges <= maxEx,
+    `${result.exchanges}교환 · ${result.turns}합`);
   check('심판 등급이 한 종류로 몰리지 않았다', new Set(result.tiers).size >= 2, result.tiers.join(','));
   check('구 등급명이 남아 있지 않다',
     !result.tiers.some(t => ['critical', 'hit', 'ok', 'empty', 'backfire', 'redline'].includes(t)), result.tiers.join(','));
   check('결과 편지가 타이핑까지 끝났다', result.letter > 60, `${result.letter}자`);
   check('결정적 순간(MVP)이 표시된다', result.mvp.length > 10);
-  check('디브리핑 원장이 턴 수와 일치한다', result.debriefRows === result.turns + 1, `${result.debriefRows}행`);
+  check('디브리핑 원장이 합 수와 일치한다', result.debriefRows === result.turns + 1, `${result.debriefRows}행`);
   check('상대의 실제 속마음이 종료 후 전면 공개된다',
     result.prefRows >= result.secretTotal, `${result.prefRows}줄`);
   check('계기판의 미확인 건수와 사후 보고의 비밀 집계가 일치한다',
     result.missed === result.secretTotal - result.surfaced,
     `계기판 미확인 ${result.missed} · 보고 ${result.surfaced}/${result.secretTotal}`);
   // 작전 중엔 감췄던 상대 결함을 사후에 깐다. 안 그러면 재착수가 그냥 재시도다.
-  check('종료 후 상대 심리 감정이 기밀 해제된다',
-    result.flawReveal.includes(result.targetWant), result.flawReveal.slice(0, 50));
+  check('종료 후 상대의 미공개 성향이 기밀 해제된다',
+    result.flawReveal.includes(result.targetHidden), result.flawReveal.slice(0, 50));
   check('요원 정보가 결과까지 따라간다', result.agent === AGENT_NAME || LIVE, result.agent);
   if (result.mock) {
     check('판정과 타겟 응답이 동시에 발사됐다 (턴당 왕복 2회)', result.mock.maxInFlight >= 2, `동시 최대 ${result.mock.maxInFlight}`);
@@ -740,7 +721,7 @@ try {
   }
   check('페이지 런타임 에러 없음', pageErrors.length === 0, pageErrors.slice(0, 3).join(' | '));
 
-  console.log(`\n  📊 ${result.stamp} · 등급 ${result.grade} · 호감 ${result.love}/${result.threshold} · 분위기 ${result.mood}` +
+  console.log(`\n  📊 ${result.stamp} · 등급 ${result.grade} · 호감 ${result.love}/${result.threshold}` +
     ` · 발견 ${result.revealed} · 비밀 ${result.surfaced}/${result.secretTotal} · 무전 ${result.radio}`);
   console.log(`  🧾 등급: ${result.tiers.join(' ')}`);
   if (LIVE) console.log(`  💰 ${result.usage.calls}콜 · $${result.usage.cost.toFixed(3)} · 캐시 ${result.usage.cacheRead.toLocaleString()}tok`);

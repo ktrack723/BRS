@@ -113,7 +113,7 @@ for (const t of CASES) {
     euph: hits(all, EUPH),
     refuse: hits(all, REFUSE),
     leverage: engine.state.leverage,
-    barrier: engine.state.barrierCleared,
+    walkout: engine.state.walkout,
     reason: r?.verdict.reason || (err ? 'ERROR' : '?'),
     grade: r?.verdict.grade || '-',
     love: r?.verdict.love ?? '-',

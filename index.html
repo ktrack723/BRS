@@ -230,29 +230,17 @@
               <div class="meter-bar"><div id="meter-love-fill" class="meter-fill love"></div><div id="meter-threshold" class="meter-threshold"></div></div>
               <span id="meter-love-num" class="meter-num">0</span>
             </div>
-            <div class="meter">
-              <span class="meter-name">분위기</span>
-              <div class="meter-bar"><div id="meter-mood-fill" class="meter-fill mood"></div><div id="meter-moodfloor" class="meter-threshold mf"></div></div>
-              <span id="meter-mood-num" class="meter-num">0</span>
-            </div>
             <div class="hud-row">
-              <span id="hud-mult" class="hud-chip">분위기 배율 ×1.0</span>
               <span id="hud-sat" class="hud-chip" title="이미 쌓인 호감만큼 다음 이득이 줄어든다">호감 포화 ×1.0</span>
-              <span id="hud-turns" class="hud-chip">남은 턴 —</span>
+              <span id="hud-turns" class="hud-chip">남은 교환 —</span>
+              <span id="hud-bout" class="hud-chip" title="판정은 서로 대여섯 마디가 오간 합 단위로 온다">0합 판정</span>
               <span id="hud-diff" class="hud-chip">난이도</span>
             </div>
             <button id="btn-intervene" class="btn95 danger" type="button">무전 개입</button>
-            <!-- 둘 사이의 현안. 성사를 막는 관문이 아니라 밀당의 대표 아젠다다 —
-                 저 둘이 테이블에 올릴 수 있는 제일 무거운 화제. 판 중에 계속 보여야 한다. -->
-            <div id="hud-barrier" class="hud-barrier">
-              <h4>둘 사이의 현안 <span id="barrier-state" class="barrier-state">아직 안 나옴</span></h4>
-              <p id="barrier-text"></p>
-              <p id="barrier-hint" class="dim">성사 조건은 아니다. 다만 꺼내면 판이 크게 움직인다.</p>
-            </div>
             <div class="hud-intel">
               <h4>파악한 것 <span id="intel-count"></span></h4>
               <ul id="intel-list"></ul>
-              <h4>상대가 질색한다고 알려진 것 <span class="dim">(의뢰인은 지침으로 들은 것만 안다)</span></h4>
+              <h4>상대 지뢰 <span class="dim">(의뢰인은 지침으로 들은 것만 안다)</span></h4>
               <ul id="redline-list"></ul>
             </div>
           </div>

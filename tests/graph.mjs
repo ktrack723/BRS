@@ -17,19 +17,20 @@ const prep = { outfitDesc: '형광 주황 정장', coaching: '지침본문', spe
 const val = (x) => Array.isArray(x) ? x.join(' / ') : String(x ?? '');
 const F = [];
 for (const [who, p] of [['의뢰인', c.client], ['상대', c.target]]) {
-  for (const k of ['name', 'gender', 'age', 'job', 'appearance', 'personality', 'background',
-    'weakness', 'story', 'quote', 'visiblePrefs', 'hiddenPrefs', 'redLines']) {
+  for (const k of ['name', 'gender', 'look', 'history', 'personality']) {
     if (p[k] === undefined) continue;
     // 성별은 한 글자라 그대로 찾으면 아무 데나 걸린다. 프롬프트에 실제로 실리는 표기로 찾는다.
     if (k === 'gender') { F.push({ id: `${who}.gender`, probe: [P.idOf(p)] }); continue; }
     F.push({ id: `${who}.${k}`, probe: Array.isArray(p[k]) ? p[k].map(String) : [String(p[k])] });
   }
-  for (const k of ['want', 'urge', 'nerve']) F.push({ id: `${who}.flaw.${k}`, probe: [String(p.flaw[k])] });
+  F.push({ id: `${who}.keys.reflex`, probe: [p.keys.reflex] });
+  F.push({ id: `${who}.keys.wreck`, probe: [p.keys.wreck.line] });
+  F.push({ id: `${who}.성향.공개`, probe: p.prefs.filter(x => x.open && !x.neg).map(x => x.t) });
+  F.push({ id: `${who}.성향.미공개`, probe: p.prefs.filter(x => !x.open).map(x => x.t) });
+  F.push({ id: `${who}.성향.지뢰`, probe: p.prefs.filter(x => x.open && x.neg).map(x => x.t) });
 }
-F.push({ id: '커플.clash', probe: [c.clash] });
+F.push({ id: '커플.relation', probe: [c.relation] });
 F.push({ id: '커플.winWord', probe: [c.winWord] });
-F.push({ id: '커플.collision.why', probe: [c.collision.why] });
-F.push({ id: '커플.collision.지뢰', probe: [c.collision.redLine] });
 F.push({ id: '요원.이름', probe: [AG.name] });
 F.push({ id: '요원.성별', probe: [AG.gender] });
 F.push({ id: '준비.착장', probe: [prep.outfitDesc] });
@@ -46,7 +47,7 @@ const HIST = [
 ].join('\n');
 
 const ctx = {
-  accepted: false, grade: 'E', love: 30, mood: 40, threshold: 47, moodFloor: 33,
+  accepted: false, grade: 'E', love: 30, threshold: 60,
   aborted: false, abortReason: '', casualty: 'none', casualtyNote: '',
   vibe: '공기', revealed: ['드러난것'], missed: ['안드러난것'], radioUsed: 1, transcript: HIST,
 };
@@ -56,7 +57,7 @@ const NODES = {
   '정문 반응':             P.prepReactSystem(c, 'speech') + '\n' + P.prepReactUser('speech', prep.speech, AG),
   '의뢰인 에이전트':        P.clientAgentSystem(c, prep, 'talk', AG),
   '상대 에이전트':          P.targetAgentSystem(c, 'talk', prep.outfitDesc),
-  '심판':                  P.judgeSystem(c) + '\n' + P.judgeUser(HIST, '발언', '반응', ['nudge']),
+  '심판':                  P.judgeSystem(c) + '\n' + P.judgeUser(HIST, '발언\n반응', ['nudge']),
   '나레이터 (대면 장면)':   P.situationSystem(c) + '\n' + P.situationUser(c, HIST.split('\n').filter(l => !l.includes('HQ RADIO')).join('\n'), prep.outfitDesc),
   '결과 기록관':            P.resultSystem(c, AG) + '\n' + P.resultUser(c, ctx),
 };
@@ -100,15 +101,12 @@ console.log('\n## 부분 전달 (일부만 넘어간다 — 의도적 차등인�
 for (const e of edges.filter(x => x.part !== x.of)) console.log(`- ${e.from} → ${e.to} (${e.part}/${e.of})`);
 console.log('\n## 정보 비대칭 점검');
 const asym = [
-  ['상대.hiddenPrefs', '의뢰인 에이전트', false, '의뢰인이 상대의 비밀을 알면 안 된다'],
-  ['상대.redLines', '의뢰인 에이전트', false, '의뢰인은 지뢰를 모른다 — 이 게임의 핵심 비대칭'],
-  ['커플.collision.why', '의뢰인 에이전트', false, '충돌 분석은 요원 것이다'],
-  ['커플.collision.why', '상대 에이전트', false, '상대도 모른다'],
-  ['의뢰인.flaw.want', '심판', false, '심판이 의뢰인 시트를 보면 말이 아니라 사람으로 채점한다'],
-  ['의뢰인.personality', '심판', false, '같은 이유'],
+  ['상대.성향.미공개', '의뢰인 에이전트', false, '의뢰인이 상대의 비밀을 알면 안 된다'],
+  ['의뢰인.성향.미공개', '상대 에이전트', false, '반대 방향도 같다 — 완전 대칭'],
+  ['의뢰인.성향.미공개', '심판', false, '심판은 철저히 상대 시점만 본다'],
   ['준비.지침', '심판', false, '요원이 쓴 것은 채점 대상이 아니다'],
-  ['상대.redLines', '심판', true, '반응을 해석할 배경으로 필요하다'],
-  ['상대.hiddenPrefs', '심판', true, '무엇이 드러났는지 판단할 배경'],
+  ['상대.성향.지뢰', '심판', true, '반응을 해석할 배경으로 필요하다'],
+  ['상대.성향.미공개', '심판', true, '무엇이 드러났는지 판단할 배경'],
 ];
 let bad = 0;
 for (const [from, to, want, why] of asym) {
@@ -125,13 +123,16 @@ for (const cc of COUPLES) {
   const cs = P.clientAgentSystem(cc, prep, 'talk', AG);
   const ts = P.targetAgentSystem(cc, 'talk', prep.outfitDesc);
   const rec = (name, on) => { (cond[name] ||= { on: 0, off: 0 })[on ? 'on' : 'off']++; };
+  const tOpen = cc.target.prefs.filter(x => x.open && !x.neg).map(x => x.t);
+  const cOpen = cc.client.prefs.filter(x => x.open && !x.neg).map(x => x.t);
   rec('상대.personality → 의뢰인 에이전트', cs.includes(cc.target.personality.join(', ')));
-  rec('상대.visiblePrefs → 의뢰인 에이전트', cc.target.visiblePrefs.some(v => cs.includes(v)));
+  rec('상대.공개성향 → 의뢰인 에이전트', tOpen.some(v => cs.includes(v)));
   rec('의뢰인.personality → 상대 에이전트', ts.includes(cc.client.personality.join(', ')));
-  rec('의뢰인.weakness → 상대 에이전트', ts.includes(cc.client.weakness));
+  rec('의뢰인.공개성향 → 상대 에이전트', cOpen.some(v => ts.includes(v)));
 }
+const N = COUPLES.length;
 for (const [k, v] of Object.entries(cond)) {
-  const tag = v.on === 34 ? '항상 열림' : v.on === 0 ? '⚠ 항상 닫힘 — 죽은 간선' : `조건부 ${v.on}/34`;
+  const tag = v.on === N ? '항상 열림' : v.on === 0 ? '⚠ 항상 닫힘 — 죽은 간선' : `조건부 ${v.on}/${N}`;
   console.log(`- ${k} : ${tag}`);
 }
 

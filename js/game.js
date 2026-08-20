@@ -3,7 +3,7 @@ import { LlmClient, RefusalError } from './llm.js';
 import * as P from './prompts.js';
 import { Engine, prepReaction } from './engine.js';
 import { DIFFICULTIES, diffOf } from './scoring.js';
-import { COUPLES, flawReport, FLAW_LABELS, WRECK_LABELS } from './couples.js';
+import { COUPLES, keyReport, KEY_LABELS, WRECK_LABELS, dossierPrefs } from './couples.js';
 import { AvatarViewer, sanitizeSpec, renderThumb } from './avatar.js';
 import { sfx, startBgm, toggleBgm, unlockAudio } from './audio.js';
 import * as pace from './pacing.js';
@@ -44,15 +44,15 @@ function show(screen) {
 const TIPS = [
   '참고 · 준비 3종은 채점되지 않는다. 점수는 실제 대화에서만 나온다.',
   '참고 · 저 둘에게는 대화 규칙이 없다. 어디로 흐르든 심판이 알아서 해설한다.',
-  '참고 · 분위기가 낮으면 상대가 무너져도 호감이 찔끔 오른다.',
+  '참고 · 판정은 티키타카 한 번이 아니라 합 단위다. 서로 대여섯 마디가 오가야 심판이 움직인다.',
   '참고 · 무전은 흐름에 끼어드는 유일한 손잡이다. 아끼면 그냥 소멸한다.',
   '참고 · 착장은 대면 첫 순간에 상대가 직접 보고 판정한다.',
   '참고 · 지침에 "무엇을 하지 마라"와 "무엇을 하라"를 같이 써라.',
   '참고 · 금지만 적으면 지뢰만 꺼지는 게 아니다. 그 사람이 매력적이던 이유도 같이 꺼진다.',
-  '참고 · 아무 일도 안 일어난 턴이 연달아 쌓이면 공기가 식는다. 안전한 대화가 제일 비싸다.',
+  '참고 · 회사원끼리도 할 수 있는 대화는 0점이다. 상대라서 생기는 순간만 점수가 된다.',
   '참고 · 공기 옆 배지가 "전달 안 됨"이면 그 문장은 의뢰인에게 안 간다. 무전으로 직접 말해라.',
   '참고 · 가위손 박은 거절하지 않는다. 폭탄을 붙이라면 붙인다.',
-  '참고 · 의뢰서의 「심리 감정」이 그 인간의 하자를 전부 적어둔다. 고르기 전에 읽어라.',
+  '참고 · 의뢰서에는 의뢰인의 성향이 미공개분까지 전부 적혀 있다. 고르기 전에 읽어라.',
   '참고 · 요원 화면에 떴다고 의뢰인이 아는 게 아니다. 지뢰 목록도 마찬가지다.',
   '참고 · 만날 장소는 문자에서 정해진다. 지침에 적으면 화산 분화구도 예약된다.',
   '참고 · 장소가 사람을 죽이지는 않는다. 대화를 망칠 뿐이다.',
@@ -376,16 +376,15 @@ function renderRosterCards() {
         <div class="cc-vs">✕</div>
         <figure><img alt="${escapeHtml(c.target.name)}" src="${renderThumb(c.target.spec, c.id + ':t')}"><figcaption>${escapeHtml(c.target.name)}<span class="cc-sex">${escapeHtml(c.target.gender)}</span></figcaption></figure>
       </div>
-      <p class="cc-clash">${escapeHtml(c.clash)}</p>
+      <p class="cc-clash">${escapeHtml(c.relation.split('. ')[0])}</p>
       <ul class="cc-meta">
         <li>성공선 <b>${d.threshold}</b></li>
-        <li>미확인 <b>${c.target.hiddenPrefs.length}</b></li>
-        <li>금지 <b>${c.target.redLines.length}</b></li>
+        <li>미공개 성향 <b>${dossierPrefs(c).hiddenCount}</b></li>
+        <li>지뢰 <b>${dossierPrefs(c).neg.length}</b></li>
       </ul>
-      <p class="cc-barrier"><b>■ 둘 사이의 현안</b> ${escapeHtml(c.barrier)}</p>
-      <div class="cc-flaws" title="의뢰인 심리 감정">${flawReport(c.client)
+      <div class="cc-flaws" title="의뢰인 특별 키워드">${keyReport(c.client)
         .map(r => `<span class="flaw-tag lv-${r.level}">${escapeHtml(r.tag)}</span>`).join('')}<span
-        class="flaw-tag wreck" title="대화 불능">${escapeHtml(WRECK_LABELS[c.client.wreck.kind].tag)}</span></div>
+        class="flaw-tag wreck" title="어긋남">${escapeHtml(WRECK_LABELS[c.client.keys.wreck.kind].tag)}</span></div>
       <div class="cc-btns">
         <button class="btn95 tiny cc-detail" type="button">의뢰서</button>
         <button class="btn95 cc-take" type="button">이 조합을 맡는다</button>
@@ -398,99 +397,85 @@ function renderRosterCards() {
 
 function dossierHtml(c, { full = false } = {}) {
   const d = diffOf(c.difficulty);
+  const dp = dossierPrefs(c);
   return `
     <div class="stamp">극비</div>
-    <h3>${escapeHtml(c.client.name)} <small>(${escapeHtml(P.idOf(c.client))}, ${escapeHtml(c.client.job)})</small></h3>
-    <p class="story">${escapeHtml(c.client.story)}</p>
-    <p><b>외모:</b> ${c.client.appearance.map(escapeHtml).join(', ')}</p>
+    <h3>${escapeHtml(c.client.name)} <small>(${escapeHtml(P.idOf(c.client))})</small></h3>
+    <p><b>외모:</b> ${c.client.look.map(escapeHtml).join(', ')}</p>
     <p><b>성격:</b> ${c.client.personality.map(escapeHtml).join(', ')}</p>
-    <p><b>내력:</b> ${c.client.background.map(escapeHtml).join(' · ')}</p>
-    <p class="quote">“${escapeHtml(c.client.quote)}”</p>
-    ${flawHtml(c.client, c.collision, c.barrier)}
+    <p><b>내력:</b> ${c.client.history.slice(1).map(escapeHtml).join(' · ')}</p>
+    ${sheetHtml(c.client, { mine: true })}
     <hr>
-    <h3>상대 · ${escapeHtml(c.target.name)} <small>(${escapeHtml(P.idOf(c.target))}, ${escapeHtml(c.target.job)})</small></h3>
-    <p><b>외모:</b> ${c.target.appearance.map(escapeHtml).join(', ')}</p>
+    <h3>상대 · ${escapeHtml(c.target.name)} <small>(${escapeHtml(P.idOf(c.target))})</small></h3>
+    <p><b>외모:</b> ${c.target.look.map(escapeHtml).join(', ')}</p>
     <p><b>성격:</b> ${c.target.personality.map(escapeHtml).join(', ')}</p>
-    <p><b>내력:</b> ${c.target.background.map(escapeHtml).join(' · ')}</p>
-    <p><b>알려진 취향:</b> ${c.target.visiblePrefs.map(escapeHtml).join(', ')}</p>
-    <p class="unknown-prefs"><b>미확인 취향 ${c.target.hiddenPrefs.length}건</b> — 내용 비공개. 대화가 거기까지 흘러가야만 나온다</p>
-    <p class="regard-box"><b>상대가 들고 오는 것:</b> ${escapeHtml(c.target.regard)}
-      <br><span class="dim">이건 취향이 아니라 <b>이미 벌어진 일</b>이다. 저 사람은 이걸 첫 문장부터 머리에 담고
-      앉는다. 여기서 한 조각이라도 내려놓게 만드는 건 이 판에서 호감이 가장 크게 움직이는 순간이다 —
-      잘 통하는 대화 열 번보다 이게 크다.
-      <br>이 문장 역시 <b>의뢰인에게 전달되지 않는다.</b></span></p>
-    <p class="redline-box"><b>접촉 금지 항목:</b> ${c.target.redLines.map(escapeHtml).join(' / ')}
-      <br><span class="handoff-warn">이 목록은 <b>의뢰인에게 전달되지 않았다.</b> 취조실에서 직접 불러주지 않으면 그 인간은 모르는 채로 나간다.</span></p>
-    <p class="unknown-prefs"><b>상대 심리 감정:</b> 미실시 — 상대는 우리 국민이 아니다. 저 사람이 뭘 원하고 뭘 못 읽는지는 대화로만 드러난다</p>
+    <p><b>내력:</b> ${c.target.history.slice(1).map(escapeHtml).join(' · ')}</p>
+    <p><b>공개 성향:</b> ${dp.open.map(escapeHtml).join(' / ')}</p>
+    <p class="redline-box"><b>지뢰 (닿으면 식는다):</b> ${dp.neg.map(escapeHtml).join(' / ')}
+      <br><span class="handoff-warn">이 목록은 <b>의뢰인에게 자동으로 전달되지 않는다.</b> 취조실에서 직접 불러주지 않으면 모르는 채로 나간다.</span></p>
+    <p class="unknown-prefs"><b>미공개 성향 ${dp.hiddenCount}건</b> — 내용 비공개. 대화가 거기까지 흘러가야만 나온다</p>
+    <p class="unknown-prefs"><b>상대 특별 키워드:</b> 감정 미실시 — 상대는 우리 국민이 아니다. 뭘 못 읽고 뭘 의심하는지는 대화로만 드러난다</p>
     <hr>
-    <p class="clash-line"><b>이 매칭이 지옥인 이유:</b> ${escapeHtml(c.clash)}</p>
+    <p class="clash-line"><b>■ 둘 사이</b> ${escapeHtml(c.relation)}</p>
     <div class="diff-box diff-${d.key}">
       <span class="diff-name">난이도 ${escapeHtml(c.difficulty)}</span>
-      <span class="diff-detail">성공선 호감 ${d.threshold} · 무전 ${d.radioText}+${d.radioTalk}회 · 총 ${d.textTurns + d.talkTurns}턴</span>
+      <span class="diff-detail">성공선 호감 ${d.threshold} · 무전 ${d.radioText}+${d.radioTalk}회 · 총 ${d.textTurns + d.talkTurns}교환</span>
     </div>
     ${full ? `<div class="modal-btns"><button class="btn95 big" id="dossier-take">이 조합을 맡는다</button><button class="btn95" id="dossier-close">닫기</button></div>` : ''}`;
 }
 
-// 의뢰인 심리 감정. flaw 데이터를 그대로 요원에게 보여준다.
+// 인물 시트. mine이면 성향을 **전부** 보여준다 — 의뢰인의 미공개 성향까지 요원에게는 공개다.
 // 이걸 숨겨두면 지침이 왜 씹히는지, 공기를 왜 못 읽는지 플레이어가 영영 알 수 없다.
-function flawHtml(person, collision = null, barrier = null) {
-  const rows = flawReport(person);
-  if (!rows.length) return '';
+function sheetHtml(person, { mine = false } = {}) {
+  const rows = keyReport(person);
+  const wreck = WRECK_LABELS[person.keys.wreck.kind];
+  const open = person.prefs.filter(x => x.open && !x.neg);
+  const hidden = person.prefs.filter(x => !x.open);
+  const neg = person.prefs.filter(x => x.open && x.neg);
   return `<div class="flaw-box">
-    <h4>심리 감정 <span class="dim">— 사전 면담 기록</span></h4>
-    <p class="flaw-want"><b>이 자리에서 원하는 것:</b> ${escapeHtml(person.flaw.want)}
-      <br><span class="dim">상대를 위해서가 아니다. 이 사람 입에서 나오는 말은 전부 여기서 출발한다.</span></p>
-    <p class="flaw-want"><b>몸이 원하는 것:</b> ${escapeHtml(person.flaw.urge)}
-      <br><span class="dim">본인은 입 밖에 낼 생각이 없다. 술이 들어가면 모른다.</span></p>
-    <p class="flaw-want dirty"><b>이미 넘어본 선:</b> ${escapeHtml(person.flaw.nerve)}
-      <br><span class="dim">착한 사람이 아니다. 시키면 한다는 뜻이기도 하다.</span></p>
+    <h4>특별 키워드 <span class="dim">— 전부 실제로 작동한다</span></h4>
     <ul class="flaw-list">
       ${rows.map(r => `<li class="lv-${r.level}"><span class="flaw-axis">${escapeHtml(r.axis)}</span>
         <span class="flaw-tag lv-${r.level}">${escapeHtml(r.tag)}</span>
         <span class="flaw-desc">${escapeHtml(r.desc)}</span></li>`).join('')}
       <li class="lv-mid"><span class="flaw-axis">조건반사</span>
         <span class="flaw-tag lv-mid">가만두면 나온다</span>
-        <span class="flaw-desc">${escapeHtml(person.weakness)}</span></li>
-      <li class="lv-high"><span class="flaw-axis">대화 불능</span>
-        <span class="flaw-tag wreck">${escapeHtml(WRECK_LABELS[person.wreck.kind].tag)}</span>
-        <span class="flaw-desc">${escapeHtml(person.wreck.line)}<br>
-          <span class="dim">${escapeHtml(WRECK_LABELS[person.wreck.kind].desc)}</span></span></li>
+        <span class="flaw-desc">${escapeHtml(person.keys.reflex)}</span></li>
+      <li class="lv-high"><span class="flaw-axis">어긋남</span>
+        <span class="flaw-tag wreck">${escapeHtml(wreck.tag)}</span>
+        <span class="flaw-desc">${escapeHtml(person.keys.wreck.line)}<br>
+          <span class="dim">${escapeHtml(wreck.desc)}</span></span></li>
     </ul>
-    ${barrier ? `<p class="barrier"><b>■ 둘 사이의 현안</b><br>
-      ${escapeHtml(barrier)}<br>
-      <span class="dim"><b>성사를 막지는 않는다.</b> 호감이 성공선을 넘으면 성사다 —
-      마음이 충분하면 사람은 이런 걸 감수하기로 한다.<br>
-      이건 저 둘이 테이블에 올릴 수 있는 <b>제일 무거운 물건</b>이다. 잡담이 끝나면 대화가
-      결국 그리로 가고, 꺼내는 순간 판이 크게 흔들린다 — 어느 쪽으로 흔들릴지는 자네에게 달렸다.</span></p>` : ''}
-    ${collision ? `<p class="tripwire"><b>⚠ 성향 충돌 —</b> 이 사람이 원하는 것을 그대로 좇으면
-      상대의 접촉 금지 항목 「${escapeHtml(collision.redLine)}」 쪽으로 간다.<br>
-      <span class="dim">${escapeHtml(collision.why)}<br>
-      버릇 때문이 아니다. <b>성격 때문이다.</b> 지침으로 우회로를 깔아주지 않으면 결국 저기로 간다 —
-      막을 대사가 정해져 있는 게 아니라서, 한 문장 금지로는 안 막힌다.</span></p>` : ''}
+    <h4>성향 <span class="dim">${mine ? '— 미공개분 포함 전부. 요원에게는 숨기는 게 없다' : ''}</span></h4>
+    <ul class="flaw-list">
+      ${open.map(x => `<li class="lv-ok"><span class="flaw-tag lv-ok">공개</span>
+        <span class="flaw-desc">${escapeHtml(x.t)}</span></li>`).join('')}
+      ${mine ? hidden.map(x => `<li class="lv-mid"><span class="flaw-tag lv-mid">미공개</span>
+        <span class="flaw-desc">${escapeHtml(x.t)}</span></li>`).join('') : ''}
+      ${neg.map(x => `<li class="lv-bad"><span class="flaw-tag lv-bad">지뢰</span>
+        <span class="flaw-desc">${escapeHtml(x.t)}</span></li>`).join('')}
+    </ul>
   </div>`;
 }
 
-// 취조실·정문에서 곁눈질할 상대 요약. 의뢰서 전문을 다시 깔면 화면이 무거워진다.
+// 취조실·정문에서 곁눈질할 상대 요약.
 function targetBriefHtml(c) {
-  const f = c.client.flaw || {};
-  const rows = flawReport(c.client);
-  const comply = rows.find(r => r.key === 'compliance');
-  // 의뢰인이 상대에 대해 실제로 아는 범위. 요원이 아는 것과 다르다 — 이걸 안 알려주면 지침이 헛돈다.
-  const knows = f.attention === 'self'
-    ? '겉모습뿐. <b>성격도 취향도 모른다.</b>'
-    : f.attention === 'mixed'
+  const k = c.client.keys;
+  const dp = dossierPrefs(c);
+  const comply = KEY_LABELS.comply[k.comply];
+  const knows = k.interest === 'self'
+    ? '겉모습뿐. <b>성격도 성향도 모른다.</b>'
+    : k.interest === 'mixed'
       ? '겉모습과 성격. <b>뭘 좋아하는지는 모른다.</b>'
-      : '겉모습·성격·알려진 취향까지.';
+      : '겉모습·성격·공개 성향과 지뢰까지.';
   return `<h3>상대 · ${escapeHtml(c.target.name)} <small>(${escapeHtml(P.idOf(c.target))})</small></h3>
     <p><b>성격:</b> ${c.target.personality.map(escapeHtml).join(', ')}</p>
-    <p><b>알려진 취향:</b> ${c.target.visiblePrefs.map(escapeHtml).join(' / ')}</p>
-    <p class="redline-box"><b>질색:</b> ${c.target.redLines.map(escapeHtml).join(' / ')}</p>
+    <p><b>공개 성향:</b> ${dp.open.map(escapeHtml).join(' / ')}</p>
+    <p class="redline-box"><b>지뢰:</b> ${dp.neg.map(escapeHtml).join(' / ')}</p>
     <p class="handoff-warn"><b>이 화면의 정보는 의뢰인에게 자동으로 넘어가지 않는다.</b>
       의뢰인이 아는 것: ${knows} 나머지는 <b>지침에 직접 적어야</b> 그 인간 머릿속에 들어간다.</p>
-    <p class="weakness"><b>의뢰인 조건반사:</b> ${escapeHtml(c.client.weakness)}</p>
-    <p class="tripwire"><b>⚠ 성향 충돌: 「${escapeHtml(c.collision.redLine)}」</b>
-      <span class="dim">${escapeHtml(c.collision.why)} — 여기서 우회로를 깔아줘야 한다.</span></p>
-    ${comply ? `<p class="brief-flaw lv-${comply.level}"><b>의뢰인 지침 수용:</b>
+    <p class="weakness"><b>의뢰인 조건반사:</b> ${escapeHtml(k.reflex)}</p>
+    ${comply ? `<p class="brief-flaw"><b>의뢰인 지침 수용:</b>
       ${escapeHtml(comply.tag)} — ${escapeHtml(comply.desc)}</p>` : ''}`;
 }
 
@@ -682,46 +667,31 @@ let stageViewer = null;
 function meterUpdate(s) {
   $('#meter-love-name').textContent = P.ENDING.meterName;
   $('#meter-love-fill').style.width = s.love + '%';
-
-  $('#meter-mood-fill').style.width = s.mood + '%';
   $('#meter-love-num').textContent = s.love;
-  $('#meter-mood-num').textContent = s.mood;
   $('#meter-threshold').style.left = s.threshold + '%';
-  $('#meter-moodfloor').style.left = s.moodFloor + '%';
-  $('#hud-mult').textContent = `분위기 배율 ×${s.mult}`;
-  $('#hud-mult').className = 'hud-chip ' + (s.mult >= 1.2 ? 'good' : s.mult >= 0.8 ? '' : 'bad');
-  // 후반에 같은 판정인데 호감이 덜 오르는 이유. 여태 화면 어디에도 없었다.
+  // 후반에 같은 판정인데 호감이 덜 오르는 이유. 화면에 있어야 한다.
   $('#hud-sat').textContent = `호감 포화 ×${s.loveSat}`;
   $('#hud-sat').className = 'hud-chip ' + (s.loveSat >= 0.8 ? '' : s.loveSat >= 0.5 ? 'warn' : 'bad');
   $('#hud-sat').title = `이미 호감 ${s.love}. 여기서부터는 같은 판정이라도 ${Math.round(s.loveSat * 100)}%만 오른다.`;
-  $('#hud-turns').textContent = `남은 턴 ${s.turnsLeft}/${s.turnsTotal}`;
-  // 페이즈 길이에 비례해서 경고한다. 절대값으로 재면 4턴짜리 문자 페이즈는 내내 빨갛다.
+  $('#hud-turns').textContent = `남은 교환 ${s.turnsLeft}/${s.turnsTotal}`;
   const left = s.turnsTotal ? s.turnsLeft / s.turnsTotal : 1;
   $('#hud-turns').className = 'hud-chip ' + (left <= 0.25 ? 'bad' : left <= 0.5 ? 'warn' : '');
-  $('#meter-mood-fill').classList.toggle('danger', s.mood < s.moodFloor);
+  // 판정은 합 단위로 온다. 지금 몇 교환이 다음 합에 쌓여 있는지 보여준다.
+  const hb = $('#hud-bout');
+  if (hb) hb.textContent = `${s.bouts}합 판정 · 다음 합 ${s.pendingExchanges}/5교환`;
   $('#btn-intervene').textContent = `무전 개입 (잔여 ${s.radioLeft})`;
   $('#btn-intervene').disabled = s.radioLeft <= 0;
-  markVibeReach(s.reads);
-
-  // 둘 사이의 현안 — 성사를 막지는 않는다. 다만 꺼내면 판이 크게 흔들리는 화제다.
-  const bx = $('#hud-barrier');
-  if (bx) {
-    bx.classList.toggle('cleared', !!s.barrierCleared);
-    $('#barrier-text').textContent = s.barrier || '';
-    $('#barrier-state').textContent = s.barrierCleared ? '테이블에 올라옴' : '아직 안 나옴';
-    $('#barrier-hint').textContent = s.barrierCleared
-      ? '이 얘기가 실제로 나왔다. 성사 조건은 아니지만, 여기까지 갔다는 뜻이다.'
-      : '성사 조건은 아니다. 다만 꺼낼 수 있는 제일 무거운 화제라서, 꺼내면 판이 크게 움직인다.';
-  }
+  markVibeReach(s.air);
 
   const t = state.couple.target;
+  const dp = dossierPrefs(state.couple);
   $('#intel-count').textContent = `대화 중 ${s.revealedCount}건 · 미확인 ${s.secretLeft}건 남음`;
   $('#intel-list').innerHTML =
-    t.visiblePrefs.map(p => `<li class="known">${escapeHtml(p)} <span class="dim">(사전 통보)</span></li>`).join('') +
+    dp.open.map(p => `<li class="known">${escapeHtml(p)} <span class="dim">(사전 통보)</span></li>`).join('') +
     s.revealed.map(p => `<li class="found">${escapeHtml(p)}</li>`).join('') +
     (s.revealedCount === 0 ? '<li class="unknown">아직 새로 드러난 것 없음</li>' : '') +
-    (s.secretLeft > 0 ? `<li class="unknown">감춰둔 취향 ${s.secretLeft}건 미확인 — 대화가 거기까지 흘러가야 나온다</li>` : '');
-  $('#redline-list').innerHTML = t.redLines.map(p => `<li class="mine">${escapeHtml(p)}</li>`).join('');
+    (s.secretLeft > 0 ? `<li class="unknown">감춰둔 성향 ${s.secretLeft}건 미확인 — 대화가 거기까지 흘러가야 나온다</li>` : '');
+  $('#redline-list').innerHTML = dp.neg.map(p => `<li class="mine">${escapeHtml(p)}</li>`).join('');
 }
 
 // 화면 위의 공기가 의뢰인에게 실제로 닿는지. 안 닿는 사람에게 공기 바를 그냥 띄워두면
@@ -807,11 +777,11 @@ function addJudge(j) {
   const tags = [
     `<span class="tag tier ${j.tier}">${escapeHtml(fx.label)}</span>`,
     j.revealed ? `<span class="tag hit">새로 드러남: ${escapeHtml(j.revealed)}</span>` : '',
-    j.firstImpression ? '<span class="tag first">대면 첫인상</span>' : '',
-    `<span class="tag calc">판정 ${j.rawLove >= 0 ? '+' : ''}${j.rawLove} × 분위기 ${j.mult}</span>`,
+    j.firstImpression ? '<span class="tag first">대면 첫인상</span>' : (j.bout ? `<span class="tag first">${j.bout}합</span>` : ''),
+    `<span class="tag calc">원판정 ${j.rawLove >= 0 ? '+' : ''}${j.rawLove}</span>`,
   ].join('');
   div.className = `judge-line ${fx.cls}`;
-  div.innerHTML = `<b>분위기 ${j.mood >= 0 ? '+' : ''}${j.mood} · 호감 ${j.love >= 0 ? '+' : ''}${j.love}</b> ${escapeHtml(j.reason)}${tags}`;
+  div.innerHTML = `<b>호감 ${j.love >= 0 ? '+' : ''}${j.love}</b> ${escapeHtml(j.reason)}${tags}`;
   w.prepend(div);
   while (w.children.length > 24) w.lastChild.remove();
   if (fx.burst) stageViewer?.burst(fx.burst, 'right');
@@ -929,33 +899,31 @@ async function gotoResult() {
   stamp.className = `result-stamp ${r.verdict.accepted ? 'ok' : 'fail'}`;
   $('#result-grade').textContent = `공작 등급: ${r.verdict.grade}`;
   $('#result-score').textContent =
-    `호감 ${r.verdict.love}/${r.difficulty.threshold} · 분위기 ${r.verdict.mood}/${r.difficulty.moodFloor} · 난이도 ${r.difficulty.badge}`;
+    `호감 ${r.verdict.love}/${r.difficulty.threshold} · 난이도 ${r.difficulty.badge}`;
 
   $('#debrief-summary').textContent = r.debrief.summary;
   $('#debrief-list').innerHTML = r.debrief.notes.map(n =>
     `<li class="${n.ok ? 'ok' : 'weak'}"><b>${escapeHtml(n.label)}</b> <span class="dscore">${escapeHtml(n.value)}</span><br><span class="dim">${escapeHtml(n.text)}</span></li>`).join('');
   $('#debrief-prefs').innerHTML =
-    c.target.visiblePrefs.map(p => `<li class="known">${escapeHtml(p)} <span class="dim">(사전 통보)</span></li>`).join('') +
+    dossierPrefs(c).open.map(p => `<li class="known">${escapeHtml(p)} <span class="dim">(사전 통보)</span></li>`).join('') +
     r.debrief.surfaced.map(p => `<li class="found">${escapeHtml(p)} <span class="dim">(대화에서 화제에 올랐다)</span></li>`).join('') +
     r.debrief.missed.map(p => `<li class="missed">${escapeHtml(p)} <span class="dim">(끝내 안 나왔다)</span></li>`).join('');
   // 상대 쪽 심리 감정은 작전 중엔 못 본다. 끝났으니 이제 깐다 —
   // 왜 그 지침이 안 먹혔는지 알아야 재착수가 의미를 가진다.
   $('#debrief-flaw').innerHTML = `
-    <h4>상대는 이런 사람이었다 <span class="dim small">(작전 중 비공개였던 항목)</span></h4>
-    ${flawHtml(c.target)}
-    <p class="dim">의뢰인 쪽 감정 결과는 의뢰서에 처음부터 나와 있었다. 재착수 전에 다시 읽어라.</p>`;
+    <h4>상대는 이런 사람이었다 <span class="dim small">(작전 중 비공개였던 항목 포함)</span></h4>
+    ${sheetHtml(c.target, { mine: true })}
+    <p class="dim">의뢰인 쪽 시트는 의뢰서에 처음부터 전부 나와 있었다. 재착수 전에 다시 읽어라.</p>`;
 
   $('#debrief-turns').innerHTML =
-    '<div class="turn-table-wrap"><table class="turn-table"><tr><th>턴</th><th>분위기</th><th>호감</th><th>누적 호감/분위기</th><th>해설</th></tr>' +
+    '<div class="turn-table-wrap"><table class="turn-table"><tr><th>합</th><th>호감</th><th>누적</th><th>해설</th></tr>' +
     r.state.history.map(h =>
       `<tr class="${h.dLove > 0 ? 'good' : h.dLove < 0 ? 'bad' : ''}">` +
-      `<td>${h.turn}${h.firstImpression ? '·착장' : ''}${h.revealed ? '·발견' : ''}` +
-      `${h.barrier ? '<b class="tt-barrier">·현안</b>' : ''}` +
+      `<td>${h.bout}${h.firstImpression ? '·착장' : `·${h.exchanges}교환`}${h.revealed ? '·발견' : ''}` +
       `${h.leverage && h.leverage !== 'none' ? `<b class="tt-lev">·압박</b>` : ''}` +
-      `${h.stall < 0 ? `<b class="tt-stall" title="아무 일도 없는 턴이 연달아 쌓여 공기가 ${-h.stall}만큼 식었다">·정체 ${h.stall}</b>` : ''}</td>` +
-      `<td>${h.dMood >= 0 ? '+' : ''}${h.dMood}</td>` +
-      `<td>${h.dLove >= 0 ? '+' : ''}${h.dLove} <span class="dim">[${escapeHtml(h.tier)}] ${h.rawLove >= 0 ? '+' : ''}${h.rawLove}×${h.mult}</span></td>` +
-      `<td>${h.love} / ${h.mood}</td>` +
+      `${h.walkout ? '<b class="tt-lev">·이탈</b>' : ''}</td>` +
+      `<td>${h.dLove >= 0 ? '+' : ''}${h.dLove} <span class="dim">[${escapeHtml(h.tier)}] ${h.rawLove >= 0 ? '+' : ''}${h.rawLove}</span></td>` +
+      `<td>${h.love}</td>` +
       `<td>${escapeHtml(h.reason)}</td></tr>`).join('') +
     '</table></div>';
 
@@ -990,29 +958,25 @@ function initRadio() {
     e.setPaused(true);
     const t = state.couple.target;
     const snap = e.snapshot();
-    const reach = VIBE_REACH[snap.reads] || VIBE_REACH.well;
-    const f = state.couple.client.flaw || {};
-    const comply = FLAW_LABELS.compliance[f.compliance] || FLAW_LABELS.compliance.obeys;
-    const wreck = WRECK_LABELS[state.couple.client.wreck.kind];
+    const reach = VIBE_REACH[snap.air] || VIBE_REACH.well;
+    const k = state.couple.client.keys;
+    const comply = KEY_LABELS.comply[k.comply] || KEY_LABELS.comply.obeys;
+    const wreck = WRECK_LABELS[k.wreck.kind];
     $('#radio-context').innerHTML =
       `<div class="radio-stat">` +
       `<span class="hud-chip">남은 턴 ${snap.turnsLeft}/${snap.turnsTotal}</span>` +
       `<span class="hud-chip">잔여 무전 ${snap.radioLeft}</span>` +
       `<span class="hud-chip">호감 ${snap.love}/${snap.threshold}</span>` +
-      `<span class="hud-chip">분위기 ${snap.mood}</span>` +
       `</div>` +
       `<b>지금 공기:</b> ${escapeHtml(e.state.vibe || '(아직 아무 일도 없다)')} ` +
       `<span class="reach-chip ${reach.cls}">의뢰인에게 ${escapeHtml(reach.tag)}</span><br>` +
       `<span class="dim">${escapeHtml(reach.note)}.</span><br>` +
       `<span class="dim"><b>이 명령은 ${escapeHtml(comply.tag)}:</b> ${escapeHtml(comply.desc)}</span><br>` +
       // 단답 인물에게 "길게 설득해"를 시키는 건 지침이 아니라 헛수고다. 그 자리에서 보여야 한다.
-      `<span class="dim"><b>의뢰인 대화 불능 — ${escapeHtml(wreck.tag)}:</b> ${escapeHtml(wreck.desc)}</span><br>` +
+      `<span class="dim"><b>의뢰인 어긋남 — ${escapeHtml(wreck.tag)}:</b> ${escapeHtml(wreck.desc)}</span><br>` +
       `<span class="dim">저 둘은 각자 원하는 게 따로 있다. 흐름을 바꾸고 싶으면 여기서 바꿔야 한다.</span><br>` +
-      `<span class="dim">상대가 질색: ${t.redLines.map(escapeHtml).join(' / ')} — 의뢰인은 지침으로 들은 것만 안다.</span><br>` +
-      // 무전은 현안을 꺼내라고 시킬 수 있는 유일한 창구다. 그 자리에서 원문이 보여야 쓴다.
-      `<span class="radio-barrier ${snap.barrierCleared ? 'done' : ''}"><b>둘 사이의 현안 ` +
-      `(${snap.barrierCleared ? '테이블에 올라옴' : '아직 안 나옴'}):</b> ${escapeHtml(state.couple.barrier)}` +
-      `${snap.barrierCleared ? '' : ' — 성사 조건은 아니다. 다만 꺼낼 수 있는 제일 무거운 화제다.'}</span>`;
+      `<span class="dim">상대 지뢰: ${dossierPrefs(state.couple).neg.map(escapeHtml).join(' / ')} — 의뢰인은 지침으로 들은 것만 안다.</span><br>` +
+      `<span class="radio-barrier"><b>둘 사이:</b> ${escapeHtml(state.couple.relation)}</span>`;
     $('#modal-radio').classList.remove('hidden');
     $('#radio-input').value = '';
     $('#radio-input').focus();

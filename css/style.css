@@ -712,14 +712,11 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
   background-size: 8px 100%;
 }
 .meter-fill.love { background-color: #8f2f47; }
-.meter-fill.mood { background-color: #7d6f2a; }
-.meter-fill.mood.danger { background-color: #8c3a2f; }
 .meter-num { text-align: right; font-weight: 600; font-size: var(--fs-md); }
 .meter-threshold {
   position: absolute; top: -1px; bottom: -1px; width: 2px;
   background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.65); z-index: 2;
 }
-.meter-threshold.mf { background: #8fd0e8; }
 .hud-row { display: flex; gap: var(--s2); margin: var(--s3) 0 var(--s2); flex-wrap: wrap; }
 .hud-chip {
   font-size: var(--fs-xs); padding: 3px var(--s2);
@@ -738,25 +735,6 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 
 /* 계기판의 장벽 칸 — 판을 제일 자주 끝내는 조건이라 판 내내 떠 있어야 한다.
    지뢰(붉은색)와 구분되게 서류 청색 계열로 두되, 미처리 동안은 눈에 걸리게 둔다. */
-.hud-barrier {
-  margin: var(--s2) 0 0;
-  padding: var(--s1) var(--s2);
-  border: 1px solid var(--stamp);
-  border-left-width: 4px;
-  background: #f5e9e7;
-}
-.hud-barrier h4 {
-  display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2);
-  margin: 0 0 4px;
-}
-.hud-barrier p { margin: 0; font-size: var(--fs-sm); line-height: 1.5; }
-.hud-barrier .dim { font-size: var(--fs-xs); margin-top: 4px; }
-.barrier-state {
-  font-family: var(--font-mono); font-size: var(--fs-xs); font-weight: 700;
-  padding: 1px 6px; border: 1px solid var(--stamp); color: #6b1519; background: #fff;
-}
-.hud-barrier.cleared { border-color: var(--ok); background: #e9eee4; }
-.hud-barrier.cleared .barrier-state { border-color: var(--ok); color: #24401f; }
 
 /* 기록물 인용 블록 */
 .chat-window {
