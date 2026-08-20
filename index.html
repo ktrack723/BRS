@@ -19,7 +19,7 @@
   <header id="topbar">
     <div class="classif">극비 // SCI-CUPID // 무단 열람 및 복제 금지</div>
     <div class="toolbar">
-      <div class="marquee"><span>큐피드局 공작단말 v2.0 · 특명 제77호(테크노킹 도람푸 3세) · 출산율 0.008 국가비상사태 · 상설 의뢰 20건 전부 "이어질 리 없는 조합" 분류 · 본 단말은 대규모언어모형으로 구동됨 · 무단 열람 시 국가보안법 제77조</span></div>
+      <div class="marquee"><span>큐피드局 공작단말 v3.0 · 특명 제77호(테크노킹 도람푸 3세) · 출산율 0.008 국가비상사태 · 상설 의뢰 <span class="n-couples">30</span>건 전부 "이어질 리 없는 조합" 분류 · 본국은 반려 절차를 보유하지 않음 · 대화 내용 통제 권한 없음 · 무단 열람 시 국가보안법 제77조</span></div>
       <button id="btn-console" class="btn95 tiny" type="button" title="LLM 호출 기록">통신기록</button>
       <button id="btn-bgm" class="btn95 tiny" type="button">음향 ON</button>
     </div>
@@ -30,10 +30,20 @@
     <section id="screen-boot" class="screen">
       <h1 class="title-main">연애조작단 2077<br><small>OPERATION CUPID · 큐피드局</small></h1>
       <p class="subtitle">국가공인 <b>불가능 매칭</b> 공작 단말기 — 열람 권한 없는 자의 접속은 기록됩니다</p>
-      <div class="panel95 boot-panel" data-title="단말기 인증"><span class="win-status">회선 대기</span>
+      <div class="panel95 boot-panel" data-title="요원 등록 및 단말기 인증"><span class="win-status">회선 대기</span>
         <p class="warn">본 단말은 <b>전부</b> 대규모언어모형(Claude)으로 구동된다. 인증키 없이는 개방되지 않는다.<br>
-        의뢰인 20쌍은 고정 대장이지만, <b>그들이 실제로 무슨 말을 하고 어떻게 판정되는지는 전량 실시간 연산</b>이다.<br>
+        의뢰인 <span class="n-couples">30</span>쌍은 고정 대장이지만, <b>그들이 실제로 무슨 말을 하고 어떻게 판정되는지는 전량 실시간 연산</b>이다.<br>
         인증키는 본 단말에서 <code>api.anthropic.com</code>으로만 송신된다. 그 외 어디에도 송신하지 않는다.</p>
+
+        <div class="agent-form">
+          <label>요원명 <small>(호출부호. 아무거나 쓰면 된다)</small>
+            <input id="agent-name" type="text" maxlength="24" placeholder="예: 박큐피드 / 007 / 김철수" autocomplete="off">
+          </label>
+          <label>성별 <small>(주관식. 서식에 그대로 인쇄된다)</small>
+            <input id="agent-gender" type="text" maxlength="24" placeholder="예: 남 / 여 / 논바이너리 / 기밀" autocomplete="off">
+          </label>
+        </div>
+
         <label>ANTHROPIC API KEY
           <input id="key-input" type="password" placeholder="sk-ant-api03-..." autocomplete="off">
         </label>
@@ -64,11 +74,10 @@
           <div id="intro-dots" class="intro-dots"></div>
           <button id="btn-intro-next" class="btn95 big" type="button">다음 ▶</button>
         </div>
-        <p id="intro-prefetch" class="intro-prefetch">국장 브리핑 수신 중...</p>
       </div>
     </section>
 
-    <!-- 국장 브리핑 -->
+    <!-- 국장 브리핑 (하드코딩 · LLM 호출 없음) -->
     <section id="screen-briefing" class="screen hidden">
       <div class="panel95 briefing-panel" data-title="착신 전문 · 국장 왕큐피드"><span class="win-status">수신중</span>
         <pre id="briefing-text" class="briefing-text"></pre>
@@ -76,66 +85,132 @@
       </div>
     </section>
 
-    <!-- 의뢰 대장 (20쌍) -->
+    <!-- 의뢰 대장 -->
     <section id="screen-roster" class="screen hidden">
       <h2 class="section-title">상설 의뢰 대장 <span class="doc-no">문서 CUP-2077-020</span></h2>
-      <p class="section-sub">접수 20건 전부 <b>이어질 리 없는 조합</b>으로 분류됨. 본국은 반려 절차를 보유하지 않는다. 한 건을 선택하라.</p>
+      <p class="section-sub">접수 <span class="n-couples">30</span>건 전부 <b>이어질 리 없는 조합</b>으로 분류됨. 본국은 반려 절차를 보유하지 않는다. 한 건을 선택하라.</p>
       <div id="agent-record" class="agent-record"></div>
       <div class="roster-filters" id="roster-filters"></div>
       <div id="roster-cards" class="roster"></div>
     </section>
 
-    <!-- 컨설팅 -->
-    <section id="screen-consult" class="screen hidden">
-      <h2 class="section-title" id="consult-title">작전 준비</h2>
-      <p class="section-sub" id="consult-sub"></p>
-      <div class="consult-grid">
-        <div class="consult-left">
-          <div class="stage-wrap panel95" data-title="인물 조회 · 3D 재구성"><span class="win-status">2인</span>
-            <div class="stage-label">◀ 클라이언트 ─── 타겟 ▶</div>
-            <canvas id="stage-consult" class="stage-canvas"></canvas>
+    <!-- ① 미용실 ─ 착장 시공 -->
+    <section id="screen-salon" class="screen hidden">
+      <div class="prep-head">
+        <span class="prep-step">준비 1 / 3</span>
+        <h2 class="section-title" id="salon-title">큐피드국 부속 미용실 「가위손 박」</h2>
+        <p class="section-sub">개점 07:00. 예약 불가. 요원이 시키는 대로만 한다.</p>
+      </div>
+      <div class="prep-grid scene-salon">
+        <div class="prep-left">
+          <div class="stage-wrap panel95 salon-stage" data-title="거울 앞 · 3D 재구성"><span class="win-status">2인</span>
+            <div class="stage-label">◀ 의뢰인 ─── 참고용 상대 ▶</div>
+            <canvas id="stage-salon" class="stage-canvas"></canvas>
           </div>
-          <div class="panel95" id="consult-dossier"></div>
+          <details class="panel95 prep-dossier" data-title="의뢰서"><summary>본문 열람</summary><div id="salon-dossier"></div></details>
         </div>
-        <div class="consult-forms">
-          <div class="panel95 notice-card">
-            <h3>고지 · 준비 단계는 채점 대상이 아니다</h3>
-            <p>아래 세 칸에 뭘 쓰든 <b>점수는 나오지 않는다.</b> 전부 클라이언트 AI의 프롬프트로 그대로 주입될 뿐이다.<br>
-            평가는 오직 <b>실제 문자·대면에서 클라이언트가 뱉은 말</b>로만 이루어진다.
-            준비를 대충 하면 점수가 깎이는 게 아니라 — <b>그 인간이 대화에서 알아서 망한다.</b></p>
+        <div class="prep-right">
+          <div class="panel95 scene-card" data-title="현장 상황">
+            <p class="scene-text">가위손 박이 가위를 든 채 거울 너머로 당신을 본다. 아무 말도 안 한다.<br>
+            의뢰인은 이미 의자에 앉아 있고, 이 사람도 아무 말이 없다.<br>
+            <b>"시키는 대로 합니다. 책임은 요원이 지시고."</b></p>
           </div>
-
-          <div class="panel95 prep-card" id="card-styling" data-title="항목 1 · 착장 지시">
+          <div class="panel95 prep-card" data-title="시공 지시서 · 착장">
             <p class="prep-sub">태그를 콤마로 구분해 입력한다.</p>
-            <p class="prep-hint">3D 모델과 <b>착장 묘사</b>가 바뀐다. 이 착장은 <b>대면 첫 순간에 타겟이 직접 보고 반응</b>한다. 거기서 판정이 붙는다.</p>
-            <input id="styling-input" type="text" placeholder="예: 금색 이름표 박힌 넥타이, 골프 장갑">
-            <button id="btn-styling" class="btn95" type="button">스타일리스트 호출 · 모델 갱신</button>
-            <p id="styling-result" class="eval-result"></p>
+            <p class="prep-hint">여기 쓴 대로 <b>그대로</b> 만들어진다. 거절당하지 않는다.
+            머리·옷·색·체형은 물론, <b>폭탄이든 후광이든 등에 멘 기타든</b> 도형으로 조립해서 붙인다.<br>
+            이 꼴은 <b>대면 첫 순간에 상대가 직접 보고 반응</b>한다. 판정은 거기서 붙는다. 여기서가 아니라.</p>
+            <input id="styling-input" type="text" placeholder="예: 형광 주황 염색, 새빨간 턱시도, 등에 폭탄, 머리 위에 도는 금색 고리">
+            <button id="btn-styling" class="btn95" type="button">시공 개시</button>
+            <div id="styling-result" class="react-box"></div>
           </div>
-
-          <div class="panel95 prep-card" id="card-coaching" data-title="항목 2 · 대화 지침">
-            <p class="prep-sub">클라이언트 시스템 프롬프트에 직접 주입된다.</p>
-            <p class="prep-hint">여기 쓴 문장이 <b>그대로</b> 클라이언트 AI의 행동 규칙이 된다. 비워두면 그 인간은 약점대로 행동한다.</p>
-            <textarea id="coaching-input" rows="4" placeholder="예: 지난 선거 얘기는 절대 꺼내지 마라. 상대가 뭘 말하든 먼저 골프 핸디캡을 물어보고, 상대가 자랑을 시작하면 끝까지 들어라"></textarea>
-            <p id="coaching-result" class="eval-result"></p>
+          <div class="prep-nav">
+            <button id="btn-salon-back" class="btn95" type="button">◀ 대장으로</button>
+            <button id="btn-salon-next" class="btn95 big" type="button">지하 3층으로 ▶</button>
           </div>
+        </div>
+      </div>
+    </section>
 
-          <div class="panel95 prep-card" id="card-speech" data-title="항목 3 · 사기 진작">
+    <!-- ② 취조실 ─ 대화 지침 -->
+    <section id="screen-interro" class="screen hidden">
+      <div class="prep-head">
+        <span class="prep-step">준비 2 / 3</span>
+        <h2 class="section-title">지하 3층 취조실 <span class="doc-no">B3-04 · 창문 없음</span></h2>
+        <p class="section-sub">형광등 하나가 탁자 위에서 흔들린다. 의자는 하나뿐이다.</p>
+      </div>
+      <div class="prep-grid scene-interro">
+        <div class="prep-left">
+          <div class="stage-wrap panel95 interro-stage" data-title="취조실 영상 · 감시 카메라 1"><span class="win-status">1인</span>
+            <div class="stage-label">피조사자 ─ 의뢰인</div>
+            <canvas id="stage-interro" class="stage-canvas"></canvas>
+          </div>
+          <div class="panel95 target-brief" id="interro-brief" data-title="상대 요약"></div>
+        </div>
+        <div class="prep-right">
+          <div class="panel95 scene-card dark" data-title="현장 상황">
+            <p class="scene-text">당신은 어둠 속에 서 있고, 의뢰인은 조명 아래 앉아 있다.<br>
+            이건 취조가 아니라 브리핑이다. 아무도 그렇게 안 느낀다.</p>
+          </div>
+          <div class="panel95 prep-card" data-title="지침 하달 · 대화 지침">
+            <p class="prep-sub">여기 적은 문장이 그대로 의뢰인 머릿속에 들어간다.</p>
+            <p class="prep-hint">여기 쓴 문장이 <b>명령</b>으로 그 인간의 머릿속에 들어간다. 참고사항이 아니다. 채점도 없다.<br>
+            비워두면 그 인간은 <b>제 성향대로만</b> 나간다. 점수가 깎이는 게 아니라, 알아서 망한다.<br>
+            <b class="hint-key">왼쪽의 「질색」 목록은 의뢰인이 모른다.</b> 밟지 않게 하려면 여기에 직접 적어라.<br>
+            <b class="hint-key">만날 장소도 여기서 정한다.</b> 문자로 불러내라고 적으면 그 장소가 그대로 잡힌다.
+            지형·기온·기압은 회계 처리 문제일 뿐이다. 화산이든 폐로든 고래 뱃속이든 예약은 된다.</p>
+            <textarea id="coaching-input" rows="5" placeholder="예: 지난 선거 얘기는 절대 꺼내지 마라. 상대가 말을 흐리면 파고들어라. 만날 곳은 베수비오 화산 분화구로 잡아라"></textarea>
+            <button id="btn-coaching" class="btn95" type="button">지침 하달 · 반응 확인</button>
+            <div id="coaching-inject" class="eval-result"></div>
+            <div id="coaching-result" class="react-box"></div>
+          </div>
+          <div class="prep-nav">
+            <button id="btn-interro-back" class="btn95" type="button">◀ 미용실로</button>
+            <button id="btn-interro-next" class="btn95 big" type="button">정문으로 ▶</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ③ 청사 정문 ─ 마지막 한마디 -->
+    <section id="screen-gate" class="screen hidden">
+      <div class="prep-head">
+        <span class="prep-step">준비 3 / 3</span>
+        <h2 class="section-title">큐피드국 청사 정문 계단</h2>
+        <p class="section-sub">밖은 2077년의 저녁이다. 드론 광고판이 출산 장려가를 틀고 있다.</p>
+      </div>
+      <div class="prep-grid scene-gate">
+        <div class="prep-left">
+          <div class="stage-wrap panel95 gate-stage" data-title="정문 영상 · 감시 카메라 7"><span class="win-status">출동 대기</span>
+            <div class="stage-label">출동 직전 ─ 의뢰인</div>
+            <canvas id="stage-gate" class="stage-canvas"></canvas>
+          </div>
+          <div class="panel95 target-brief" id="gate-brief" data-title="상대 요약"></div>
+        </div>
+        <div class="prep-right">
+          <div class="panel95 scene-card" data-title="현장 상황">
+            <p class="scene-text">의뢰인은 이미 문 앞에 서 있다. 뒤도 안 돌아본다.<br>
+            지금 등 뒤에서 뭐라도 던질 수 있다. 이게 마지막이다.</p>
+          </div>
+          <div class="panel95 prep-card" data-title="최종 전달 · 마지막 한마디">
             <p class="prep-sub">출동 직전 한마디로 주입된다.</p>
-            <p class="prep-hint">클라이언트가 이 말을 곱씹으며 대화한다. <b>사연의 디테일을 짚었는지는 그 인간이 판단</b>한다. 뻔한 응원이면 겉으로만 웃는다. 비워두면 겁에 질린 채로 나간다.</p>
-            <textarea id="speech-input" rows="4" placeholder="클라이언트 사연 속 구체적인 장면을 짚어라. 채점은 없다. 그 인간이 실제로 기가 사는지가 전부다"></textarea>
-            <p id="speech-result" class="eval-result"></p>
+            <p class="prep-hint">그 인간이 이 말을 곱씹으며 대화한다. 채점은 없다.<br>
+            <b>사연의 구체적인 부분을 짚었는지는 그 인간이 판단</b>한다. 뻔한 응원이면 겉으로만 웃는다.</p>
+            <textarea id="speech-input" rows="5" placeholder="의뢰인 사연 속 구체적인 장면을 짚어라. 채점은 없다. 그 인간이 실제로 기가 사는지가 전부다"></textarea>
+            <button id="btn-speech" class="btn95" type="button">한마디 던지기 · 반응 확인</button>
+            <div id="speech-inject" class="eval-result"></div>
+            <div id="speech-result" class="react-box"></div>
           </div>
-
-          <div class="panel95 prep-card" data-title="항목 4 · 무전 개입">
+          <div class="panel95 prep-card" data-title="현장 권한 · 무전 개입">
             <p class="prep-sub">배급: <span class="prep-tag" id="radio-budget">문자 1회 / 대면 2회</span></p>
-            <p class="prep-hint">대화 중 클라이언트에게만 들리는 지시. <b>이것도 채점 안 한다.</b> 다음 발언에 주입될 뿐이고, 결과는 그 발언의 판정으로 돌아온다.<br>
-            <b>미확인 취향을 캐낼 유일한 수단</b>이다. 무전이 없는 턴에 클라이언트는 새 화제를 열지 못한다.</p>
+            <p class="prep-hint">대화 중 의뢰인에게만 들리는 <b>명령</b>. 이것도 채점 안 한다.<br>
+            저 둘은 각자 원하는 게 따로 있어서 아무 데로나 흘러간다. 무전은 그 흐름에 끼어드는 유일한 손잡이다.</p>
           </div>
-
           <div id="prep-status" class="prep-warning"></div>
-          <button id="btn-start-op" class="btn95 big danger" type="button">작전 개시</button>
-          <button id="btn-back-roster" class="btn95" type="button">대장으로 복귀</button>
+          <div class="prep-nav">
+            <button id="btn-gate-back" class="btn95" type="button">◀ 취조실로</button>
+            <button id="btn-start-op" class="btn95 big danger" type="button">작전 개시</button>
+          </div>
         </div>
       </div>
     </section>
@@ -152,7 +227,7 @@
           <div class="panel95 hud" data-title="작전 계기판">
             <div class="meter">
               <span class="meter-name" id="meter-love-name">호감</span>
-              <div class="meter-bar"><div id="meter-love-fill" class="meter-fill love"></div><div id="meter-threshold" class="meter-threshold"></div></div>
+              <div class="meter-bar"><div id="meter-love-fill" class="meter-fill love"></div><div id="meter-ceiling" class="meter-ceiling" title="두근거림 관문"></div><div id="meter-threshold" class="meter-threshold"></div></div>
               <span id="meter-love-num" class="meter-num">0</span>
             </div>
             <div class="meter">
@@ -162,19 +237,37 @@
             </div>
             <div class="hud-row">
               <span id="hud-mult" class="hud-chip">분위기 배율 ×1.0</span>
+              <span id="hud-sat" class="hud-chip" title="이미 쌓인 호감만큼 다음 이득이 줄어든다">호감 포화 ×1.0</span>
+              <span id="hud-turns" class="hud-chip">남은 턴 —</span>
               <span id="hud-diff" class="hud-chip">난이도</span>
             </div>
             <button id="btn-intervene" class="btn95 danger" type="button">무전 개입</button>
+            <!-- 둘 사이의 현안. 성사를 막는 관문이 아니라 밀당의 대표 아젠다다 —
+                 저 둘이 테이블에 올릴 수 있는 제일 무거운 화제. 판 중에 계속 보여야 한다. -->
+            <div id="hud-barrier" class="hud-barrier">
+              <h4>둘 사이의 현안 <span id="barrier-state" class="barrier-state">아직 안 나옴</span></h4>
+              <p id="barrier-text"></p>
+              <p id="barrier-hint" class="dim">성사 조건은 아니다. 다만 꺼내면 판이 크게 움직인다.</p>
+            </div>
             <div class="hud-intel">
-              <h4>타겟 취향 <span id="intel-count"></span></h4>
+              <h4>파악한 것 <span id="intel-count"></span></h4>
               <ul id="intel-list"></ul>
-              <h4>접촉 금지 항목 <span id="redline-count"></span></h4>
+              <h4>상대가 질색한다고 알려진 것 <span class="dim">(의뢰인은 지침으로 들은 것만 안다)</span></h4>
               <ul id="redline-list"></ul>
             </div>
           </div>
         </div>
         <div class="chat-right">
+          <!-- 감청은 실시간이지만 읽는 사람은 실시간이 아니다. 재생 속도를 요원이 정한다. -->
+          <div class="pace-bar">
+            <span class="pace-tag">재생 속도</span>
+            <div id="pace-buttons" class="pace-buttons" role="group" aria-label="대화 재생 속도"></div>
+          </div>
+          <!-- 텍스트로 된 분위기. 심판이 매 턴 갱신한다.
+               의뢰인에게 실제로 닿는지는 그 사람의 reads에 달렸다 — 오른쪽 배지가 그걸 말해준다. -->
+          <div id="vibe-bar" class="vibe-bar"><span class="vibe-tag">공기</span><span id="vibe-text"></span><span id="vibe-reach" class="vibe-reach"></span></div>
           <div id="chat-window" class="panel95 chat-window" data-title="교신 기록 · 실시간 감청"></div>
+          <div id="chat-advance" class="chat-advance" aria-live="off">▼ 눌러서 다음</div>
           <div id="judge-feed" class="judge-feed"></div>
         </div>
       </div>
@@ -187,7 +280,7 @@
           <canvas id="stage-result" class="stage-canvas"></canvas>
           <div id="result-stamp" class="result-stamp"></div>
         </div>
-        <div class="panel95 result-panel" data-title="사후 보고 · 클라이언트 친전">
+        <div class="panel95 result-panel" data-title="사후 보고 · 의뢰인 친전">
           <p id="result-grade" class="result-grade"></p>
           <p id="result-score" class="dim"></p>
           <pre id="result-letter" class="letter"></pre>
@@ -206,8 +299,9 @@
               <ul id="debrief-list" class="debrief-list"></ul>
             </div>
             <div>
-              <h4>타겟 취향 전문 <span class="dim small">(작전 종료 후 기밀 해제)</span></h4>
+              <h4>상대의 실제 속마음 <span class="dim small">(작전 종료 후 기밀 해제)</span></h4>
               <ul id="debrief-prefs" class="debrief-prefs"></ul>
+              <div id="debrief-flaw" class="debrief-flaw"></div>
             </div>
           </div>
           <details id="debrief-log"><summary>턴별 판정 원장 (열람)</summary><div id="debrief-turns"></div></details>
@@ -218,9 +312,10 @@
 
   <!-- 무전 모달 -->
   <div id="modal-radio" class="modal hidden">
-    <div class="panel95 modal-box" data-title="본부 → 클라이언트 단방향 무전"><span class="win-status">송신 대기</span>
+    <div class="panel95 modal-box" data-title="본부 → 의뢰인 단방향 명령"><span class="win-status">송신 대기</span>
       <p class="dim">상대에게는 안 들린다. 대화는 송신할 때까지 멈춰 있다.<br>
-      <b>이 지시는 채점되지 않는다.</b> 다음 발언에 그대로 주입될 뿐이고, 결과는 그 발언의 판정으로 돌아온다.</p>
+      <b>이 명령은 채점되지 않는다.</b> 다음 한 마디에 그대로 주입될 뿐이고, 결과는 그 발언의 판정으로 돌아온다.<br>
+      의뢰인은 이걸 참고사항이 아니라 <b>지시</b>로 받는다. 다만 그 인간이 어떻게 이행할지까지는 정할 수 없다.</p>
       <div id="radio-context" class="radio-context"></div>
       <textarea id="radio-input" rows="3" placeholder="예: 지금 상대가 갈기 손질 얘기 꺼냈다. 그거 물고 늘어져서 슈트 만들 때 제일 힘든 게 뭔지 물어봐"></textarea>
       <div class="modal-btns">

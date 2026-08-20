@@ -16,6 +16,41 @@ const PRICES = { // $ per MTok (input, output)
 const CACHE_WRITE_MULT = 1.25;  // 캐시 기록은 입력 단가의 1.25배
 const CACHE_READ_MULT = 0.1;    // 캐시 적중은 0.1배
 
+// 구조화 출력(output_config.format.schema)이 받지 않는 JSON Schema 키워드.
+// 하나라도 섞이면 400 invalid_request_error가 나면서 그 화면이 통째로 멈춘다
+// (예: "For 'array' type, property 'maxItems' is not supported").
+// 스키마 쪽에서 안 쓰는 게 원칙이지만, 하나 흘러들었다고 게임이 서면 안 되니 보내기 직전에 걷어낸다.
+// 개수·길이 상한 같은 건 프롬프트로 지시하고 실제 강제는 파싱 후 sanitize 단계가 한다.
+const UNSUPPORTED_SCHEMA_KEYS = new Set([
+  'maxItems', 'minItems', 'uniqueItems', 'contains', 'maxContains', 'minContains',
+  'maxLength', 'minLength', 'pattern', 'format',
+  'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf',
+  'maxProperties', 'minProperties', 'patternProperties', 'propertyNames',
+  'default', 'examples', 'deprecated', 'readOnly', 'writeOnly',
+]);
+
+// properties / $defs 아래의 키는 키워드가 아니라 '필드 이름'이다.
+// 하필 이름이 format이나 pattern인 필드를 지우면 안 되니, 이 자리에서는 걸러내지 않는다.
+const SCHEMA_NAME_MAPS = new Set(['properties', '$defs', 'definitions']);
+
+// 스키마를 재귀로 훑어 지원되지 않는 키워드만 제거한 사본을 만든다. 원본은 건드리지 않는다.
+export function stripUnsupportedSchemaKeys(node) {
+  if (Array.isArray(node)) return node.map(n => stripUnsupportedSchemaKeys(n));
+  if (!node || typeof node !== 'object') return node;
+  const out = {};
+  for (const [k, v] of Object.entries(node)) {
+    if (UNSUPPORTED_SCHEMA_KEYS.has(k)) continue;
+    if (SCHEMA_NAME_MAPS.has(k) && v && typeof v === 'object' && !Array.isArray(v)) {
+      const inner = {};
+      for (const [name, sub] of Object.entries(v)) inner[name] = stripUnsupportedSchemaKeys(sub);
+      out[k] = inner;
+      continue;
+    }
+    out[k] = stripUnsupportedSchemaKeys(v);
+  }
+  return out;
+}
+
 export class RefusalError extends Error {
   constructor(msg) { super(msg || 'LLM이 이 요청을 정중히 거절했다'); this.name = 'RefusalError'; }
 }
@@ -57,7 +92,7 @@ export class LlmClient {
 
     const outputConfig = {};
     if (!NO_EFFORT_MODELS.has(useModel)) outputConfig.effort = effort;
-    if (schema) outputConfig.format = { type: 'json_schema', schema };
+    if (schema) outputConfig.format = { type: 'json_schema', schema: stripUnsupportedSchemaKeys(schema) };
     if (Object.keys(outputConfig).length) body.output_config = outputConfig;
 
     const entry = { label, model: useModel, at: Date.now(), request: body, status: 'pending' };

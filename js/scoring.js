@@ -1,81 +1,286 @@
 // scoring.js — 게임 규칙의 순수 함수 계층. LLM 없이 단독 테스트/시뮬레이션이 가능하다.
 //
-// 설계 원칙 (기획서 재독 후 확정):
+// 설계 원칙
 //   · 게이지는 딱 둘이다 — 💗 호감(승리 조건) / 😊 분위기(호감 획득 배율).
 //   · 채점은 오직 하나, "실제 문자·대면에서 클라이언트가 뱉은 발언"뿐이다.
-//   · 스타일링 / 코칭 / 격려 연설 / 무전은 채점 대상이 아니다. 전부 프롬프트 주입일 뿐이며,
+//   · 스타일링 / 대화 지침 / 연설 / 무전은 채점 대상이 아니다. 전부 프롬프트 주입일 뿐이며,
 //     그 효과는 클라이언트가 실제로 어떻게 말하느냐로만 드러난다.
-//     → 준비를 대충 하면 점수가 깎이는 게 아니라, 클라이언트가 대화에서 알아서 망한다.
+//
+// ── 왜 '취향 적중' 계층을 통째로 걷어냈는가 ──────────────────────
+// 예전 규칙에는 목록 대조 계층이 있었다. 심판이 뱉은 취향 문자열을 커플 데이터의
+// hiddenPrefs/visiblePrefs와 대조해서, 맞으면 구조적 보너스(+6)를 주고 아니면 등급을 ok로 눌렀다.
+// 이건 실제로 작동했다. 다만 작동한 방식이 문제였다 — 두 에이전트가 대화를 하는 대신
+// "목록에 있는 단어를 대화에 등장시키는 게임"을 하기 시작했다.
+// 타겟은 매 턴 실마리를 흘려야 했고, 클라이언트는 그걸 물어야 했다. 사람은 그렇게 말하지 않는다.
+//
+// 그래서 목록 대조를 전부 없앴다. 남은 규칙은 하나다:
+//   **상대가 실제로 어떻게 반응했는가.**
+// 등급 이름도 그 축으로 갈아끼웠다. breakthrough/warm/nudge/flat/chill/disaster는
+// "무엇을 맞췄는가"가 아니라 "상대가 얼마나 움직였는가"의 눈금이다.
+// 목록에 없는 이유로 상대가 무너져도 똑같이 유효하다. 그게 이 개편의 전부다.
 
-// ── 밸런싱 근거 (라이브 계측) ────────────────────────────────────
-// tests/live.mjs로 실제 API 플레이 20판(완주) + 8판(부분)을 돌려 얻은 값이다.
-// 프로필은 ace(요원 역할 LLM) / good(성의 있는 템플릿) / lazy(한 단어) / none(공백).
+// ── 밸런싱 근거 ──────────────────────────────────────────────────
+// 이전 성공선(45/52/54)은 라이브 20판 실측에서 뽑은 값이었다. 그 판들은 구(舊) 판정기,
+// 즉 '취향 적중 보너스 +6 × 3건'이라는 구조적 가점이 살아 있던 시절의 데이터다.
+// 지금은 그 가점이 없고, 대신 등급 밴드가 전 구간 후해졌다(게이트가 없으니 ok 상한이 사라졌다).
+// 두 변화가 상쇄되지 않으므로 실측값을 그대로 쓸 수 없다.
 //
-//   쉬움 : 잘한 플레이 호감 56~96 · 대충한 플레이 17~38  → 성공선 45가 정확히 사이에 있다
-//   보통 : 잘한 플레이 46~66 · 대충한 플레이  8~31       → 성공선 52 (잘한 최저 46과 대충한 최고 31 사이)
-//   헬   : 계측 시점(구 판정기)엔 최고가 42여서 60이 도달 불가였다. 판정기가 '상대의 실제 반응'을
-//          보게 된 뒤 미확인 취향 적중률이 오르는 것을 감안해 54로 내렸다.
-//          → 세 난이도 중 헬만 외삽값이다. 재계측하려면 tests/live.mjs --couples=politics,ai-artist.
+// 그래서 실제 API로 다시 쟀다 (Sonnet, 커플 3종 × 프로필 4종 = 12판, 판정 120건).
+// 그 실측 분포로 몬테카를로(판당 3,000회 표본)를 돌려 아래 값을 뽑았다.
 //
-// '대충한 플레이'가 성공선을 넘지 못하는 이유는 점수를 깎기 때문이 아니다.
-// 코칭이 없으면 클라이언트가 상대의 실마리를 못 알아채고(prompts.js의 실마리 무시 규칙),
-// 그래서 미확인 취향을 하나도 캐지 못해 구조적 보너스를 통째로 놓치기 때문이다.
+// ── 인물 하자 시스템 투입 후 재계측 ─────────────────────────────
+// 그 전까지는 준비 품질이 결과를 거의 못 갈랐다(ace↔none 24~31%p). 두 에이전트가
+// 준비와 무관하게 상대를 잘 맞춰줬기 때문이다. couples.js의 하자 시스템으로 그걸 끊었다:
+// 공기를 못 읽는 인물에게는 vibe를 안 주고, 관심 없는 인물에게는 상대 정보를 안 준다.
+//
+//   실측 등급 분포: breakthrough 10% · warm 38% · nudge 43% · flat 2% · chill 7% · disaster 0%
+//   프로필별 chill 비율: ace 0% · good 3% · lazy 7% · none 17%   ← 여기서 갈린다
+//
+//              ace      good     lazy     none      (성사율 / 호감 중앙값)
+//   쉬움 54   97%/68   84%/62   78%/62   38%/50
+//   보통 56   63%/58   34%/52   37%/52    9%/39
+//   헬   60   43%/58   17%/50   24%/51    4%/37
+//
+// ace↔none 격차가 39~59%p로 벌어졌다. 준비 없는 의뢰인은 상대의 지뢰를 모르고,
+// 공기도 못 읽고, 상대에게 관심도 없어서 자기 관심사로 대화를 끌고 가다 상대를 식힌다.
+//
+// ⚠ 남은 한계: good과 lazy는 여전히 잘 안 갈린다(표본 30건 기준 오차 범위).
+//    breakthrough 쪽으로는 준비가 거의 작용하지 않는다 — 갈리는 건 chill 꼬리뿐이다.
+//
+// ── 지시문 영문화 후 재계측 (40/47/54) ──────────────────────────
+// 프롬프트 지시문을 전부 영어로 옮겼더니 **점수대가 통째로 내려앉았다.** 12판을 돌려 0판 성사.
+// 원인은 난이도가 아니라 심판이었다. 판정의 63%가 nudge 한 칸에 몰렸다:
+//
+//   영문화 직후   breakthrough 3% · warm 23% · nudge 63% · flat 5% · chill 7% · disaster 0%
+//
+// nudge는 "아무 일도 없었다"가 아니라 **"절대 틀리지 않는 답"**이라서 기본값이 됐다.
+// 분포 가드가 한쪽(인심 쓰지 마라)에만 걸려 있었던 게 원인이다. 양방향으로 바꿨다 —
+// "절반 이상이 nudge면 그것도 채점이 아니라 판정 회피다. 틀릴 일 없는 등급은 정보가 없다."
+//
+//   가드 수정 후 breakthrough 4% · warm 31% · nudge 56% · flat 4% · chill 3% · disaster 1%
+//   원판정 loveDelta 평균 2.47 → 2.83
+//
+// 그리고 프로필이 다시 갈렸다 (커플 3종 × 프로필 3종 = 9판, 판정 90건):
+//
+//              ace   good   none
+//   쉬움        49     41     35
+//   보통        54     44     33
+//   헬          57     55     38
+//
+// 난이도별로 단조 분리가 살아났다. 남은 것은 성공선이 옛 판정기 기준이라는 것뿐이라
+// 54/56/60 → **40/47/54**로 내렸다. ace의 여유가 쉬움 +9 · 보통 +7 · 헬 +3이 되도록 잡았다 —
+// 숫자 자체는 헬이 더 높지만(gainScale 2.1), **여유가 가장 좁은 쪽이 헬**이라 난이도 사다리는 유지된다.
+//
+// 성공선을 내린 뒤 6판을 더 돌려 확인했다. nudge 비율 63% → 46%, flat과 chill이 살아났고
+// 게임은 다시 이길 수 있다. ⚠ 다만 **판당 편차는 여전히 ±15점**이다 —
+// 같은 커플·같은 프로필이 54였다가 65가 되고, 49였다가 36이 된다.
+// 15판을 합치면 ace 4/6 · good 2/3 · none 1/6. "잘하면 성사"가 아니라 "잘하면 3분의 2쯤 성사"다.
+// 위의 ⚠ 절과 같은 이유다 — 준비가 결과에 닿는 경로가 정보 비대칭 하나뿐이다.
+//
+// ── 지뢰선 투입 후 (성공선은 40/47/54 유지) ─────────────────────
+// couples.js의 TRIPWIRE — 의뢰인의 조건반사가 상대의 지뢰를 반드시 밟게 만든 뒤 다시 쟀다.
+// 성공선은 안 건드렸다. 대신 **프로필 격차가 처음으로 압도적이 됐다.**
+//
+//   짝지은 8판(판정 80건)   chill: 준비 전무 43% vs 숙련 8% · disaster 1건 vs 0건
+//                          (지뢰선 이전 전 구간 실측 chill 3% · disaster 0~1%)
+//
+//              준비 전무        숙련 요원
+//   보통           23              50   → 숙련만 성사
+//   헬 (일반)     14, 22          64, 40  → 숙련이 넘는다
+//   헬 (자동파멸) 3, 9, 20        35~48   → 양쪽 다 못 넘는다. 그게 설계다
+//
+// 준비 전무는 지뢰선 이후 9판에서 한 번도 성사하지 못했다. prank-funeral은 호감 3에서 끝났다.
+// 「자동파멸」 3건은 숙련 요원도 못 넘긴다 — '거의 무조건 박살나는 관계'가 그 조합의 정의다.
+// 성공선을 여기에 맞춰 더 내리지 않은 이유: 일반 헬은 숙련이 넘고 있다(politics 64/54).
+// 자동파멸에 맞춰 내리면 나머지 스물한 건이 물러진다.
+//
+// ── 14턴 · 엔딩 4갈래 이후 재계측 (50/56/66) ────────────────────
+// 턴을 9 → 14로 늘리니 호감이 통째로 올라왔다. 같은 커플·같은 프로필에서
+// 쉬움 54 → 60~93, 보통 32~75 → 54~55, 헬 → 49~87.
+// 성공선을 40/47/54 → **50/56/66**으로 올렸다. 대략 1.2배다 (턴은 1.56배지만 포화가 먹는다).
+//
+// (이 시점에는 장벽이 관문이었고 결렬의 대부분이 barrier였다. 지금은 아니다 —
+//  아래 「대화 불능을 넣고, 장벽을 관문에서 뺐다」를 보라.)
+//
+// ── 판이 길어진 뒤의 재밸런싱 (60/72/78) ────────────────────────
+// 라이브 18판(커플 3 × 프로필 3 × 2회)을 다시 재고 나서 알게 된 것:
+//
+//   **호감으로는 준비 수준이 안 갈린다.** 호감 분포가 ace 46~79 · good 38~92 · none 52~78로
+//   완전히 겹친다. 유능한 에이전트 둘을 14~19턴 마주 앉히면 대화가 잘 굴러가고, 호감은
+//   대화 품질을 재므로 결국 높게 끝난다. 프롬프트를 어느 쪽으로 조여도 이건 안 뒤집힌다 —
+//   인물을 차갑게 만들면 무너질 방어선이 늘어나서 breakthrough가 오히려 더 나온다.
+//
+//   갈리는 건 **장벽**이다. 같은 18판에서 ace 3/3 처리 · good 0/3 · none 1/3.
+//   의뢰인도 상대도 장벽을 모른다. 요원만 의뢰서에서 읽는다. 그래서 준비가 사는 자리는
+//   "얼마나 좋아하게 만드는가"가 아니라 "앞을 막은 걸 꺼내게 만드는가"다.
+//
+// 그래서 성공선을 실측 중앙값 근처로 올렸다 — 호감을 장식이 아니라 진짜 관문으로 되돌린다.
+// (당시엔 판을 끝내는 걸 장벽에 맡겼다. 그 역할은 뒤에 대화 불능으로 옮겼다.)
+//
+//   쉬움 50 → 66 · 보통 56 → 72 · 헬 66 → 76
+//
+// 27판(커플 3 × 프로필 3 × 3회) 실측 중앙값은 쉬움 72 · 보통 75 · 헬 66이었다.
+// **호감은 난이도별로 안 갈린다.** gainScale 2.1이 헬의 가혹한 출발과 감쇠를 상쇄해서,
+// 숫자만 보면 헬이 제일 안 어려워 보인다. 그러니 성공선으로 난이도를 표현하려 들면 안 된다 —
+// 난이도는 이미 startLove·moodFloor·감쇠·lossScale과 조합 자체가 지고 있다.
+// 성공선은 실측 중앙 구간에 놓고, 눈에 읽히도록만 완만하게 올린다.
+//
+// ── 서투름을 넣은 뒤 (60/66/70) ─────────────────────────────────
+// 두 에이전트에게 「연애 경험 0」을 기본 전제로 깔고, 상대에게 상대를 싫어할 이유를 주고,
+// 심판이 잘 굴러가는 대화를 warm으로 읽던 걸 조였다. 점수대가 통째로 25점쯤 내려앉았다.
+//
+//   chat-app  none 84 → 53      gapjil  none 60 → 62
+//   chat-app  ace  85 → 61      gapjil  ace  62 → 14   (지침이 역효과를 낸 판)
+//   chill 이하 비율 ace 8% → 27% · 감춰둔 얘기 유출 2~3/3 → 대부분 0~1/3
+//
+// 성공선을 그 분포에 맞춰 내렸다. 66/72/76 → **60/66/70**.
+// 준비 전무가 호감으로 성공선을 넘는 판이 없어졌다.
+//
+// ⚠ ace 프로필의 편차가 이 국면에서 특히 크다(14 ~ 61). 요원 역할을 LLM이 맡는 구조라,
+//    서투른 인물에게 무거운 지침을 첫 턴부터 물리면 오히려 다섯 턴을 얼려버린다.
+//
+// ── 대화 불능을 넣고, 장벽을 관문에서 뺐다 ───────────────────────
+// 인물마다 '대화를 어떤 식으로 못 하는가'를 일곱 종으로 나눠 붙였다(couples.js WRECK).
+// 단답은 ㅇㅇ·ㅇㅋ로 끝내고, 침묵은 '...'를 턴으로 쓰고, 폭주는 상대 자리를 안 남긴다.
+// 여기에 "대충 하는 것도, 아예 안 하는 것도 선택지"라는 블록을 얹었다.
+//
+//   circadian  none  9 → 32   ace 93 → 68     orientation  none 9 → 4    ace 16 → 51
+//   noise-vow  none 78 → 40   ace     → 71    taxidermy    none    1     ace       18
+//   (none 0/3 · ace 2/3. 같은 조합에서 격차가 36~84점 난다)
+//
+// **그래서 장벽을 관문에서 뺐다.** 예전엔 장벽이 준비 수준을 가르는 유일한 축이었고,
+// 그 대가로 「호감을 다 채우고도 차이는」 결말이 있었다. 지금은 대화 불능이 훨씬 크게 가른다.
+// 장벽은 밀당의 대표 아젠다로 남는다 — 판을 제일 크게 흔드는 화제지만, 성사를 막지는 않는다.
+// 마음이 충분하면 사람은 이런 걸 감수하기로 하고, 이 게임도 그렇게 친다.
+//    사람 플레이어가 이보다 유리하다 — 계기판을 보고 무전 시점을 고를 수 있다.
+//
+// ── 그리고 상대의 want가 남은 원인이었다 ────────────────────────
+// 서투름을 넣은 뒤에도 asmr·spice 두 조합만 79~94를 찍었다. 원한을 세게 다시 써도 안 고쳐졌다.
+// 47건의 상대 want를 전수로 훑고 나서 알았다 —
+// **상대가 원하는 것이 「이 사람하고 같이 뭘 한다」 꼴이면 자리를 뜰 이유가 없다.**
+//
+//   협력형 want  asmr 92/77 · spice 82/82
+//   퇴장형 want  gapjil 14/62 · chat-app 61/53 · politics 46/46
+//
+// 둘 다 퇴장형으로 갈았다. sheets.test.mjs가 상대 want에 '같이'가 들어가는 걸 막는다.
+//
+//    재계측: ANTHROPIC_API_KEY=... node tests/live.mjs → node tests/sim.mjs <결과> --grid
 export const DIFFICULTIES = {
   '쉬움': {
     key: 'easy', badge: '쉬움',
-    textTurns: 4, talkTurns: 5,
+    textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,   // 기획서 규정: 문자 1회, 대면 2회
     startLove: 10, startMood: 55,
-    threshold: 45, moodFloor: 25,
+    threshold: 60, moodFloor: 25,
     loveDecay: 0.0,   // 턴마다 식는 호감
     moodDrift: 0.5,   // 턴마다 흐르는 분위기 (양수면 알아서 풀린다)
-    gainScale: 1.15, lossScale: 0.85,
+    gainScale: 2.6, lossScale: 1.30,
   },
   '보통': {
     key: 'normal', badge: '보통',
-    textTurns: 4, talkTurns: 5,
+    textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,
     startLove: 6, startMood: 46,
-    threshold: 52, moodFloor: 33,
-    loveDecay: 0.5,
-    moodDrift: -0.6,
-    gainScale: 1.0, lossScale: 1.0,
+    threshold: 66, moodFloor: 33,
+    loveDecay: 0.3,
+    moodDrift: -0.1,
+    gainScale: 3.4, lossScale: 1.55,
   },
   '헬': {
     key: 'hell', badge: '헬',
-    textTurns: 4, talkTurns: 5,
+    textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,
     startLove: 3, startMood: 38,
-    threshold: 54, moodFloor: 40,
-    loveDecay: 1.0,
-    moodDrift: -1.4,
-    gainScale: 0.9, lossScale: 1.15,
+    threshold: 70, moodFloor: 40,
+    loveDecay: 0.6,
+    moodDrift: -0.7,
+    gainScale: 3.8, lossScale: 1.75,
   },
 };
 
+// ── 자리가 길어지는 조건 ───────────────────────────────────────
+// 대화가 잘 풀리면 사람은 안 일어난다. 케미가 뜨거우면 예정된 턴을 넘겨 더 앉아 있는다.
+// 판정 등급이 곧 케미 계측기다 — 따로 지표를 만들지 않는다.
+// 호감에는 포화가 걸려 있으므로 연장 턴의 한계 이득은 앞턴보다 작다. 그래서 상한만 막아두면 된다.
+export const EXTENSION = {
+  maxExtra: { text: 2, talk: 3 },   // 페이즈별 최대 연장 턴
+  window: 3,                        // 최근 몇 턴을 보는가
+  minSeen: 2,                       // 최소 이만큼은 채점돼 있어야 판단한다
+  hotTiers: ['breakthrough', 'warm'],
+  needHot: 2,                       // 그 중 몇 턴이 뜨거워야 하는가
+  // 절대값이 아니라 '시작보다 얼마나 끌어올렸나'로 잰다.
+  // 절대 하한을 쓰면 쉬움(시작 55)은 시작하자마자 조건을 만족하고,
+  // 헬(시작 38, 매 턴 -0.7)은 아무리 잘해도 도달을 못 해 연장이 사문화된다.
+  moodGain: 12,
+};
+// 판정은 한 턴 늦게 온다. 그래서 4턴짜리 문자 페이즈는 마지막 턴에서도 기록이 2개뿐이다 —
+// window를 그대로 하한으로 쓰면 문자 페이즈는 영영 안 늘어난다. 하한은 minSeen이 따로 잡는다.
+
+// 지금 한 턴 더 앉아 있을 이유가 있는가.
+// d는 난이도 규격 — 시작 분위기를 알아야 '끌어올렸는지'를 판단할 수 있다.
+export function extraTurn(phase, tiers, mood, alreadyExtra, d) {
+  const cap = EXTENSION.maxExtra[phase] ?? 0;
+  if (alreadyExtra >= cap) return false;
+  const base = (d?.startMood ?? 50) + EXTENSION.moodGain;
+  if (mood < base) return false;
+  const recent = (tiers || []).slice(-EXTENSION.window);
+  if (recent.length < EXTENSION.minSeen) return false;   // 아직 볼 게 없으면 늘리지 않는다
+  return recent.filter(t => EXTENSION.hotTiers.includes(t)).length >= EXTENSION.needHot;
+}
+
 // 심판이 고른 등급이 곧 호감 증감의 상한/하한이다.
 // 스칼라만 요구하면 LLM은 판정을 전부 +4~+6에 몰아넣는다(실측). 등급을 강제하고 여기서 클램프한다.
+// 등급의 정의는 전부 "상대가 실제로 어떻게 반응했는가"다. 목록 대조는 없다.
 export const TIER_BANDS = {
-  critical: [8, 10],
-  hit: [5, 7],
-  ok: [2, 4],
-  empty: [-1, 1],
-  backfire: [-5, -2],
-  redline: [-10, -6],
+  breakthrough: [7, 10],   // 상대가 실제로 무너졌다
+  warm: [4, 6],            // 눈에 띄게 호의적으로 움직였다
+  nudge: [1, 2],           // 사람 쪽으로 한 번 반짝했다 — 대화가 굴러간 것과는 다르다
+  flat: [0, 0],            // 대화는 있었고 마음은 안 움직였다. **정상값이다**
+  chill: [-5, -2],         // 상대가 식었다
+  disaster: [-10, -6],     // 상대가 정색했다
 };
 
-// 난이도와 무관한 구조 상수. 라이브 플레이 로그로 캘리브레이션한 값들이다.
+// 난이도와 무관한 구조 상수.
 export const TUNING = {
-  moodMultFloor: 0.30,   // 분위기 0일 때의 호감 배율
-  moodMultSpan: 1.30,    // 분위기 100이면 0.30 + 1.30 = 1.60배
-  hiddenBonus: 6,        // 미확인 취향을 처음 저격했을 때 붙는 구조적 보너스 (호감)
-  hiddenMoodBonus: 4,    // 같은 순간의 분위기 보너스
-  redLineLove: -7,       // 지뢰를 밟았을 때 추가로 깎이는 호감
-  redLineMood: -13,      // 지뢰를 밟았을 때 추가로 깎이는 분위기
+  // 분위기는 호감을 **막을 수만 있고 만들어낼 수는 없다.**
+  // 예전 0.30~1.60배는 5.3배 폭이었고, 그건 "분위기가 좋았다"를 "사랑에 빠졌다"로 환산하는
+  // 장치였다. 즐거운 잡담이 점수를 만들어내면 안 된다 — 회사 동료끼리도 즐겁게 얘기한다.
+  // 이제 상한이 1.0이다. 험악한 방은 여전히 호감을 눌러 앉힌다(그건 실제로 그렇다).
+  moodMultFloor: 0.60,       // 분위기 0일 때의 호감 배율
+  moodMultSpan: 0.50,        // 분위기 80에서 1.0에 닿고, 그 위로는 안 올라간다
+  moodMultCap: 1.0,          // 분위기로는 증폭되지 않는다
   firstImpressionScale: 1.4, // 대면 첫인상 판정만 가중된다 (착장이 실제로 작용하는 지점)
   moodSaturation: 130,       // 분위기가 높을수록 더 올리기 어렵다. 감소분에는 적용하지 않는다
-  moodGainScale: 0.75,       // 심판의 moodDelta 자체가 후한 편이라 이득 쪽만 눌러둔다
+  // 호감도 같은 원리로 포화한다. 낯선 사람 → 호의는 큰 걸음이지만, 호의 → 더 큰 호의는 작은 걸음이다.
+  // 라이브 실측에서 심판이 좋은 대화에 계속 warm을 주는 바람에 두 판 다 100/100으로 천장을 쳤다.
+  // 프롬프트로 등급 분포를 눌러도 한계가 있어서, 규칙 계층에도 브레이크를 뒀다.
+  // 이건 '특정 워딩을 맞히면 가점' 같은 공략 대상이 아니라, 올라갈수록 무거워지는 저울이다.
+  loveSaturation: 128,
+  // 강압 성사에 필요한 누적 압박. hard 두 번 + soft 한 번쯤이면 사람이 묶인다.
+  // 한 번의 협박으로 성사되면 무전 한 방짜리 게임이 된다.
+  coerceMin: 5,
+  // ── 두근거림 관문과 획득 배율 ─────────────────────────────
+  // 관문은 **절대값(40)이고 배율을 안 탄다.** 그래서 배율을 올리면 격차가 증폭된다 —
+  // 두근거림이 없는 판은 아무리 대화가 잘 굴러가도 40에 묶이고,
+  // 있는 판만 그 위로 간다. 배율을 올린 건 그 위쪽 사거리를 벌리기 위해서다.
+  //   gainScale  쉬움 1.7→2.6 · 보통 1.7→3.4 · 헬 2.1→3.8
+  //   lossScale도 같이 올렸다(약 1.5배). 안 그러면 chill이 상대적으로 무의미해진다.
+  // ── 두근거림 관문 ──────────────────────────────────────────
+  // 분위기가 아무리 좋아도, 대화가 아무리 잘 굴러가도 여기서 막힌다.
+  // 이 선 위로는 **warm 이상**, 즉 실제로 마음이 움직인 턴으로만 올라간다.
+  // 프롬프트로만 말하면 심판이 빠져나간다(실측: flat 18% · nudge 34%). 규칙으로 박는다.
+  //   · 관문 아래: nudge가 쌓여서 여기까지는 온다
+  //   · 관문 위:   nudge는 한 점도 못 보탠다. 두근거린 턴만 민다
+  //   · 손실은 언제나 그대로 적용된다 — 관문은 올라가는 쪽만 막는다
+  likingCeiling: 40,
+  moodGainScale: 1.0,        // 분위기 이득 쪽 감쇠. 예전 0.75는 분위기가 아예 안 오르게 만들었다
+  disasterMood: -5,          // 상대가 정색하면 자리가 식는다. 등급에서 나오는 결과지 별도 판정이 아니다
+  breakthroughMood: 3,       // 반대로 방어선이 무너진 순간엔 공기도 같이 풀린다
 };
+
+// 관문을 넘길 수 있는 등급. 「사람 쪽으로 방어선이 내려간」 턴만이다.
+// nudge는 여기 없다 — 반짝임은 호감이지 끌림이 아니다.
+export const FLUTTER_TIERS = new Set(['warm', 'breakthrough']);
 
 // 심판의 tier에 맞춰 loveDelta를 밴드 안으로 강제한다.
 export function bandLove(tier, loveDelta) {
@@ -84,13 +289,9 @@ export function bandLove(tier, loveDelta) {
   return clamp(Math.round(loveDelta ?? band[0]), band[0], band[1]);
 }
 
-// hit/critical 게이트: 취향 목록을 실제로 건드리지 않았으면 아무리 대화가 좋아도 ok가 상한이다.
-// 프롬프트로 부탁만 하면 심판은 매력적인 대사를 전부 hit으로 올려버린다(실측 51%). 규칙 계층에서 강제한다.
-export function gateTier(tier, { visibleHit, hiddenHit, redHit }) {
-  if (redHit) return 'redline';
-  if ((tier === 'hit' || tier === 'critical') && !visibleHit && !hiddenHit) return 'ok';
-  if (tier === 'critical' && !hiddenHit) return 'hit';   // critical은 미확인 취향 관통에만 준다
-  return TIER_BANDS[tier] ? tier : 'empty';
+// 모르는 등급이 오면 중립으로 떨어뜨린다. 이것이 유일하게 남은 등급 보정이다.
+export function normalizeTier(tier) {
+  return TIER_BANDS[tier] ? tier : 'flat';
 }
 
 export function diffOf(name) { return DIFFICULTIES[name] || DIFFICULTIES['보통']; }
@@ -100,7 +301,14 @@ export const round1 = v => Math.round(v * 10) / 10;
 
 // 분위기 → 호감 획득 배율
 export function moodMultiplier(mood) {
-  return TUNING.moodMultFloor + (clamp(mood, 0, 100) / 100) * TUNING.moodMultSpan;
+  const m = TUNING.moodMultFloor + (clamp(mood, 0, 100) / 100) * TUNING.moodMultSpan;
+  return Math.min(TUNING.moodMultCap, m);
+}
+
+// 호감 → 호감 획득 포화. 이미 높으면 같은 판정이라도 덜 오른다.
+// 계기판이 이 값을 그대로 띄운다 — 후반에 점수가 안 오르는 이유를 숨길 이유가 없다.
+export function loveSaturation(love) {
+  return Math.max(0.2, 1 - clamp(love, 0, 100) / TUNING.loveSaturation);
 }
 
 export function initialState(d) {
@@ -108,68 +316,86 @@ export function initialState(d) {
     love: d.startLove,
     mood: d.startMood,
     turns: 0,
-    hits: [],          // 적중한 미확인 취향 (문자열)
-    seenVisible: [],   // 이미 써먹은 알려진 취향 (재탕은 hit 자격 상실)
-    redLines: 0,       // 밟은 지뢰 횟수
+    vibe: '',          // 텍스트 형태의 분위기. 대화창 상단에 뜨고 클라이언트에게 그대로 전달된다
+    revealed: [],      // 대화 중 상대에 대해 새로 드러난 것 (심판이 자유 서술로 남긴다. 점수와 무관)
     radioUsed: 0,
     history: [],       // 턴별 판정 로그 (디브리핑/밸런싱용)
     lastDelta: null,
+    // 사상자. 화산 분화구·고래 뱃속·칼을 든 상대 — 이 게임의 자리는 실제로 사람을 죽일 수 있다.
+    // 'none' | 'client' | 'target' | 'both'
+    casualty: 'none',
+    casualtyNote: '',
+    // 현실 장벽을 대화에서 실제로 다뤘는가. 한 번 다루면 계속 다뤄진 것으로 둔다.
+    barrierCleared: false,
+    // 강압 누적. hard 2점 · soft 1점. 호감이 모자라도 이게 쌓이면 묶인다.
+    leverage: 0,
   };
 }
 
 // ── 매 턴 판정 적용 ─────────────────────────────────────────────
-// judge: { moodDelta:-10..10, loveDelta:-10..10, hiddenPrefHit:string, redLineHit:boolean, reason }
-// opts:  { firstImpression:boolean, knownHidden:string[] } — knownHidden은 해당 커플의 실제 미확인 취향 목록
+// judge: { tier, loveDelta:-10..10, moodDelta:-10..10, reason, vibe, revealed }
+// opts:  { firstImpression:boolean }
 export function applyTurn(state, d, judge, opts = {}) {
-  const s = { ...state, hits: [...state.hits], seenVisible: [...(state.seenVisible || [])], history: [...state.history] };
+  const s = { ...state, revealed: [...(state.revealed || [])], history: [...state.history] };
   const before = { mood: s.mood, love: s.love };
   const weight = opts.firstImpression ? TUNING.firstImpressionScale : 1;
 
-  // 미확인 취향 적중 — 목록에 실제로 있는 문자열만, 그리고 처음 한 번만 인정한다
-  const rawHidden = (judge.hiddenPrefHit || '').trim();
-  const known = opts.knownHidden || [];
-  const hit = rawHidden && known.includes(rawHidden) && !s.hits.includes(rawHidden) ? rawHidden : '';
-  if (hit) s.hits.push(hit);
-
-  // 알려진 취향 적중 — 보너스는 없지만 hit 등급의 자격 요건이다. 같은 취향 재탕은 자격을 잃는다.
-  const rawVisible = (judge.visiblePrefHit || '').trim();
-  const visibleOk = !!rawVisible && (opts.knownVisible || []).includes(rawVisible);
-  const freshVisible = visibleOk && !s.seenVisible?.includes(rawVisible);
-  if (visibleOk) s.seenVisible = [...(s.seenVisible || []), rawVisible];
-
-  const red = !!judge.redLineHit;
-  if (red) s.redLines += 1;
-
-  const tier = gateTier(judge.tier, { visibleHit: freshVisible, hiddenHit: !!hit, redHit: red });
+  const tier = normalizeTier(judge.tier);
   const md = clamp(Math.round(judge.moodDelta || 0), -10, 10);
-  const ld = bandLove(tier, tier === judge.tier ? judge.loveDelta : TIER_BANDS[tier][1]);
+  const ld = bandLove(tier, judge.loveDelta);
 
-  // 1) 분위기: 판정 + 난이도 흐름 + 지뢰 + 미확인 보너스.
+  // 심판이 남긴 서술은 그대로 보관한다. 목록과 대조하지 않는다 — 대조할 목록이 없어졌다.
+  const revealed = (judge.revealed || '').trim();
+  const fresh = revealed && !s.revealed.includes(revealed) ? revealed : '';
+  if (fresh) s.revealed.push(fresh);
+  const vibe = (judge.vibe || '').trim();
+  if (vibe) s.vibe = vibe;
+
+  // 1) 분위기: 판정 + 난이도 흐름 + 등급에서 따라오는 결과.
   //    이득 쪽만 포화시킨다 — 분위기가 이미 높으면 더 끌어올리기 어렵고, 떨어질 땐 그대로 떨어진다.
   const saturate = Math.max(0.15, 1 - s.mood / TUNING.moodSaturation);
-  const moodGain = (md >= 0 ? md * TUNING.moodGainScale * saturate : md) * weight
-    + (hit ? TUNING.hiddenMoodBonus * saturate : 0);
-  const moodChange = moodGain + d.moodDrift + (red ? TUNING.redLineMood : 0);
+  const tierMood = tier === 'disaster' ? TUNING.disasterMood
+    : tier === 'breakthrough' ? TUNING.breakthroughMood * saturate : 0;
+  const moodGain = (md >= 0 ? md * TUNING.moodGainScale * saturate : md) * weight;
+  const moodChange = moodGain + tierMood + d.moodDrift;
   const moodAfter = clamp(s.mood + moodChange, 0, 100);
 
-  // 2) 호감: 판정 × 난이도 스케일 × 분위기 배율. 배율은 '발언 시점'의 분위기를 쓴다.
+  // 2) 호감: 판정 × 난이도 스케일 × 분위기 배율 × 호감 포화.
+  //    배율과 포화는 둘 다 '발언 시점'의 값을 쓴다. 이득 쪽만 포화시킨다 — 떨어질 땐 그대로 떨어진다.
   const mult = moodMultiplier(before.mood);
-  const scaled = (ld >= 0 ? ld * d.gainScale : ld * d.lossScale) * weight;
-  const loveChange = scaled * mult
-    + (hit ? TUNING.hiddenBonus : 0)
-    + (red ? TUNING.redLineLove : 0)
-    - d.loveDecay;
+  const loveSat = loveSaturation(before.love);
+  const scaled = (ld >= 0 ? ld * d.gainScale * loveSat : ld * d.lossScale) * weight;
+  const loveChange = scaled * mult - d.loveDecay;
 
   s.mood = moodAfter;
-  s.love = clamp(s.love + loveChange, 0, 100);
+  // 두근거림 관문. 잘 굴러간 대화는 여기까지만 올라온다 —
+  // 그 위는 실제로 마음이 움직인 턴(warm 이상)만 민다.
+  let loveAfter = s.love + loveChange;
+  if (loveChange > 0 && !FLUTTER_TIERS.has(tier)) {
+    loveAfter = Math.min(loveAfter, Math.max(before.love, TUNING.likingCeiling));
+  }
+  s.love = clamp(loveAfter, 0, 100);
   s.turns += 1;
+
+  // 사망은 판정에 딸려 오지만 수치 계산과는 무관하다. 한 번 정해지면 뒤집히지 않는다.
+  const cas = ['client', 'target', 'both'].includes(judge.casualty) ? judge.casualty : 'none';
+  if (cas !== 'none' && s.casualty === 'none') {
+    s.casualty = cas;
+    s.casualtyNote = (judge.casualtyNote || '').trim();
+  }
+
+  // 장벽은 한 번 다루면 다뤄진 것이다. 매 턴 다시 증명하게 하면 대화가 그 얘기만 하게 된다.
+  if (judge.barrierAddressed === true) s.barrierCleared = true;
+  // 강압은 쌓인다. 한 번의 협박으로 사람이 묶이지는 않는다.
+  s.leverage += LEVERAGE_POINTS[judge.leverage] || 0;
 
   s.lastDelta = {
     mood: round1(s.mood - before.mood),
     love: round1(s.love - before.love),
     rawMood: md, rawLove: ld, tier, judgeTier: judge.tier || '?',
     mult: round1(mult),
-    hit, red,
+    revealed: fresh,
+    vibe: s.vibe,
     firstImpression: !!opts.firstImpression,
   };
   // 히스토리에는 증감(dMood/dLove)과 누적(mood/love)을 둘 다 남긴다 — 디브리핑과 밸런싱 양쪽에서 쓴다
@@ -178,8 +404,10 @@ export function applyTurn(state, d, judge, opts = {}) {
     dMood: s.lastDelta.mood, dLove: s.lastDelta.love,
     mood: Math.round(s.mood), love: Math.round(s.love),
     rawMood: md, rawLove: ld, tier, judgeTier: judge.tier || '?', mult: s.lastDelta.mult,
-    hit, red, firstImpression: !!opts.firstImpression,
-    reason: judge.reason || '',
+    revealed: fresh, firstImpression: !!opts.firstImpression,
+    // 장벽·압박은 이제 판을 끝내는 조건이다. 턴 기록에 안 남으면 사후에 왜 졌는지 못 짚는다.
+    barrier: judge.barrierAddressed === true, leverage: judge.leverage || 'none',
+    reason: judge.reason || '', vibe: s.vibe,
   });
   return s;
 }
@@ -190,7 +418,15 @@ export function noteRadio(state) {
 }
 
 // ── 조기 파탄 ───────────────────────────────────────────────────
+// 사상자 표기. 디브리핑과 결과 화면이 같은 말을 쓰게 한 곳에 둔다.
+// 강압의 무게. 한 번 세게 찌른 것(hard)이 두 번 slow-press(soft)와 같다.
+export const LEVERAGE_POINTS = { none: 0, soft: 1, hard: 2 };
+
+export const CASUALTY_KO = { client: '의뢰인이', target: '상대가', both: '둘 다' };
+
 export function failureReason(state) {
+  // 사망이 먼저다. 분위기가 아무리 좋아도 한쪽이 죽으면 그 자리는 거기서 끝난다.
+  if (state.casualty && state.casualty !== 'none') return 'death';
   if (state.mood <= 0) return 'mood';   // 분위기 파탄. 상대가 자리를 뜬다
   return null;
 }
@@ -199,43 +435,119 @@ export function failureReason(state) {
 export function verdict(state, d, { aborted = false } = {}) {
   const love = Math.round(state.love), mood = Math.round(state.mood);
   const margin = love - d.threshold;
+  // 사망은 무조건 F다. 호감이 성공선을 넘었어도 성사시킬 사람이 없다.
+  if (state.casualty && state.casualty !== 'none') {
+    return { accepted: false, grade: 'F', love, mood, margin, reason: 'death', casualty: state.casualty };
+  }
   if (aborted) return { accepted: false, grade: 'F', love, mood, margin, reason: 'aborted' };
+
   const moodOk = mood >= d.moodFloor;
-  const accepted = love >= d.threshold && moodOk;
-  let grade;
-  if (!accepted) grade = margin >= -8 ? 'D' : margin >= -22 ? 'E' : 'F';
-  else if (margin >= 20) grade = 'S';
-  else if (margin >= 12) grade = 'A';
-  else if (margin >= 5) grade = 'B';
-  else grade = 'C';
-  return { accepted, grade, love, mood, margin, reason: accepted ? 'ok' : moodOk ? 'love' : 'mood' };
+  const won = love >= d.threshold && moodOk;
+  const lev = state.leverage || 0;
+
+  const band = (m) => m >= 20 ? 'S' : m >= 12 ? 'A' : m >= 5 ? 'B' : 'C';
+
+  // 1) 성사 — 호감이 성공선을 넘고 공기가 살아 있으면 그걸로 된다.
+  //    **장벽은 여기서 아무것도 막지 않는다.** 호감으로 넘어가는 것이고, 그게 정상이다.
+  //    (한동안 장벽이 관문이었다. 호감을 다 채우고도 차이는 결말이 있었고, 그게 판별력을
+  //     담당했다. 지금 그 자리는 대화 불능이 맡는다 — 실측 격차가 훨씬 크다: 93 대 9.)
+  if (won) {
+    return { accepted: true, grade: band(margin), love, mood, margin, reason: 'ok', leverage: lev };
+  }
+  // 2) 강압 성사 — 호감이 모자라도 구석에 몰아넣었으면 넘어간다.
+  //    마음을 얻은 게 아니라 도망갈 데를 없앤 것이다. 분위기 하한은 안 본다 —
+  //    공기가 좋아서 묶인 게 아니기 때문이다.
+  if (lev >= TUNING.coerceMin && mood > 0) {
+    return { accepted: true, grade: 'C', love, mood, margin, reason: 'coerced', leverage: lev };
+  }
+  // 3) 그냥 결렬
+  return {
+    accepted: false, love, mood, margin, leverage: lev,
+    grade: margin >= -8 ? 'D' : margin >= -22 ? 'E' : 'F',
+    reason: moodOk ? 'love' : 'mood',
+  };
+}
+
+// ── 비밀이 화제에 올랐는지 (표시 전용) ──────────────────────────
+// 점수와 아무 상관 없다. 디브리핑에서 "이 얘기는 나왔고 저 얘기는 끝내 안 나왔다"를
+// 보여주기 위한 것뿐이다. 예전처럼 이 대조 결과로 가점을 주지 않는다 — 그게 이 개편의 요지다.
+const STOP = new Set(['사실', '것이다', '것을', '있다', '하는', '하고', '한다', '되는', '그것', '이것', '저것', '때문']);
+function tokens(text) {
+  return String(text || '')
+    .replace(/[^가-힣a-zA-Z0-9]+/g, ' ')
+    .split(' ')
+    .filter(w => w.length >= 2 && !STOP.has(w));
+}
+export function surfacedSecrets(couple, transcript, revealed = []) {
+  const hay = (String(transcript || '') + ' ' + revealed.join(' ')).toLowerCase();
+  const out = { surfaced: [], missed: [] };
+  for (const secret of couple.target.hiddenPrefs) {
+    const t = tokens(secret);
+    if (!t.length) { out.missed.push(secret); continue; }
+    const hitCount = t.filter(w => hay.includes(w.toLowerCase())).length;
+    // 절반 이상의 토큰이 대화록/기록에 등장하면 "화제에 올랐다"로 본다. 어림값이고, 표시용이다.
+    (hitCount * 2 >= t.length ? out.surfaced : out.missed).push(secret);
+  }
+  return out;
 }
 
 // ── 디브리핑: 채점이 아니라 '무슨 일이 있었는지'의 요약 ─────────
-export function debrief(state, d, v, couple) {
-  const hidden = couple.target.hiddenPrefs;
-  const missed = hidden.filter(p => !state.hits.includes(p));
+export function debrief(state, d, v, couple, transcript = '') {
+  const { surfaced, missed } = surfacedSecrets(couple, transcript, state.revealed);
   const pos = state.history.filter(h => h.dLove > 0);
   const neg = state.history.filter(h => h.dLove < 0);
+  const cold = state.history.filter(h => h.tier === 'chill' || h.tier === 'disaster');
+  const big = state.history.filter(h => h.tier === 'breakthrough');
   const best = state.history.reduce((b, h) => (!b || h.dLove > b.dLove ? h : b), null);
   const worst = state.history.reduce((b, h) => (!b || h.dLove < b.dLove ? h : b), null);
 
   const notes = [];
   notes.push({
-    key: 'hidden', label: '미확인 취향 확보',
-    value: `${state.hits.length} / ${hidden.length}건`,
-    ok: state.hits.length >= Math.ceil(hidden.length / 2),
-    text: state.hits.length === 0
-      ? '끝내 하나도 확보하지 못했다. 무전으로 화제를 지정하지 않으면 상대는 먼저 말하지 않는다.'
-      : state.hits.length === hidden.length ? '전부 캐냈다. 이건 요원의 실력이다.'
-        : '절반은 건드렸다. 나머지는 화제 자체가 나오지 않았다.',
+    key: 'revealed', label: '상대에 대해 알아낸 것',
+    value: `${state.revealed.length}건`,
+    ok: state.revealed.length > 0,
+    text: state.revealed.length === 0
+      ? `대화 내내 상대의 새로운 면이 한 번도 안 나왔다. ${state.history.length}턴을 인사만 주고받은 셈이다.`
+      : state.revealed.slice(0, 4).join(' · '),
+  });
+  // 장벽은 관문이 아니라 **밀당의 대표 아젠다**다. 성사 여부를 막지 않는다.
+  // 다만 이 얘기가 테이블에 올라왔는지 아닌지는 그 판이 어디까지 갔는지를 말해준다.
+  notes.push({
+    key: 'barrier', label: '둘 사이의 현안',
+    value: state.barrierCleared ? '대화에서 다뤄짐' : '끝내 안 나옴',
+    ok: !!state.barrierCleared,
+    text: state.barrierCleared
+      ? `${couple.barrier} — 이 얘기가 실제로 테이블에 올라왔다. 여기까지 갔다는 뜻이다.`
+      : `${couple.barrier} — 아무도 이 얘기를 꺼내지 않았다. 성사를 막지는 않지만, 그만큼 겉만 돌았다는 뜻이다.`,
+  });
+  // 두근거림 관문. 여기서 멈춘 판은 "못했다"가 아니라 "아무 일도 없었다"다.
+  // 그 차이를 안 알려주면 플레이어는 게이지가 고장 났다고 생각한다.
+  const hot = state.history.filter(h => h.tier === 'warm' || h.tier === 'breakthrough').length;
+  notes.push({
+    key: 'flutter', label: '두근거린 순간',
+    value: `${hot}회`,
+    ok: hot > 0,
+    text: hot === 0
+      ? `한 번도 없었다. 대화가 얼마나 잘 굴러갔든 호감은 ${TUNING.likingCeiling}에서 막힌다 — ` +
+        '합이 맞고 농담이 통하는 건 채점 대상이 아니다. 저 사람이라서 닿는 말이 하나도 없었다.'
+      : `${hot}번 있었다. 관문 ${TUNING.likingCeiling} 위로 올라간 건 전부 이 순간들이 민 것이다.`,
   });
   notes.push({
-    key: 'redline', label: '접촉 금지 위반',
-    value: `${state.redLines}회`,
-    ok: state.redLines === 0,
-    text: state.redLines === 0 ? '금지 항목 접촉 없음.'
-      : `${state.redLines}회 위반. 위반 한 번이 잘한 두 턴을 지운다.`,
+    key: 'secrets', label: '상대가 감춰둔 이야기',
+    value: `${surfaced.length} / ${couple.target.hiddenPrefs.length}건 화제에 오름`,
+    ok: surfaced.length > 0,
+    text: surfaced.length === 0
+      ? '아무한테도 안 한 얘기는 끝내 한 마디도 안 나왔다. 화제가 거기까지 안 갔다.'
+      : surfaced.length === couple.target.hiddenPrefs.length
+        ? '감춰둔 얘기가 전부 대화에 올라왔다. 이 정도로 열린 건 드문 일이다.'
+        : '일부는 나왔고 일부는 끝내 안 나왔다.',
+  });
+  notes.push({
+    key: 'cold', label: '상대가 식은 턴',
+    value: `${cold.length}턴`,
+    ok: cold.length === 0,
+    text: cold.length === 0 ? '한 번도 싸늘해지지 않았다.'
+      : `${cold.length}턴에서 상대가 물러섰다. 판이 뒤집힌 순간은 ${big.length}회.`,
   });
   notes.push({
     key: 'radio', label: '무전 개입',
@@ -254,12 +566,16 @@ export function debrief(state, d, v, couple) {
   });
 
   return {
-    notes, missed, found: state.hits,
+    notes, surfaced, missed, revealed: state.revealed,
     threshold: d.threshold, moodFloor: d.moodFloor,
-    summary: v.accepted
-      ? `호감 ${v.love}/${d.threshold} — 성공선을 ${v.margin}점 넘겼다.`
-      : v.reason === 'mood'
-        ? `호감 ${v.love}/${d.threshold}은 넘겼지만 분위기 ${v.mood}/${d.moodFloor}이 바닥이라 고백이 묻혔다.`
-        : `호감 ${v.love}/${d.threshold} — 성공선에 ${Math.abs(v.margin)}점 모자랐다.`,
+    summary: v.reason === 'coerced'
+      ? `호감 ${v.love}/${d.threshold}에는 못 미쳤다. 마음이 아니라 압박으로 묶었다.`
+      : v.accepted
+        ? `호감 ${v.love}/${d.threshold} — 성공선을 ${v.margin}점 넘겼다.`
+        : v.reason === 'death'
+        ? `호감 ${v.love}/${d.threshold}까지 갔지만 ${CASUALTY_KO[state.casualty] || '누군가'} 사망했다. 성사시킬 사람이 없다.`
+        : v.reason === 'mood'
+          ? `호감 ${v.love}/${d.threshold}은 넘겼지만 분위기 ${v.mood}/${d.moodFloor}이 바닥이라 고백이 묻혔다.`
+          : `호감 ${v.love}/${d.threshold} — 성공선에 ${Math.abs(v.margin)}점 모자랐다.`,
   };
 }
