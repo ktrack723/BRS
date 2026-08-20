@@ -174,7 +174,7 @@ export const DIFFICULTIES = {
     threshold: 60, moodFloor: 25,
     loveDecay: 0.0,   // 턴마다 식는 호감
     moodDrift: 0.5,   // 턴마다 흐르는 분위기 (양수면 알아서 풀린다)
-    gainScale: 3.0, lossScale: 1.45,
+    gainScale: 4.5, lossScale: 1.45,
   },
   '보통': {
     key: 'normal', badge: '보통',
@@ -194,7 +194,7 @@ export const DIFFICULTIES = {
     threshold: 70, moodFloor: 40,
     loveDecay: 0.6,
     moodDrift: -0.7,
-    gainScale: 4.6, lossScale: 2.00,
+    gainScale: 3.6, lossScale: 2.00,
   },
 };
 
@@ -264,11 +264,21 @@ export const TUNING = {
   // 그건 우회로였다. 규칙을 직접 쓰는 게 맞다: **두근두근이 아니면 증가량이 0이다.**
   // nudge도 flat도 0점이다. 잘 굴러간 대화에는 한 점도 안 붙는다.
   // chill·disaster는 그대로 깎는다. 호감은 0에서 바닥을 친다.
-  //   gainScale  쉬움 3.0 · 보통 4.0 · 헬 4.6
-  // 두근두근의 기준을 한국 커플 밀당 수준으로 올린 만큼 그 턴이 드물어진다.
-  // 그래서 한 번의 값을 올렸다 — **다섯 번이면 성공선에 닿는다.**
-  //   두근 3회 51 / 54 / 52   4회 59 / 63 / 62   5회 67 / 72 / 71   (성공선 60 / 66 / 70)
-  // lossScale도 같이 올렸다. 안 그러면 chill이 상대적으로 무의미해진다.
+  //   gainScale  쉬움 4.5 · 보통 4.0 · 헬 3.6
+  //
+  // 이 셋은 **실측 12판의 판정 시퀀스를 그대로 재생해서** 고른 값이다(합성 가정이 아니다).
+  // 라이브에서 판당 두근거림이 난이도별로 이렇게 갈렸다:
+  //   쉬움 1.8회 · 보통 4.3회 · 헬 7.8회   ← 사다리가 뒤집혀 있었다
+  // 헬 조합은 소재가 진해서 두근거림을 훨씬 많이 만든다. 그래서 헬은 배율을 내리고
+  // 쉬움은 올려서, 각 난이도의 전형적인 판이 자기 성공선 근처에 오게 맞췄다.
+  // 재생 결과 (성공선 60 / 66 / 70):
+  //   쉬움  circadian none 53 · ace  5    asmr none 35 · ace 19
+  //   보통  gapjil    none 54 · ace 67✓   vtuber none 39 · ace 92✓
+  //   헬    politics  none 52 · ace 91✓   noise-vow none 81✓ · ace 71✓
+  // lossScale은 그대로 뒀다. 안 그러면 chill이 상대적으로 무의미해진다.
+  //
+  // ⚠ circadian ace는 두근거림이 **0회**라 배율로는 못 고친다(0은 곱해도 0).
+  //    독백 × 단답은 서로에게 닿을 통로가 없다. 조합 쪽 문제로 남아 있다.
   moodGainScale: 1.0,        // 분위기 이득 쪽 감쇠. 예전 0.75는 분위기가 아예 안 오르게 만들었다
   disasterMood: -5,          // 상대가 정색하면 자리가 식는다. 등급에서 나오는 결과지 별도 판정이 아니다
   breakthroughMood: 3,       // 반대로 방어선이 무너진 순간엔 공기도 같이 풀린다
