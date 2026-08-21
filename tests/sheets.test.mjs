@@ -15,7 +15,7 @@ const everyone = COUPLES.flatMap(c => [
 
 // ── 스키마: 이것이 전부여야 한다 ─────────────────────────
 const FIELDS = ['name', 'gender', 'look', 'history', 'personality', 'keys', 'prefs', 'spec'].sort();
-const KEYS = ['interest', 'air', 'comply', 'reflex', 'wreck'].sort();
+const KEYS = ['interest', 'air', 'comply', 'wreck'].sort();
 
 test('인물 스키마 — 정해진 필드 밖의 축이 없다', () => {
   for (const { c, who, p } of everyone) {
@@ -98,7 +98,7 @@ test('키워드 값이 전부 어휘 안에 있다', () => {
     assert.ok(KEY_LABELS.air[p.keys.air], `${c.id}.${who} air`);
     assert.ok(KEY_LABELS.comply[p.keys.comply], `${c.id}.${who} comply`);
     assert.ok(WRECK_KINDS.has(p.keys.wreck.kind), `${c.id}.${who} wreck`);
-    assert.ok(p.keys.reflex.length >= 8, `${c.id}.${who} 조건반사가 뭉뚱그려져 있다`);
+    assert.equal(p.keys.reflex, undefined, `${c.id}.${who}에 폐지된 조건반사가 남아 있다`);
   }
 });
 
@@ -205,12 +205,15 @@ test('상대관심 축이 여닫는 간선이 실제로 조건부다', () => {
   assert.ok(sys(otherC).includes('known to like'), 'other인데 상대의 공개 성향을 모른다');
 });
 
-test('어긋남이 출력 형식 블록 맨 끝에 다시 박힌다', () => {
+test('어긋남은 키워드 데이터로만 실린다 — 문체 강제 블록은 없다', () => {
   const c = COUPLE_BY_ID['politics'];
   const sys = P.clientAgentSystem(c, { coaching: '', speech: '', outfitDesc: '' }, 'talk', {});
-  const pos = sys.lastIndexOf('THE LAST THING YOU READ');
-  assert.ok(pos > sys.indexOf('[OUTPUT FORMAT]'), '어긋남 재선언이 출력 형식보다 앞에 있다');
-  assert.ok(/[Rr]ewrite it/.test(sys.slice(pos)), '자기 검증 지시가 빠졌다');
+  assert.ok(sys.includes(`어긋남(${c.client.keys.wreck.kind})`), '어긋남 키워드 줄이 빠졌다');
+  assert.ok(sys.includes(c.client.keys.wreck.line), '어긋남 문장이 빠졌다');
+  // 폐지된 문체 강제 장치들 — 부활 감지
+  assert.ok(!sys.includes('THE LAST THING YOU READ'), '어긋남 반복 박기가 부활했다');
+  assert.ok(!/[Rr]ewrite it/.test(sys), '자기 검증 지시가 부활했다');
+  assert.ok(!sys.includes('sitcom'), '싯콤 금지 지시가 부활했다');
 });
 
 // ── 프롬프트: 수위와 언어 ────────────────────────────────
@@ -242,20 +245,28 @@ test('세계관이 도덕 기본값을 이득 쪽으로 깔아둔다', () => {
   assert.ok(P.WORLD.includes('DO NOT PLAY RIGHTEOUS'));
 });
 
-test('대화가 잘 굴러가면 안 된다 — 결 조이기 3처가 살아 있다', () => {
+test('대화 프롬프트 = 허가서 + 행동 한 줄 + 데이터 — 세계관·흐름 지시 없음', () => {
   const c = COUPLE_BY_ID['politics'];
   const sys = P.clientAgentSystem(c, { coaching: '', speech: '', outfitDesc: '' }, 'text', {});
-  // ① 열림은 급소를 맞혔을 때만 — "대화가 잘 굴러가서"는 절대 아니다
-  assert.ok(sys.includes('Talking well earns no thaw'), '열림 조건이 풀렸다');
-  assert.ok(!sys.includes('be reached — fast'), '삭제한 완충 문장이 되살아났다');
-  // ② 기본 태도: 상대는 성가시고, 원하는 것과 좋아하는 것은 별개로 굴러간다 (착취는 호감 불요)
-  assert.match(sys, /you do not particularly\s+like this person/, '기본 태도 문장이 사라졌다');
-  assert.ok(sys.includes('does not soften how you treat them'), '착취-호감 분리 문장이 사라졌다');
-  // ③ 코미디는 대화가 망하는 데서 나온다 — 만담이 아니라
-  assert.ok(P.WORLD.includes('from the conversation failing'), '코미디 재조준이 풀렸다');
-  assert.match(P.WORLD, /A scene that reads smooth\s+has missed the joke/);
-  // 공통 꼬리는 대칭이다 — 상대 쪽도 같은 결을 받는다
-  assert.ok(P.targetAgentSystem(c, 'text', '').includes('Talking well earns no thaw'));
+  // 행동 원칙 한 줄 — 이기적·욕망 충실·찐따면 진짜 찐따
+  assert.match(sys, /selfish, loyal\s+to your own appetites/, '행동 원칙이 사라졌다');
+  assert.match(sys, /actual social\s+misfit/, '찐따 연기 지시가 사라졌다');
+  // 수위 허가서(LICENSE)는 대화 프롬프트에 들어간다 — 강압 포함, 성인 전용 금지선 포함
+  assert.ok(sys.includes('CONTENT LICENSE'), '허가서가 빠졌다');
+  assert.match(sys, /coercion and blackmail\s+included/, '강압 허가가 압축에서 사라졌다');
+  assert.ok(sys.includes('fade-to-black'), '수위 허가가 사라졌다');
+  assert.ok(sys.includes('minor'), '성인 전용 금지선이 사라졌다');
+  // 세계관·톤·흐름 지시는 대화에 들어가지 않는다
+  assert.ok(!sys.includes('2077'), '세계관이 대화 프롬프트에 남아 있다');
+  assert.ok(!sys.includes('Bureau of Cupid'), '기관 설정이 대화 프롬프트에 남아 있다');
+  assert.ok(!sys.includes('comedy'), '톤 지시가 대화 프롬프트에 남아 있다');
+  assert.ok(!sys.includes('NOT GOOD PEOPLE'), '구 세계관 블록이 남아 있다');
+  assert.ok(!sys.includes('Talking well earns no thaw'), '폐지된 흐름 지시(해빙 조건)가 부활했다');
+  assert.ok(!sys.includes('WHAT HAS EVER GOTTEN PAST IT'), '폐지된 뚫림 규칙이 부활했다');
+  assert.ok(!sys.includes('only when something in the room'), '성향 꺼내는 타이밍 지시가 부활했다');
+  // 공통 골격은 대칭 — 상대도 같은 허가서·행동 원칙을 받는다
+  const tsys = P.targetAgentSystem(c, 'text', '');
+  assert.ok(tsys.includes('CONTENT LICENSE') && /actual social\s+misfit/.test(tsys));
 });
 
 test('모든 시스템 프롬프트가 출력 언어를 한국어로 못 박는다', () => {
@@ -274,12 +285,13 @@ test('모든 시스템 프롬프트가 출력 언어를 한국어로 못 박는�
   }
 });
 
-test('대사 길이에 상한이 있고 바닥은 없다', () => {
+test('출력 형식은 규격만 — 길이·문체 지시가 없다', () => {
   const c = COUPLE_BY_ID['politics'];
   const sys = P.clientAgentSystem(c, { coaching: '', speech: '', outfitDesc: '' }, 'text', {});
-  assert.ok(sys.includes('Never exceed two sentences'));
-  assert.ok(sys.includes('no floor'), '한 단어·침묵이 완전한 턴이라는 허가가 없다');
-  assert.ok(sys.includes('ㅇㅇ'), '단답 예시가 없다');
+  assert.ok(sys.includes('[OUTPUT]'), '출력 블록이 없다');
+  assert.ok(sys.includes('one text message'), '한 턴 규격이 없다');
+  assert.ok(!sys.includes('Never exceed two sentences'), '폐지된 길이 상한이 부활했다');
+  assert.ok(!sys.includes('no floor'), '폐지된 길이 바닥 지시가 부활했다');
 });
 
 // ── 프롬프트: 심판의 잣대 ────────────────────────────────

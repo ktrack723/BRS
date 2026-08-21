@@ -18,7 +18,7 @@ chk "want/urge/nerve/regard가 제거됐다" "! grep -qE 'flaw\\.want|\\.urge|\\
 chk "만남+아젠다가 relation 하나로 묶였다" "node -e \"import('./js/couples.js').then(m=>process.exit(m.COUPLES.every(c=>c.relation&&c.relation.includes('현안'))?0:1))\""
 chk "성향이 전원에게 있다 — 상대만 있는 게 아니다" "node -e \"import('./js/couples.js').then(m=>process.exit(m.COUPLES.every(c=>c.client.prefs.length>=3&&c.target.prefs.length>=3)?0:1))\""
 chk "의뢰인 성향은 미공개분까지 요원에게 전부 보인다" "grep -q 'sheetHtml(c.client, { mine: true })' js/game.js && grep -q '미공개분 포함 전부' js/game.js"
-chk "특별 키워드 5종 (상대관심·공기읽기·명령수용·조건반사·어긋남)" "grep -q \"KEYS = \\['interest', 'air', 'comply', 'reflex', 'wreck'\\]\" tests/sheets.test.mjs"
+chk "특별 키워드 4종 (상대관심·공기읽기·명령수용·어긋남) — 조건반사는 폐지" "grep -q \"KEYS = \\['interest', 'air', 'comply', 'wreck'\\]\" tests/sheets.test.mjs && ! grep -q 'reflex: \"' js/couples.js"
 
 echo
 echo "── 판정: 합 단위, 상대 시점, 호감 단일 게이지 ──"
@@ -46,16 +46,13 @@ chk "규칙 계층에 준비 점수 개념이 없다" "! grep -qiE 'coaching|spe
 echo
 echo "── 인물: 하자·어긋남·정보 게이트 ──"
 chk "어긋남 7종이 전부 실제로 쓰인다" "node -e \"import('./js/couples.js').then(m=>{const k=new Set(m.COUPLES.flatMap(c=>[c.client.keys.wreck.kind,c.target.keys.wreck.kind]));process.exit(k.size===7?0:1)})\""
-chk "단답 — ㅇㅇ ㅇㅋ ㅎㅎ가 문자 그대로 출력 지정" "grep -q 'ㅇㅇ / ㅇㅋ / ㄴㄴ / ㅎㅎ' js/prompts.js"
-chk "침묵 — ...이 완결된 턴" "grep -q 'complete turn' js/prompts.js"
-chk "종류마다 양방향 가드" "test \$(grep -c 'The other side' js/prompts.js) -ge 7"
-chk "어긋남이 출력 형식 맨 끝에 다시 박힌다 (마지막 지시가 이긴다)" "grep -q 'THE LAST THING YOU READ' js/prompts.js"
-chk "대충 하기·안 하고 싶음·대화 불성립이 선택지" "grep -q 'THIS COSTS YOU SOMETHING' js/prompts.js && grep -q 'not wanting to' js/prompts.js && grep -q 'fail to become a conversation' js/prompts.js"
-chk "출력 형식에 하한이 없다" "grep -q 'no floor' js/prompts.js"
+chk "문체 강제 장치가 되살아나지 않았다 (프롬프트 최소주의)" "! grep -q 'THE LAST THING YOU READ' js/prompts.js && ! grep -q 'WRECK_STYLE' js/prompts.js && ! grep -q 'THIS COSTS YOU SOMETHING' js/prompts.js && ! grep -q 'sitcom' js/prompts.js"
+chk "행동 명령은 한 줄뿐 — 이기적·욕망 충실·찐따면 진짜 찐따" "grep -q 'loyal' js/prompts.js && grep -q 'actual social' js/prompts.js"
+chk "어긋남은 키워드 데이터로 실린다" "grep -q '어긋남(\${k.wreck.kind})' js/prompts.js"
 chk "상대관심이 정보량을 깎는다 (지시가 아니라 게이트)" "grep -q 'interest !==' js/prompts.js"
 chk "공기읽기가 양쪽 다 작동한다" "grep -q \"air === 'none'\" js/engine.js"
 chk "심판이 어긋남을 알고 최소 응답을 냉대로 안 읽는다" "grep -q 'How each fails at conversation' js/prompts.js"
-chk "금지당한 충동은 사라지지 않고 옆으로 샌다" "grep -q 'the wanting does not go with' js/prompts.js"
+chk "지침 흐름 연출 지시가 되살아나지 않았다" "! grep -q 'the wanting does not go with' js/prompts.js && ! grep -q 'not making up as you go' js/prompts.js"
 chk "지침 이행의 결 3종 (obeys/argues/drifts)" "grep -q 'drift back' js/prompts.js"
 
 echo
@@ -68,14 +65,14 @@ chk "성적 묘사 상한 제거 (페이드아웃 금지·신체 명명)" "grep 
 chk "장소·시점 제약 없음" "grep -q 'does not wait for a bedroom' js/prompts.js"
 chk "심판이 야한 전개를 같은 잣대로 잰다" "grep -q 'sexual is also correct operation' js/prompts.js"
 chk "성인만 등장한다" "grep -q 'adult' js/prompts.js && grep -q 'minor' js/prompts.js"
-chk "욕망을 위해 법을 어길 수 있다" "grep -q 'obstacles to route around, not reasons to stop' js/prompts.js"
+chk "강압·협박까지 허가서에 명시된다 (압축 손실 금지)" "grep -q 'coercion and blackmail' js/prompts.js"
 chk "데이트 장소를 요원이 문자로 잡을 수 있다" "grep -q 'If a place was named and not refused' js/prompts.js"
-chk "대면에서만 몸이 위험하다는 블록" "grep -q 'WHERE YOU ARE STANDING' js/prompts.js"
+chk "장소의 위험이 실재한다 (허가서에 명시)" "grep -q 'hazards are real' js/prompts.js"
 
 echo
 echo "── 하네스·데이터 위생 ──"
 chk "의뢰 대장 40건 이상" "node -e \"import('./js/couples.js').then(m=>process.exit(m.COUPLES.length>=40?0:1))\""
-chk "합 판정이 다음 교환과 병렬로 돈다" "grep -q 'Promise.all(\\[replyJob, this.#settleJudge()\\])' js/engine.js"
+chk "합 판정이 완전 비동기다 — 대화가 심판을 기다리지 않는다 + 타임아웃 페일세이프" "grep -q 'drainJudge' js/engine.js && grep -q 'JUDGE_TIMEOUT_MS' js/engine.js"
 chk "페이즈 경계에서 합을 비운다" "grep -q 'flushBout' js/engine.js"
 chk "심판이 죽어도 중립(nudge)으로 흐른다" "grep -A5 'neutralJudge(reason)' js/engine.js | grep -q \"tier: 'nudge'\""
 chk "여캐 조형 보정" "grep -q 'spec.femme' js/avatar.js"

@@ -438,9 +438,6 @@ function sheetHtml(person, { mine = false } = {}) {
       ${rows.map(r => `<li class="lv-${r.level}"><span class="flaw-axis">${escapeHtml(r.axis)}</span>
         <span class="flaw-tag lv-${r.level}">${escapeHtml(r.tag)}</span>
         <span class="flaw-desc">${escapeHtml(r.desc)}</span></li>`).join('')}
-      <li class="lv-mid"><span class="flaw-axis">조건반사</span>
-        <span class="flaw-tag lv-mid">가만두면 나온다</span>
-        <span class="flaw-desc">${escapeHtml(person.keys.reflex)}</span></li>
       <li class="lv-high"><span class="flaw-axis">어긋남</span>
         <span class="flaw-tag wreck">${escapeHtml(wreck.tag)}</span>
         <span class="flaw-desc">${escapeHtml(person.keys.wreck.line)}<br>
@@ -474,7 +471,7 @@ function targetBriefHtml(c) {
     <p class="redline-box"><b>지뢰:</b> ${dp.neg.map(escapeHtml).join(' / ')}</p>
     <p class="handoff-warn"><b>이 화면의 정보는 의뢰인에게 자동으로 넘어가지 않는다.</b>
       의뢰인이 아는 것: ${knows} 나머지는 <b>지침에 직접 적어야</b> 그 인간 머릿속에 들어간다.</p>
-    <p class="weakness"><b>의뢰인 조건반사:</b> ${escapeHtml(k.reflex)}</p>
+    <p class="weakness"><b>의뢰인 어긋남 (${escapeHtml(WRECK_LABELS[k.wreck.kind].tag)}):</b> ${escapeHtml(k.wreck.line)}</p>
     ${comply ? `<p class="brief-flaw"><b>의뢰인 지침 수용:</b>
       ${escapeHtml(comply.tag)} — ${escapeHtml(comply.desc)}</p>` : ''}`;
 }

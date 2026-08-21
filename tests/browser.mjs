@@ -441,14 +441,13 @@ try {
     return {
       exists: !!box, text: box?.textContent || '',
       tags: [...(box?.querySelectorAll('.flaw-tag') || [])].length,
-      reflex: c.client.keys.reflex, wreck: c.client.keys.wreck.line,
+      wreck: c.client.keys.wreck.line,
     };
   });
   check('의뢰서에 의뢰인 특별 키워드가 공개된다', psych.exists && psych.tags >= 4, `배지 ${psych.tags}개`);
-  check('조건반사와 어긋남이 전부 명시된다',
-    [psych.reflex, psych.wreck].every(x => psych.text.includes(x)));
-  check('버릇이 의뢰서에 한 번만 나온다',
-    dossier.split(psych.reflex).length - 1 === 1, `${dossier.split(psych.reflex).length - 1}회`);
+  check('어긋남이 명시된다', psych.text.includes(psych.wreck));
+  check('어긋남이 의뢰서에 한 번만 나온다',
+    dossier.split(psych.wreck).length - 1 === 1, `${dossier.split(psych.wreck).length - 1}회`);
   // 둘 사이(만남+아젠다)가 의뢰서에 한 덩어리로 나와야 한다.
   const rel = await page.evaluate(() => {
     const name = document.querySelector('#dossier-box h3').textContent;
