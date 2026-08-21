@@ -133,17 +133,34 @@ test('revealed는 중복 없이 쌓이고 vibe는 빈 값이면 유지된다', (
 // ── 자리의 끝 ────────────────────────────────────────────
 test('walkout은 심판의 판단이고, 성사도 강압도 막는다', () => {
   let s = { ...initialState(D), love: 90, leverage: 9 };
-  s = applyBout(s, D, J('disaster', { walkout: true }), { exchanges: 2 });
+  s = applyBout(s, D, J('flat'), { exchanges: 5, phase: 'talk' });          // 첫 합은 지나가고
+  s = applyBout(s, D, J('disaster', { walkout: true }), { exchanges: 2, phase: 'talk' });
   assert.equal(failureReason(s), 'walkout');
   const v = verdict(s, D);
   assert.equal(v.accepted, false);
   assert.equal(v.reason, 'walkout', '상대가 떠났는데 성사가 되면 안 된다');
 });
 
+test('첫 합에는 walkout·death가 무시된다 — 다섯 마디 만에 끝나는 건 사고다', () => {
+  // 문자 첫 합 walkout → 무시
+  let t = applyBout(initialState(D), D, J('disaster', { walkout: true }), { exchanges: 5, phase: 'text' });
+  assert.equal(t.walkout, false, '문자 첫 합 walkout이 새겨졌다');
+  assert.equal(failureReason(t), null);
+  // 문자에서는 사망 자체가 불가능 (같은 자리에 없다)
+  let m = applyBout(initialState(D), D, J('disaster', { casualty: 'both', casualtyNote: 'x' }), { exchanges: 5, phase: 'text' });
+  m = applyBout(m, D, J('disaster', { casualty: 'both', casualtyNote: 'x' }), { exchanges: 5, phase: 'text' });
+  assert.equal(m.casualty, 'none', '문자로 죽었다');
+  // 대면 둘째 합부터는 살아난다
+  let k = applyBout(initialState(D), D, J('flat'), { exchanges: 5, phase: 'talk' });
+  k = applyBout(k, D, J('disaster', { walkout: true }), { exchanges: 5, phase: 'talk' });
+  assert.equal(k.walkout, true, '대면 둘째 합 walkout이 안 먹었다');
+});
+
 test('사망은 즉시 F고 뒤집히지 않는다', () => {
   let s = { ...initialState(D), love: 99 };
-  s = applyBout(s, D, J('disaster', { casualty: 'target', casualtyNote: '분화구' }), {});
-  s = applyBout(s, D, J('warm', { casualty: 'none' }), {});
+  s = applyBout(s, D, J('flat'), { exchanges: 5, phase: 'talk' });          // 첫 합은 지나가고
+  s = applyBout(s, D, J('disaster', { casualty: 'target', casualtyNote: '분화구' }), { phase: 'talk' });
+  s = applyBout(s, D, J('warm', { casualty: 'none' }), { phase: 'talk' });
   assert.equal(s.casualty, 'target');
   assert.equal(failureReason(s), 'death');
   const v = verdict(s, D);

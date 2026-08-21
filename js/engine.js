@@ -301,7 +301,8 @@ export class Engine {
 
   // 판정 하나를 상태에 반영하고 UI에 알린다.
   async #applyJudge(judge, opts = {}) {
-    this.state = S.applyBout(this.state, this.d, judge, opts);
+    // 사망 가드가 페이즈를 본다 — 문자로는 죽지 않는다.
+    this.state = S.applyBout(this.state, this.d, judge, { ...opts, phase: this.phase });
     const dl = this.state.lastDelta;
     this.tierLog.push(dl.tier);
     if (!opts.firstImpression) {

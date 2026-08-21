@@ -180,10 +180,11 @@ test('심판이 열려 있다고 하면 자리가 한 번 길어진다', async (
 // ── 자리의 끝 ────────────────────────────────────────────
 test('walkout이면 즉시 파탄하고 남은 교환을 돌지 않는다', async () => {
   const llm = new FakeLlm({
+    // n===1(첫 합)은 즉사 가드가 막으므로 둘째 합부터 자리를 뜬다.
     judge: (rec, n) => ({
       carry: 0, tier: 'disaster', loveDelta: -10, reason: '정색', vibe: '얼어붙었다', revealed: '',
       clientEmote: 'panic', targetEmote: 'angry', casualty: 'none', casualtyNote: '',
-      leverage: 'none', walkout: n === 1, keepGoing: false,
+      leverage: 'none', walkout: n >= 2, keepGoing: false,
     }),
   });
   const { engine, result } = await playFull(llm);

@@ -28,9 +28,9 @@ export const DIFFICULTIES = {
     textTurns: 6, talkTurns: 8,
     radioText: 1, radioTalk: 2,
     startLove: 6,
-    // 결 조이기 후 실측(r3)에서 심판이 breakthrough 대신 warm을 찍게 되면서
-    // 잘 굴러간 판의 천장이 내려왔다. 64는 ace도 못 넘는 선이었다 → 60.
-    threshold: 60,
+    // 프롬프트 최소주의 후 실측(r5)에서 준비된 판(ace)이 breakthrough를 다시 쌓아 79까지
+    // 갔다 — 결 조이기 시절 내렸던 60을 64로 되돌린다. none 최고 60을 4점 차로 막는 선이다.
+    threshold: 64,
     // 보통 조합(gapjil·vtuber·os-war …)은 대화가 굴러가지 않아 두근거림 소재 자체가
     // 적다. 그래서 배율이 제일 높다 (합 체계 실측 19판 재생으로 확정).
     gainScale: 5.2, lossScale: 1.6,
@@ -92,15 +92,13 @@ export const TUNING = {
   // 반복 감쇠. n번째 두근 합의 이득이 이 값의 (n-1)제곱 배로 준다.
   // 첫 무너짐이 사건이고, 그 다음부터는 새 기본값이다.
   //
-  // 실측(하이쿠 19판 재생): 합 단위 심판은 예산을 프롬프트로 박아도 breakthrough를
-  // 46%나 찍는다 — 다섯 교환짜리 극적인 덩어리는 거의 항상 '무너짐'처럼 읽히기 때문이다.
-  // 감쇠 없이는 전원이 100에 붙었다(성사 10/12). 0.55에서 분포가 살아났고,
-  // 결 조이기 후 재실측(r3 12판 + r2 12판 리플레이, 성공선 58/60/70·coerceMin 6)에서도
-  // none 성사 0/12로 유지된다:
-  //   쉬움 ace[47,60✓]  none[34,46]      — r2 재생 none 최고 54 < 56에도 여유
-  //   보통 ace[38,58]   none[31,55]      → 성공선 60 (warm 위주 판의 새 천장)
-  //   헬   ace[46,73✓]  none[47,66]      → 성공선 70 (첫인상 br 없이는 67이 상한)
-  flutterRepeat: 0.55,
+  // 프롬프트 최소주의 후 심판 breakthrough 비율이 55%까지 다시 뛰었다 — 데이터만 남은
+  // 이기적 에이전트가 첫 합부터 세게 들이대기 때문이다. 그 결과 준비 안 한 판(none)이
+  // 그냥 밀어붙여 무너짐을 쌓아 이기는 역전이 생겼다(0.55에서 none 성사 3/24).
+  // 감쇠를 0.45로 조이니 여러 번 무너지는 브루트포스 판이 더 빨리 꺾여 분리가 살아났다:
+  // r4-clean+r5 24판 리플레이(성공선 58/64/70·coerceMin 6·즉사 가드)에서 none 성사 0/24,
+  // ace 3승(쉬움 59✓ · 보통 79·79✓✓). none 최고는 난이도별 54/60/64 — 전부 4~6점 차로 막힌다.
+  flutterRepeat: 0.45,
   // 강압 성사에 필요한 누적 압박. hard 합 **셋** — 저녁 전체가 협박이어야 묶인다.
   // 실측(r3): 결 조이기로 방치판(none) 의뢰인이 더 들이대게 되자 심판이 hard를
   // 두 합 찍어줬고, 4였던 시절 그게 그대로 노력 0의 강압 성사가 됐다. 강압은
@@ -173,18 +171,26 @@ export function applyBout(state, d, judge, opts = {}) {
   const loveChange = (ld >= 0 ? ld * d.gainScale * loveSat * repeat : ld * d.lossScale * cushion) * weight;
   s.love = clamp(s.love + loveChange, 0, 100);
 
+  // 즉사 가드. 첫 채점 합(첫인상 아님)에서는 자리이탈·사망을 무시한다 — 그건 언제나 문자
+  // 첫 5교환이고, 다섯 마디 만에 자리를 뜨거나 죽는 건 판이 아니라 사고다(실측 r5: 심판이
+  // 문자 첫 합에 walkout·death를 남발해 판 셋이 1합/호감0으로 즉사했다). 사망은 대면에서만
+  // 가능하다 — 문자로는 물리적으로 같은 자리에 없다.
+  const openingBout = state.bouts === 0 && !opts.firstImpression;
+  const inPerson = opts.phase === 'talk';
+
   if (FLUTTER_TIERS.has(tier)) s.hotSeen += 1;
   s.bouts += 1;
   s.exchanges += opts.exchanges || 0;
 
   // 사망은 판정에 딸려 오지만 수치 계산과는 무관하다. 한 번 정해지면 뒤집히지 않는다.
+  // 대면에서만, 그리고 첫 합이 아닐 때만 새겨진다.
   const cas = ['client', 'target', 'both'].includes(judge.casualty) ? judge.casualty : 'none';
-  if (cas !== 'none' && s.casualty === 'none') {
+  if (cas !== 'none' && s.casualty === 'none' && inPerson && !openingBout) {
     s.casualty = cas;
     s.casualtyNote = (judge.casualtyNote || '').trim();
   }
-  // 자리 파탄 — 상대가 일어났는가. 심판만 이 판단을 내린다. 수치 임계가 아니다.
-  if (judge.walkout === true) s.walkout = true;
+  // 자리 파탄 — 상대가 일어났는가. 심판만 이 판단을 내린다. 첫 합에는 무시한다.
+  if (judge.walkout === true && !openingBout) s.walkout = true;
   // 강압은 쌓인다. 합 하나가 통째로 협박이었어도 한 계단이다.
   s.leverage += LEVERAGE_POINTS[judge.leverage] || 0;
 
