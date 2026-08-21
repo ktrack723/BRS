@@ -157,6 +157,10 @@ test('강압은 쌓이고, 문턱을 넘으면 호감이 모자라도 묶인다'
   s = applyBout(s, D, J('chill', { leverage: 'hard' }), { exchanges: 5 });
   assert.equal(verdict(s, D).accepted, false, '협박 한 합으로 묶이면 무전 한 방짜리 게임이다');
   s = applyBout(s, D, J('flat', { leverage: 'hard' }), { exchanges: 5 });
+  // hard 두 합(=4)으로는 아직 못 묶는다 — 실측(r3)에서 방치판이 hard 두 합을
+  // 공짜로 받아 강압 성사한 뒤 문턱을 6으로 올렸다. 강압은 캠페인이어야 한다.
+  assert.equal(verdict(s, D).accepted, false, 'hard 두 합으로 묶이면 방치판이 굴러들어와 성사된다');
+  s = applyBout(s, D, J('flat', { leverage: 'hard' }), { exchanges: 5 });
   assert.ok(s.leverage >= TUNING.coerceMin);
   const v = verdict(s, D);
   assert.equal(v.accepted, true);
@@ -205,13 +209,26 @@ test('세 난이도 모두, 좋은 합 흐름은 넘고 밋밋한 흐름은 못 
     for (const t of tiers) s = applyBout(s, d, J(t), { exchanges: 4 });
     return verdict(s, d);
   };
-  // 반복 감쇠 아래에서 '좋은 흐름'은 무너짐이 두 번 있는 저녁이다. 헬은 이걸로도 간신히 넘는다.
+  // 반복 감쇠 아래에서 '좋은 흐름'은 무너짐이 두 번 있는 저녁이다.
   const STRONG = ['breakthrough', 'warm', 'breakthrough', 'warm'];
   const WEAK = ['flat', 'nudge', 'flat', 'chill'];
-  for (const name of ['쉬움', '보통', '헬']) {
+  for (const name of ['쉬움', '보통']) {
     assert.ok(run(name, STRONG).accepted, `${name}: 좋은 흐름이 못 넘으면 도달 불가능한 게임이다`);
+  }
+  for (const name of ['쉬움', '보통', '헬']) {
     assert.ok(!run(name, WEAK).accepted, `${name}: 밋밋한 흐름이 성사되면 안 된다`);
   }
+  // 헬은 **착장 승부다** — 좋은 저녁만으로는 못 넘고(실측 r3에서 방치판이 br 셋을 받고도
+  // 66에 그친 그 구간), 첫인상 breakthrough(가중 1.2)가 얹혀야 넘는다.
+  // 첫인상은 착장 없는 판이 만들 수 없는 유일한 점수원이다.
+  assert.ok(!run('헬', STRONG).accepted, '헬: 대화만 좋은 저녁으로 넘으면 방치판도 넘는다');
+  const fiRun = (name) => {
+    const d = diffOf(name);
+    let s = applyBout(initialState(d), d, J('breakthrough'), { exchanges: 0, firstImpression: true });
+    for (const t of STRONG) s = applyBout(s, d, J(t), { exchanges: 4 });
+    return verdict(s, d);
+  };
+  assert.ok(fiRun('헬').accepted, '헬: 착장이 꽂히고 좋은 저녁이면 넘는다');
   // 무너짐 하나 + 두근 하나면 쉬움은 넘고 헬은 못 넘는다 — 난이도가 실제로 갈라야 한다
   const MID = ['breakthrough', 'warm', 'flat', 'flat'];
   assert.ok(run('쉬움', MID).accepted, '쉬움: 무너짐+두근이면 넘는다');
