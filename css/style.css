@@ -315,6 +315,14 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 }
 .boot-panel { max-width: 620px; margin: 0 auto; }
 .boot-panel label { margin-top: var(--s3); }
+/* 회선 판별 표시. 업자 선택란이 없는 대신, 키에서 읽어낸 업자를 여기 한 줄로 적는다. */
+.key-provider {
+  margin: var(--s2) 0 0; padding: 0 0 0 var(--s2);
+  border-left: 4px solid currentColor;
+  font-family: var(--font-mono); font-size: var(--fs-sm); line-height: 1.6;
+}
+.key-provider.ok { color: var(--ok); }
+.key-provider.bad { color: var(--stamp-deep); font-weight: 500; }
 #screen-boot > .dim { text-align: center; color: #8798a8; }
 #btn-boot { width: 100%; margin-top: var(--s4); }
 

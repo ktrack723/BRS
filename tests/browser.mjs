@@ -3,15 +3,16 @@
 //
 //   node tests/browser.mjs                        기본: 가짜 LLM 모드 (API 키·크레딧 불필요, 결정적)
 //   ANTHROPIC_API_KEY=sk-... node tests/browser.mjs --live    실제 API로 (크레딧 소모)
+//   (OPENAI_API_KEY / OPENROUTER_API_KEY 도 받는다 — 업자는 키 접두사로 갈린다)
 //   추가 옵션: --couple=os-war --shots=/tmp/shots --headed --model=claude-sonnet-5
-//   (모델은 Sonnet 계열만 허용된다 — tests/test-model.mjs)
+//   (모델은 업자별 하위 등급만 허용된다 — tests/test-model.mjs)
 //
 // 가짜 LLM 모드는 window.__game.llm.call을 페이지 안에서 바꿔치기한다.
 // DOM·CSS·three.js·게임 흐름은 전부 진짜로 돌아가고 LLM만 결정적으로 대체된다.
 
 import http from 'node:http';
 import { createRequire } from 'node:module';
-import { resolveTestModel } from './test-model.mjs';
+import { resolveTestModel, resolveTestKey } from './test-model.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -20,8 +21,8 @@ const args = Object.fromEntries(process.argv.slice(2)
   .map(a => { const [k, ...v] = a.slice(2).split('='); return [k, v.join('=') || 'true']; }));
 
 const LIVE = args.live === 'true';
-const MODEL = resolveTestModel(args.model);   // 테스트는 Sonnet 고정 (tests/test-model.mjs)
-const KEY = LIVE ? process.env.ANTHROPIC_API_KEY : 'sk-ant-fake-key-for-mock-mode';
+const KEY = LIVE ? resolveTestKey() : 'sk-ant-fake-key-for-mock-mode';
+const MODEL = resolveTestModel(args.model, process.argv, KEY);   // 하위 등급 고정 (tests/test-model.mjs)
 if (LIVE && !KEY) { console.error('--live 모드인데 ANTHROPIC_API_KEY가 없다'); process.exit(1); }
 
 const ROOT = path.resolve(import.meta.dirname, '..');
@@ -279,10 +280,31 @@ try {
 
   if (!LIVE) await page.evaluate(installMockLlm);
 
+  // 업자 선택란은 없다 — 키를 붙여넣는 것만으로 회선과 모형 목록이 갈리는지 본다
+  const probeKey = async (key) => {
+    await page.fill('#key-input', key);
+    return page.evaluate(() => ({
+      badge: document.querySelector('#key-provider').textContent,
+      cls: document.querySelector('#key-provider').className,
+      models: [...document.querySelectorAll('#model-select option')].map(o => o.value),
+    }));
+  };
+  const gpt = await probeKey('sk-proj-fake-openai-key');
+  check('GPT 키를 붙이면 OpenAI 회선으로 판별된다', /OpenAI/.test(gpt.badge) && gpt.cls.includes('ok'), gpt.badge);
+  check('모형 목록이 OpenAI 것으로 갈린다',
+    gpt.models.includes('gpt-5') && !gpt.models.some(v => v.startsWith('claude-')), gpt.models.join(', '));
+  const orouter = await probeKey('sk-or-v1-fake-openrouter-key');
+  check('OpenRouter 키를 붙이면 OpenRouter 회선으로 판별된다', /OpenRouter/.test(orouter.badge), orouter.badge);
+  check('OpenRouter는 모형 id 직접 입력 칸을 연다', orouter.models.includes('__custom'), orouter.models.join(', '));
+  const junk = await probeKey('그냥 문자열');
+  check('키가 아니면 판별 실패로 표시된다', /판별 실패/.test(junk.badge) && junk.cls.includes('bad'), junk.badge);
+
   // 요원 등록 — 이름/성별은 주관식이다
   await page.fill('#agent-name', AGENT_NAME);
   await page.fill('#agent-gender', '기밀');
   await page.fill('#key-input', KEY);
+  check('Anthropic 키로 되돌리면 회선도 되돌아온다',
+    /Anthropic/.test(await page.textContent('#key-provider')));
   // 실제 API 모드에서도 테스트는 Haiku/Sonnet만 쓴다 (tests/test-model.mjs).
   // 셀렉트 옵션은 무날짜 별칭(claude-haiku-4-5)이고 TEST_MODEL은 날짜가 붙는다 — 접두사로 고른다.
   const modelOptions = await page.$$eval('#model-select option', os => os.map(o => o.value));

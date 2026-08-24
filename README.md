@@ -3,11 +3,12 @@
 > 2077년, 출산율 0.008. 테크노킹 도람푸 3세의 특명으로 창설된 비밀기관 **큐피드局**의
 > 공작요원이 되어, **도저히 이어질 리 없는 두 사람**을 기어이 이어붙여라.
 
-three.js + Claude API로 만든 **B급 병맛 LLM 게임**. 서버 없음, 빌드 없음, GitHub Pages에서 그대로 돌아간다.
+three.js + LLM API로 만든 **B급 병맛 LLM 게임**. 서버 없음, 빌드 없음, GitHub Pages에서 그대로 돌아간다.
+키는 **Anthropic · OpenAI · OpenRouter** 셋 다 받는다. 업자를 고르는 화면은 없다 — 키를 보고 알아서 판별한다.
 
 ## 🎮 플레이 방법
 
-1. 페이지 접속 → **요원명·성별**(둘 다 주관식) + **Anthropic API 키**(`sk-ant-...`) 입력. **키가 없으면 게임이 아예 안 돈다.**
+1. 페이지 접속 → **요원명·성별**(둘 다 주관식) + **API 키** 입력. Anthropic(`sk-ant-...`) · OpenAI(`sk-...`) · OpenRouter(`sk-or-...`) 아무거나. **키가 없으면 게임이 아예 안 돈다.**
 2. 신입 교육 슬라이드 6장 (도형으로 조립한 삽화 한 컷 + 문장 한 줄) → 국장 브리핑
 3. **상설 의뢰 대장 47건** 중 한 조합 선택
 4. 작전 준비를 **세 장소에서** 진행한다 — 미용실 · 취조실 · 정문. **채점 없음. 전부 프롬프트 주입일 뿐이다.**
@@ -2037,7 +2038,7 @@ gender-war 11 · scalpel 10 · class-war/tobacco/spoiler 9
 | 파일 | 역할 |
 |---|---|
 | `js/couples.js` | **의뢰 대장 47건.** 손으로 쓴 고정 데이터 (인물·사연·**내력**·취향·금지 항목·아바타 스펙) |
-| `js/llm.js` | Claude Messages API 래퍼: 전송, **프롬프트 캐싱**, 재시도/백오프, 구조화 출력, 거절 처리, 토큰·비용 집계 |
+| `js/llm.js` | LLM API 래퍼: **키 접두사로 업자 판별**(Anthropic·OpenAI·OpenRouter), 방언 변환, 전송, **프롬프트 캐싱**, 재시도/백오프·파라미터 협상, 구조화 출력, 거절 처리, 토큰·비용 집계 |
 | `js/engine.js` | 공작 **하네스**: 의뢰인 · 상대 · 심판을 턴마다 오케스트레이션. 공기 주입, 대화 내역 이월. DOM을 모른다 |
 | `js/scoring.js` | 게임 **규칙**의 순수 함수. 밴드 클램프, 분위기 배율, 승패, 디브리핑. LLM 없이 단독 테스트 |
 | `js/prompts.js` | 모든 시스템 프롬프트 + JSON 스키마 ("카트리지"). **하드코딩 브리핑도 여기 있다** |
@@ -2083,6 +2084,7 @@ npm run browser       # 실제 브라우저 E2E (가짜 LLM, API 키·크레딧 
 npm run responsive    # 9개 뷰포트 × 전 화면 레이아웃 감사 (아이패드 전 기종 포함)
 
 ANTHROPIC_API_KEY=sk-... npm run live                # 실제 API로 끝까지 플레이하는 밸런싱 하네스
+OPENAI_API_KEY=sk-... npm run live                   # OPENROUTER_API_KEY / LLM_API_KEY 도 받는다
 ANTHROPIC_API_KEY=sk-... npm run browser -- --live   # 실제 API로 브라우저 E2E
 node tests/sim.mjs <live결과.json> --grid            # 기록된 합 판정 오프라인 리플레이 (API 0회)
 ```
@@ -2094,7 +2096,9 @@ Opus로 밸런싱 한 라운드(20판)를 돌리면 **$6.6**가 나간다. Sonne
 Haiku로 충분하다. 단, 절대 점수는 모델마다 다르다 — Haiku 실측치는 A/B 비교용이다.
 
 그래서 모델 선택을 **한 파일에서 강제**한다. `tests/live.mjs`와 `tests/browser.mjs --live`가
-모두 `resolveTestModel()`을 통과해야 하고, Haiku/Sonnet 계열이 아니면 종료코드 1로 막힌다.
+모두 `resolveTestModel()`을 통과해야 하고, 그 업자의 하위 등급이 아니면 종료코드 1로 막힌다
+(Anthropic → Haiku/Sonnet, OpenAI → `gpt-5-mini`·`gpt-5-nano`·`o4-mini` 계열, OpenRouter → 이름에
+haiku/mini/nano/flash가 든 것). 업자는 **넣은 키가 정한다** — 게임 본체와 같은 판별기를 쓴다.
 게임 본체(`js/`)의 기본 모델은 Opus 5 그대로다 — 이 강제는 테스트 전용이다.
 
 | 테스트 | 검증 대상 | API |
@@ -2104,6 +2108,7 @@ Haiku로 충분하다. 단, 절대 점수는 모델마다 다르다 — Haiku �
 | `tests/browser.mjs` | 실제 브라우저 — 썸네일 40장이 진짜 three.js 렌더인지, 스타일링이 머리색/상의색/**자유 도형**을 바꾸는지, 종족 불변, **준비 3화면과 각 반응**, 공기 바 갱신, 게이지, 무전 일시정지·재개, **전 화면 WCAG AA 명암비** | ❌ (`--live`로 전환 가능) |
 | `tests/responsive.mjs` | 9뷰포트 × 전 화면 — 가로 스크롤, 뷰포트 이탈, 내용 잘림, flex 압착, 터치 타깃 44px, 캔버스, WCAG AA | ❌ |
 | `tests/schema.test.mjs` | 구조화 출력 스키마 계약 — 내보내는 모든 `*_SCHEMA`에 API가 거부하는 키워드가 없는지 | ❌ |
+| `tests/llm.test.mjs` | 업자 판별과 방언 변환 29개 — 키 접두사→업자, 종점·헤더·요청 형태, 캐시 breakpoint를 찍어도 되는 조합, 미지원 파라미터 협상, 사용량 이중 계상 방지, 가격표 접두사 매칭 | ❌ |
 | `tests/graph.mjs` | 정보 흐름 그래프를 프롬프트에서 직접 뽑는다 (`npm run graph`). 죽은 간선·비대칭 위반·조건부 간선 감사 | ❌ |
 | `tests/sheets.test.mjs` | 캐릭터 시트 — 규격·중복·아바타 어휘, 하자 값 쏠림, **욕망 3단**(want/urge/nerve) 존재와 편중, 성별 커버리지, **지시문 영문화와 출력 언어 고정**, **장소 자유도** | ❌ |
 | `tests/live.mjs` | 실제 플레이로 밸런싱 데이터 수집 | ✅ |
@@ -2122,10 +2127,39 @@ DOM·CSS·three.js·게임 흐름은 전부 진짜로 돌아가고 LLM만 결정
 | `lazy` | "옷" / "잘해라" / "화이팅". 무전 없음 |
 | `none` | 아무것도 입력하지 않음 |
 
-## 🔐 API 키
+## 🔐 API 키 — 업자 선택란은 없다
 
-브라우저에서 `api.anthropic.com`으로만 전송된다(CORS 직접 호출). "키 저장" 체크 시 localStorage에 남으니
-공용 PC에서는 체크하지 말 것. **저장소에 키를 커밋하지 말 것.**
+세 업자를 받는다. **고르는 UI를 안 만든 게 아니라, 만들 이유가 없다** — 키 문자열이 이미 업자를 말하고 있다.
+붙여넣는 즉시 접두사로 판별해서 회선 표시와 모형 목록이 그 업자 것으로 갈린다.
+
+| 접두사 | 업자 | 종점 | 방언 |
+|---|---|---|---|
+| `sk-ant-` | Anthropic | `api.anthropic.com/v1/messages` | Messages (`system` 분리 · `output_config`) |
+| `sk-or-` | OpenRouter | `openrouter.ai/api/v1/chat/completions` | Chat Completions (`max_tokens` · `reasoning.effort`) |
+| `sk-` (그 외) | OpenAI | `api.openai.com/v1/chat/completions` | Chat Completions (`max_completion_tokens` · `reasoning_effort`) |
+
+순서가 규칙이다. 좁은 접두사부터 보고, `sk-` 하나만 남은 것이 OpenAI로 떨어진다 —
+`sk-or-…`를 OpenAI로 보내면 그대로 401이다.
+
+방언 차이는 `js/llm.js` 안에서 전부 흡수된다. 호출부(`engine.js`·`game.js`)는 업자를 모른다.
+
+| 갈리는 것 | 어떻게 |
+|---|---|
+| **인증 헤더** | `x-api-key` + `anthropic-version` ↔ `Authorization: Bearer` |
+| **system** | 별도 필드(캐시 블록) ↔ `messages[0]`의 system 역할 |
+| **구조화 출력** | `output_config.format` ↔ `response_format.json_schema` (`strict: true`) |
+| **추론 강도** | `output_config.effort` ↔ `reasoning_effort` / `reasoning.effort`. **받는 모델에만** 보낸다 (gpt-4.1에 보내면 400) |
+| **프롬프트 캐시** | `cache_control` breakpoint는 Anthropic과 OpenRouter-Claude에만 찍는다. OpenAI는 접두사 캐시가 자동이고, 찍으면 미지 필드로 400 |
+| **사용량** | Anthropic `input_tokens`는 캐시분 **제외**, OpenAI `prompt_tokens`는 **포함** — 눕힐 때 빼 준다. 안 그러면 입력이 부풀어 비용 보고가 거짓말이 된다 |
+| **비용** | 가격표는 접두사로 보고 `vendor/` 접두어도 떼고 한 번 더 본다. OpenRouter는 실제 청구액을 응답에 실어 주므로 그걸 쓴다. 모르는 모델은 **0으로 두지, 지어내지 않는다** |
+
+**모르는 모델은 한 번 맞고 배운다.** OpenRouter에는 우리가 모르는 모델이 수백 개다. 목록을 들고 있는 대신,
+400이 "이 파라미터는 못 받는다"고 짚어주면 그것만 빼고 다시 보낸다(재시도 횟수를 깎지 않는다).
+구조화 출력을 못 받는 모델이면 스키마를 **프롬프트로** 내려주고, 코드펜스에 싸서 오든 앞뒤로 한마디 붙여 오든
+JSON을 건져낸다. 한 번 배운 것은 그 업자를 쓰는 동안 기억한다 — 키를 갈아 끼우면 잊는다.
+
+키는 **그 키를 발급한 업자에게만** 브라우저에서 직접 전송된다(CORS 직접 호출). 중계 서버는 없다.
+"키 저장" 체크 시 localStorage에 남으니 공용 PC에서는 체크하지 말 것. **저장소에 키를 커밋하지 말 것.**
 
 ## 🚀 배포
 

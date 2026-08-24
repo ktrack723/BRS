@@ -31,9 +31,9 @@
       <h1 class="title-main">연애조작단 2077<br><small>OPERATION CUPID · 큐피드局</small></h1>
       <p class="subtitle">국가공인 <b>불가능 매칭</b> 공작 단말기 — 열람 권한 없는 자의 접속은 기록됩니다</p>
       <div class="panel95 boot-panel" data-title="요원 등록 및 단말기 인증"><span class="win-status">회선 대기</span>
-        <p class="warn">본 단말은 <b>전부</b> 대규모언어모형(Claude)으로 구동된다. 인증키 없이는 개방되지 않는다.<br>
+        <p class="warn">본 단말은 <b>전부</b> 대규모언어모형으로 구동된다. 인증키 없이는 개방되지 않는다.<br>
         의뢰인 <span class="n-couples">30</span>쌍은 고정 대장이지만, <b>그들이 실제로 무슨 말을 하고 어떻게 판정되는지는 전량 실시간 연산</b>이다.<br>
-        인증키는 본 단말에서 <code>api.anthropic.com</code>으로만 송신된다. 그 외 어디에도 송신하지 않는다.</p>
+        인증키는 본 단말에서 <b>그 키를 발급한 업자에게만</b> 직접 송신된다. 중계 서버는 없다.</p>
 
         <div class="agent-form">
           <label>요원명 <small>(호출부호. 아무거나 쓰면 된다)</small>
@@ -44,15 +44,15 @@
           </label>
         </div>
 
-        <label>ANTHROPIC API KEY
-          <input id="key-input" type="password" placeholder="sk-ant-api03-..." autocomplete="off">
+        <label>API KEY <small>(Anthropic <code>sk-ant-</code> / OpenAI <code>sk-</code> / OpenRouter <code>sk-or-</code> — <b>업자 선택란은 없다. 키를 보고 알아서 판별한다</b>)</small>
+          <input id="key-input" type="password" placeholder="sk-ant-api03-... / sk-proj-... / sk-or-v1-..." autocomplete="off">
         </label>
+        <p id="key-provider" class="key-provider dim">회선 미지정 — 키를 붙여넣으면 발급 업자를 판별한다</p>
         <label>판정 연산 모형
-          <select id="model-select">
-            <option value="claude-opus-5" selected>claude-opus-5 (본부 권장)</option>
-            <option value="claude-sonnet-5">claude-sonnet-5 (표준)</option>
-            <option value="claude-haiku-4-5">claude-haiku-4-5 (예산 절감)</option>
-          </select>
+          <select id="model-select"></select>
+        </label>
+        <label id="model-custom-row" class="hidden">모형 id 직접 입력 <small>(업자 문서에 적힌 그대로)</small>
+          <input id="model-custom" type="text" placeholder="예: anthropic/claude-opus-4.5" autocomplete="off">
         </label>
         <label class="chk"><input id="remember-key" type="checkbox"> 이 단말에 인증키 보관 (공용 단말에서 체크 시 보안규정 위반)</label>
         <button id="btn-boot" class="btn95 big" type="button">요원 착임 · 단말 개방</button>
