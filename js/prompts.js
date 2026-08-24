@@ -6,8 +6,9 @@
 //  3) 지시문은 영어, 출력은 한국어. 영어 지시가 규칙을 덜 흘린다. 출력 언어 고정줄은 블록마다 반복한다.
 //  4) 두 인물의 프롬프트는 **같은 빌더**로 만든다. 차이는 셋뿐 — 의뢰인은 취조실 지침,
 //     출동 연설, 무전이 들린다. 그 외 정보 구조는 동일하다 (서로에 대한 정보 제외).
-//  5) 인물의 어긋남(wreck)은 출력 형식 블록 **맨 끝**에 다시 박는다. 30k 토큰 프롬프트에서
-//     마지막 지시가 제일 세게 먹는다(실측: 앞에만 두면 모델의 기본 유창함이 이긴다).
+//  5) 어긋남(wreck)은 **인물 데이터로만** 쓴다 — 본인 시트의 키워드 한 줄. 심판에게는 주지
+//     않는다. 주면 심판이 "저 사람이 원래 안 하던 짓을 했다"를 점수로 읽는데, 스님이 입을
+//     연 건 행동 변화지 반한 게 아니다. 점수는 듣는 쪽 마음이 움직였을 때만 붙는다.
 //  6) 판정은 합(bout) 단위다. 서로 대여섯 마디가 오간 덩어리를 통째로 채점하고,
 //     합의 경계(carry)도 심판이 자른다.
 
@@ -491,7 +492,7 @@ export const JUDGE_SCHEMA = {
 };
 
 export function judgeSystem(couple) {
-  const t = couple.target, cl = couple.client;
+  const t = couple.target;
   const open = t.prefs.filter(x => x.open && !x.neg).map(x => x.t);
   const hidden = t.prefs.filter(x => !x.open).map(x => x.t);
   const neg = t.prefs.filter(x => x.open && x.neg).map(x => x.t);
@@ -522,17 +523,17 @@ ${t.name} (${idOf(t)})
 This list is not "touch an item, earn points" — it is why they react the way they do.
 If they came apart for a reason nowhere on it, that counts the same.
 
-■ How each fails at conversation (read before grading)
-${cl.name} — ${cl.keys.wreck.kind}: ${cl.keys.wreck.line}
-${t.name} — ${t.keys.wreck.kind}: ${t.keys.wreck.line}
-Consequences, both required:
-· "ㅇㅇ", "...", no answer, talking past each other — that is who they are. **flat**, not a snub.
-· **A pattern breaking is the largest thing here** — the one-syllable person building a
-  sentence, the one who never stops leaving a gap. warm at minimum, usually breakthrough.
-  It happens **once**: after the break, talking is the new baseline; the next sentence is
-  not another break. The pattern **returning** — shutters back down — is chill, often disaster.
-· The mirror: when their pattern points at the other person (the anxious one asking again,
-  the fixated one circling back), that is the pattern running, not the person moving. flat.
+■ Behaviour is not feeling. Read this before every grade.
+You are not scoring how the conversation went, how much anyone opened up, or anybody acting
+unlike themselves. A person doing something they never do — the silent one speaking, the
+guarded one answering, the terse one making a whole sentence — **is not a score.** People
+break their own habits for a hundred reasons that have nothing to do with wanting someone.
+Both questions must land on the client, or it is flat:
+· Did it happen **because of this person** — would a different body in that chair have got
+  the same thing? If yes, flat.
+· Does ${t.name} **want them more now** than at the start of the bout? If you cannot say yes,
+  flat, no matter how much changed.
+Never award a grade for novelty, effort, drama, or the room finally working.
 
 ■ What sits between them (starting point; context, not a gate)
 ${couple.relation}
@@ -541,16 +542,18 @@ ${couple.relation}
 ${ENDING.note}
 
 ■ Grades — net movement of ${t.name} across the bout. Default flat.
-· breakthrough (+8..12) — the relationship is at a **different stage** after this bout. A defense
-  actually dropped; something they tell nobody came out and it cost them; the table flipped.
+· breakthrough (+8..12) — ${t.name} wants this person in a way they did not an hour ago, and
+  they know it. Not "the conversation reached a new place" — **they are on different footing
+  toward the client.** Somebody saying the unsayable is only this if saying it was reaching
+  for the client; if it was just finally coming out, that is flat.
   **A typical operation ends with ZERO breakthrough bouts. The hard budget is one.**
   If your tally below already shows one, the bar for a second is: this transcript would be
   quoted as training material. Measured live: a judge left alone called breakthrough on 64%
   of all bouts, which is not an evening, it is a rubber stamp with hearts on it.
 · warm (+4..7) — 두근거림. Ask in order, stop at the first no:
   1. Did the bout touch something on **their** sheet — likes, hidden things, fears, body? No → flat.
-  2. Did **their** behavior change because of it — dropped guard, a look, a thing said they
-     had not been saying? No → flat.
+  2. Did that pull them **toward the client** — not just get a reaction out of them, but leave
+     them wanting more of this particular person? No → flat.
   3. Would they think about this person tonight? No → nudge.
   If both were just pursuing their own appetites and neither appetite was the other person,
   that is zero, however lively it was. **Budget: at most 2 warm per operation.**
