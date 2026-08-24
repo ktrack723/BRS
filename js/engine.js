@@ -5,8 +5,9 @@
 //   · 대화는 교환(내 발언 + 상대 반응) 단위로 흐르고, **채점은 합(bout) 단위**다.
 //     교환이 BOUT.size만큼 쌓이면 심판을 부른다. 심판은 합 전체의 순이동을 등급 하나로 매기고,
 //     꼬리가 새 국면을 열었으면 carry로 잘라 다음 합으로 넘긴다 — 합의 경계는 심판이 나눈다.
-//   · 판정은 다음 교환의 생성과 병렬로 돈다 (한 합 늦게 반영). 심판 호출이 교환당 1회에서
-//     합당 1회로 줄어 토큰이 1/BOUT.size로 준다.
+//   · 판정은 **완전 비동기**다. 대화는 심판을 한 순간도 기다리지 않는다 — 도착해 있는
+//     판정만 교환 사이에 반영하고, 안 오면 페일세이프(타임아웃 → 중립)가 정산한다.
+//     심판이 느리면 합이 그만큼 커질 뿐이다. 심판 호출은 합당 1회.
 //   · 공기(텍스트 분위기)는 심판이 매 합 갱신하고, **양쪽 모두에게** 각자의 공기읽기(air)만큼 전달된다.
 //   · 수치 분위기는 없다. 자리 파탄은 심판의 walkout 판단이다.
 //   · 시스템 프롬프트는 바이트 동일 → 캐시 breakpoint로 입력 토큰을 재사용한다.
@@ -17,6 +18,9 @@ import * as S from './scoring.js';
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const HISTORY_WINDOW = 12;   // 심판에게 주는 '직전 맥락' 줄 수 상한
 const CONTEXT_LINES = 4;     // 합 앞에 붙는 이미 채점된 맥락 줄 수
+// 심판 페일세이프. 이 시간 안에 판정이 안 오면 중립 판정으로 대체하고 대화는 계속 간다.
+// 대화가 심판을 기다리는 일은 없다 — 페이즈 정산에서도 이 상한까지만 기다린다.
+const JUDGE_TIMEOUT_MS = 60000;
 
 // 받침에 맞는 조사.
 const JOSA = { '이': ['이', '가'], '과': ['과', '와'], '을': ['을', '를'], '은': ['은', '는'] };
@@ -95,7 +99,6 @@ export class Engine {
       bouts: s.bouts, pendingExchanges: this.boutBuf.length,
       // 공기가 실제로 의뢰인에게 닿는가. 안 닿는 사람이 있다.
       air: this.couple.client.keys.air,
-      vibeDelivered: this.vibeSent.client,
       turn: s.exchanges, phase: this.phase,
       turnsTotal, turnsLeft: Math.max(0, turnsTotal - this.phaseTurn),
     };
@@ -238,7 +241,7 @@ export class Engine {
     };
   }
 
-  // 합 하나를 판정대에 올린다. carry를 고려해 버퍼를 자르고, 심판 호출을 띄운다.
+  // 합 하나를 판정대에 올린다. 호출은 띄우기만 하고 절대 기다리지 않는다.
   #fireJudge(phase, { final = false } = {}) {
     if (!this.boutBuf.length) return;
     const c = this.couple;
@@ -249,13 +252,22 @@ export class Engine {
       `${c.client.name}: ${x.c}`,
       `${c.target.name}: ${x.t}`,
     ]).join('\n');
-    const tag = `${phase === 'text' ? '문자' : '대면'} ${this.state.bouts + 1 + (this.pendingJudge ? 1 : 0)}합`;
-    const promise = this.llm.call({
+    // #fireJudge는 pendingJudge가 없을 때만 불린다 — 다음 합 번호는 언제나 bouts+1이다.
+    const tag = `${phase === 'text' ? '문자' : '대면'} ${this.state.bouts + 1}합`;
+    const pj = { bout, tag, final, settled: false };
+    const call = this.llm.call({
       label: `판정 ${tag}`, system: P.judgeSystem(this.couple), cache: true,
       messages: [{ role: 'user', content: P.judgeUser(this.#context(bout), boutLines, this.tierLog) }],
       schema: P.JUDGE_SCHEMA, effort: 'low', maxTokens: 3000,
     }).catch(() => this.#neutralJudge('(심판이 잠시 졸았다)'));
-    this.pendingJudge = { promise, bout, tag, final };
+    // 페일세이프: 상한 안에 안 오면 중립 판정으로 정산한다. 늦게 도착한 진짜 판정은 버려진다 —
+    // 판이 심판 사정으로 멈추는 것보다 합 하나가 0점으로 흘러가는 쪽이 낫다.
+    // (Promise.race를 안 쓰는 이유: 판정이 먼저 와도 타이머가 살아남아 프로세스를 붙잡는다)
+    pj.promise = new Promise(resolve => {
+      const timer = setTimeout(() => resolve(this.#neutralJudge('(심판 응답 지연 — 중립 처리)')), JUDGE_TIMEOUT_MS);
+      call.then(r => { clearTimeout(timer); resolve(r); });   // call은 catch가 붙어 있어 절대 reject하지 않는다
+    }).then(r => { pj.settled = true; return r; });
+    this.pendingJudge = pj;
   }
 
   // 합 직전의 '이미 채점된' 맥락 몇 줄.
@@ -265,25 +277,32 @@ export class Engine {
     return all.slice(0, Math.max(0, all.length - boutLineCount)).slice(-CONTEXT_LINES).join('\n');
   }
 
+  // 정산 완료된 판정만 비차단으로 반영한다. 심판이 아직 날아 있으면 아무것도 기다리지 않는다.
+  async #drainJudge() {
+    if (!this.pendingJudge?.settled) return this.aborted;
+    return this.#settleJudge();
+  }
+
   // 날아가 있는 판정을 회수해 반영한다. carry는 버퍼 앞으로 되돌린다.
+  // 대기가 필요한 자리(페이즈 정산)에서만 부른다 — 대기 상한은 fire 쪽 페일세이프가 지킨다.
   async #settleJudge() {
     const pj = this.pendingJudge;
-    if (!pj) return false;
+    if (!pj) return this.aborted;
     this.pendingJudge = null;
     const judge = await pj.promise;
     // 심판이 꼬리를 다음 합으로 잘랐다 — 마지막 페이즈 정산이면 자를 다음이 없다.
+    // 합 전체를 넘기려 들면(carry ≥ 합 크기) 무시한다 — 판정 없는 합이 생기면 안 된다.
     const carry = pj.final ? 0 : Math.max(0, Math.min(S.BOUT.carryMax, Math.round(judge.carry || 0)));
-    if (carry > 0 && carry < pj.bout.length) {
-      this.boutBuf.unshift(...pj.bout.slice(-carry));
-    }
-    const judged = pj.bout.length - (carry < pj.bout.length ? carry : 0);
-    await this.#applyJudge(judge, { exchanges: judged });
+    const back = carry < pj.bout.length ? carry : 0;
+    if (back > 0) this.boutBuf.unshift(...pj.bout.slice(-back));
+    await this.#applyJudge(judge, { exchanges: pj.bout.length - back });
     return this.aborted;
   }
 
   // 판정 하나를 상태에 반영하고 UI에 알린다.
   async #applyJudge(judge, opts = {}) {
-    this.state = S.applyBout(this.state, this.d, judge, opts);
+    // 사망 가드가 페이즈를 본다 — 문자로는 죽지 않는다.
+    this.state = S.applyBout(this.state, this.d, judge, { ...opts, phase: this.phase });
     const dl = this.state.lastDelta;
     this.tierLog.push(dl.tier);
     if (!opts.firstImpression) {
@@ -393,7 +412,7 @@ export class Engine {
       this.transcript.push({ who: 'client', text: clientMsg });
       await this.h.bubble?.('client', clientMsg);
 
-      // 2) [타겟 응답] ∥ [날아가 있는 합 판정]
+      // 2) 타겟 응답 — 심판은 뒤에서 알아서 날아온다
       this.#pushUser(this.targetHist, `[${c.client.name} — ${said}] ${clientMsg}`);
       const replyJob = this.llm.call({
         label: `${label} 응답 ${i + 1}`,
@@ -405,8 +424,9 @@ export class Engine {
         this.situationPromise = this.#callSituation(this.#history(0, { noRadio: true }));
       }
 
-      const [targetMsg] = await Promise.all([replyJob, this.#settleJudge()]);
-      if (this.aborted) return;
+      const targetMsg = await replyJob;
+      // 판정은 절대 기다리지 않는다 — 이미 도착해 있는 것만 이 자리에서 반영한다.
+      if (await this.#drainJudge()) return;
 
       // 3) 타겟 응답 반영
       this.targetHist.push({ role: 'assistant', content: targetMsg });

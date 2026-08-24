@@ -283,10 +283,14 @@ try {
   await page.fill('#agent-name', AGENT_NAME);
   await page.fill('#agent-gender', '기밀');
   await page.fill('#key-input', KEY);
-  // 실제 API 모드에서도 테스트는 Sonnet만 쓴다
-  await page.selectOption('#model-select', MODEL);
-  check(`모델이 테스트용으로 고정됐다 (${MODEL})`,
-    await page.inputValue('#model-select') === MODEL);
+  // 실제 API 모드에서도 테스트는 Haiku/Sonnet만 쓴다 (tests/test-model.mjs).
+  // 셀렉트 옵션은 무날짜 별칭(claude-haiku-4-5)이고 TEST_MODEL은 날짜가 붙는다 — 접두사로 고른다.
+  const modelOptions = await page.$$eval('#model-select option', os => os.map(o => o.value));
+  const modelPick = modelOptions.find(v => v === MODEL || MODEL.startsWith(v));
+  check(`테스트 모델이 셀렉트에 존재한다 (${MODEL})`, !!modelPick, `옵션: ${modelOptions.join(', ')}`);
+  await page.selectOption('#model-select', modelPick || modelOptions[0]);
+  check(`모델이 테스트용으로 고정됐다 (${modelPick})`,
+    await page.inputValue('#model-select') === modelPick);
   await page.click('#btn-boot');
   await page.waitForSelector('#screen-intro:not(.hidden)', { timeout: ms(90000) });
   check('요원 등록 + 키 인증 후 신입 교육 진입', true);
@@ -437,14 +441,13 @@ try {
     return {
       exists: !!box, text: box?.textContent || '',
       tags: [...(box?.querySelectorAll('.flaw-tag') || [])].length,
-      reflex: c.client.keys.reflex, wreck: c.client.keys.wreck.line,
+      wreck: c.client.keys.wreck.line,
     };
   });
   check('의뢰서에 의뢰인 특별 키워드가 공개된다', psych.exists && psych.tags >= 4, `배지 ${psych.tags}개`);
-  check('조건반사와 어긋남이 전부 명시된다',
-    [psych.reflex, psych.wreck].every(x => psych.text.includes(x)));
-  check('버릇이 의뢰서에 한 번만 나온다',
-    dossier.split(psych.reflex).length - 1 === 1, `${dossier.split(psych.reflex).length - 1}회`);
+  check('어긋남이 명시된다', psych.text.includes(psych.wreck));
+  check('어긋남이 의뢰서에 한 번만 나온다',
+    dossier.split(psych.wreck).length - 1 === 1, `${dossier.split(psych.wreck).length - 1}회`);
   // 둘 사이(만남+아젠다)가 의뢰서에 한 덩어리로 나와야 한다.
   const rel = await page.evaluate(() => {
     const name = document.querySelector('#dossier-box h3').textContent;
@@ -460,7 +463,7 @@ try {
   });
   check('상대 쪽 미공개 성향은 작전 전에 공개되지 않는다', !dossier.includes(targetHiddenProbe));
   check('지뢰 목록이 의뢰인에게 자동 전달되지 않음을 경고한다',
-    /전달되지 않았다|넘어가지 않는다/.test(dossier), dossier.match(/전달되지 않았다[^.]{0,20}/)?.[0] || '없음');
+    /전달되지 않는다|넘어가지 않는다/.test(dossier), dossier.match(/전달되지 않는다[^.]{0,20}/)?.[0] || '없음');
   // 의뢰서는 이제 게임에서 정보가 가장 빽빽한 화면이다. 눈으로도 확인할 수 있게 남긴다.
   await page.locator('#dossier-box').screenshot({ path: `${SHOTS}/3b-dossier.png` });
   await page.click('#dossier-close');
@@ -598,7 +601,8 @@ try {
   await page.waitForFunction(() => document.querySelectorAll('.judge-line').length >= 1, null, { timeout: ms(120000) });
   const textJudge = await page.evaluate(() => document.querySelector('.judge-line').textContent);
   check('문자 페이즈에 심판 해설이 흐른다', textJudge.includes('호감'), textJudge.slice(0, 60));
-  check('판정 줄에 계산 근거가 노출된다', /판정 [+-]?\d+ × 분위기/.test(textJudge), textJudge.slice(-40));
+  // 수치 분위기 폐지 후 계산 근거는 「원판정 ±n」(밴드 원값) 태그다 — 적용값과 원값이 같이 보여야 한다.
+  check('판정 줄에 계산 근거가 노출된다', /원판정 [+-]?\d+/.test(textJudge), textJudge.slice(-40));
   check('판정 줄에 등급 이름이 표시된다',
     await page.locator('.judge-line .tag.tier').count() >= 1);
   await page.screenshot({ path: `${SHOTS}/7-texting.png`, fullPage: true });
@@ -708,12 +712,12 @@ try {
   check('요원 정보가 결과까지 따라간다', result.agent === AGENT_NAME || LIVE, result.agent);
   if (result.mock) {
     check('판정과 타겟 응답이 동시에 발사됐다 (턴당 왕복 2회)', result.mock.maxInFlight >= 2, `동시 최대 ${result.mock.maxInFlight}`);
-    // 인증1 + 스타일링1 + 취조실1 + 정문1 + 상황1 + 편지1 = 6 고정.
-    // 거기에 턴마다 발언1 + 응답1 + 판정1, 그리고 첫인상 판정 1회가 붙는다.
-    // 연장이 붙으면 늘어나므로 범위로 본다. (브리핑은 LLM을 안 쓴다)
-    const turns = dd.textTurns + dd.talkTurns;
-    const lo = 6 + turns * 3 + 1;
-    const hi = lo + (EXTENSION.maxExtra.text + EXTENSION.maxExtra.talk) * 3;
+    // 인증1 + 스타일링1 + 취조실1 + 정문1 + 상황1 + 편지1 = 6 고정. 첫인상 판정 1회.
+    // 교환마다 발언1+응답1, 판정은 **합 단위**(BOUT.size 교환당 1회 + 페이즈 정산).
+    // 조기 종료/연장으로 교환 수가 흔들리므로 범위로 본다. (브리핑은 LLM을 안 쓴다)
+    const minEx = Math.ceil(baseEx / 2);
+    const lo = 6 + 1 + minEx * 2 + 2;                                  // 최소: 페이즈당 정산 판정 1회씩
+    const hi = 6 + 1 + maxEx * 2 + Math.ceil(maxEx / BOUT.size) + 3;   // carry가 합을 쪼개는 여유분 +3
     check('총 LLM 호출이 예상 범위다',
       result.mock.calls >= lo && result.mock.calls <= hi, `${result.mock.calls}콜 (${lo}~${hi})`);
   } else {

@@ -23,7 +23,6 @@ for (const [who, p] of [['의뢰인', c.client], ['상대', c.target]]) {
     if (k === 'gender') { F.push({ id: `${who}.gender`, probe: [P.idOf(p)] }); continue; }
     F.push({ id: `${who}.${k}`, probe: Array.isArray(p[k]) ? p[k].map(String) : [String(p[k])] });
   }
-  F.push({ id: `${who}.keys.reflex`, probe: [p.keys.reflex] });
   F.push({ id: `${who}.keys.wreck`, probe: [p.keys.wreck.line] });
   F.push({ id: `${who}.성향.공개`, probe: p.prefs.filter(x => x.open && !x.neg).map(x => x.t) });
   F.push({ id: `${who}.성향.미공개`, probe: p.prefs.filter(x => !x.open).map(x => x.t) });

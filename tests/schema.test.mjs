@@ -33,11 +33,13 @@ function bannedKeys(node, path = '$', found = []) {
   return found;
 }
 
+// export되는 *_SCHEMA = 실제로 API에 보내는 최상위 스키마 전부.
+// (PROP/AVATAR_SPEC 같은 내포 스키마는 export하지 않는다 — STYLING_SCHEMA 검사가 재귀로 같이 본다.)
 const SCHEMAS = Object.entries(P).filter(([k, v]) => k.endsWith('_SCHEMA') && v && typeof v === 'object');
 
 test('내보내는 스키마가 하나도 빠짐없이 존재한다', () => {
   const names = SCHEMAS.map(([k]) => k);
-  for (const k of ['STYLING_SCHEMA', 'JUDGE_SCHEMA', 'SITUATION_SCHEMA', 'RESULT_SCHEMA']) {
+  for (const k of ['STYLING_SCHEMA', 'PREP_REACT_SCHEMA', 'JUDGE_SCHEMA', 'SITUATION_SCHEMA', 'RESULT_SCHEMA']) {
     assert.ok(names.includes(k), `${k}가 스키마 목록에서 사라졌다`);
   }
 });

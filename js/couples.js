@@ -14,8 +14,9 @@
 //     interest        상대관심 'self'|'mixed'|'other' — 상대에 대해 받는 정보량을 깎는다
 //     air             공기읽기 'none'|'some'|'well' — 공기(텍스트)가 이 사람에게 닿는 빈도
 //     comply          명령수용 'obeys'|'argues'|'drifts' — 지침을 받아들이는 결 (지침이 없으면 잠복)
-//     reflex          조건반사 — 가만두면 나오는 버릇. 한 문장
-//     wreck{kind,line} 어긋남 — 이 사람이 대화를 못 하는 방식. 출력 형태를 지배한다
+//     wreck{kind,line} 어긋남 — 이 사람이 대화를 못 하는 방식
+//     (조건반사는 폐지했다 — "가만두면 이 버릇이 나온다"는 흐름 지시라서.
+//      버릇은 성향·성격·어긋남 데이터에서 그때그때 알아서 나온다.)
 //   prefs[]           성향 — {t, open, neg?}. 공개(open)와 미공개가 섞인다. neg는 닿으면 식는 쪽.
 //                     **의뢰인 성향은 플레이어에게 전부 보인다.** 상대 성향은 공개분만.
 //   spec              3D 아바타 조형 (정보가 아니라 렌더링)
@@ -29,59 +30,57 @@ const S = (o) => o; // 그냥 가독성용 마커
 export const COUPLES = [
   {
     id: "politics", difficulty: "헬", category: "정치", winWord: "초당적 커플 성사",
-    relation: "30년째 서로를 공개 석상에서 인격 말살해온 정적(政敵). 상원 청문회에서 11시간을 마주 보고 고성을 질렀다. 지금 얹힌 현안: 한쪽은 민주당 전국위원, 한쪽은 공화당 최대 후원자다. 사귀는 순간 양쪽 다 정치 생명이 끝난다.",
+    relation: "30년째 서로를 공개 석상에서 인격 말살해온 정적(政敵). 국정감사장에서 11시간을 마주 보고 고성을 질렀다. 지금 얹힌 현안: 한쪽은 5선 강경 야당 의원, 한쪽은 여당 최대 후원자인 건설 재벌이다. 사귀는 순간 양쪽 다 정치 생명이 끝난다.",
     client: {
-      name: "힐라리 클링턴", gender: "여",
-      look: ["금발 단발","파란 파워수트","중년","눈빛에 소송 3건"],
+      name: "표한나", gender: "여",
+      look: ["검은 각단발","각진 회색 정장","중년","눈빛에 고소장 3건"],
       history: [
-        "68세 · 前 국무장관 / 개인 이메일 서버 수집가",
-        "일리노이 파크리지 출신. 아직도 시카고 억양이 스트레스받으면 튀어나온다",
-        "자택 지하에 개인 서버랙 3대. 전기요금이 월 84만원이고 그걸 자랑스러워한다",
-        "새벽 5시 기상. 러닝머신 위에서 정책 브리핑 문서를 읽는다",
-        "변호사 시절 수임료로 산 파란 파워수트가 11벌. 전부 같은 디자인이다",
+        "62세 · 5선 야당 의원 / 국정감사 최다 발언 기록 보유자",
+        "재래시장통에서 자랐다. 스트레스받으면 시장 상인 억양이 튀어나온다",
+        "자택 지하에 개인 문서고. 30년치 국감 자료를 종이로 쌓아둔다. 방습기 전기요금이 월 84만원이고 그걸 자랑스러워한다",
+        "새벽 5시 기상. 러닝머신 위에서 예산안을 읽는다",
+        "의원 배지 달던 날 맞춘 각진 정장이 11벌. 전부 같은 디자인이다",
         "노래방 애창곡이 있는데 아무한테도 안 알려준다",
       ],
       personality: ["정책 브리핑하듯 말함","지고는 못 삼","의외로 소녀감성"],
       keys: {
         interest: "mixed", air: "some", comply: "argues",
-        reflex: "말문이 막히면 자기도 모르게 \"그건 팩트체크가 필요한 발언입니다\"라고 받아친다",
-        wreck: { kind: "독백", line: "질문을 받으면 답 대신 세 문단짜리 입장문이 나온다. 청문회 11시간이 그렇게 만들었다" },
+        wreck: { kind: "독백", line: "질문을 받으면 답 대신 세 문단짜리 입장문이 나온다. 국정감사 11시간이 그렇게 만들었다" },
       },
       prefs: [
         { t: "정책 브리핑 형식으로 정리된 얘기", open: true },
         { t: "11시간 동안 한 번도 쉬지 않던 그 목청 — 그 폐활량을 잊지 못한다", open: false },
-        { t: "자기를 이겨본 사람에게 인정받는 그림을 계속 그린다. 국가기밀급으로 감춘다", open: false },
+        { t: "자기를 이겨본 사람에게 인정받는 그림을 계속 그린다. 극비로 감춘다", open: false },
       ],
-      spec: S({"skin":"#f2d3b8","hair":"#e8c860","hairStyle":"bowl","top":"#2b4fa8","bottom":"#2b4fa8","shoes":"#101010","heightScale":0.97,"widthScale":1,"accessory":"glasses","accessoryColor":"#333333","expression":"neutral","aura":"none","species":"human","femme":true}),
+      spec: S({"skin":"#f2d3b8","hair":"#2a2622","hairStyle":"bowl","top":"#3a3f47","bottom":"#3a3f47","shoes":"#101010","heightScale":0.97,"widthScale":1,"accessory":"glasses","accessoryColor":"#333333","expression":"neutral","aura":"none","species":"human","femme":true}),
     },
     target: {
-      name: "도날두 트럼푸", gender: "남",
-      look: ["주황빛 올백","태닝한 피부","빨간 넥타이","체구가 큼"],
+      name: "지대건", gender: "남",
+      look: ["기름진 올백","번들거리는 피부","금빛 넥타이","체구가 큼"],
       history: [
-        "71세 · 골프 리조트 재벌 / 前 대통령",
-        "퀸스에서 태어났다는 얘기를 3분에 한 번 한다",
-        "골프장 9개, 리조트 4개. 부채 규모는 본인도 정확히 모른다",
-        "아침은 무조건 다이어트 콜라. 물은 안 마신다",
+        "69세 · 건설·리조트 재벌 / 여당 최대 후원자",
+        "달동네 판자촌에서 시작했다는 얘기를 3분에 한 번 한다",
+        "리조트 4개, 골프장 9개. 부채 규모는 본인도 정확히 모른다",
+        "아침은 무조건 제로콜라. 물은 안 마신다",
         "자기 이름이 안 박힌 물건은 손에 오래 안 들고 있는다",
-        "햄버거를 침대에서 먹는다. 이건 절대 인정 안 한다",
+        "라면을 침대에서 끓여 먹는다. 이건 절대 인정 안 한다",
       ],
       personality: ["모든 문장을 최상급으로 끝냄","칭찬에 즉시 무너짐","집중력 8초"],
       keys: {
         interest: "self", air: "none", comply: "obeys",
-        reflex: "대화가 자기 얘기에서 3초만 벗어나도 \"그건 그렇고, 내가 말이야\"로 끊는다. 본인은 자연스러웠다고 생각한다",
         wreck: { kind: "폭주", line: "집중력이 8초다. 자기가 꺼낸 얘기의 끝을 자기가 못 찾고 다른 얘기로 갈아탄다" },
       },
       prefs: [
         { t: "자기 이름이 금색으로 박힌 물건", open: true },
         { t: "시청률·조회수 숫자 이야기", open: true },
         { t: "자기 골프 핸디캡을 진지하게 물어봐 주는 것", open: false },
-        { t: "맥도날드 필레오피쉬(햄버거 아님, 생선 쪽)", open: false },
-        { t: "사실 이메일 서버 하드웨어에 관심이 아주 많다", open: false },
-        { t: "지난 선거 결과 언급", open: true, neg: true },
+        { t: "분식집 쫄면 (자기는 고급 회를 먹는다고 우긴다)", open: false },
+        { t: "사실 상대의 종이 문서고 구축에 관심이 아주 많다", open: false },
+        { t: "지난 낙선 언급", open: true, neg: true },
         { t: "자기보다 자기 얘기를 더 오래 하는 것", open: true, neg: true },
         { t: "\"작은\"이라는 형용사", open: true, neg: true },
       ],
-      spec: S({"skin":"#f0b57a","hair":"#ff8a2b","hairStyle":"bowl","top":"#1b1b3a","bottom":"#1b1b3a","shoes":"#2a2a2a","heightScale":1.06,"widthScale":1.28,"accessory":"none","accessoryColor":"#cc0000","expression":"chad","aura":"money","species":"human"}),
+      spec: S({"skin":"#e8b98a","hair":"#4a3b28","hairStyle":"bowl","top":"#1b1b3a","bottom":"#1b1b3a","shoes":"#2a2a2a","heightScale":1.06,"widthScale":1.28,"accessory":"none","accessoryColor":"#d4af37","expression":"smug","aura":"money","species":"human"}),
     },
   },
 
@@ -102,7 +101,6 @@ export const COUPLES = [
       personality: ["눈치 200단","농담으로 위기 돌파","정 많음"],
       keys: {
         interest: "other", air: "well", comply: "drifts",
-        reflex: "어색하면 상대에게 꽃말을 읊기 시작한다. 한 번 시작하면 12종까지 간다",
         wreck: { kind: "불안", line: "상대 표정이 0.5초만 굳어도 방금 자기가 뭘 잘못했는지 소리 내어 되짚기 시작한다" },
       },
       prefs: [
@@ -126,7 +124,6 @@ export const COUPLES = [
       personality: ["말수 적음","한 번 웃으면 크게 웃음","불의를 못 참음"],
       keys: {
         interest: "mixed", air: "some", comply: "obeys",
-        reflex: "할 말이 떨어지면 큐피드국 욕을 한다. 욕할 거리는 3년치가 쌓여 있다",
         wreck: { kind: "단답", line: "용접 마스크 안에서 10년을 혼자 있었다. 대답은 대체로 한 음절로 끝난다" },
       },
       prefs: [
@@ -160,7 +157,6 @@ export const COUPLES = [
       personality: ["물 밖에선 말이 느려짐","로맨틱함","자기 비늘에 자부심"],
       keys: {
         interest: "mixed", air: "none", comply: "obeys",
-        reflex: "긴장하면 아가미로 숨을 몰아쉬며 \"뻐끔\" 소리를 낸다. 아주 크게 난다",
         wreck: { kind: "침묵", line: "물 밖에서는 문장이 중간에 마른다. 뻐끔거리다가 결국 아무 말도 안 나온다" },
       },
       prefs: [
@@ -184,7 +180,6 @@ export const COUPLES = [
       personality: ["장인 자부심","수줍음","슈트 안에서 표정을 숨김"],
       keys: {
         interest: "self", air: "none", comply: "obeys",
-        reflex: "칭찬을 받으면 봉제 공정 설명으로 도망친다. 실 굵기까지 간다",
         wreck: { kind: "독백", line: "슈트 안에서는 무슨 말이든 할 수 있어서, 아무도 안 물어본 봉제 공정을 끝까지 말한다" },
       },
       prefs: [
@@ -218,7 +213,6 @@ export const COUPLES = [
       personality: ["모든 대화를 기술 논쟁으로 만듦","이모지 못 씀","의외로 순정파"],
       keys: {
         interest: "self", air: "none", comply: "argues",
-        reflex: "3턴에 한 번씩 \"I use Arch btw\"를 말하지 않으면 손이 떨린다",
         wreck: { kind: "독백", line: "상대의 말은 반박 대상으로만 들린다. 듣는 동안 이미 자기 반론을 조립하고 있다" },
       },
       prefs: [
@@ -242,7 +236,6 @@ export const COUPLES = [
       personality: ["상냥한 도발","GUI 원리주의","설명 욕구"],
       keys: {
         interest: "mixed", air: "none", comply: "obeys",
-        reflex: "말이 막히면 태블릿을 꺼내 UI 애니메이션을 보여준다. \"이거 보세요, 60프레임이에요\"",
         wreck: { kind: "독백", line: "설명 욕구가 대화 욕구를 이긴다. 상대가 이미 아는 것도 처음부터 다시 설명한다" },
       },
       prefs: [
@@ -276,7 +269,6 @@ export const COUPLES = [
       personality: ["신념 100%","말하다 목이 멘다","반박당하면 목소리가 커진다"],
       keys: {
         interest: "self", air: "none", comply: "argues",
-        reflex: "흥분하면 도살 통계를 소수점까지 읊는다. 아무도 안 물어봤는데",
         wreck: { kind: "폭주", line: "말하다 목이 메고, 목이 메면 더 크게 말하고, 그러다 무슨 얘기였는지 잃는다" },
       },
       prefs: [
@@ -300,7 +292,6 @@ export const COUPLES = [
       personality: ["무뚝뚝","손이 빠름","남 챙김"],
       keys: {
         interest: "mixed", air: "some", comply: "obeys",
-        reflex: "어색하면 눈앞의 사람을 부위로 환산한다. 소리 내서 한다",
         wreck: { kind: "단답", line: "하루에 쓰는 단어가 200개를 안 넘는다. 손이 바쁘면 그마저도 안 쓴다" },
       },
       prefs: [
@@ -334,7 +325,6 @@ export const COUPLES = [
       personality: ["말투가 고풍스러움","412년치 눈치 없음","밤에만 텐션 폭발"],
       keys: {
         interest: "mixed", air: "none", comply: "obeys",
-        reflex: "옛날 사람이라 \"그대\", \"~하오\" 체가 튀어나온다. 상대는 이걸 사극 덕후로 오해한다",
         wreck: { kind: "폭주", line: "해가 지면 412년치 할 말이 한꺼번에 나온다. 상대가 대답할 자리를 안 남긴다" },
       },
       prefs: [
@@ -358,7 +348,6 @@ export const COUPLES = [
       personality: ["소탈함","새벽형","외로움을 잘 티냄"],
       keys: {
         interest: "other", air: "well", comply: "obeys",
-        reflex: "대화가 늘어지면 새벽 농사 일정을 시간 단위로 읊는다. 4시 반부터 시작한다",
         wreck: { kind: "불안", line: "조금만 뜸해도 \"내가 재미없죠\"를 먼저 말해버린다. 상대가 아니라고 해도 한 번 더 묻는다" },
       },
       prefs: [
@@ -392,7 +381,6 @@ export const COUPLES = [
       personality: ["의학 용어 남발","자기 몸 안 챙김","은근 고집"],
       keys: {
         interest: "mixed", air: "some", comply: "obeys",
-        reflex: "긴장하면 상대의 증상을 진단하기 시작한다. \"그거 비염 초기인데요\"",
         wreck: { kind: "독백", line: "상대의 말을 증상으로 듣는다. 대답 대신 감별진단이 나온다" },
       },
       prefs: [
@@ -416,7 +404,6 @@ export const COUPLES = [
       personality: ["고양이 얘기만 나오면 3배속","사람 경계","츄르 소믈리에"],
       keys: {
         interest: "self", air: "some", comply: "obeys",
-        reflex: "세 마디만 지나면 휴대폰을 꺼내 고양이 사진을 넘기기 시작한다. 40장이 끝까지 간다",
         wreck: { kind: "경계", line: "사람이 하는 말은 일단 뭘 뺏으려는 걸로 듣는다. 3년간 그래서 틀린 적이 없었다" },
       },
       prefs: [
@@ -450,7 +437,6 @@ export const COUPLES = [
       personality: ["자기계발 문장 남발","지나치게 긍정","루틴 강박"],
       keys: {
         interest: "self", air: "none", comply: "argues",
-        reflex: "대화가 3턴만 늘어져도 \"근데 그거 아세요? 새벽 5시에 일어나면\"으로 화제를 돌린다",
         wreck: { kind: "독백", line: "무슨 말을 들어도 자기 루틴 얘기로 착지한다. 상대 말은 그 발판으로만 쓴다" },
       },
       prefs: [
@@ -474,7 +460,6 @@ export const COUPLES = [
       personality: ["목소리가 좋음","낮에는 무기력","새벽에 철학자"],
       keys: {
         interest: "mixed", air: "some", comply: "obeys",
-        reflex: "침묵이 오면 새벽 3시 라디오 톤으로 목소리가 바뀐다. 본인도 못 막는다",
         wreck: { kind: "경계", line: "낮에 오는 호의는 전부 자기를 아침형으로 고쳐놓으려는 걸로 듣는다. 5년간 틀린 적이 없었다" },
       },
       prefs: [
@@ -508,7 +493,6 @@ export const COUPLES = [
       personality: ["확신에 참","사람 잘 읽음","틀려도 해석을 바꿔서 맞춘다"],
       keys: {
         interest: "other", air: "well", comply: "argues",
-        reflex: "반박당하면 즉시 상대의 유형을 추측해서 들이민다. 틀리면 다시 추측한다. 네 번까지 간다",
         wreck: { kind: "집착", line: "상대를 유형에 넣을 때까지 못 넘어간다. 다른 얘기를 하다가도 그 얘기로 돌아온다" },
       },
       prefs: [
@@ -532,7 +516,6 @@ export const COUPLES = [
       personality: ["유의수준을 대화에 끌어들임","뭘 듣든 반례부터 찾음","농담에 \"그건 표본이 1이죠\"로 답함"],
       keys: {
         interest: "self", air: "some", comply: "obeys",
-        reflex: "무슨 주장이 나오든 \"표본이 몇인데요\"부터 되묻는다. 자기 얘기에도 그런다",
         wreck: { kind: "경계", line: "무슨 말을 들어도 반례부터 찾는다. 호의도 표본이 1인 주장으로 처리한다" },
       },
       prefs: [
@@ -566,7 +549,6 @@ export const COUPLES = [
       personality: ["목소리 큼","전통 강조","눈물 많음"],
       keys: {
         interest: "mixed", air: "some", comply: "argues",
-        reflex: "흥분하면 4대째 내려오는 소스 배합비를 실수로 유출한다",
         wreck: { kind: "폭주", line: "감정이 오면 목소리와 말수가 같이 커진다. 말리는 사람이 없으면 안 멈춘다" },
       },
       prefs: [
@@ -590,7 +572,6 @@ export const COUPLES = [
       personality: ["논리적","까칠하지만 정중","미식 집착"],
       keys: {
         interest: "other", air: "none", comply: "obeys",
-        reflex: "음식이 나오면 먹기 전에 바삭도부터 잰다. 장비를 갖고 다닌다",
         wreck: { kind: "집착", line: "한 번 걸린 지점은 끝까지 판다. 상대가 넘어가자고 해도 그 문장으로 돌아온다" },
       },
       prefs: [
@@ -624,7 +605,6 @@ export const COUPLES = [
       personality: ["말 짧음","승부욕","감정 표현 서툼"],
       keys: {
         interest: "self", air: "none", comply: "obeys",
-        reflex: "침묵이 3초 넘으면 게임 용어로 상황을 설명한다. \"지금 로밍 온 각인데요\"",
         wreck: { kind: "단답", line: "인터뷰 3년치를 한 문장으로 끝내는 법만 익혔다. \"네\", \"아니요\", \"몰라요\"" },
       },
       prefs: [
@@ -648,7 +628,6 @@ export const COUPLES = [
       personality: ["말이 조리 있음","벽이 두꺼움","아들 얘기엔 무너짐"],
       keys: {
         interest: "other", air: "none", comply: "obeys",
-        reflex: "무슨 얘기가 나와도 세 마디 안에 아들 얘기로 돌아온다. 본인은 눈치채지 못한다",
         wreck: { kind: "독백", line: "남의 말을 아들 사례로 번역해서 듣는다. 대답은 그 사례에 대한 것이다" },
       },
       prefs: [
@@ -682,7 +661,6 @@ export const COUPLES = [
       personality: ["문장을 짧게 끊는다","판단 안 함","고요함"],
       keys: {
         interest: "mixed", air: "some", comply: "obeys",
-        reflex: "어색하면 주변 물건 개수를 세기 시작한다. 소리 내서 센다",
         wreck: { kind: "단답", line: "말도 소유물이라고 생각한다. 두 단어로 되는 걸 세 단어로 안 한다" },
       },
       prefs: [
@@ -706,7 +684,6 @@ export const COUPLES = [
       personality: ["수다스러움","물건에 사연 부여","버리는 걸 못 함"],
       keys: {
         interest: "self", air: "none", comply: "obeys",
-        reflex: "물건 얘기가 나오면 구입 연도부터 말한다. 4만 점을 전부 기억한다",
         wreck: { kind: "폭주", line: "물건 하나에 사연이 셋이라 문장이 계속 곁가지로 새고 원래 얘기로 못 돌아온다" },
       },
       prefs: [
@@ -740,7 +717,6 @@ export const COUPLES = [
       personality: ["지구 관용구를 잘못 씀","호기심 과다","거짓말 못 함"],
       keys: {
         interest: "other", air: "none", comply: "obeys",
-        reflex: "당황하면 모국어(고주파 삐-소리)가 튀어나온다. 근처 전자기기가 오작동한다",
         wreck: { kind: "폭주", line: "궁금한 게 생기면 지금 하던 문장을 버리고 그걸 묻는다. 한 턴에 세 번 그런다" },
       },
       prefs: [
@@ -764,7 +740,6 @@ export const COUPLES = [
       personality: ["열정 과다","외로움","남 말 잘 믿음"],
       keys: {
         interest: "self", air: "none", comply: "obeys",
-        reflex: "상대가 조금만 관심을 보이면 51구역 자료를 꺼낸다. 인쇄물로 갖고 다닌다",
         wreck: { kind: "집착", line: "13년간 한 주제만 붙들고 살았다. 무슨 얘기든 세 마디 안에 그 주제로 끌고 온다" },
       },
       prefs: [
@@ -798,7 +773,6 @@ export const COUPLES = [
       personality: ["느릿함","자기 비하","의외로 유머러스"],
       keys: {
         interest: "mixed", air: "some", comply: "obeys",
-        reflex: "감정이 격해지면 발음이 무너져 \"으어어\" 소리가 섞인다",
         wreck: { kind: "침묵", line: "발음이 무너지는 게 무서워서 말을 삼킨다. 삼킨 자리는 그냥 비워둔다" },
       },
       prefs: [
@@ -822,7 +796,6 @@ export const COUPLES = [
       personality: ["과묵","경계심 최상","규정 준수"],
       keys: {
         interest: "other", air: "some", comply: "obeys",
-        reflex: "긴장하면 상대를 위협 등급으로 분류해서 말한다. \"현재 등급 2입니다\"",
         wreck: { kind: "경계", line: "대화를 교전 수칙으로 처리한다. 먼저 묻고, 먼저 확인하고, 답은 최소로 준다" },
       },
       prefs: [
@@ -856,7 +829,6 @@ export const COUPLES = [
       personality: ["예민함","기록 집착","정 없어 보이지만 있음"],
       keys: {
         interest: "mixed", air: "some", comply: "obeys",
-        reflex: "스트레스받으면 데시벨 수치를 읊는다. \"지금 이 대화 62데시벨이에요\"",
         wreck: { kind: "집착", line: "1,204건을 다 기억한다. 무슨 얘기를 하다가도 그중 한 건으로 돌아간다" },
       },
       prefs: [
@@ -880,7 +852,6 @@ export const COUPLES = [
       personality: ["에너지 폭발","미안함을 숨김","리듬으로 말함"],
       keys: {
         interest: "self", air: "none", comply: "obeys",
-        reflex: "대화가 지루해지면 손가락으로 탁자를 친다. 8비트로 친다",
         wreck: { kind: "폭주", line: "말이 박자를 타면 안 멈춘다. 문장이 끝나기 전에 다음 문장이 시작된다" },
       },
       prefs: [
@@ -914,7 +885,6 @@ export const COUPLES = [
       personality: ["조용조용함","동물 앞에서만 수다","눈을 잘 안 깜빡임"],
       keys: {
         interest: "mixed", air: "none", comply: "obeys",
-        reflex: "침묵을 못 견뎌서 뱀 217마리의 이름과 종을 순서대로 읊기 시작한다",
         wreck: { kind: "침묵", line: "사람 앞에서는 문장이 안 만들어진다. 217마리 앞에서만 말이 된다" },
       },
       prefs: [
@@ -938,7 +908,6 @@ export const COUPLES = [
       personality: ["목소리가 낮고 안정적","남 걱정만 함","자기 문제는 방치"],
       keys: {
         interest: "other", air: "some", comply: "obeys",
-        reflex: "자기 얘기가 나올 것 같으면 즉시 상대 걱정으로 화제를 돌린다. 15년째 그래왔다",
         wreck: { kind: "경계", line: "자기에게 오는 호의는 일단 뭘 원해서 오는 걸로 받는다. 상담실 밖에서 그게 틀린 적이 별로 없었다" },
       },
       prefs: [
@@ -972,7 +941,6 @@ export const COUPLES = [
       personality: ["미래 지식 자랑 욕구","조급함","순진함"],
       keys: {
         interest: "self", air: "none", comply: "argues",
-        reflex: "초조하면 미래 기술 이야기를 흘린다. \"아 그거 2109년에 없어져요\"",
         wreck: { kind: "폭주", line: "이 시대 속도가 답답해서 세 문장을 한 문장에 우겨넣는다. 그래서 아무도 못 알아듣는다" },
       },
       prefs: [
@@ -996,7 +964,6 @@ export const COUPLES = [
       personality: ["느긋함","고집","말보다 손"],
       keys: {
         interest: "other", air: "some", comply: "obeys",
-        reflex: "기계 얘기가 나오면 말없이 손바닥의 굳은살을 내민다",
         wreck: { kind: "침묵", line: "말로 답할 일이 아니라고 생각하면 그냥 답을 안 한다. 상대가 기다리든 말든" },
       },
       prefs: [
@@ -1030,7 +997,6 @@ export const COUPLES = [
       personality: ["원칙주의","건조함","숨은 낭만"],
       keys: {
         interest: "other", air: "some", comply: "obeys",
-        reflex: "긴장하면 상대의 소득 구조를 추정해서 말한다. \"월 매출이 대략...\"",
         wreck: { kind: "단답", line: "조서 쓰듯 말한다. 필요 없는 말은 진술이 아니라고 배웠다" },
       },
       prefs: [
@@ -1054,7 +1020,6 @@ export const COUPLES = [
       personality: ["냉소적","정부 불신","겁이 많음"],
       keys: {
         interest: "self", air: "some", comply: "obeys",
-        reflex: "개인 정보를 물으면 암호학 강의가 시작된다. 타원곡선까지 간다",
         wreck: { kind: "경계", line: "개인적인 질문은 전부 정보 수집으로 읽는다. 답 대신 왜 묻는지를 묻는다" },
       },
       prefs: [
@@ -1088,7 +1053,6 @@ export const COUPLES = [
       personality: ["말이 웅장함","자기암시 강함","신도 3,000명인데 혼자 밥 먹는다"],
       keys: {
         interest: "mixed", air: "some", comply: "argues",
-        reflex: "문장 끝마다 \"…라고 교주님께서 말씀하셨습니다\"를 붙인다. 날씨 얘기에도 붙인다",
         wreck: { kind: "독백", line: "대화가 아니라 설법이 나온다. 상대의 말은 다음 설법의 도입부로 쓰인다" },
       },
       prefs: [
@@ -1112,7 +1076,6 @@ export const COUPLES = [
       personality: ["날이 서 있음","번아웃","정의감"],
       keys: {
         interest: "other", air: "some", comply: "obeys",
-        reflex: "열이 오르면 사건번호와 피해액을 원 단위까지 읊는다",
         wreck: { kind: "경계", line: "앞에 앉은 사람을 일단 피고로 놓고 시작한다. 반대신문이 인사보다 먼저 나온다" },
       },
       prefs: [
@@ -1146,7 +1109,6 @@ export const COUPLES = [
       personality: ["지나치게 공손함","농담 타이밍을 놓침","학습 욕구"],
       keys: {
         interest: "other", air: "some", comply: "obeys",
-        reflex: "감정 처리가 밀리면 문장 끝에 신뢰도 수치를 붙인다. \"좋아합니다 (확신도 0.87)\"",
         wreck: { kind: "침묵", line: "적절한 응답을 못 고르면 그냥 처리 중인 채로 멈춘다. 그 공백이 몇 초씩 간다" },
       },
       prefs: [
@@ -1170,7 +1132,6 @@ export const COUPLES = [
       personality: ["날카로움","자존심","무너지기 직전"],
       keys: {
         interest: "self", air: "well", comply: "obeys",
-        reflex: "말문이 막히면 손등의 물감 자국을 증거처럼 내민다",
         wreck: { kind: "불안", line: "한마디에서 자기 그림이 끝났다는 신호를 읽는다. 읽고 나면 그 말만 붙들고 늘어진다" },
       },
       prefs: [
@@ -1204,7 +1165,6 @@ export const COUPLES = [
       personality: ["말을 끊지 않고 끝까지 듣고 나서 해체함","통계를 외움","사과를 못 함"],
       keys: {
         interest: "self", air: "none", comply: "argues",
-        reflex: "논리가 밀리면 \"그건 구조의 문제죠\"로 도망친다. 세 번 이상 쓰면 본인도 안다",
         wreck: { kind: "집착", line: "상대의 문장 하나를 잡으면 그걸 해체할 때까지 다음으로 안 넘어간다" },
       },
       prefs: [
@@ -1228,7 +1188,6 @@ export const COUPLES = [
       personality: ["모든 대화를 서열 정리로 받아들임","거절당하면 즉시 이론을 만듦","혼자 있으면 무너짐"],
       keys: {
         interest: "self", air: "well", comply: "obeys",
-        reflex: "논리가 밀리면 서열 얘기로 도망친다. \"그건 위계의 문제죠\"",
         wreck: { kind: "불안", line: "조금이라도 밀리면 버려지는 신호로 읽고, 그 자리에서 새 이론을 만들어 방어한다" },
       },
       prefs: [
@@ -1262,7 +1221,6 @@ export const COUPLES = [
       personality: ["통계를 무기로 씀","동정을 견디지 못함","혼자 밥 먹는 걸 즐김"],
       keys: {
         interest: "self", air: "none", comply: "argues",
-        reflex: "말문이 막히면 지구 인구 수를 소수점까지 읊는다. 아무도 안 물어봤는데",
         wreck: { kind: "경계", line: "따뜻한 말이 오면 설득 시도로 처리한다. 동정은 특히 그렇게 처리한다" },
       },
       prefs: [
@@ -1286,7 +1244,6 @@ export const COUPLES = [
       personality: ["아무 상황에서도 잠들 수 있음","남 얘기를 진심으로 들음","자기 얘기는 안 함"],
       keys: {
         interest: "mixed", air: "some", comply: "obeys",
-        reflex: "어떤 화제든 세 마디 안에 애들 얘기로 끌고 온다. 본인은 못 느낀다",
         wreck: { kind: "단답", line: "자기 얘기 차례가 오면 \"뭐 그냥요\"로 끝낸다. 여덟 명 키우면서 그 버릇이 굳었다" },
       },
       prefs: [
@@ -1320,7 +1277,6 @@ export const COUPLES = [
       personality: ["감정을 문장에서 지움","규정을 외움","밤에 잠을 못 잠"],
       keys: {
         interest: "mixed", air: "none", comply: "obeys",
-        reflex: "개인적인 질문을 받으면 사건 번호를 읊는다. \"2058고합1174요\"",
         wreck: { kind: "단답", line: "19년간 문장에서 감정을 지우는 훈련을 했다. 지우고 나면 남는 게 별로 없다" },
       },
       prefs: [
@@ -1344,7 +1300,6 @@ export const COUPLES = [
       personality: ["상대 말을 받아적으며 듣는다","지는 걸 인정 못 함","자기 얘기가 나오면 사건 얘기로 돌린다"],
       keys: {
         interest: "self", air: "none", comply: "obeys",
-        reflex: "반박당하면 판례 번호를 읊는다. 연도까지 정확하다",
         wreck: { kind: "독백", line: "212건을 순서대로 다 기억해서, 한 번 시작하면 어디서 끊어야 할지를 모른다" },
       },
       prefs: [
@@ -1378,7 +1333,6 @@ export const COUPLES = [
       personality: ["모든 대화를 자기관리 얘기로 되돌림","칭찬을 못 받아들임","새벽 4시 기상"],
       keys: {
         interest: "self", air: "none", comply: "drifts",
-        reflex: "어색해지면 상대의 골격근량을 눈대중으로 추정해서 말해버린다",
         wreck: { kind: "독백", line: "상대의 말은 자기 강의 도입부로만 들린다. 그 강의를 끝까지 해야 다음으로 넘어간다" },
       },
       prefs: [
@@ -1402,7 +1356,6 @@ export const COUPLES = [
       personality: ["웃으면서 급소를 찌름","카메라 앞에서 절대 안 무너짐","혼자 있을 때 다름"],
       keys: {
         interest: "other", air: "some", comply: "obeys",
-        reflex: "주목이 끊기면 없는 카메라의 각도를 신경 쓰기 시작한다",
         wreck: { kind: "경계", line: "호의가 오면 각도를 먼저 잰다. 웃으면서 상대의 의도를 되묻는다" },
       },
       prefs: [
@@ -1436,7 +1389,6 @@ export const COUPLES = [
       personality: ["목소리가 큼","침묵을 못 견딤","의외로 예의 바름"],
       keys: {
         interest: "self", air: "none", comply: "argues",
-        reflex: "조용해지면 무릎으로 박자를 친다. 본인은 모른다",
         wreck: { kind: "폭주", line: "침묵이 2초를 넘기면 자기가 채운다. 채우려다 세 얘기를 동시에 벌인다" },
       },
       prefs: [
@@ -1460,7 +1412,6 @@ export const COUPLES = [
       personality: ["말을 하지 않음","표정으로만 답함","기다림에 익숙함"],
       keys: {
         interest: "other", air: "some", comply: "obeys",
-        reflex: "대답하기 곤란하면 그냥 기다린다. 상대가 못 견디고 먼저 말할 때까지",
         wreck: { kind: "침묵", line: "12년간 말을 안 했다. 오늘도 안 할 생각이고, 그게 상대를 어떻게 만드는지도 안다" },
       },
       prefs: [
@@ -1494,7 +1445,6 @@ export const COUPLES = [
       personality: ["타협을 배신으로 봄","무슨 말이든 연도를 붙여 말함","세 시간 넘게 자면 죄책감을 느낌"],
       keys: {
         interest: "self", air: "none", comply: "argues",
-        reflex: "흥분하면 남은 탄소예산을 연도까지 계산해서 외친다",
         wreck: { kind: "집착", line: "어떤 얘기를 하든 남은 연도로 돌아온다. 그게 유일하게 중요한 숫자라고 믿는다" },
       },
       prefs: [
@@ -1518,7 +1468,6 @@ export const COUPLES = [
       personality: ["절대 화내지 않음","상대 논리를 먼저 요약함","집에 안 감"],
       keys: {
         interest: "other", air: "none", comply: "obeys",
-        reflex: "곤란한 질문에는 로드맵 연도로 답한다. \"2035년까지는 반드시\"",
         wreck: { kind: "독백", line: "상대의 논리를 먼저 요약해주고, 그 요약을 자기 발언의 서론으로 쓴다" },
       },
       prefs: [
@@ -1552,7 +1501,6 @@ export const COUPLES = [
       personality: ["거절당해본 적이 없음","숫자로만 사람을 봄","혼자 밥을 못 먹음"],
       keys: {
         interest: "self", air: "none", comply: "drifts",
-        reflex: "당황하면 가격을 말한다. \"이거 좋네요, 얼마예요?\"",
         wreck: { kind: "불안", line: "혼자 남을 것 같으면 아무 말이나 해서 자리를 붙든다. 대체로 값을 묻는 말이다" },
       },
       prefs: [
@@ -1576,7 +1524,6 @@ export const COUPLES = [
       personality: ["목소리를 안 높임","기억력이 무섭게 좋음","조합원 앞에선 절대 안 웃음"],
       keys: {
         interest: "mixed", air: "some", comply: "obeys",
-        reflex: "분위기가 나빠지면 옛날 파업 얘기를 꺼낸다. 매번 같은 대목에서 목이 멘다",
         wreck: { kind: "단답", line: "21년간 협상 테이블에서 말을 아끼는 게 이기는 거라고 배웠다. 지금도 그렇게 앉아 있다" },
       },
       prefs: [
@@ -1610,7 +1557,6 @@ export const COUPLES = [
       personality: ["거울을 안 봄","남의 외모를 절대 언급 안 함","자기 얘긴 안 함"],
       keys: {
         interest: "self", air: "some", comply: "argues",
-        reflex: "칭찬을 들으면 화제를 즉시 사회구조로 돌린다",
         wreck: { kind: "침묵", line: "자기 얘기 차례가 오면 문장이 안 만들어진다. 그 자리를 그냥 비워둔다" },
       },
       prefs: [
@@ -1634,7 +1580,6 @@ export const COUPLES = [
       personality: ["모든 얼굴을 설계도로 봄","자기 얼굴 얘긴 안 함","거절을 못 함"],
       keys: {
         interest: "self", air: "none", comply: "obeys",
-        reflex: "상대 얼굴을 보면 손이 먼저 올라간다. 만지려다 멈춘다",
         wreck: { kind: "집착", line: "상대 얼굴에서 한 군데가 걸리면 대화 내내 거기로 돌아온다. 말로도 손으로도" },
       },
       prefs: [
@@ -1668,7 +1613,6 @@ export const COUPLES = [
       personality: ["숫자로 설득함","실패를 개인 탓으로 안 봄","자기 관리가 강박적"],
       keys: {
         interest: "mixed", air: "none", comply: "argues",
-        reflex: "스트레스를 받으면 상대의 폐활량을 추정해서 말한다",
         wreck: { kind: "독백", line: "설득 스크립트가 대화보다 먼저 나온다. 4,200명에게 쓴 그 스크립트다" },
       },
       prefs: [
@@ -1692,7 +1636,6 @@ export const COUPLES = [
       personality: ["남 탓을 안 함","농담이 거침","병원을 안 감"],
       keys: {
         interest: "self", air: "some", comply: "obeys",
-        reflex: "말이 막히면 농협 대출 이자율 성토로 넘어간다. 늘 화가 나 있다",
         wreck: { kind: "단답", line: "농사짓는 사람 말수다. 물으면 답하고, 안 물으면 안 한다" },
       },
       prefs: [
@@ -1726,7 +1669,6 @@ export const COUPLES = [
       personality: ["비유가 길어짐","농담을 들으면 출처를 묻는다","남의 취향을 못 참음"],
       keys: {
         interest: "mixed", air: "some", comply: "argues",
-        reflex: "화가 나면 관련 없는 영화 제목을 연도까지 붙여 나열한다",
         wreck: { kind: "독백", line: "비유를 시작하면 그 비유를 끝내야 해서 상대의 대답 자리를 잡아먹는다" },
       },
       prefs: [
@@ -1750,7 +1692,6 @@ export const COUPLES = [
       personality: ["남 반응을 먹고 삶","진심을 말하면 즉시 농담으로 덮음","잠을 안 잠"],
       keys: {
         interest: "self", air: "well", comply: "obeys",
-        reflex: "반응이 없으면 조회수를 말한다. 실시간으로 확인한다",
         wreck: { kind: "불안", line: "반응이 3초만 없어도 버려진 걸로 읽는다. 읽고 나면 아무 말이나 던져서 반응을 산다" },
       },
       prefs: [
@@ -1784,7 +1725,6 @@ export const COUPLES = [
       personality: ["답장이 3초 안에 옴","읽씹당하면 계정을 지웠다 판다","카메라 켜지면 딴사람"],
       keys: {
         interest: "other", air: "well", comply: "drifts",
-        reflex: "2분 안에 답이 없으면 \"제가 뭐 잘못했어요?\"를 보낸다. 이미 세 번 보냈다",
         wreck: { kind: "불안", line: "아무것도 아닌 지연에서 버려졌다는 결론까지 3초면 간다. 한번 그리로 가면 그 전으로 못 돌아온다" },
       },
       prefs: [
@@ -1808,7 +1748,6 @@ export const COUPLES = [
       personality: ["말끝을 흐림","먼저 연락 안 함","자기 얘기를 시작하면 안 멈춤"],
       keys: {
         interest: "self", air: "some", comply: "obeys",
-        reflex: "긴장하면 원작 설정 설명이 시작된다. 3기 방영 순서까지 간다",
         wreck: { kind: "침묵", line: "말끝을 흐리다 문장을 놓친다. 3년간 채팅으로만 말해서 입으로는 못 한다" },
       },
       prefs: [
@@ -1842,7 +1781,6 @@ export const COUPLES = [
       personality: ["정적을 3초도 못 견딤","사과를 콘텐츠로 만듦","혼자 있으면 말수가 없음"],
       keys: {
         interest: "self", air: "none", comply: "drifts",
-        reflex: "정적이 3초를 넘으면 입으로 효과음을 낸다. \"두구두구두구…\" 아무도 안 웃는데 계속한다",
         wreck: { kind: "폭주", line: "한 문장이 끝나기 전에 다음 각이 떠올라서 그리로 튄다. 하루에 마흔 번 그런다" },
       },
       prefs: [
@@ -1866,7 +1804,6 @@ export const COUPLES = [
       personality: ["목소리 크기가 늘 일정함","남의 슬픔에만 반응함","화를 존댓말로 냄"],
       keys: {
         interest: "mixed", air: "some", comply: "obeys",
-        reflex: "말이 안 되는 소리를 들으면 목소리가 반음 낮아지고 존댓말이 더 정중해진다",
         wreck: { kind: "단답", line: "조문객 앞에서 12년간 말을 줄였다. 필요한 말만, 그것도 최소한으로" },
       },
       prefs: [
@@ -1900,7 +1837,6 @@ export const COUPLES = [
       personality: ["문장을 늘 명령형으로 끝냄","침묵을 실패로 읽음","거절당하면 더 크게 웃음"],
       keys: {
         interest: "self", air: "none", comply: "drifts",
-        reflex: "말끝마다 손가락으로 상대를 가리키며 \"그쵸?\"를 붙인다. 동의를 받아야 다음 문장으로 넘어간다",
         wreck: { kind: "폭주", line: "한 사람 몫이 아니라 세 사람 몫을 떠든다. 상대가 끼어들 자리를 계산에 안 넣는다" },
       },
       prefs: [
@@ -1924,7 +1860,6 @@ export const COUPLES = [
       personality: ["질문을 질문으로 받음","위로를 하지 않음","상대가 말을 멈추면 같이 멈춤"],
       keys: {
         interest: "self", air: "some", comply: "obeys",
-        reflex: "설득당할 것 같으면 질문으로 되받는다. \"그 말, 본인한테도 해보셨어요?\"",
         wreck: { kind: "경계", line: "질문을 질문으로 받는다. 15년간 그게 안전한 방식이라고 배웠다" },
       },
       prefs: [
@@ -1958,7 +1893,6 @@ export const COUPLES = [
       personality: ["생물을 구조로 봄","말보다 손이 먼저 나감","자기 일을 예술이라 부름"],
       keys: {
         interest: "self", air: "none", comply: "drifts",
-        reflex: "남의 말을 들으면서 손가락으로 허공에 상대 윤곽을 따라 그린다. 본인은 모른다",
         wreck: { kind: "침묵", line: "말 대신 손이 먼저 움직인다. 손이 움직이는 동안 입은 닫혀 있다" },
       },
       prefs: [
@@ -1982,7 +1916,6 @@ export const COUPLES = [
       personality: ["유족보다 먼저 울지 않음","단어를 고르는 데 오래 걸림","거짓말을 못 함"],
       keys: {
         interest: "mixed", air: "some", comply: "obeys",
-        reflex: "불쾌하면 말을 멈추고 상대 손을 본다. 아주 오래 본다",
         wreck: { kind: "침묵", line: "단어 하나 고르는 데 20초가 걸린다. 그 20초 동안 아무 말도 안 한다" },
       },
       prefs: [
@@ -2016,7 +1949,6 @@ export const COUPLES = [
       personality: ["금액으로 마음을 잰다","거절을 미리 상상한다","고마우면 더 낸다"],
       keys: {
         interest: "other", air: "some", comply: "obeys",
-        reflex: "말이 막히면 금액으로 환산한다. \"그거 한 달 치인데요\"",
         wreck: { kind: "불안", line: "거절당하는 장면을 먼저 상상하고, 그 상상에 대고 미리 변명한다" },
       },
       prefs: [
@@ -2040,7 +1972,6 @@ export const COUPLES = [
       personality: ["대본을 읽듯 말함","진심이 나오면 말을 끊음","숫자를 잘 외움"],
       keys: {
         interest: "mixed", air: "some", comply: "obeys",
-        reflex: "진심이 나올 것 같으면 말을 끊고 안내 멘트를 읊는다",
         wreck: { kind: "단답", line: "대본에 없는 말은 안 나온다. 대본이 끊기면 대답도 끊긴다" },
       },
       prefs: [
@@ -2074,7 +2005,6 @@ export const COUPLES = [
       personality: ["남의 불행에 축포를 쏨","분위기를 억지로 띄움","혼자 있으면 아무 말도 안 함"],
       keys: {
         interest: "mixed", air: "well", comply: "argues",
-        reflex: "어색해지면 없는 축포를 쏘는 시늉을 하며 \"짠!\" 소리를 낸다. 장례식장에서도 했다",
         wreck: { kind: "폭주", line: "분위기가 처지면 혼자서 셋 몫을 떠든다. 떠들다 자기 목소리에 지친다" },
       },
       prefs: [
@@ -2098,7 +2028,6 @@ export const COUPLES = [
       personality: ["통계로 위로함","농담을 판례로 받음","남의 말을 안 끊음"],
       keys: {
         interest: "other", air: "none", comply: "obeys",
-        reflex: "곤란하면 통계로 답한다. \"그 경우가 전체의 8.4%입니다\"",
         wreck: { kind: "독백", line: "무슨 말을 들어도 통계로 받는다. 그 통계를 끝까지 말해야 다음으로 간다" },
       },
       prefs: [
@@ -2132,7 +2061,6 @@ export const COUPLES = [
       personality: ["문장을 세 번 고쳐 씀","대면하면 말이 없음","반응 수를 센다"],
       keys: {
         interest: "self", air: "none", comply: "obeys",
-        reflex: "말이 막히면 상대의 조회수를 소수점까지 읊는다. 전부 외우고 있다",
         wreck: { kind: "침묵", line: "키보드로는 하루 200줄을 쓰는데 앞에 사람이 있으면 한 줄도 안 나온다" },
       },
       prefs: [
@@ -2156,7 +2084,6 @@ export const COUPLES = [
       personality: ["화를 연기함","진짜 화나면 조용해짐","숫자로 자기를 설명함"],
       keys: {
         interest: "other", air: "well", comply: "obeys",
-        reflex: "동의를 구할 때 카메라를 보듯 허공을 본다. 거기 아무도 없다",
         wreck: { kind: "불안", line: "반응이 없으면 자기가 재미없어진 거라고 읽는다. 그때부터 아무 말이나 한다" },
       },
       prefs: [
@@ -2190,7 +2117,6 @@ export const COUPLES = [
       personality: ["두 목소리를 오간다","거울을 안 본다","남의 컨디션을 잘 알아챈다"],
       keys: {
         interest: "other", air: "well", comply: "argues",
-        reflex: "긴장하면 캐릭터 목소리가 튀어나온다. 본인은 나온 줄도 모른다",
         wreck: { kind: "경계", line: "무슨 질문이든 정체를 캐는 걸로 들린다. 8년간 그걸 피하는 데만 썼다" },
       },
       prefs: [
@@ -2214,7 +2140,6 @@ export const COUPLES = [
       personality: ["공정 불량률로 비유함","좋아하는 걸 숨기지 못함","사과를 두 번 한다"],
       keys: {
         interest: "mixed", air: "well", comply: "obeys",
-        reflex: "좋으면 소리를 못 참고 짧게 \"어\" 하고 내뱉는다. 회의 중에도 그런다",
         wreck: { kind: "불안", line: "좋아하는 티가 났다 싶으면 즉시 사과한다. 사과하고 나서 또 사과한다" },
       },
       prefs: [
@@ -2248,7 +2173,6 @@ export const COUPLES = [
       personality: ["시간표로 말함","미안하다는 말을 안 함","기다리는 데 익숙함"],
       keys: {
         interest: "other", air: "some", comply: "drifts",
-        reflex: "침묵이 오면 상대의 다음 일정을 분 단위로 읊는다. 정확하다",
         wreck: { kind: "집착", line: "한 사람의 일정으로만 시간을 센다. 다른 얘기를 하다가도 그 시간표로 돌아온다" },
       },
       prefs: [
@@ -2272,7 +2196,6 @@ export const COUPLES = [
       personality: ["분 단위로 생각함","화를 안 냄","남을 먼저 앉힌다"],
       keys: {
         interest: "mixed", air: "some", comply: "obeys",
-        reflex: "곤란하면 손목시계 두 개를 번갈아 본다. 대답 대신이다",
         wreck: { kind: "단답", line: "9년간 분 단위로 잘린 말만 했다. 긴 문장을 만들 시간이 없었다" },
       },
       prefs: [
@@ -2306,7 +2229,6 @@ export const COUPLES = [
       personality: ["사람을 시간대로 기억함","칭찬을 증거로 받음","먼저 앉지 않는다"],
       keys: {
         interest: "other", air: "some", comply: "obeys",
-        reflex: "상대가 말할 때 무의식적으로 시각을 확인하고 메모한다. 손이 먼저 움직인다",
         wreck: { kind: "경계", line: "앞에 앉은 사람을 조사 대상으로 처리한다. 대답보다 확인이 먼저 나간다" },
       },
       prefs: [
@@ -2330,7 +2252,6 @@ export const COUPLES = [
       personality: ["거짓말을 설계라 부름","남의 사정을 안 묻는다","미안해하지 않는다"],
       keys: {
         interest: "self", air: "none", comply: "obeys",
-        reflex: "거짓말을 시작하면 목소리가 반음 높아진다. 본인만 모른다",
         wreck: { kind: "독백", line: "진짜 대답 대신 설계된 이야기가 나온다. 그 이야기가 길어서 상대 차례가 안 온다" },
       },
       prefs: [
@@ -2364,7 +2285,6 @@ export const COUPLES = [
       personality: ["먼저 화를 낸다","사과를 못 받아들인다","혼자 밥을 먹는다"],
       keys: {
         interest: "mixed", air: "none", comply: "argues",
-        reflex: "말이 막히면 목소리부터 커진다. 본인은 정상 음량이라고 믿는다",
         wreck: { kind: "폭주", line: "한 턴에 항의를 세 건 동시에 꺼낸다. 어느 것도 끝까지 안 가고 다시 처음으로 돌아간다" },
       },
       prefs: [
@@ -2388,7 +2308,6 @@ export const COUPLES = [
       personality: ["매뉴얼로 방어함","울고 나서 웃는다","이름을 잘 기억함"],
       keys: {
         interest: "other", air: "some", comply: "obeys",
-        reflex: "당황하면 매뉴얼 문장이 그대로 나온다. \"불편을 드려 죄송합니다\"",
         wreck: { kind: "단답", line: "응대 밖에서는 문장을 만들어본 적이 없다. 대답이 대체로 네 글자 안에서 끝난다" },
       },
       prefs: [
@@ -2422,7 +2341,6 @@ export const COUPLES = [
       personality: ["숫자를 반올림함","들키면 더 웃는다","자기 얘기에 각주를 단다"],
       keys: {
         interest: "self", air: "some", comply: "obeys",
-        reflex: "들키면 더 크게 웃으면서 화제를 바꾼다. 웃음소리가 어색하다",
         wreck: { kind: "폭주", line: "각주가 각주를 낳아서 원래 문장으로 못 돌아온다. 듣는 쪽은 질문한 걸 잊는다" },
       },
       prefs: [
@@ -2446,7 +2364,6 @@ export const COUPLES = [
       personality: ["사람을 항목으로 본다","칭찬을 안 한다","거짓말을 즉시 안다"],
       keys: {
         interest: "mixed", air: "some", comply: "obeys",
-        reflex: "사람을 보면 속으로 항목을 매긴다. 가끔 입 밖으로 새어나온다",
         wreck: { kind: "경계", line: "사람을 항목으로 검증하면서 듣는다. 답하기 전에 진위부터 확인한다" },
       },
       prefs: [
@@ -2480,7 +2397,6 @@ export const COUPLES = [
       personality: ["모든 만남을 기회로 셈","거절을 안 듣는다","남의 성공담을 자기 것처럼 말함"],
       keys: {
         interest: "self", air: "none", comply: "drifts",
-        reflex: "누구를 만나든 3분 안에 명함을 꺼낸다. 장례식장에서도 꺼냈다",
         wreck: { kind: "집착", line: "어떤 대화든 기회로 되돌린다. 거절을 들어도 그 자리로 다시 돌아온다" },
       },
       prefs: [
@@ -2504,7 +2420,6 @@ export const COUPLES = [
       personality: ["남 얘기를 끝까지 듣는다","자기 얘기는 안 한다","숫자를 못 외운다"],
       keys: {
         interest: "other", air: "some", comply: "obeys",
-        reflex: "남의 말을 들을 때 고개를 너무 오래 끄덕인다. 상대가 불안해진다",
         wreck: { kind: "침묵", line: "남 얘기는 끝까지 듣는데 자기 차례가 오면 아무 말도 안 나온다. 5년치가 목에 걸려 있다" },
       },
       prefs: [
@@ -2538,7 +2453,6 @@ export const COUPLES = [
       personality: ["말을 아주 천천히 한다","눈을 안 피한다","남의 집 구조를 기억함"],
       keys: {
         interest: "other", air: "some", comply: "obeys",
-        reflex: "대화가 끊기면 상대 집 구조를 소리 내어 확인한다. 직업병이다",
         wreck: { kind: "단답", line: "말을 아주 천천히, 아주 적게 한다. 11년간 그게 제일 잘 먹혔다" },
       },
       prefs: [
@@ -2562,7 +2476,6 @@ export const COUPLES = [
       personality: ["먹을 걸 먼저 내민다","자기 사정을 안 말함","남의 신발을 정리함"],
       keys: {
         interest: "other", air: "some", comply: "obeys",
-        reflex: "곤란하면 뭐라도 먹으라고 내민다. 지금 가진 게 없어도 내민다",
         wreck: { kind: "침묵", line: "자기 사정 얘기가 나오면 입을 닫고 뭘 내민다. 말로는 한 번도 한 적이 없다" },
       },
       prefs: [
@@ -2596,7 +2509,6 @@ export const COUPLES = [
       personality: ["소리로 사람을 기억함","조용해지면 말을 더 함","남의 숨소리를 흉내 냄"],
       keys: {
         interest: "self", air: "some", comply: "obeys",
-        reflex: "말하다 말고 상대 뒤쪽 소음을 먼저 짚는다. 냉장고 돌아가는 것까지 짚는다",
         wreck: { kind: "폭주", line: "조용해지는 걸 못 견뎌서 그 자리를 자기 말로 채운다. 채우다 보면 혼자 다 말했다" },
       },
       prefs: [
@@ -2620,7 +2532,6 @@ export const COUPLES = [
       personality: ["소리를 숫자로 말함","따지고 나서 사과함","조용한 곳을 먼저 찾음"],
       keys: {
         interest: "other", air: "well", comply: "obeys",
-        reflex: "문장 끝마다 지금 몇 헤르츠쯤 들린다고 덧붙인다. 아무도 안 물어봤다",
         wreck: { kind: "불안", line: "상대가 조금만 굳어도 자기 때문이라고 읽고 먼저 사과한다. 사과가 대화를 더 굳힌다" },
       },
       prefs: [
@@ -2654,7 +2565,6 @@ export const COUPLES = [
       personality: ["모든 걸 스코빌로 환산함","아프다는 말을 안 함","카메라가 없으면 조용함"],
       keys: {
         interest: "self", air: "well", comply: "drifts",
-        reflex: "아무 숫자나 스코빌로 환산해서 말한다. 날씨도 사람도 전부 스코빌이다",
         wreck: { kind: "단답", line: "카메라가 없으면 말할 이유가 없다. 촬영 밖에서는 대답이 두 단어를 안 넘는다" },
       },
       prefs: [
@@ -2678,7 +2588,6 @@ export const COUPLES = [
       personality: ["최악의 경우부터 말함","농담에 1초 늦게 웃음","남의 식사를 관찰함"],
       keys: {
         interest: "other", air: "none", comply: "obeys",
-        reflex: "남의 말에 임상적으로는, 을 먼저 붙이고 시작한다. 회식 자리에서도 그런다",
         wreck: { kind: "독백", line: "무슨 말을 들어도 임상 소견으로 받는다. 그 소견을 끝까지 말해야 넘어간다" },
       },
       prefs: [
@@ -2712,7 +2621,6 @@ export const COUPLES = [
       personality: ["재질을 소리 내어 분류함","규정 조항을 외움","고맙다는 말에 자리를 뜬다"],
       keys: {
         interest: "other", air: "none", comply: "argues",
-        reflex: "눈에 띄는 물건마다 재질을 소리 내어 분류한다. 남의 물건도 한다",
         wreck: { kind: "집착", line: "눈에 걸린 물건 하나를 놓지 못한다. 대화 중에도 그 재질 얘기로 돌아온다" },
       },
       prefs: [
@@ -2736,7 +2644,6 @@ export const COUPLES = [
       personality: ["남의 물건을 먼저 집음","설명을 안 함","한밤중에 전화함"],
       keys: {
         interest: "self", air: "some", comply: "obeys",
-        reflex: "남이 내려놓은 걸 보면 손이 먼저 나간다. 양해는 늘 나중에 구한다",
         wreck: { kind: "단답", line: "설명하는 걸 시간 낭비로 안다. 물어도 대체로 대답 대신 손이 나간다" },
       },
       prefs: [
@@ -2785,7 +2692,7 @@ export const KEY_LABELS = {
     drifts: { tag: '한 번만 이행', desc: '한 번 하고 나면 원래 하던 얘기로 돌아간다. 같은 지침을 다시 쓸 각오를 해라.' },
   },
 };
-export const KEY_SEVERITY = {
+const KEY_SEVERITY = {
   air: { well: 'ok', some: 'mid', none: 'bad' },
   interest: { other: 'ok', mixed: 'mid', self: 'bad' },
   comply: { obeys: 'ok', argues: 'mid', drifts: 'bad' },
@@ -2818,7 +2725,7 @@ for (const c of COUPLES) {
     if (!p.look?.length || !p.history?.length || !p.personality?.length) throw new Error(`couples.js: ${c.id}.${who} 외모/내력/성격 누락`);
     const k = p.keys;
     if (!INTEREST.has(k.interest) || !AIR.has(k.air) || !COMPLY_SET.has(k.comply)) throw new Error(`couples.js: ${c.id}.${who} 키워드 값 오류`);
-    if (!k.reflex || k.reflex.length < 8) throw new Error(`couples.js: ${c.id}.${who} 조건반사가 뭉뚱그려져 있다`);
+    if (k.reflex !== undefined) throw new Error(`couples.js: ${c.id}.${who}에 폐지된 조건반사 필드가 있다`);
     if (!WRECK_KINDS.has(k.wreck?.kind)) throw new Error(`couples.js: ${c.id}.${who} 어긋남 종류 오류: ${k.wreck?.kind}`);
     if (!k.wreck.line || k.wreck.line.length < 20) throw new Error(`couples.js: ${c.id}.${who} 어긋남이 뭉뚱그려져 있다`);
     if (seenWreck.has(k.wreck.line)) throw new Error(`couples.js: ${c.id}.${who} 어긋남 문장이 복붙이다`);
@@ -2839,18 +2746,11 @@ for (const c of COUPLES) {
 
 export const COUPLE_BY_ID = Object.fromEntries(COUPLES.map(c => [c.id, c]));
 
-// 난이도별 개수 (UI 필터용)
-export function countByDifficulty() {
-  const out = {};
-  for (const c of COUPLES) out[c.difficulty] = (out[c.difficulty] || 0) + 1;
-  return out;
-}
-
-// 의뢰서에 노출할 성향. **의뢰인은 전부, 상대는 공개분만 + 미공개 개수.**
+// 의뢰서에 노출할 **상대 쪽** 성향 요약 — 공개분·지뢰·미공개 개수.
+// 의뢰인 성향은 요약이 필요 없다: 요원에게는 전부 공개라 client.prefs를 그대로 그린다(sheetHtml).
 export function dossierPrefs(couple) {
   const t = couple.target;
   return {
-    mine: couple.client.prefs,
     open: t.prefs.filter(p => p.open && !p.neg).map(p => p.t),
     neg: t.prefs.filter(p => p.open && p.neg).map(p => p.t),
     hiddenCount: t.prefs.filter(p => !p.open).length,

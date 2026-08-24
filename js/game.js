@@ -438,9 +438,6 @@ function sheetHtml(person, { mine = false } = {}) {
       ${rows.map(r => `<li class="lv-${r.level}"><span class="flaw-axis">${escapeHtml(r.axis)}</span>
         <span class="flaw-tag lv-${r.level}">${escapeHtml(r.tag)}</span>
         <span class="flaw-desc">${escapeHtml(r.desc)}</span></li>`).join('')}
-      <li class="lv-mid"><span class="flaw-axis">조건반사</span>
-        <span class="flaw-tag lv-mid">가만두면 나온다</span>
-        <span class="flaw-desc">${escapeHtml(person.keys.reflex)}</span></li>
       <li class="lv-high"><span class="flaw-axis">어긋남</span>
         <span class="flaw-tag wreck">${escapeHtml(wreck.tag)}</span>
         <span class="flaw-desc">${escapeHtml(person.keys.wreck.line)}<br>
@@ -474,7 +471,7 @@ function targetBriefHtml(c) {
     <p class="redline-box"><b>지뢰:</b> ${dp.neg.map(escapeHtml).join(' / ')}</p>
     <p class="handoff-warn"><b>이 화면의 정보는 의뢰인에게 자동으로 넘어가지 않는다.</b>
       의뢰인이 아는 것: ${knows} 나머지는 <b>지침에 직접 적어야</b> 그 인간 머릿속에 들어간다.</p>
-    <p class="weakness"><b>의뢰인 조건반사:</b> ${escapeHtml(k.reflex)}</p>
+    <p class="weakness"><b>의뢰인 어긋남 (${escapeHtml(WRECK_LABELS[k.wreck.kind].tag)}):</b> ${escapeHtml(k.wreck.line)}</p>
     ${comply ? `<p class="brief-flaw"><b>의뢰인 지침 수용:</b>
       ${escapeHtml(comply.tag)} — ${escapeHtml(comply.desc)}</p>` : ''}`;
 }
@@ -584,7 +581,7 @@ function gotoInterro() {
   };
   $('#coaching-input').oninput = sync;
   sync();
-  renderPrepReact('#coaching-result', 'coaching');
+  renderPrepReact('coaching');
 
   $('#btn-coaching').onclick = () => runPrepReact('coaching', '취조실 반응 대기 중...', interroViewer);
   $('#btn-interro-back').onclick = () => { sfx.click(); gotoSalon(); };
@@ -611,16 +608,16 @@ function gotoGate() {
   };
   $('#speech-input').oninput = sync;
   sync();
-  renderPrepReact('#speech-result', 'speech');
+  renderPrepReact('speech');
 
   $('#btn-speech').onclick = () => runPrepReact('speech', '정문 반응 대기 중...', gateViewer);
   $('#btn-gate-back').onclick = () => { sfx.click(); gotoInterro(); };
   $('#btn-start-op').onclick = () => { sfx.radio(); startOperation(); };
 }
 
-function renderPrepReact(sel, scene) {
+function renderPrepReact(scene) {
   const r = state.prepReact[scene];
-  const el = $(sel);
+  const el = $(scene === 'coaching' ? '#coaching-result' : '#speech-result');
   if (!r) {
     el.innerHTML = '<span class="inject-empty">아직 확인하지 않았다 — 반응을 안 보고 그냥 보내도 된다</span>';
     return;
@@ -637,7 +634,7 @@ async function runPrepReact(scene, label, viewer) {
     }));
     state.prepReact[scene] = r;
     viewer?.emote('left', r.face || 'talk');
-    renderPrepReact(scene === 'coaching' ? '#coaching-result' : '#speech-result', scene);
+    renderPrepReact(scene);
     sfx.stamp();
   } catch (e) { toast(errMsg(e)); }
 }
@@ -665,7 +662,6 @@ function updatePrepStatus() {
 let stageViewer = null;
 
 function meterUpdate(s) {
-  $('#meter-love-name').textContent = P.ENDING.meterName;
   $('#meter-love-fill').style.width = s.love + '%';
   $('#meter-love-num').textContent = s.love;
   $('#meter-threshold').style.left = s.threshold + '%';
@@ -1021,6 +1017,7 @@ function initPacing() {
 function init() {
   // 대장 건수를 화면 곳곳에 박아두면 커플을 추가할 때마다 숫자가 어긋난다. 실제로 어긋났었다.
   for (const el of $$('.n-couples')) el.textContent = COUPLES.length;
+  $('#meter-love-name').textContent = P.ENDING.meterName;   // 게이지 이름의 원본은 prompts.js다
   initBoot();
   initIntro();
   initRadio();

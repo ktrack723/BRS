@@ -126,34 +126,36 @@ function poseScreens() {
   const feed = document.querySelector('#judge-feed');
   feed.innerHTML = '';
   for (const [cls, html] of [
-    ['big', '<b>분위기 +4.4 · 호감 +13.6</b> 방어선이 실제로 내려갔다. 규정 뒤에 숨던 사람이 처음으로 자기 얘기를 했다<span class="tag tier breakthrough">방어선 붕괴</span><span class="tag hit">새로 드러남: 현장에서 3초 센 건 거리 재기가 아니었다</span><span class="tag calc">판정 +9 × 분위기 0.9</span>'],
-    ['good', '<b>분위기 +0.6 · 호감 +2.7</b> 맥락은 받았다. 상대도 싫지는 않은 눈치다<span class="tag tier nudge">조금 통함</span><span class="tag calc">판정 +3 × 분위기 1.1</span>'],
-    ['bad', '<b>분위기 -13.0 · 호감 -8.2</b> 정색했다. 이 자리에서 할 얘기가 아니었다<span class="tag tier disaster">정색</span><span class="tag calc">판정 -8 × 분위기 1.0</span>'],
+    ['big', '<b>호감 +13.6</b> 방어선이 실제로 내려갔다. 규정 뒤에 숨던 사람이 처음으로 자기 얘기를 했다<span class="tag tier breakthrough">방어선 붕괴</span><span class="tag hit">새로 드러남: 현장에서 3초 센 건 거리 재기가 아니었다</span><span class="tag first">2합</span><span class="tag calc">원판정 +9</span>'],
+    ['good', '<b>호감 +0</b> 맥락은 받았다. 상대도 싫지는 않은 눈치다<span class="tag tier nudge">조금 통함</span><span class="tag first">3합</span><span class="tag calc">원판정 +0</span>'],
+    ['bad', '<b>호감 -8.2</b> 정색했다. 이 자리에서 할 얘기가 아니었다<span class="tag tier disaster">정색</span><span class="tag first">4합</span><span class="tag calc">원판정 -8</span>'],
   ]) {
     const d = document.createElement('div'); d.className = `judge-line ${cls}`; d.innerHTML = html; feed.appendChild(d);
   }
-  document.querySelector('#turn-badge').textContent = '대면 4/5턴';
+  const openPrefs = c.target.prefs.filter(p => p.open && !p.neg).map(p => p.t);
+  const negPrefs = c.target.prefs.filter(p => p.open && p.neg).map(p => p.t);
+  const hiddenPrefs = c.target.prefs.filter(p => !p.open).map(p => p.t);
+  document.querySelector('#turn-badge').textContent = '대면 4/8턴';
   document.querySelector('#meter-love-num').textContent = '51';
-  document.querySelector('#meter-mood-num').textContent = '59';
   document.querySelector('#meter-love-fill').style.width = '51%';
-  document.querySelector('#meter-mood-fill').style.width = '59%';
-  document.querySelector('#meter-threshold').style.left = '52%';
-  document.querySelector('#meter-moodfloor').style.left = '33%';
-  document.querySelector('#hud-mult').textContent = '분위기 배율 ×1.1';
-  document.querySelector('#hud-diff').textContent = `난이도 ${c.difficulty} · 성공선 52`;
+  document.querySelector('#meter-threshold').style.left = '64%';
+  document.querySelector('#hud-sat').textContent = '호감 포화 ×0.6';
+  document.querySelector('#hud-turns').textContent = '남은 교환 4/8';
+  document.querySelector('#hud-bout').textContent = '2합 판정 · 다음 합 3/5교환';
+  document.querySelector('#hud-diff').textContent = `난이도 ${c.difficulty} · 성공선 64`;
   document.querySelector('#btn-intervene').textContent = '무전 개입 (잔여 2)';
-  document.querySelector('#intel-count').textContent = '대화 중 2건';
+  document.querySelector('#intel-count').textContent = '대화 중 2건 · 미확인 1건 남음';
   document.querySelector('#intel-list').innerHTML =
-    c.target.visiblePrefs.map(p => `<li class="known">${esc(p)} <span class="dim">(사전 통보)</span></li>`).join('')
+    openPrefs.map(p => `<li class="known">${esc(p)} <span class="dim">(사전 통보)</span></li>`).join('')
     + `<li class="found">현장에서 3초 센 건 거리 재기가 아니었다</li>`
     + `<li class="found">사람 머리 냄새에 이상하게 예민하다</li>`;
-  document.querySelector('#redline-list').innerHTML = c.target.redLines.map(p => `<li class="mine">${esc(p)}</li>`).join('');
+  document.querySelector('#redline-list').innerHTML = negPrefs.map(p => `<li class="mine">${esc(p)}</li>`).join('');
 
   // 결과 화면
   document.querySelector('#result-stamp').textContent = c.winWord;
   document.querySelector('#result-stamp').className = 'result-stamp ok';
   document.querySelector('#result-grade').textContent = '공작 등급: B';
-  document.querySelector('#result-score').textContent = '호감 62/52 · 분위기 61/33 · 난이도 보통 · 결승선 연애';
+  document.querySelector('#result-score').textContent = '호감 62/52 · 난이도 보통 · 결승선 연애';
   document.querySelector('#result-letter').textContent =
     '요원님. 저 해냈습니다. 아니, 저희가 해냈습니다.\n그 사람이 제 부츠를 보고 웃었을 때 저는 이미 이겼다고 생각했습니다.\n'
     + '17프레임을 세는 사람 앞에서 손이 떨렸던 걸 들켰지만, 그게 오히려 좋았다고 합니다.\n감사합니다. 정말로.';
@@ -168,14 +170,14 @@ function poseScreens() {
     ['발언 성적', '호재 8 / 악재 2턴', '최고의 한마디는 3턴(호감 +14.6), 최악은 6턴(-0.5).'],
   ].map(([n, v, t]) => `<li class="ok"><b>${n}</b> <span class="dscore">${v}</span><br><span class="dim">${t}</span></li>`).join('');
   document.querySelector('#debrief-prefs').innerHTML =
-    c.target.visiblePrefs.map(p => `<li class="known">${esc(p)} <span class="dim">(사전 통보)</span></li>`).join('')
-    + c.target.hiddenPrefs.slice(0, 2).map(p => `<li class="found">${esc(p)} <span class="dim">(대화에서 화제에 올랐다)</span></li>`).join('')
-    + c.target.hiddenPrefs.slice(2).map(p => `<li class="missed">${esc(p)} <span class="dim">(끝내 안 나왔다)</span></li>`).join('');
+    openPrefs.map(p => `<li class="known">${esc(p)} <span class="dim">(사전 통보)</span></li>`).join('')
+    + hiddenPrefs.slice(0, 2).map(p => `<li class="found">${esc(p)} <span class="dim">(대화에서 화제에 올랐다)</span></li>`).join('')
+    + hiddenPrefs.slice(2).map(p => `<li class="missed">${esc(p)} <span class="dim">(끝내 안 나왔다)</span></li>`).join('');
   document.querySelector('#debrief-turns').innerHTML =
-    '<div class="turn-table-wrap"><table class="turn-table"><tr><th>턴</th><th>분위기</th><th>호감</th><th>누적 호감/분위기</th><th>해설</th></tr>'
-    + Array.from({ length: 10 }, (_, i) =>
-      `<tr class="${i % 3 ? 'good' : ''}"><td>${i + 1}${i === 4 ? '·착장' : ''}</td><td>+4.4</td>`
-      + `<td>+13.6 <span class="dim">[breakthrough] +9×0.9</span></td><td>51 / 59</td>`
+    '<div class="turn-table-wrap"><table class="turn-table"><tr><th>합</th><th>호감</th><th>누적</th><th>해설</th></tr>'
+    + Array.from({ length: 5 }, (_, i) =>
+      `<tr class="${i % 3 ? 'good' : ''}"><td>${i + 1}${i === 0 ? '·착장' : '·5교환'}${i === 1 ? '·발견' : ''}${i === 3 ? '<b class="tt-lev">·압박</b>' : ''}</td>`
+      + `<td>+13.6 <span class="dim">[breakthrough] +9</span></td><td>51</td>`
       + `<td>방어선이 실제로 내려갔다. 규정 뒤에 숨던 사람이 처음으로 자기 얘기를 했다</td></tr>`).join('')
     + '</table></div>';
   document.querySelector('#btn-retry').classList.remove('hidden');

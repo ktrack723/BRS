@@ -15,7 +15,7 @@ import {
   PROP_SHAPES, PROP_SLOTS, PROP_MOTIONS, EMOTES,
 } from './prompts.js';
 
-export const DEFAULT_SPEC = {
+const DEFAULT_SPEC = {
   skin: '#ffcc99', hair: '#3a2a1a', hairStyle: 'short',
   top: '#5a6472', bottom: '#3c4450', shoes: '#26282a',
   heightScale: 1, widthScale: 1,
@@ -88,7 +88,7 @@ function box(w, h, d, color) { return new THREE.Mesh(new THREE.BoxGeometry(w, h,
 // ── 블록 아바타 조립 ────────────────────────────────────
 // 구조: g (배치·좌우 회전) → body (감정에 따른 상체 기울임) → 부위들
 // 감정 동작이 좌우 회전과 섞이지 않도록 한 겹을 더 뒀다.
-export function buildAvatar(rawSpec) {
+function buildAvatar(rawSpec) {
   const spec = sanitizeSpec(rawSpec);
   const g = new THREE.Group();
   const body = new THREE.Group();
@@ -796,8 +796,6 @@ export function renderThumb(rawSpec, cacheKey = null) {
   if (cacheKey) thumbCache.set(cacheKey, url);
   return url;
 }
-
-export function clearThumbCache() { thumbCache.clear(); }
 
 // ── 뷰어 ────────────────────────────────────────────────
 export class AvatarViewer {
