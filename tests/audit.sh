@@ -87,7 +87,9 @@ echo "── 밸런스 정책 (README ⚖️) ──"
 chk "기준선 = 손수 쓴 이상적 지시서(gold)가 아슬아슬 클리어" "test -f tests/ace-book.mjs && grep -q \"profile === 'gold'\" tests/live.mjs && grep -q '아슬아슬' README.md"
 chk "gold 지시서가 5커플 이상 채워져 있다" "node -e \"import('./tests/ace-book.mjs').then(m=>process.exit(Object.keys(m.ACE_BOOK).length>=5?0:1))\""
 chk "gold는 플레이어 가시 정보로만 — 미공개 성향 누출 없음" "node -e \"import('./tests/ace-book.mjs').then(async m=>{const c=await import('./js/couples.js');let bad=0;for(const id of Object.keys(m.ACE_BOOK)){const t=c.COUPLE_BY_ID[id].target;const blob=m.ACE_BOOK[id].coaching+' '+m.ACE_BOOK[id].speech;for(const p of t.prefs.filter(p=>!p.open))if(blob.includes(p.t))bad++;}process.exit(bad?1:0)})\""
-chk "지뢰가 성향 공략 경로 위 — 전 커플에 지뢰(neg)가 실재" "node -e \"import('./js/couples.js').then(m=>process.exit(m.COUPLES.every(c=>c.target.prefs.some(p=>p.neg)&&c.client.prefs.length>=3)?0:1))\""
+chk "지뢰가 커플당 정확히 3개, 상대 쪽에만 달린다" "node -e \"import('./js/couples.js').then(m=>process.exit(m.COUPLES.every(c=>c.target.prefs.filter(p=>p.neg).length===3&&!c.client.prefs.some(p=>p.neg))?0:1))\""
+chk "커플 간 중복 지뢰 0 — 복붙한 범용 지뢰가 없다" "node -e \"import('./js/couples.js').then(m=>{const s=new Set();for(const c of m.COUPLES)for(const p of c.target.prefs.filter(p=>p.neg)){if(s.has(p.t))process.exit(1);s.add(p.t)}process.exit(0)})\""
+chk "orientation 지뢰가 의뢰인이 밟을 것으로 개작됐다 (상황의 거울 → 의뢰인의 거울)" "node -e \"import('./js/couples.js').then(m=>{const n=m.COUPLES.find(c=>c.id==='orientation').target.prefs.filter(p=>p.neg).map(p=>p.t).join('|');process.exit(n.includes('말을 대신 끝내주는 것')&&n.includes('농담으로 넘기기')&&!n.includes('이혼 절차')?0:1)})\""
 chk "성공선이 gold 기준 정책을 명시한다" "grep -q '밸런스 정책' js/scoring.js"
 
 echo
