@@ -81,6 +81,14 @@ chk "effort·단가를 접두사로 잡는다 (날짜 붙은 id)" "node -e \"imp
 chk "테스트 하네스는 하이쿠만 쓴다" "grep -q 'claude-haiku' tests/test-model.mjs"
 
 echo
+echo "── 밸런스 정책 (README ⚖️) ──"
+chk "기준선 = 손수 쓴 이상적 지시서(gold)가 아슬아슬 클리어" "test -f tests/ace-book.mjs && grep -q \"profile === 'gold'\" tests/live.mjs && grep -q '아슬아슬' README.md"
+chk "gold 지시서가 5커플 이상 채워져 있다" "node -e \"import('./tests/ace-book.mjs').then(m=>process.exit(Object.keys(m.ACE_BOOK).length>=5?0:1))\""
+chk "gold는 플레이어 가시 정보로만 — 미공개 성향 누출 없음" "node -e \"import('./tests/ace-book.mjs').then(async m=>{const c=await import('./js/couples.js');let bad=0;for(const id of Object.keys(m.ACE_BOOK)){const t=c.COUPLE_BY_ID[id].target;const blob=m.ACE_BOOK[id].coaching+' '+m.ACE_BOOK[id].speech;for(const p of t.prefs.filter(p=>!p.open))if(blob.includes(p.t))bad++;}process.exit(bad?1:0)})\""
+chk "지뢰가 성향 공략 경로 위 — 전 커플에 지뢰(neg)가 실재" "node -e \"import('./js/couples.js').then(m=>process.exit(m.COUPLES.every(c=>c.target.prefs.some(p=>p.neg)&&c.client.prefs.length>=3)?0:1))\""
+chk "성공선이 gold 기준 정책을 명시한다" "grep -q '밸런스 정책' js/scoring.js"
+
+echo
 echo "── 절대 들어가면 안 되는 것 ──"
 chk "저장소 어디에도 실제 API 키 없음 (자리표시자는 허용)" "! grep -rnE 'sk-ant-api03-[A-Za-z0-9_-]{20,}' --exclude-dir=.git ."
 chk "무전에 반항하라는 지시가 프롬프트에 없다" "! grep -niE 'rebel|disobey|refuse the order|defy|report (it|them) to|tell (someone|others|them) (about )?(the|that) (radio|order|threat)' js/prompts.js"

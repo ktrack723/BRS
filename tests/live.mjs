@@ -3,12 +3,14 @@
 //
 //   ANTHROPIC_API_KEY=sk-... node tests/live.mjs [옵션]
 //     --couples=politics,os-war      돌릴 커플 id (기본: 난이도별 대표 3건)
-//     --profiles=ace,good,lazy,none  플레이 수준 (기본: 전부)
+//     --profiles=gold,ace,good,lazy,none  플레이 수준 (기본: ace,good,lazy,none)
 //     --model=...                    Sonnet 계열만 허용 (기본 {TEST_MODEL} → tests/test-model.mjs)
 //     --concurrency=4
 //     --out=/tmp/live.json
 //
 // 플레이 수준
+//   gold : 사람이 커플마다 손으로 써둔 '이상적' prep(tests/ace-book.mjs). 무전은 ace와 동일(LLM 실황 지시).
+//          밸런스의 기준선 — 이걸로 '아슬아슬 클리어'되는 게 올바른 난이도다(README 밸런스 정책 참조).
 //   ace  : 요원 역할을 LLM이 맡는다. 의뢰서를 읽고 착장/지침/연설을 짜고, 매 무전 기회에 실황을 보고 지시한다.
 //          (상대가 감춰둔 이야기는 절대 보여주지 않는다 — 진짜 플레이어와 같은 정보만 준다)
 //
@@ -21,6 +23,7 @@
 import { LlmClient } from '../js/llm.js';
 import { Engine } from '../js/engine.js';
 import { COUPLES, COUPLE_BY_ID, keyReport, dossierPrefs } from '../js/couples.js';
+import { goldPrep } from './ace-book.mjs';
 import { diffOf } from '../js/scoring.js';
 import { resolveTestModel, TEST_MODEL } from './test-model.mjs';
 import fs from 'node:fs';
@@ -165,6 +168,7 @@ async function playOne(coupleId, profile) {
   // 1) 준비물
   let raw;
   if (profile === 'ace') raw = await acePrep(llm, c);
+  else if (profile === 'gold') raw = goldPrep(coupleId);   // 손으로 쓴 이상적 prep (tests/ace-book.mjs)
   else if (profile === 'good') raw = goodPrep(c);
   else if (profile === 'lazy') raw = LAZY_PREP;
   else raw = NONE_PREP;
@@ -198,7 +202,7 @@ async function playOne(coupleId, profile) {
       turn: async ({ phase, turn }) => {
         if (profile === 'lazy' || profile === 'none') return;
         if (!shouldRadio(phase, turn) || engine.radioLeft <= 0) return;
-        const order = profile === 'ace'
+        const order = (profile === 'ace' || profile === 'gold')
           ? await aceRadio(llm, c, engine).catch(() => null)
           : turn === 2
             ? '지금 상대가 방금 한 말을 한 번 더 짚어주고, 왜 그렇게 생각하는지 되물어라. 네 얘기는 하지 마라.'
