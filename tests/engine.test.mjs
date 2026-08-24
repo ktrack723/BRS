@@ -272,6 +272,27 @@ test('무전은 다음 발언에 꽂히고 상대에게는 안 들린다', async
   assert.ok(!targetLeak, '무전이 상대에게 들렸다');
 });
 
+// 규칙 ①: 플레이어가 쓴 글은 채점되지 않는다. 심판이 무전을 보면 의뢰인이 실제로 한 말이
+// 아니라 지시의 영리함을 채점하게 된다. 그리고 심판은 상대의 눈 뒤에서만 보는데, 상대는
+// 무전을 못 듣는다. 합 본문과 직전 맥락 **둘 다** 막혀 있어야 한다.
+test('무전은 심판에게도 안 보인다 (합 본문·직전 맥락 둘 다)', async () => {
+  const llm = new FakeLlm();
+  const ORDER = '지금 당장 고백해';
+  await playFull(llm, {
+    onTurn: (engine, t) => {
+      // 문자 초반에 쏴서 이후 모든 합의 '직전 맥락'에 남을 기회를 준다
+      if (t.phase === 'text' && t.turn === 1) engine.submitRadio(ORDER);
+    },
+  });
+  const judgeCalls = llm.calls.filter(c => c.label.includes('판정'));
+  assert.ok(judgeCalls.length > 0, '판정 호출이 없다');
+  const leaked = judgeCalls.filter(c => {
+    const body = JSON.stringify(c.messages);
+    return body.includes(ORDER) || body.includes('HQ RADIO');
+  });
+  assert.equal(leaked.length, 0, `무전이 심판 프롬프트에 샜다 (${leaked.length}/${judgeCalls.length}건)`);
+});
+
 test('무전 횟수는 난이도 규격에서 나온다', async () => {
   const llm = new FakeLlm();
   const tried = [];

@@ -247,8 +247,11 @@ export class Engine {
     const c = this.couple;
     const bout = this.boutBuf;
     this.boutBuf = [];
+    // 무전은 심판에게 안 보인다. 두 가지 이유가 같은 곳을 가리킨다:
+    //   · 심판은 상대의 눈 뒤에서만 본다. 상대가 못 듣는 것은 거기 없다.
+    //   · 플레이어가 쓴 글은 채점되지 않는다(규칙 ①). 지시문이 보이면 심판은 의뢰인이
+    //     실제로 한 말 대신 지시의 영리함을 채점하게 된다.
     const boutLines = bout.flatMap(x => [
-      ...(x.radio ? [`[HQ RADIO — the other person cannot hear this]: ${x.radio}`] : []),
       `${c.client.name}: ${x.c}`,
       `${c.target.name}: ${x.t}`,
     ]).join('\n');
@@ -271,9 +274,11 @@ export class Engine {
   }
 
   // 합 직전의 '이미 채점된' 맥락 몇 줄.
+  // 여기도 무전을 뺀다 — 합 본문에서만 빼면 직전 맥락으로 그대로 새어 들어간다.
+  // 덤으로 라인 계산이 정확해진다: noRadio면 교환 하나가 정확히 2줄이라 아래 뺄셈이 딱 맞는다.
   #context(bout) {
     const boutLineCount = bout.length * 2;
-    const all = this.#history(HISTORY_WINDOW + boutLineCount).split('\n');
+    const all = this.#history(HISTORY_WINDOW + boutLineCount, { noRadio: true }).split('\n');
     return all.slice(0, Math.max(0, all.length - boutLineCount)).slice(-CONTEXT_LINES).join('\n');
   }
 
@@ -388,14 +393,12 @@ export class Engine {
       await this.h.turn?.({ phase, turn: i + 1, turns: this.phaseTurns, turnsLeft: this.phaseTurns - i });
       await this.#gate();
 
-      // 무전 지시 주입 (상대에게는 안 들린다)
-      let radioThisTurn = null;
+      // 무전 지시 주입 (상대에게도, 심판에게도 안 보인다 — 의뢰인 머릿속에만 들어간다)
       if (this.pendingRadio) {
         this.#pushUser(this.clientHist,
           `[ORDER FROM HQ — carry this out with your very next line. The other person cannot hear it]\n` +
           `${this.pendingRadio}\n` +
           `Refusal is not available. Show that you hate it if you hate it, but do it.`);
-        radioThisTurn = this.pendingRadio;
         this.pendingRadio = null;
       }
       // 갱신된 공기 주입 — 양쪽 각자, 각자의 공기읽기만큼
@@ -435,7 +438,7 @@ export class Engine {
       this.#pushUser(this.clientHist, `[${c.target.name} — ${phase === 'text' ? '답장' : '말'}] ${targetMsg}`);
 
       // 4) 교환을 합 버퍼에 쌓고, 합이 찼으면 판정을 띄운다
-      this.boutBuf.push({ c: clientMsg, t: targetMsg, radio: radioThisTurn });
+      this.boutBuf.push({ c: clientMsg, t: targetMsg });
       if (this.boutBuf.length >= S.BOUT.size && !this.pendingJudge) {
         this.#fireJudge(phase);
       }
