@@ -79,6 +79,8 @@ chk "여캐 조형 보정" "grep -q 'spec.femme' js/avatar.js"
 chk "판정 수치가 플레이어에게 보인다 (합 카운터·포화)" "grep -q 'hud-bout' js/game.js && grep -q 'hud-sat' js/game.js"
 chk "effort·단가를 접두사로 잡는다 (날짜 붙은 id)" "node -e \"import('./js/llm.js').then(m=>process.exit(!m.supportsEffort('claude-haiku-4-5-20251001')&&m.priceOf('claude-haiku-4-5-20251001')[0]===1?0:1))\""
 chk "테스트 하네스는 하이쿠만 쓴다" "grep -q 'claude-haiku' tests/test-model.mjs"
+chk "업자는 키 접두사로 판별한다 (선택란 없음)" "node -e \"import('./js/llm.js').then(m=>process.exit(m.detectProvider('sk-ant-x')==='anthropic'&&m.detectProvider('sk-or-v1-x')==='openrouter'&&m.detectProvider('sk-proj-x')==='openai'&&m.detectProvider('아무말')===null?0:1))\"" 
+chk "부팅 화면에 업자 선택란이 없다" "! grep -qiE '<select[^>]*id=\"(provider|vendor)' index.html && grep -q 'key-provider' index.html"
 
 echo
 echo "── 밸런스 정책 (README ⚖️) ──"
@@ -90,7 +92,7 @@ chk "성공선이 gold 기준 정책을 명시한다" "grep -q '밸런스 정책
 
 echo
 echo "── 절대 들어가면 안 되는 것 ──"
-chk "저장소 어디에도 실제 API 키 없음 (자리표시자는 허용)" "! grep -rnE 'sk-ant-api03-[A-Za-z0-9_-]{20,}' --exclude-dir=.git ."
+chk "저장소 어디에도 실제 API 키 없음 (자리표시자는 허용)" "! grep -rnE 'sk-ant-api03-[A-Za-z0-9_-]{20,}|sk-(proj|svcacct|admin)-[A-Za-z0-9_-]{20,}|sk-or-v1-[A-Za-z0-9]{32,}|sk-[A-Za-z0-9]{32,}' --exclude-dir=.git ."
 chk "무전에 반항하라는 지시가 프롬프트에 없다" "! grep -niE 'rebel|disobey|refuse the order|defy|report (it|them) to|tell (someone|others|them) (about )?(the|that) (radio|order|threat)' js/prompts.js"
 chk "협박당한다고 남에게 이르라는 지시가 없다" "! grep -niE 'blow the whistle|tell (the )?(police|authorities)|expose (the )?(bureau|headquarters)' js/prompts.js"
 chk "거부 자체가 선택지가 아니다 (레버가 살아 있다)" "grep -q 'cannot refuse' js/prompts.js"

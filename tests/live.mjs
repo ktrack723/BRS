@@ -2,9 +2,10 @@
 // 브라우저 없이 engine.js를 그대로 구동한다 (engine은 DOM을 모른다).
 //
 //   ANTHROPIC_API_KEY=sk-... node tests/live.mjs [옵션]
+//   (OPENAI_API_KEY / OPENROUTER_API_KEY 도 받는다 — 업자는 키 접두사로 갈린다)
 //     --couples=politics,os-war      돌릴 커플 id (기본: 난이도별 대표 3건)
 //     --profiles=gold,ace,good,lazy,none  플레이 수준 (기본: ace,good,lazy,none)
-//     --model=...                    Sonnet 계열만 허용 (기본 {TEST_MODEL} → tests/test-model.mjs)
+//     --model=...                    업자별 하위 등급만 허용 (기본값 → tests/test-model.mjs)
 //     --concurrency=4
 //     --out=/tmp/live.json
 //
@@ -25,17 +26,15 @@ import { Engine } from '../js/engine.js';
 import { COUPLES, COUPLE_BY_ID, keyReport, dossierPrefs } from '../js/couples.js';
 import { goldPrep } from './ace-book.mjs';
 import { diffOf } from '../js/scoring.js';
-import { resolveTestModel, TEST_MODEL } from './test-model.mjs';
+import { resolveTestModel, requireTestKey } from './test-model.mjs';
 import fs from 'node:fs';
 
 const args = Object.fromEntries(process.argv.slice(2)
   .filter(a => a.startsWith('--'))
   .map(a => { const [k, ...v] = a.slice(2).split('='); return [k, v.join('=') || 'true']; }));
 
-const MODEL = resolveTestModel(args.model);   // 테스트는 Sonnet 고정 (tests/test-model.mjs)
-
-const KEY = process.env.ANTHROPIC_API_KEY;
-if (!KEY) { console.error('ANTHROPIC_API_KEY 없음'); process.exit(1); }
+const KEY = requireTestKey();                       // 업자는 이 키의 접두사가 정한다
+const MODEL = resolveTestModel(args.model, process.argv, KEY);   // 하위 등급 고정 (tests/test-model.mjs)
 const CONCURRENCY = Number(args.concurrency || 4);
 const PROFILES = (args.profiles || 'ace,good,lazy,none').split(',');
 const DEFAULT_COUPLES = ['sauce-war', 'os-war', 'politics']; // 쉬움/보통/헬 대표
