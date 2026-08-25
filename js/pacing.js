@@ -154,7 +154,7 @@ export async function typeInto(el, text, onTick, opts = {}) {
 }
 
 // ── 입력 연결 ────────────────────────────────────────────
-// 버튼·입력칸 위에서 누른 것은 건너뛰기로 치지 않는다. 무전 개입을 누르려다 대사가 날아가면 안 된다.
+// 버튼·입력칸 위에서 누른 것은 건너뛰기로 치지 않는다. 조작하려다 대사가 날아가면 안 된다.
 const IGNORE = 'input, textarea, select, button, a, [contenteditable]';
 
 export function attachSkip(root, doc = document) {

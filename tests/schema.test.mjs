@@ -39,7 +39,7 @@ const SCHEMAS = Object.entries(P).filter(([k, v]) => k.endsWith('_SCHEMA') && v 
 
 test('내보내는 스키마가 하나도 빠짐없이 존재한다', () => {
   const names = SCHEMAS.map(([k]) => k);
-  for (const k of ['STYLING_SCHEMA', 'PREP_REACT_SCHEMA', 'JUDGE_SCHEMA', 'SITUATION_SCHEMA', 'RESULT_SCHEMA']) {
+  for (const k of ['STYLING_SCHEMA', 'TALK_SCHEMA', 'JUDGE_SCHEMA', 'EPILOGUE_SCHEMA']) {
     assert.ok(names.includes(k), `${k}가 스키마 목록에서 사라졌다`);
   }
 });

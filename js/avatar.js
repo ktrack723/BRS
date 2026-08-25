@@ -7,7 +7,7 @@
 //   2) 감정. 말할 때 한 가지로 튕기는 대신 12종 동작이 있다 — 웃고, 얼고, 움츠리고, 뒤로 자빠진다.
 //
 // 열거형의 원본은 prompts.js다. 스키마와 렌더러가 어긋나면 LLM이 만든 걸 못 그리게 되므로
-// 양쪽이 같은 배열을 본다 (tests/scoring.test.mjs가 이 일치를 검사한다).
+// 양쪽이 같은 배열을 본다 (tests/couples.test.mjs가 이 일치를 검사한다).
 import * as THREE from '../vendor/three.module.min.js';
 import {
   HAIR_STYLES as HAIR_LIST, ACCESSORIES as ACC_LIST, EXPRESSIONS as EXP_LIST,

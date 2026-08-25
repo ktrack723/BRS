@@ -1,132 +1,149 @@
-// node --test — 플레이어 지시 전달 감사. 착장·지침·연설·무전이 정확히 닿아야 할 곳에만 닿는가.
+// node --test tests/orders.test.mjs — 하이어아키 감사.
+//
+// 구조도는 어느 데이터가 어느 프롬프트에 들어가는지를 못박아 놓은 그림이다.
+// 한 칸이라도 새거나 빠지면 그건 구조도와 다른 게임이다. 필드마다 표식을 심어
+// 네 프롬프트(A · B-1 · B-2 · C)에 그 표식이 나타나는지 전수로 확인한다.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as P from '../js/prompts.js';
-import { Engine } from '../js/engine.js';
-import { COUPLE_BY_ID } from '../js/couples.js';
-import { diffOf } from '../js/scoring.js';
 
-const couple = COUPLE_BY_ID['politics'];
-const D = diffOf(couple.difficulty);
-const AGENT = { name: '요원', gender: '' };
-const PREP = { outfitDesc: '주황 턱시도 차림', coaching: '지침원문X', speech: '연설원문Y' };
+const M = {
+  clook: 'CLOOK표식', cpers: 'CPERS표식', cup: 'CUP표식', cfell: 'CFELL표식',
+  tlook: 'TLOOK표식', tpers: 'TPERS표식', tup: 'TUP표식', ttaste: 'TTASTE표식',
+  dlook: 'DLOOK표식', dpers: 'DPERS표식',
+  coach: 'COACH표식', style: 'STYLE표식', motiv: 'MOTIV표식',
+};
 
-class MiniLlm {
-  constructor() { this.calls = []; }
-  async call({ label, system, messages }) {
-    this.calls.push({ label, system, messages: structuredClone(messages) });
-    if (label.startsWith('판정') || label.startsWith('첫인상')) {
-      return {
-        carry: 0, tier: 'flat', loveDelta: 0, reason: 'r', vibe: 'v', revealed: '',
-        clientEmote: 'talk', targetEmote: 'talk', casualty: 'none', casualtyNote: '',
-        leverage: 'none', walkout: false,
-      };
-    }
-    if (label.includes('상황 생성')) return { place: 'P', intro: 'I', outfitReaction: 'R', vibe: 'V' };
-    if (label === '결과 편지') return { letter: 'L', epilogue: 'E', mvp: 'M' };
-    return `대사(${label})`;
+const couple = {
+  id: 'probe', category: '감사',
+  client: {
+    name: '고객갑', gender: '여',
+    look: [M.clook], personality: [M.cpers],
+    upbringing: [`40세 · ${M.cup}`, `${M.cup}2`],
+    fell: M.cfell,
+    spec: { species: 'human' },
+  },
+  target: {
+    name: '타겟을', gender: '남',
+    look: [M.tlook], personality: [M.tpers],
+    upbringing: [`41세 · ${M.tup}`, `${M.tup}2`],
+    taste: [M.ttaste],
+    spec: { species: 'human' },
+  },
+};
+const dressed = { look: M.dlook, personality: M.dpers };
+const orders = { styling: M.style, motivation: M.motiv };
+
+// 네 프롬프트를 한 번씩 만들어 둔다. 이게 이 게임이 보내는 전부다.
+const A = P.STYLING_SYSTEM + '\n' + P.stylingUser(couple, { species: 'human' }, orders);
+const B1 = P.talkSystem(couple, dressed, M.coach) + '\n'
+  + P.talkUser(couple, 'text', 1, 4) + '\n' + P.talkUser(couple, 'talk', 2, 5);
+const B2 = P.judgeSystem(couple, dressed) + '\n' + P.judgeUser(couple, '이전대화', '이번대화');
+const C = P.epilogueSystem(couple, dressed) + '\n' + P.epilogueUser(couple, 77, '대화전문표식');
+
+const has = (hay, needle) => hay.includes(needle);
+
+// ── A. 스타일링 / 동기부여 ───────────────────────────────
+test('A는 유저의 두 주문과 고객의 테이블 외모·성격을 받는다', () => {
+  for (const k of ['style', 'motiv', 'clook', 'cpers']) {
+    assert.ok(has(A, M[k]), `A에 ${k}가 안 실렸다`);
   }
-  find(pred) { return this.calls.filter(pred); }
-}
-
-async function run(opts = {}) {
-  const llm = new MiniLlm();
-  const engine = new Engine(llm, { couple, agent: AGENT, prep: opts.prep || PREP, handlers: {
-    turn: opts.onTurn ? (t => opts.onTurn(engine, t)) : undefined,
-  } });
-  await engine.runTexting();
-  const sit = await engine.situation();
-  await engine.runTalking(sit);
-  await engine.finish();
-  return { llm, engine };
-}
-
-test('착장은 대면의 상대·첫인상 판정까지 간다', async () => {
-  const { llm } = await run();
-  const fi = llm.find(c => c.label.startsWith('첫인상'))[0];
-  assert.ok(fi.messages[0].content.includes('주황 턱시도'));
-  const talkTarget = llm.find(c => c.label.startsWith('대면 응답'))[0];
-  assert.ok(talkTarget.system.includes('주황 턱시도'), '대면에서 상대가 차림을 본다');
 });
 
-test('문자 단계에서는 상대가 차림을 볼 수 없다', async () => {
-  const { llm } = await run();
-  const textTarget = llm.find(c => c.label.startsWith('문자 응답'))[0];
-  assert.ok(!textTarget.system.includes('주황 턱시도'));
-});
-
-test('지침과 연설은 의뢰인에게만 간다', async () => {
-  const { llm } = await run();
-  for (const c of llm.find(c => c.label.includes('발언'))) {
-    assert.ok(c.system.includes('지침원문X') && c.system.includes('연설원문Y'));
+test('A는 타겟을 한 글자도 보지 않는다 — 시공은 고객 시트만 건드린다', () => {
+  for (const k of ['tlook', 'tpers', 'tup', 'ttaste']) {
+    assert.ok(!has(A, M[k]), `A에 타겟 ${k}가 새어 들어갔다`);
   }
-  for (const c of llm.find(c => c.label.includes('응답'))) {
-    assert.ok(!c.system.includes('지침원문X') && !c.system.includes('연설원문Y'));
+  assert.ok(!has(A, M.coach), 'A에 코칭이 새어 들어갔다');
+});
+
+test('A의 출력은 수정된 외모와 성격 둘뿐이다 (+ 렌더링용 스펙)', () => {
+  assert.deepEqual(Object.keys(P.STYLING_SCHEMA.properties).sort(), ['look', 'personality', 'spec']);
+});
+
+// ── B-1. 대화 생성 ───────────────────────────────────────
+test('B-1은 타겟 네 항목을 전부 받는다', () => {
+  for (const k of ['tlook', 'tpers', 'tup', 'ttaste']) {
+    assert.ok(has(B1, M[k]), `B-1에 타겟 ${k}가 없다`);
   }
-  const judge = llm.find(c => c.label.startsWith('판정'))[0];
-  assert.ok(!judge.system.includes('지침원문X'), '심판이 준비물을 보면 채점이 오염된다');
 });
 
-test('빈 지시는 빈 채로 전달된다 — 조용히 채워 넣지 않는다', async () => {
-  const { llm } = await run({ prep: { outfitDesc: '', coaching: '', speech: '' } });
-  const cl = llm.find(c => c.label.includes('발언'))[0];
-  assert.ok(cl.system.includes('[ORDERS FROM HEADQUARTERS] None'));
-  assert.ok(!cl.system.includes('WHAT OPERATIVE'), '빈 연설이 블록으로 생겼다');
+test('B-1의 고객 외모·성격은 **수정된 것**이다 — 테이블 원본이 아니다', () => {
+  assert.ok(has(B1, M.dlook), 'B-1에 수정된 외모가 안 들어갔다');
+  assert.ok(has(B1, M.dpers), 'B-1에 수정된 성격이 안 들어갔다');
+  assert.ok(!has(B1, M.clook), 'B-1에 덮어써지기 전 외모가 남아 있다');
+  assert.ok(!has(B1, M.cpers), 'B-1에 덮어써지기 전 성격이 남아 있다');
 });
 
-test('지침이 있으면 이행 강제(거부 불가)가 붙는다 — 흐름 지시는 없다', async () => {
-  const { llm } = await run();
-  const cl = llm.find(c => c.label.includes('발언'))[0];
-  assert.ok(cl.system.includes('cannot refuse'));
-  assert.ok(cl.system.includes('못 하겠습니다'));
-  // 프롬프트 최소주의: "삼킨 충동이 옆으로 샌다", "막히면 지침으로 돌아간다" 같은
-  // 흐름 연출 지시는 전부 폐지됐다. 되살아나면 여기서 잡는다.
-  assert.ok(!cl.system.includes('the wanting does not go with'), '폐지된 충동 배출 지시가 부활했다');
-  assert.ok(!cl.system.includes('not making up as you go'), '폐지된 지침 회귀 지시가 부활했다');
+test('B-1은 고객 성장환경과 반한 이유를 받는다', () => {
+  assert.ok(has(B1, M.cup));
+  assert.ok(has(B1, M.cfell));
 });
 
-test('같은 지침도 인물의 이행 결(comply)에 따라 다르게 실린다', () => {
-  const argues = { ...couple, client: { ...couple.client, keys: { ...couple.client.keys, comply: 'argues' } } };
-  const drifts = { ...couple, client: { ...couple.client, keys: { ...couple.client.keys, comply: 'drifts' } } };
-  const a = P.clientAgentSystem(argues, PREP, 'text', AGENT);
-  const d = P.clientAgentSystem(drifts, PREP, 'text', AGENT);
-  assert.ok(a.includes('object internally'));
-  assert.ok(d.includes('drift back'));
+test('코칭은 B-1에만 실린다', () => {
+  assert.ok(has(B1, M.coach), 'B-1에 코칭이 안 실렸다');
+  assert.ok(!has(B2, M.coach), '코칭이 판정에 새어 들어갔다 — 요원이 쓴 글은 채점되지 않는다');
+  assert.ok(!has(C, M.coach), '코칭이 후일담에 새어 들어갔다');
 });
 
-test('무전은 원문 그대로, 의뢰인의 다음 발언에만 꽂힌다', async () => {
-  let sent = false;
-  const { llm } = await run({
-    onTurn: (engine, t) => { if (!sent && t.phase === 'talk' && t.turn === 2) sent = engine.submitRadio('무전원문Z!'); },
-  });
-  const hit = llm.find(c => c.label.includes('발언') && JSON.stringify(c.messages).includes('무전원문Z!'));
-  assert.ok(hit.length >= 1, '무전이 발언에 안 꽂혔다');
-  assert.ok(JSON.stringify(hit[0].messages).includes('Refusal is not available'));
-  const leak = llm.find(c => c.label.includes('응답') && JSON.stringify(c.messages).includes('무전원문Z!'));
-  assert.equal(leak.length, 0, '무전이 상대에게 들렸다');
+test('코칭이 비면 그 사실이 그대로 전달된다 — 조용히 채워 넣지 않는다', () => {
+  const empty = P.talkSystem(couple, dressed, '');
+  assert.ok(!has(empty, M.coach));
+  assert.ok(/없음/.test(empty), '코칭 없음이 명시되지 않는다');
 });
 
-test('무전 횟수는 난이도 규격을 넘지 못한다', async () => {
-  const oks = [];
-  await run({ onTurn: (engine) => { oks.push(engine.submitRadio('남발')); } });
-  assert.equal(oks.filter(Boolean).length, D.radioText + D.radioTalk);
+// ── B-2. 판정 ────────────────────────────────────────────
+test('B-2는 타겟 네 항목과 **고객 외모(스타일링됨)** 만 받는다', () => {
+  for (const k of ['tlook', 'tpers', 'tup', 'ttaste']) {
+    assert.ok(has(B2, M[k]), `B-2에 타겟 ${k}가 없다`);
+  }
+  assert.ok(has(B2, M.dlook), 'B-2에 고객 외모가 없다 — 타겟이 보고 있는 것이다');
 });
 
-test('착장 지시는 심사 없이 가위손에게 원문 그대로 간다', () => {
-  const u = P.stylingUser(couple, couple.client.spec, '전신 타투를 그려줘', AGENT);
-  assert.ok(u.includes('전신 타투를 그려줘'));
-  assert.ok(P.STYLING_SYSTEM.includes('never refuse'));
+test('B-2는 고객 성격·성장환경·반한 이유를 보지 않는다', () => {
+  for (const k of ['dpers', 'cpers', 'cup', 'cfell']) {
+    assert.ok(!has(B2, M[k]), `B-2에 ${k}가 새어 들어갔다`);
+  }
 });
 
-test('나레이터에게 문자 기록이 실제로 넘어간다', async () => {
-  const { llm } = await run();
-  const sit = llm.find(c => c.label.includes('상황 생성'))[0];
-  assert.ok(sit.messages[0].content.includes('TEXT LOG'));
-  assert.ok(sit.messages[0].content.includes('대사(문자 발언 1)'), '문자 내용이 안 넘어갔다');
+test('B-2에는 대화가 들어간다', () => {
+  assert.ok(has(B2, '이번대화'));
+  assert.ok(has(B2, '이전대화'));
 });
 
-test('빈 지침은 한 줄짜리 데이터다 — "들이대라"류 연출 지시가 붙지 않는다', () => {
-  const sys = P.clientAgentSystem(couple, { ...PREP, coaching: '' }, 'text', AGENT);
-  assert.ok(sys.includes('None. Nobody told you anything.'));
-  assert.ok(!sys.includes('push harder'), '폐지된 빈-지침 연출 지시가 부활했다');
+// ── C. 후일담 ────────────────────────────────────────────
+test('C는 러브 포인트 · 대화 · 고객 성격(동기부여됨) · 타겟 성격, 넷만 받는다', () => {
+  assert.ok(has(C, '77'), 'C에 러브 포인트가 없다');
+  assert.ok(has(C, '대화전문표식'), 'C에 대화가 없다');
+  assert.ok(has(C, M.dpers), 'C에 동기부여된 고객 성격이 없다');
+  assert.ok(has(C, M.tpers), 'C에 타겟 성격이 없다');
+});
+
+test('C는 외모도 취향도 성장환경도 보지 않는다', () => {
+  for (const k of ['dlook', 'clook', 'tlook', 'ttaste', 'tup', 'cup', 'cfell']) {
+    assert.ok(!has(C, M[k]), `C에 ${k}가 새어 들어갔다`);
+  }
+});
+
+test('러브 포인트는 C에만 간다 — 대화하는 쪽도 심판도 점수를 모른다', () => {
+  assert.ok(!/러브 포인트/.test(B1), 'B-1이 러브 포인트를 안다');
+  assert.ok(!/\b77\b/.test(B1), 'B-1에 점수가 새어 들어갔다');
+});
+
+// ── 폐지된 축이 프롬프트로 되살아나지 않았는가 ──────────
+test('폐지된 시스템 용어가 프롬프트에 없다', () => {
+  const all = A + B1 + B2 + C + P.WORLD;
+  const DEAD = [
+    '지뢰', '무전', '강압', '어긋남', '공기 읽기', '미공개', '성공선', '난이도',
+    'leverage', 'walkout', 'casualty', 'breakthrough', 'carryMax', 'loveDelta', 'keepGoing',
+    'firstImpression', 'outfitDesc',
+  ];
+  for (const w of DEAD) {
+    assert.ok(!all.includes(w), `폐지된 「${w}」가 프롬프트에 남아 있다`);
+  }
+});
+
+test('보내는 스키마는 넷뿐이다', () => {
+  const schemas = Object.keys(P).filter(k => k.endsWith('_SCHEMA'));
+  assert.deepEqual(schemas.sort(), ['EPILOGUE_SCHEMA', 'JUDGE_SCHEMA', 'STYLING_SCHEMA', 'TALK_SCHEMA']);
 });

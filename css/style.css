@@ -418,39 +418,10 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
   box-shadow: inset 0 0 20px rgba(0,0,0,.5);
 }
 .agent-record .dim { color: var(--crt-dim); }
-.record-chips { display: flex; gap: var(--s1); margin-top: var(--s1); flex-wrap: wrap; }
-.record-chip {
-  min-width: 22px; text-align: center; font-weight: 600; font-size: var(--fs-xs);
-  padding: 1px 6px; border: 1px solid;
-}
-.record-chip.win { background: #1c3320; color: #9ce0a2; border-color: var(--crt-edge); }
-.record-chip.lose { background: #331c1c; color: #e0a2a2; border-color: #5a2c2c; }
 
 /* ══════════════════════════════════════════════════════════
-   의뢰 대장 (20건)
+   S · 스크리닝
    ══════════════════════════════════════════════════════════ */
-.roster-filters { display: flex; gap: var(--s2); flex-wrap: wrap; margin-bottom: var(--s3); }
-/* 등급 필터 — XP 탭 컨트롤. 등급색은 표면이 아니라 좌측 색칩으로만 쓴다 */
-.filter-tab {
-  min-height: var(--ctrl-h-sm); font-size: var(--fs-sm);
-  padding: 0 var(--s3) 0 var(--s2);
-  display: inline-flex; align-items: center; gap: var(--s2);
-  color: var(--ink) !important;
-  border-bottom-color: var(--dlg-edge) !important;
-}
-.filter-tab::before {
-  content: ''; width: 9px; height: 9px; flex: none;
-  background: var(--ink-soft); border: 1px solid rgba(0,0,0,.35);
-}
-.filter-tab.diff-easy::before { background: var(--easy); }
-.filter-tab.diff-normal::before { background: var(--normal); }
-.filter-tab.diff-hell::before { background: var(--hell); }
-.filter-tab { background: linear-gradient(180deg, #e3e0cf 0, #d3cfbe 100%) !important; }
-.filter-tab.on {
-  background: linear-gradient(180deg, #fbfaf5 0, var(--dlg) 100%) !important;
-  border-color: #6f8ba8 !important; border-bottom-color: var(--dlg) !important;
-  font-weight: 600; box-shadow: 0 -2px 4px rgba(0,0,0,.12);
-}
 
 .roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: var(--s3); }
 .couple-card {
@@ -462,14 +433,8 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
   transition: transform .12s, box-shadow .12s;
 }
 .couple-card:hover { transform: translateY(-2px); box-shadow: 0 2px 3px rgba(0,0,0,.35), 0 10px 22px rgba(0,0,0,.34); }
-.couple-card.diff-easy { border-top-color: var(--easy); }
-.couple-card.diff-normal { border-top-color: var(--normal); }
-.couple-card.diff-hell { border-top-color: var(--hell); }
 /* 등급색은 테두리·배지 전용. 카드 본문 글자색까지 물들면 가독성이 떨어진다 */
 .couple-card, .couple-card p, .couple-card figcaption { color: var(--ink); }
-.couple-card .cc-diff.diff-easy { color: var(--easy); }
-.couple-card .cc-diff.diff-normal { color: var(--normal); }
-.couple-card .cc-diff.diff-hell { color: var(--hell); }
 .couple-card.cleared { opacity: .9; }
 .cleared-stamp {
   position: absolute; top: 30%; left: 50%; transform: translateX(-50%) rotate(-13deg);
@@ -481,7 +446,6 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 }
 .cc-head { display: flex; justify-content: space-between; align-items: center; gap: var(--s2); font-size: var(--fs-xs); }
 .cc-cat { background: var(--ink); color: var(--paper); padding: 1px var(--s2); letter-spacing: .04em; }
-.cc-diff { font-weight: 600; padding: 1px var(--s2); border: 1px solid; }
 .cc-pair { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--s1); margin: var(--s2) 0; }
 .cc-pair figure { margin: 0; text-align: center; min-width: 0; }
 .cc-pair img {
@@ -514,22 +478,22 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 .cc-take { flex: 1; }
 
 /* ══════════════════════════════════════════════════════════
-   의뢰서 (괘선 서류) — #salon-dossier와 #dossier-box 공용
+   의뢰서 (괘선 서류) — #styling-dossier와 #dossier-box 공용
    ══════════════════════════════════════════════════════════ */
-#salon-dossier, #dossier-box {
+#styling-dossier, #dossier-box {
   background: var(--paper);
   background-image: repeating-linear-gradient(0deg, transparent 0 27px, var(--paper-rule) 27px 28px);
   font-size: var(--fs-md);
 }
-#salon-dossier h3, #dossier-box h3 {
+#styling-dossier h3, #dossier-box h3 {
   font-size: var(--fs-lg); margin: var(--s3) 0 var(--s1);
   padding-bottom: var(--s1); border-bottom: 1px solid var(--paper-rule);
 }
-#salon-dossier h3:first-of-type, #dossier-box h3:first-of-type { margin-top: 0; }
-#salon-dossier p, #dossier-box p { margin: var(--s1) 0; line-height: 1.68; }
-#salon-dossier .story, #dossier-box .story { font-style: italic; }
-#salon-dossier .quote, #dossier-box .quote { color: var(--file); font-weight: 600; }
-#salon-dossier hr, #dossier-box hr { border: none; border-top: 1px dashed var(--dlg-edge); margin: var(--s3) 0; }
+#styling-dossier h3:first-of-type, #dossier-box h3:first-of-type { margin-top: 0; }
+#styling-dossier p, #dossier-box p { margin: var(--s1) 0; line-height: 1.68; }
+#styling-dossier .story, #dossier-box .story { font-style: italic; }
+#styling-dossier .quote, #dossier-box .quote { color: var(--file); font-weight: 600; }
+#styling-dossier hr, #dossier-box hr { border: none; border-top: 1px dashed var(--dlg-edge); margin: var(--s3) 0; }
 .stamp {
   position: absolute; top: var(--s2); right: var(--s3);
   transform: rotate(11deg);
@@ -537,24 +501,6 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
   padding: 1px var(--s2); font-size: var(--fs-sm); font-weight: 700; letter-spacing: .1em;
   opacity: .85; pointer-events: none;
 }
-.weakness { color: #6b1519; }
-.unknown-prefs {
-  background: #e7ebf2; border: 1px dashed var(--file);
-  padding: var(--s1) var(--s2); font-size: var(--fs-sm);
-}
-.redline-box {
-  background: #241a1a; color: #dcc2bd; border: 1px solid var(--stamp);
-  padding: var(--s1) var(--s2); font-size: var(--fs-sm);
-}
-.clash-line { background: #e9e3d6; border-left: 4px solid var(--stamp); padding: var(--s1) var(--s2); font-size: var(--fs-sm); }
-.diff-box {
-  border: 1px solid; border-left-width: 4px; padding: var(--s1) var(--s2);
-  margin: var(--s2) 0 0; font-size: var(--fs-xs); display: flex; flex-direction: column;
-}
-.diff-name { font-weight: 600; font-size: var(--fs-md); }
-.diff-easy { color: var(--easy); border-color: var(--easy); background: #e5eade; }
-.diff-normal { color: var(--normal); border-color: var(--normal); background: #efe9d5; }
-.diff-hell { color: var(--hell); border-color: var(--hell); background: #f0e0dd; }
 .diff-inline { font-size: var(--fs-sm); padding: 1px var(--s2); border: 1px solid; }
 
 /* ══════════════════════════════════════════════════════════
@@ -577,30 +523,6 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 .prep-nav .btn95 { flex: 1; margin-top: 0; }
 .prep-nav .btn95.big { flex: 2; margin-top: 0; }
 
-/* 장소별 조명. 3D는 알파로 렌더되므로 캔버스 뒤 CSS가 곧 그 방의 공기다 */
-.salon-stage .stage-canvas {
-  background:
-    radial-gradient(70% 46% at 50% 22%, rgba(255,250,235,.30), transparent 68%),
-    linear-gradient(180deg, #cfd3cd 0%, #b9beb6 54%, #9aa196 55%, #868d82 100%);
-}
-.interro-stage .stage-canvas {
-  background:
-    radial-gradient(38% 40% at 50% 16%, rgba(255,246,214,.42), transparent 72%),
-    linear-gradient(180deg, #10130f 0%, #1a1e17 52%, #262b21 55%, #14170f 100%);
-}
-.interro-stage .stage-label { color: var(--ink-mid); }
-.gate-stage .stage-canvas {
-  background:
-    radial-gradient(84% 58% at 50% 84%, rgba(255,196,120,.30), transparent 72%),
-    linear-gradient(180deg, #2c3a52 0%, #6a5f62 46%, #a4795a 62%, #4a3f36 100%);
-}
-
-/* 현장 상황 카드 — 그 방에 들어섰을 때의 첫 문단 */
-.scene-card .scene-text { margin: 0; font-size: var(--fs-sm); line-height: 1.75; }
-.scene-card.dark { background: #14170f; border-color: #05070a; }
-.scene-card.dark::after { box-shadow: inset 1px 1px 0 #2e332a, inset -1px -1px 0 #05070a; }
-.scene-card.dark .scene-text { color: #cfd6c3; }
-
 .prep-dossier summary { cursor: pointer; font-weight: 600; font-size: var(--fs-sm); }
 .prep-dossier > div { margin-top: var(--s2); }
 .target-brief { font-size: var(--fs-sm); }
@@ -613,20 +535,6 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
   box-shadow: inset 1px 1px 0 rgba(0,0,0,.10);
   padding: var(--s2) var(--s3); min-height: 26px; font-size: var(--fs-sm);
   margin-top: var(--s2);
-}
-.react-outfit {
-  font-weight: 600; color: var(--file);
-  border-bottom: 1px dashed var(--paper-rule); padding-bottom: var(--s1); margin-bottom: var(--s2);
-}
-.react-line { margin: var(--s1) 0; line-height: 1.7; }
-.react-who {
-  display: inline-block; margin-right: 6px;
-  font-family: var(--font-mono); font-size: var(--fs-xs); letter-spacing: .02em;
-  color: var(--paper); background: var(--ink-mid); padding: 1px 7px;
-}
-.react-note {
-  margin-top: var(--s2); padding-top: var(--s1); border-top: 1px dashed var(--paper-rule);
-  font-size: var(--fs-xs); color: var(--ink-soft); font-family: var(--font-mono);
 }
 
 .stage-wrap { position: relative; padding: var(--s1); container-type: inline-size; }
@@ -642,22 +550,12 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
   border: 1px solid var(--dlg-edge);
   box-shadow: inset 0 0 26px rgba(0,0,0,.55);
 }
-
-.prep-sub {
-  margin: 0 0 var(--s2); font-size: var(--fs-xs); color: var(--ink-soft);
-  display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap;
-}
-.prep-tag {
-  margin-left: auto; font-size: var(--fs-xs); font-family: var(--font-mono);
-  padding: 2px var(--s2); background: #fff; border: 1px solid var(--dlg-edge);
-}
 .prep-hint {
   font-size: var(--fs-sm); color: var(--ink-mid);
   background: var(--dlg-lit); border-left: 3px solid var(--file);
   padding: var(--s2) var(--s3); margin: 0 0 var(--s2);
 }
 .eval-result { min-height: 22px; font-size: var(--fs-sm); margin: var(--s2) 0 0; }
-.eval-result .outfit { font-weight: 600; color: var(--file); }
 /* 프롬프트 주입 미리보기 — 실제로 뭐가 들어가는지 보여준다 */
 .inject-label { display: block; font-size: var(--fs-xs); color: var(--file); font-weight: 600; }
 .inject-code {
@@ -669,14 +567,7 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
   box-shadow: inset 0 0 16px rgba(0,0,0,.5);
 }
 .inject-empty { color: #6f3628; font-size: var(--fs-sm); }
-#coaching-input, #speech-input { min-height: 110px; }
-
-.prep-warning {
-  padding: var(--s2) var(--s3); font-size: var(--fs-sm);
-  border: 1px solid; border-left-width: 4px; margin-bottom: var(--s2);
-}
-.prep-warning.ok { border-color: var(--ok); background: #e5eade; color: #24401f; }
-.prep-warning.warn { border-color: var(--warn); background: #efe9d5; color: #4d3d10; }
+#coaching-input { min-height: 110px; }
 #btn-start-op { margin-top: 0; }
 
 /* ══════════════════════════════════════════════════════════
@@ -693,7 +584,7 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 }
 
 /* 게이지 — XP 진행바처럼 분절 */
-.hud .meter { display: grid; grid-template-columns: 62px 1fr 42px; align-items: center; gap: var(--s2); margin-bottom: var(--s2); }
+.hud .meter { display: grid; grid-template-columns: 78px 1fr 42px; align-items: center; gap: var(--s2); margin-bottom: var(--s2); }
 .meter-name { font-size: var(--fs-sm); font-weight: 600; }
 .meter-bar {
   position: relative; height: 22px; min-width: 0;
@@ -709,24 +600,6 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 }
 .meter-fill.love { background-color: #8f2f47; }
 .meter-num { text-align: right; font-weight: 600; font-size: var(--fs-md); }
-.meter-threshold {
-  position: absolute; top: -1px; bottom: -1px; width: 2px;
-  background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.65); z-index: 2;
-}
-.hud-row { display: flex; gap: var(--s2); margin: var(--s3) 0 var(--s2); flex-wrap: wrap; }
-.hud-chip {
-  font-size: var(--fs-xs); padding: 3px var(--s2);
-  background: #fff; border: 1px solid var(--dlg-edge); color: var(--ink-mid);
-}
-.hud-chip.bad { border-color: var(--stamp); background: #f0e0dd; color: #6b1519; }
-#btn-intervene { width: 100%; }
-.hud-intel h4 { display: flex; justify-content: space-between; gap: var(--s2); }
-#intel-count { font-weight: 400; font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-mid); }
-#intel-list, #redline-list { margin: 0; padding-left: 18px; font-size: var(--fs-sm); }
-#intel-list .known { color: var(--ok); }
-#intel-list .found { color: var(--file); font-weight: 600; }
-#intel-list .unknown { color: var(--ink-soft); }
-#redline-list .mine { color: #6b1519; }
 
 /* 계기판의 장벽 칸 — 판을 제일 자주 끝내는 조건이라 판 내내 떠 있어야 한다.
    지뢰(붉은색)와 구분되게 서류 청색 계열로 두되, 미처리 동안은 눈에 걸리게 둔다. */
@@ -750,13 +623,6 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 .bubble .say { display: block; min-height: 1.2em; }
 .bubble.client { align-self: flex-end; background: #e8f0fa; border-color: #a8bdd4; }
 .bubble.target { align-self: flex-start; }
-.bubble.radio {
-  align-self: stretch; max-width: 100%;
-  background: var(--crt-bg); color: var(--crt-fg); border-color: var(--crt-edge);
-  font-family: var(--font-mono); font-size: var(--fs-sm);
-  box-shadow: inset 0 0 18px rgba(0,0,0,.5);
-}
-.bubble.radio .who { color: var(--crt-dim); }
 .bubble.sys {
   align-self: stretch; max-width: 100%;
   background: var(--dlg-dim); color: var(--ink-mid);
@@ -764,63 +630,12 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 }
 .bubble.sys .who { display: none; }
 
-/* 판정 로그 */
-.judge-feed { margin-top: var(--s2); display: flex; flex-direction: column; gap: var(--s1); }
-.judge-line {
-  font-size: var(--fs-sm); line-height: 1.6; padding: var(--s2) var(--s3);
-  background: var(--dlg-lit); color: var(--ink);
-  border: 1px solid var(--dlg-edge); border-left: 4px solid var(--ink-soft);
-  animation: slide-in .2s;
-}
-.judge-line b { font-family: var(--font-mono); font-weight: 600; }
-.judge-line.good { border-left-color: var(--ok); }
-.judge-line.bad { border-left-color: var(--stamp); }
-.judge-line.meh { border-left-color: var(--ink-soft); }
 @keyframes slide-in { from { transform: translateY(-4px); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .judge-line { animation: none; } }
-.judge-line .tag {
-  display: inline-block; margin-left: var(--s2); font-size: var(--fs-xs);
-  padding: 1px 6px; border: 1px solid; vertical-align: middle; white-space: nowrap;
-}
-.tag.hit { color: var(--file); border-color: var(--file); background: #e7ebf2; }
-.tag.first { color: var(--warn); border-color: var(--warn); background: #efe9d5; }
-.tag.red { color: #fdf3f2; border-color: var(--stamp-deep); background: var(--stamp); }
-.tag.calc { color: var(--ink-mid); border-color: var(--dlg-edge); background: #fff; font-family: var(--font-mono); }
-.tag.radio { color: var(--ok); border-color: var(--ok); background: #e5eade; }
-.tag.tier { font-weight: 600; }
-.tag.tier.breakthrough { color: #fdf3f2; border-color: var(--stamp-deep); background: var(--stamp); }
-.tag.tier.warm { color: #24401f; border-color: var(--ok); background: #e5eade; }
-.tag.tier.nudge { color: #2f5230; border-color: #7d8f74; background: #eceee6; }
-.tag.tier.flat { color: var(--ink-mid); border-color: var(--dlg-edge); background: #e8e6db; }
-.tag.tier.chill { color: var(--file); border-color: var(--file); background: #e7ebf2; }
-.tag.tier.disaster { color: #fdf3f2; border-color: #3d0c0e; background: var(--stamp-deep); }
-.judge-line.big { border-left-color: var(--stamp); border-left-width: 6px; }
 
 /* 요원 등록 — 이름·성별 둘 다 주관식이다 */
 .agent-form { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); margin: var(--s3) 0 0; }
 .agent-form label { display: block; margin: 0 0 var(--s1); }
 .agent-form label small { font-weight: 400; color: var(--ink-soft); font-size: var(--fs-xs); }
-
-/* ══════════════════════════════════════════════════════════
-   텍스트로 된 분위기
-   심판이 매 턴 갱신하고, 이 문장이 그대로 의뢰인에게 전달된다.
-   대화 규칙을 걷어낸 자리를 이게 대신한다.
-   ══════════════════════════════════════════════════════════ */
-.vibe-bar {
-  display: flex; align-items: center; gap: var(--s2);
-  background: var(--crt-bg); color: var(--crt-fg);
-  border: 1px solid var(--crt-edge); border-left: 4px solid var(--crt-fg);
-  box-shadow: inset 0 0 18px rgba(0,0,0,.55);
-  padding: var(--s2) var(--s3); margin-bottom: var(--s2);
-  font-size: var(--fs-sm); line-height: 1.55; min-height: 40px;
-}
-.vibe-tag {
-  flex: none; font-family: var(--font-mono); font-size: var(--fs-xs);
-  letter-spacing: .1em; color: var(--crt-bg); background: var(--crt-fg); padding: 1px 7px;
-}
-.vibe-bar.pulse { animation: vibe-in .5s ease-out; }
-@keyframes vibe-in { from { background: #16341c; } }
-@media (prefers-reduced-motion: reduce) { .vibe-bar.pulse { animation: none; } }
 
 /* 재생 속도 — 감청은 실시간이어도 읽는 사람은 실시간이 아니다 */
 .pace-bar {
@@ -861,8 +676,6 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 }
 .result-grid > * { min-width: 0; }
 .debrief-wide { grid-column: 1 / -1; }
-.debrief-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0 var(--s5); }
-.debrief-cols h4 { margin-top: var(--s2); }
 .result-grid .stage-canvas { aspect-ratio: 16 / 11; }
 /* 관인 — 커플마다 문구 길이가 다르므로(winWord) 무대 폭 안에서 줄어들어야 한다 */
 .result-stamp {
@@ -897,26 +710,8 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
   border: 1px solid var(--dlg-edge); padding: var(--s3);
   min-height: 180px; font-size: var(--fs-md); line-height: 1.75;
 }
-.mvp {
-  background: #efe9d5; border: 1px solid var(--warn); border-left-width: 4px;
-  padding: var(--s2) var(--s3); font-weight: 600; font-size: var(--fs-sm);
-}
-.epilogue { font-style: italic; color: var(--ink-mid); font-size: var(--fs-sm); }
 .result-btns { display: flex; gap: var(--s2); flex-wrap: wrap; margin-top: var(--s3); }
 .result-btns .btn95 { flex: 1 1 190px; }
-
-.debrief-summary {
-  background: #fff; border: 1px solid var(--dlg-edge); border-left: 4px solid var(--file);
-  padding: var(--s2) var(--s3); font-weight: 600; font-size: var(--fs-sm);
-}
-.debrief-list, .debrief-prefs { margin: var(--s2) 0 0; padding-left: 18px; font-size: var(--fs-sm); line-height: 1.7; }
-.debrief-list li { margin-bottom: var(--s1); }
-.debrief-list .ok { color: var(--ok); }
-.debrief-list .weak { color: #6b1519; font-weight: 600; }
-.dscore { background: #fff; border: 1px solid var(--dlg-edge); padding: 0 var(--s1); font-size: var(--fs-xs); }
-.debrief-prefs .known { color: var(--ok); }
-.debrief-prefs .found { color: var(--file); font-weight: 600; }
-.debrief-prefs .missed { color: #6f3628; }
 #debrief-log { margin-top: var(--s3); font-size: var(--fs-sm); }
 #debrief-log summary {
   cursor: pointer; font-weight: 600; min-height: var(--ctrl-h-sm);
@@ -950,11 +745,6 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 .modal-box.wide { width: min(820px, 100%); }
 .modal-btns { display: flex; gap: var(--s2); justify-content: flex-end; flex-wrap: wrap; margin-top: var(--s3); }
 .modal-btns .btn95 { flex: 1 1 150px; }
-.radio-context {
-  background: var(--crt-bg); color: #b3d4b6; border: 1px solid var(--crt-edge);
-  padding: var(--s2) var(--s3); font-size: var(--fs-sm); margin-bottom: var(--s2);
-  box-shadow: inset 0 0 16px rgba(0,0,0,.5);
-}
 
 .loading-box { text-align: center; color: #dfe6ee; padding: var(--s4); }
 .loading-spinner {
@@ -1028,7 +818,7 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
   main { padding: var(--s3) var(--s2) var(--s5); }
   .chat-left { grid-template-columns: minmax(0, 1fr); }
   .roster { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
-  .hud .meter { grid-template-columns: 54px 1fr 38px; }
+  .hud .meter { grid-template-columns: 70px 1fr 38px; }
 }
 
 /* 폰 */
@@ -1063,75 +853,19 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 }
 
 /* ══════════════════════════════════════════════════════════
-   정보 공개층 — 심리 감정 · 인계 경고 · 공기 도달 여부
-   flaw는 게임을 지배하는 데이터인데 여태 화면에 한 글자도 없었다.
+   정보 경계 — 요원이 아는 것과 고객이 아는 것은 다르다
    ══════════════════════════════════════════════════════════ */
-.flaw-box {
-  margin: var(--s3) 0 0; padding: var(--s3);
-  background: #eef1e9; border: 1px solid var(--dlg-edge); border-left: 4px solid var(--file);
-}
-.flaw-box h4 { margin: 0 0 var(--s2); font-size: var(--fs-sm); letter-spacing: .04em; }
-.flaw-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
-.flaw-list li {
-  display: grid; grid-template-columns: 6em auto; gap: 4px var(--s2);
-  align-items: baseline; font-size: var(--fs-sm); line-height: 1.5;
-  padding-left: var(--s2); border-left: 3px solid var(--dlg-edge);
-}
-.flaw-list li.lv-mid { border-left-color: var(--warn); }
-.flaw-list li.lv-bad { border-left-color: var(--stamp); }
-.flaw-axis { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--ink-mid); }
-.flaw-desc { grid-column: 1 / -1; color: var(--ink-mid); }
-.flaw-tag {
-  display: inline-block; justify-self: start;   /* 그리드 칸을 가득 채우면 배지가 아니라 띠가 된다 */
-  font-family: var(--font-mono); font-size: var(--fs-xs);
-  padding: 1px 6px; border: 1px solid var(--ok); background: #e5eade; color: #24401f;
-  white-space: nowrap;
-}
-.flaw-tag.lv-mid { border-color: var(--warn); background: #efe9d5; color: #4d3d10; }
-.flaw-tag.lv-bad { border-color: var(--stamp); background: #f0e0dd; color: #6b1519; }
-/* 대화 불능 — 결함 축과 다른 색이어야 한다. 이건 성향이 아니라 출력 형태다 */
-.flaw-tag.wreck { border-color: #5a3f7a; background: #ece4f2; color: #3d2755; }
-.flaw-list li.lv-high { border-left-color: #5a3f7a; }
-
-/* 로스터 카드 하단 결함 배지 — 조합을 고르기 전에 보여야 한다 */
-.cc-flaws { display: flex; flex-wrap: wrap; gap: 4px; margin: var(--s2) 0 0; }
 
 /* 요원은 아는데 의뢰인은 모르는 정보. 이 경계가 이 게임의 핵심이다 */
+/* display:block은 필수다 — 이 스타일은 padding·margin을 가진 '박스'인데 <span>으로도 쓰인다.
+   인라인이면 세로 padding이 줄 높이에 안 잡혀서 바로 윗줄(지뢰 목록)을 덮어버린다. */
 .handoff-warn {
+  display: block;
   margin: var(--s2) 0 0; padding: var(--s2);
   background: #f6efdc; border: 1px solid var(--warn); border-left-width: 4px;
   font-size: var(--fs-sm); line-height: 1.55; color: #4d3d10;
 }
 .hint-key { color: var(--stamp-deep); }
-.brief-flaw {
-  margin: var(--s2) 0 0; font-size: var(--fs-sm); line-height: 1.5;
-  padding-left: var(--s2); border-left: 3px solid var(--dlg-edge);
-}
-.brief-flaw.lv-mid { border-left-color: var(--warn); }
-.brief-flaw.lv-bad { border-left-color: var(--stamp); }
-
-/* 공기가 의뢰인에게 실제로 닿는가 */
-.vibe-reach {
-  flex: none; margin-left: auto; font-family: var(--font-mono); font-size: var(--fs-xs);
-  letter-spacing: .06em; padding: 1px 7px; border: 1px solid currentColor; white-space: nowrap;
-}
-.vibe-bar.reach-ok    .vibe-reach { color: var(--crt-fg); }
-.vibe-bar.reach-half  .vibe-reach { color: #d8c47a; }
-.vibe-bar.reach-none  .vibe-reach { color: #e08a86; }
-.vibe-bar.reach-none  { border-left-color: #e08a86; opacity: .82; }
-.vibe-bar.reach-none  #vibe-text { text-decoration: underline dotted rgba(224,138,134,.7); text-underline-offset: 4px; }
-
-.hud-chip.warn { border-color: var(--warn); background: #efe9d5; color: #4d3d10; }
-
-/* 무전 모달 계기 요약 */
-.radio-stat { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: var(--s2); }
-.reach-chip {
-  display: inline-block; font-family: var(--font-mono); font-size: var(--fs-xs);
-  padding: 1px 6px; border: 1px solid var(--dlg-edge); white-space: nowrap;
-}
-.reach-chip.reach-ok   { border-color: var(--ok); background: #e5eade; color: #24401f; }
-.reach-chip.reach-half { border-color: var(--warn); background: #efe9d5; color: #4d3d10; }
-.reach-chip.reach-none { border-color: var(--stamp); background: #f0e0dd; color: #6b1519; }
 
 /* 페이즈 경계에도 판정 기록은 남는다 */
 .judge-sep {
@@ -1139,17 +873,6 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
   font-family: var(--font-mono); font-size: var(--fs-xs); letter-spacing: .08em;
   color: var(--ink-soft); border-top: 1px dashed var(--dlg-edge); border-bottom: 1px dashed var(--dlg-edge);
 }
-.debrief-flaw { margin-top: var(--s3); }
-.debrief-flaw h4 { margin: 0 0 var(--s2); }
-.debrief-flaw .flaw-box { border-left-color: var(--stamp); }
-
-/* 계기판 소제목의 부연은 제목 옆이 아니라 아래로. 옆에 두면 좌우로 찢어진다 */
-.hud-intel h4 { flex-wrap: wrap; align-items: baseline; }
-.hud-intel h4 .dim {
-  flex-basis: 100%; font-weight: 400; font-size: var(--fs-xs);
-  line-height: 1.4; margin-top: 2px;
-}
-
 
 /* 인쇄 (기밀문서를 출력하려는 요원을 위해) */
 @media print {
@@ -1163,14 +886,89 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
   font-family: var(--font-mono); font-size: var(--fs-xs); font-weight: 400;
   color: var(--ink-mid); border: 1px solid var(--dlg-edge); background: #fff;
 }
-/* 사후 합표에서 판을 끝낸 조건을 짚어준다 — 어느 합에 압박이 먹혔고 어디서 상대가 일어섰는지. */
-.turn-table .tt-lev { color: var(--stamp-deep); }
 
-/* 무전 모달의 장벽 줄 — 요원이 지시를 쓰는 바로 그 자리에서 보여야 쓴다. */
-.radio-barrier {
-  display: block; margin-top: 6px; padding: 4px var(--s1);
-  border-left: 3px solid var(--stamp); background: #f5e9e7; font-size: var(--fs-sm); line-height: 1.5;
+
+/* ══════════════════════════════════════════════════════════
+   프롬프트 하이어아키 색 규약
+   구조도의 범례를 그대로 쓴다. 화면 어디서든 같은 색은 같은 뜻이다.
+     static  테이블로부터의 Static 데이터
+     user    유저 인풋 (모두 캐시됨)
+     cached  캐시되는 LLM 생성 텍스트
+     once    일회성 LLM 생성 텍스트
+     code    코드용 분류
+   ══════════════════════════════════════════════════════════ */
+:root {
+  --tone-static: #4a6b2f;
+  --tone-user:   #1f3f6b;
+  --tone-cached: #6b4423;
+  --tone-once:   #9d540b;
+  --tone-code:   #16181a;
 }
-.radio-barrier b { color: var(--stamp-deep); }
-.radio-barrier.done { border-left-color: var(--ok); background: #e9eee4; }
-.radio-barrier.done b { color: #24401f; }
+
+/* 이 화면이 프롬프트의 어느 칸을 채우는지 그려주는 띠 */
+.flow-card { padding-bottom: var(--s2); }
+.flow-diagram { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.fl {
+  font-family: var(--font-mono); font-size: var(--fs-xs); line-height: 1.5;
+  padding: 2px var(--s2); border: 1px solid currentColor; white-space: nowrap;
+}
+.fl.static { color: var(--tone-static); background: #eaf0e3; }
+.fl.user   { color: var(--tone-user);   background: #e5ebf4; }
+.fl.cached { color: var(--tone-cached); background: #f1e9df; }
+.fl.once   { color: var(--tone-once);   background: #fdf4e9; }
+.fl.code   { color: var(--tone-code);   background: #e6e6e6; }
+.fl.plus, .fl.arrow { border: none; background: none; color: var(--ink-soft); font-weight: 600; padding: 0 2px; }
+
+/* A의 산출물 — 캐시되는 LLM 생성 텍스트 두 덩이 */
+.sheet-out {
+  margin: var(--s2) 0 0; padding: var(--s2) var(--s3);
+  background: #f6f1ea; border: 1px solid var(--dlg-edge); border-left: 4px solid var(--tone-cached);
+  font-size: var(--fs-sm); line-height: 1.7;
+}
+.sheet-tag {
+  display: block; font-family: var(--font-mono); font-size: var(--fs-xs);
+  color: var(--tone-cached); font-weight: 600; margin-bottom: 2px;
+}
+
+/* 스크리닝 — 여덟 항목을 두 단으로 */
+.screen-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 0 var(--s5); }
+.screen-col { min-width: 0; }
+
+/* 계기판 — 게이지 둘이 전부다 */
+.meter-fill.mood { background-color: #2f5230; }
+.meter-fill.mood.danger { background-color: var(--stamp); }
+.meter-note {
+  margin: 0 0 var(--s3); padding-left: 86px;
+  font-size: var(--fs-xs); color: var(--ink-mid); line-height: 1.5;
+}
+.hud-h { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s2); }
+.hud-h .dim { flex-basis: 100%; font-weight: 400; font-size: var(--fs-xs); margin-top: 2px; }
+
+/* 판정 원장 — 증감 여부뿐이다. 점수도 해설도 없다 */
+.verdict-log { margin: var(--s2) 0 0; padding: 0; list-style: none; display: grid; gap: 3px; }
+.verdict-row {
+  display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap;
+  background: #fff; border: 1px solid var(--dlg-edge); border-left: 3px solid var(--ink-soft);
+  padding: 3px var(--s2); font-size: var(--fs-xs);
+}
+.verdict-row.up { border-left-color: var(--stamp); }
+.verdict-row.down { border-left-color: var(--file); }
+.vr-when { font-family: var(--font-mono); color: var(--ink-mid); min-width: 6.5em; }
+.vr-mark {
+  font-family: var(--font-mono); font-weight: 600;
+  padding: 0 var(--s1); border: 1px solid var(--dlg-edge); background: var(--dlg-lit); color: var(--ink-mid);
+}
+.vr-mark.up { color: var(--stamp); border-color: var(--stamp); background: #f6e8e6; }
+.vr-mark.down { color: var(--file); border-color: var(--file); background: #e5ebf4; }
+
+/* 구간 원장 */
+.turn-table td.up { color: var(--stamp); font-weight: 600; }
+.turn-table td.down { color: var(--file); font-weight: 600; }
+.turn-table td.same { color: var(--ink-soft); }
+
+/* 요원 등록은 이제 한 칸이다 */
+.agent-form { grid-template-columns: minmax(0, 1fr); }
+
+/* 교육 슬라이드 추가 도형 */
+.slide-art .a-user { fill: #cfdcee; stroke: var(--tone-user); stroke-width: 2; }
+.slide-art .a-cachebox { fill: #eee2d4; stroke: var(--tone-cached); stroke-width: 2; }
