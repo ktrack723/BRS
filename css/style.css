@@ -1097,7 +1097,10 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 .cc-flaws { display: flex; flex-wrap: wrap; gap: 4px; margin: var(--s2) 0 0; }
 
 /* 요원은 아는데 의뢰인은 모르는 정보. 이 경계가 이 게임의 핵심이다 */
+/* display:block은 필수다 — 이 스타일은 padding·margin을 가진 '박스'인데 <span>으로도 쓰인다.
+   인라인이면 세로 padding이 줄 높이에 안 잡혀서 바로 윗줄(지뢰 목록)을 덮어버린다. */
 .handoff-warn {
+  display: block;
   margin: var(--s2) 0 0; padding: var(--s2);
   background: #f6efdc; border: 1px solid var(--warn); border-left-width: 4px;
   font-size: var(--fs-sm); line-height: 1.55; color: #4d3d10;

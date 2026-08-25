@@ -480,7 +480,7 @@ function dossierHtml(c, { full = false } = {}) {
     <p><b>내력:</b> ${c.target.history.slice(1).map(escapeHtml).join(' · ')}</p>
     <p><b>공개 성향:</b> ${dp.open.map(escapeHtml).join(' / ')}</p>
     <p class="redline-box"><b>지뢰 (닿으면 식는다):</b> ${dp.neg.map(escapeHtml).join(' / ')}
-      <br><span class="handoff-warn">이 목록은 <b>의뢰인에게 자동으로 전달되지 않는다.</b> 취조실에서 직접 불러주지 않으면 모르는 채로 나간다.</span></p>
+      <span class="handoff-warn">이 목록은 <b>의뢰인에게 자동으로 전달되지 않는다.</b> 취조실에서 직접 불러주지 않으면 모르는 채로 나간다.</span></p>
     <p class="unknown-prefs"><b>미공개 성향 ${dp.hiddenCount}건</b> — 내용 비공개. 대화가 거기까지 흘러가야만 나온다</p>
     <p class="unknown-prefs"><b>상대 특별 키워드:</b> 감정 미실시 — 상대는 우리 국민이 아니다. 뭘 못 읽고 뭘 의심하는지는 대화로만 드러난다</p>
     <hr>
