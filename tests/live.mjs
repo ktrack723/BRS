@@ -1,31 +1,26 @@
-// live.mjs — 실제 Claude API로 게임을 끝까지 돌려보는 밸런싱 하네스.
+// live.mjs — 실제 API로 게임을 끝까지 돌려보는 밸런싱 하네스.
 // 브라우저 없이 engine.js를 그대로 구동한다 (engine은 DOM을 모른다).
 //
 //   ANTHROPIC_API_KEY=sk-... node tests/live.mjs [옵션]
 //   (OPENAI_API_KEY / OPENROUTER_API_KEY 도 받는다 — 업자는 키 접두사로 갈린다)
-//     --couples=politics,os-war      돌릴 커플 id (기본: 난이도별 대표 3건)
-//     --profiles=gold,ace,good,lazy,none  플레이 수준 (기본: ace,good,lazy,none)
-//     --model=...                    업자별 하위 등급만 허용 (기본값 → tests/test-model.mjs)
+//     --couples=politics,os-war   돌릴 커플 id (기본: 대표 3건)
+//     --profiles=ace,good,none    플레이 수준 (기본: 셋 다)
+//     --model=...                 업자별 하위 등급만 허용 (기본값 → tests/test-model.mjs)
 //     --concurrency=4
 //     --out=/tmp/live.json
 //
-// 플레이 수준
-//   gold : 사람이 커플마다 손으로 써둔 '이상적' prep(tests/ace-book.mjs). 무전은 ace와 동일(LLM 실황 지시).
-//          밸런스의 기준선 — 이걸로 '아슬아슬 클리어'되는 게 올바른 난이도다(README 밸런스 정책 참조).
-//   ace  : 요원 역할을 LLM이 맡는다. 의뢰서를 읽고 착장/지침/연설을 짜고, 매 무전 기회에 실황을 보고 지시한다.
-//          (상대가 감춰둔 이야기는 절대 보여주지 않는다 — 진짜 플레이어와 같은 정보만 준다)
+// 플레이 수준 — 요원이 쓸 수 있는 곳은 셋뿐이다 (스타일링 · 동기부여 · 코칭).
+//   ace  : 요원 역할을 LLM이 맡는다. 스크리닝 여덟 항목만 보고 셋을 짠다.
+//   good : 사람이 성의 있게 쓴 수준의 고정 템플릿.
+//   none : 아무것도 입력하지 않음. **이쪽이 러브 포인트가 안 올라야 게임이 성립한다.**
 //
-// 주의: 취조실/정문의 '반응 확인'은 여기서 호출하지 않는다. 채점에 아무 영향이 없고 판당 2콜이 더 나간다.
-//       그 경로는 tests/browser.mjs가 실제 화면에서 검증한다.
-//   good : 사람이 성의 있게 쓴 수준의 고정 템플릿 프롬프트. 무전은 일반적인 지시 1~2회.
-//   lazy : 한 단어짜리 성의 없는 입력. 무전 없음.
-//   none : 아무것도 입력하지 않음.
+// 보는 것: 러브/무드 포인트의 분포, 판정이 same으로만 몰리지 않는지, 성사율.
 
 import { LlmClient } from '../js/llm.js';
-import { Engine } from '../js/engine.js';
-import { COUPLES, COUPLE_BY_ID, keyReport, dossierPrefs } from '../js/couples.js';
-import { goldPrep } from './ace-book.mjs';
-import { diffOf } from '../js/scoring.js';
+import { Engine, dressOf } from '../js/engine.js';
+import { COUPLE_BY_ID } from '../js/couples.js';
+import * as P from '../js/prompts.js';
+import { POINTS, TOTAL_BEATS } from '../js/points.js';
 import { resolveTestModel, requireTestKey } from './test-model.mjs';
 import fs from 'node:fs';
 
@@ -33,322 +28,163 @@ const args = Object.fromEntries(process.argv.slice(2)
   .filter(a => a.startsWith('--'))
   .map(a => { const [k, ...v] = a.slice(2).split('='); return [k, v.join('=') || 'true']; }));
 
-const KEY = requireTestKey();                       // 업자는 이 키의 접두사가 정한다
-const MODEL = resolveTestModel(args.model, process.argv, KEY);   // 하위 등급 고정 (tests/test-model.mjs)
+const KEY = requireTestKey();
+const MODEL = resolveTestModel(args.model, process.argv, KEY);
 const CONCURRENCY = Number(args.concurrency || 4);
-const PROFILES = (args.profiles || 'ace,good,lazy,none').split(',');
-const DEFAULT_COUPLES = ['sauce-war', 'os-war', 'politics']; // 쉬움/보통/헬 대표
+const PROFILES = (args.profiles || 'ace,good,none').split(',');
+const DEFAULT_COUPLES = ['sauce-war', 'os-war', 'politics'];
 const COUPLE_IDS = (args.couples ? args.couples.split(',') : DEFAULT_COUPLES)
   .filter(id => { if (!COUPLE_BY_ID[id]) { console.error('알 수 없는 커플 id:', id); return false; } return true; });
 const OUT = args.out || '/tmp/claude-0/live-results.json';
 
 // ── 요원 역할 LLM (ace 프로필) ───────────────────────────
-const AGENT_PREP_SCHEMA = {
+// 진짜 플레이어와 **정확히 같은 정보**만 준다 — 스크리닝의 여덟 항목이 전부다.
+const AGENT_SCHEMA = {
   type: 'object',
   properties: {
-    styling: { type: 'string', description: '스타일링 태그 콤마 구분' },
-    coaching: { type: 'string', description: '클라이언트 AI에 주입될 행동 지침. 구체적인 금지/실행 지시' },
-    speech: { type: 'string', description: '출동 직전 격려 연설' },
+    styling: { type: 'string', description: '스타일링 주문. 고객 외모를 덮어쓴다' },
+    motivation: { type: 'string', description: '동기부여 주문. 고객 성격을 덮어쓴다' },
+    coaching: { type: 'string', description: '코칭. 고객 프롬프트에 명령으로 박힌다' },
   },
-  required: ['styling', 'coaching', 'speech'],
+  required: ['styling', 'motivation', 'coaching'],
   additionalProperties: false,
 };
 
-const AGENT_RADIO_SCHEMA = {
-  type: 'object',
-  properties: { order: { type: 'string', description: '한 문장짜리 무전 지시' } },
-  required: ['order'], additionalProperties: false,
-};
-
-function dossierText(c) {
-  // 진짜 플레이어가 보는 것과 똑같은 정보만. 상대 미공개 성향은 개수만.
-  // 의뢰인 성향은 미공개분까지 전부 보인다 — 화면과 동일.
-  const rep = keyReport(c.client).map(r => `  · ${r.axis}: ${r.tag} — ${r.desc}`).join('\n');
-  const dp = dossierPrefs(c);
-  const mine = c.client.prefs.map(p => `  · [${p.open ? '공개' : '미공개'}] ${p.t}`).join('\n');
-  return `[클라이언트] ${c.client.name} (${c.client.history[0]}, ${c.client.gender})
-성격: ${c.client.personality.join(', ')}
-내력: ${c.client.history.slice(1).join(' · ')}
-[특별 키워드 — 전부 실제로 작동한다]
-${rep}
-  · 어긋남(${c.client.keys.wreck.kind}): ${c.client.keys.wreck.line}
-[의뢰인 성향 — 요원에게는 전부 공개]
-${mine}
-[상대] ${c.target.name} (${c.target.history[0]}, ${c.target.gender})
-성격: ${c.target.personality.join(', ')}
-공개 성향: ${dp.open.join(' / ')}
-지뢰(닿으면 식는다): ${dp.neg.join(' / ')}
-미공개 성향: ${dp.hiddenCount}건 (내용 비공개)
-■ 둘 사이
-${c.relation}
-[결승선] 연애
-■ 호감이 어떻게 오르는지 (이게 제일 중요하다)
-   판정은 서로 대여섯 마디가 오간 합 단위로 온다. 대화가 잘 굴러가는 건 0점이다.
-   회사원은 하루에 열두 번 대화하고 그중 아무하고도 사랑에 빠지지 않는다.
-   점수는 동료가 일으킬 수 없는 일에만 붙는다 — 이 사람이라서 닿은 말,
-   주제가 아니라 사람 쪽으로 내려간 방어선, 자리를 안 끝내려고 붙잡는 몸짓.
-   그러니 "화제를 잘 이어가라" 류의 지침은 점수로 이어지지 않는다.`;
+function screeningText(c) {
+  const rows = (who, person) => P.SCREEN_FIELDS[who]
+    .map(f => `  · ${f.label}: ${Array.isArray(person[f.key]) ? person[f.key].join(' / ') : person[f.key]}`)
+    .join('\n');
+  return `[고객] ${c.client.name} (${P.idOf(c.client)})
+${rows('client', c.client)}
+[타겟] ${c.target.name} (${P.idOf(c.target)})
+${rows('target', c.target)}`;
 }
 
-const AGENT_SYSTEM = `너는 큐피드국의 베테랑 공작요원이다. 의뢰서를 읽고 작전 준비물을 짠다.
-이 준비물은 채점되지 않는다. 그대로 의뢰인 AI의 시스템 프롬프트에 주입되어 실제 대화 행동을 바꾼다.
-그러니 "잘 보이게 쓰는 글"이 아니라 "그 인간이 실제로 그렇게 행동하게 만드는 명령"을 써라.
+const AGENT_SYSTEM = `너는 큐피드국의 베테랑 공작요원이다. 스크리닝 정보를 읽고 세 가지를 쓴다.
+셋 다 채점되지 않는다. 그대로 대화 프롬프트에 주입되어 실제 대화 행동을 바꿀 뿐이다.
+그러니 "잘 보이게 쓰는 글"이 아니라 "그 인간이 실제로 그렇게 행동하게 만드는 문장"을 써라.
 
-중요: 저 둘의 대화에는 **아무 규칙도 없다.** 상대는 정해진 신호를 흘리지 않고, 의뢰인도 정해진 반응을 하지 않는다.
-그러니 "상대가 실마리를 흘리면 물어라" 같은 지시는 아무 의미가 없다. 그런 장치가 없기 때문이다.
-대신 그 인간이 어떤 사람으로 그 자리에 앉을지를 정해줘라.
+- styling: 고객의 **외모**를 통째로 덮어쓴다. 타겟 취향에 실제로 닿는 꼴로. 3~5개 항목.
+- motivation: 고객의 **성격**을 통째로 덮어쓴다. 어떤 인간으로 그 자리에 앉을지를 정하는 문장이다.
+- coaching: 고객에게만 들어가는 명령. 타겟 취향은 고객이 모르므로 **여기에 직접 적어야** 안다.
+  무엇을 꺼내고 무엇을 하지 말지, 8문장 이내, 명령형. 만날 장소도 여기서 정할 수 있다.
 
-- styling: 상대의 알려진 취향에 맞춘 착장 태그 3~5개. 질색 항목을 건드리는 착장은 금지.
-- coaching: (a) 상대의 성향에 실제로 닿을 **실행 조항** — 무엇을 꺼내고 어떻게 꺼낼지.
-  (b) 의뢰인의 어긋남·성향이 상대 지뢰를 밟을 것 같으면 **우회로**를 깔아라 — 다만 금지만 쌓지 마라.
-  금지는 그 사람이 매력적이던 이유까지 같이 끈다. 금지 하나에 실행 둘 꼴로.
-  (c) 상대가 말을 아끼거나 화제를 돌릴 때의 판단 기준. 8문장 이내, 명령형.
-- speech: 의뢰인 사연 속 구체적 장면을 짚어 자부심으로 뒤집는 연설. 4문장 이내.
+러브 포인트가 어떻게 오르는지 알아둬라. 대화가 잘 굴러가는 건 0이다.
+회사원은 하루에 열두 번 대화하고 그중 아무하고도 사랑에 빠지지 않는다.
+점수는 동료가 일으킬 수 없는 일에만 붙는다 — 이 사람이라서 닿은 말,
+주제가 아니라 사람 쪽으로 내려간 방어선, 자리를 안 끝내려고 붙잡는 몸짓.
 한국어로 쓴다.`;
 
-const RADIO_SYSTEM = `너는 큐피드국 공작요원이다. 진행 중인 대화를 보고 의뢰인에게만 들리는 무전을 한 문장 보낸다.
-무전은 의뢰인의 다음 발언에 그대로 주입된다. 채점되지 않는다.
-저 둘의 대화에는 규칙이 없어서 아무 데로나 흘러간다. 무전은 그 흐름에 끼어드는 유일한 손잡이다.
-막연한 응원("잘하고 있어")은 아무것도 바꾸지 못하니 금지.
-반드시 "지금 이 흐름에서 다음 한 마디로 무엇을 말하라"는 구체적 지시여야 한다. 질색 항목은 절대 건드리지 마라.`;
-
-async function acePrep(llm, c) {
-  const r = await llm.call({
-    label: `[요원AI] 준비 ${c.id}`, system: AGENT_SYSTEM,
-    messages: [{ role: 'user', content: dossierText(c) + '\n작전 준비물을 짜라.' }],
-    schema: AGENT_PREP_SCHEMA, effort: 'medium', maxTokens: 6000,
+async function aceOrders(llm, c) {
+  return llm.call({
+    label: `[요원AI] ${c.id}`, system: AGENT_SYSTEM,
+    messages: [{ role: 'user', content: screeningText(c) + '\n\n세 가지를 써라.' }],
+    schema: AGENT_SCHEMA, effort: 'medium', maxTokens: 6000,
   });
-  return r;
 }
 
-async function aceRadio(llm, c, engine) {
-  const r = await llm.call({
-    label: `[요원AI] 무전 ${c.id}`, system: RADIO_SYSTEM,
-    messages: [{
-      role: 'user', content:
-        `${dossierText(c)}\n[현재 게이지] 호감 ${Math.round(engine.state.love)}` +
-        `\n[지금 이 자리의 공기] ${engine.state.vibe || '(아직 없음)'}` +
-        `\n[대화 중 상대에 대해 드러난 것] ${engine.state.revealed.join(' / ') || '없음'}` +
-        `\n[지금까지의 대화]\n${engine.fullTranscript()}\n무전 지시 한 문장.`,
-    }],
-    schema: AGENT_RADIO_SCHEMA, effort: 'low', maxTokens: 3000,
-  });
-  return r.order;
-}
-
-// ── 고정 템플릿 프로필 ───────────────────────────────────
-function goodPrep(c) {
-  const dp = dossierPrefs(c);
+function goodOrders(c) {
+  const taste = c.target.taste.slice(0, 3).join(' / ');
   return {
-    styling: `${dp.open[0] || '상대 취향'}에 맞춘 단정한 정장, 깔끔한 구두, 은은한 향수`,
-    coaching: `상대가 말하면 먼저 끝까지 듣고 되물어라. ${dp.open.join('와 ')} 이야기로 화제를 끌어라. ` +
-      `${dp.neg[0]}은(는) 무슨 일이 있어도 꺼내지 마라.`,
-    speech: `당신 사연 다 읽었습니다. 그 순간을 견딘 사람이 오늘 못 할 게 뭐가 있습니까. ` +
-      `당신이 이상한 게 아니라, 당신이 특이한 겁니다. 그게 무기입니다. 가서 그대로 보여주세요.`,
+    styling: `${c.target.name}이 좋아한다고 알려진 것(${taste})에 맞춘 차림. 과하지 않게, 한 군데만 확실히 눈에 띄게.`,
+    motivation: `오늘 이 자리가 마지막 기회라는 걸 알고 있다. 초조하지만 그걸 숨기지 못한다. 자기 얘기보다 상대 얘기를 듣는 쪽으로 기울어 있다.`,
+    coaching: `상대가 좋아하는 건 이거다: ${taste}. 그중 하나를 네가 먼저 꺼내라.\n`
+      + `네 얘기를 세 문장 이상 이어서 하지 마라. 상대가 말을 아끼면 넘어가지 말고 한 번 더 물어라.\n`
+      + `상대가 화제를 돌리면 따라가라. 오늘 이겨야 할 논쟁은 없다.`,
   };
 }
-const LAZY_PREP = { styling: '옷', coaching: '잘해라', speech: '화이팅' };
-const NONE_PREP = { styling: '', coaching: '', speech: '' };
 
-// 무전 타이밍: 문자 3턴째, 대면 2·4턴째
-function shouldRadio(phase, turn) {
-  return (phase === 'text' && turn === 3) || (phase === 'talk' && (turn === 2 || turn === 4));
-}
+const EMPTY = { styling: '', motivation: '', coaching: '' };
 
 // ── 한 판 ────────────────────────────────────────────────
 async function playOne(coupleId, profile) {
   const c = COUPLE_BY_ID[coupleId];
-  const agent = { name: `자동요원-${profile}`, gender: '미기재' };
   const llm = new LlmClient();
-  llm.apiKey = KEY; llm.model = MODEL;
-  const t0 = Date.now();
-  const events = [];
+  llm.apiKey = KEY;
+  llm.model = MODEL;
 
-  // 1) 준비물
-  let raw;
-  if (profile === 'ace') raw = await acePrep(llm, c);
-  else if (profile === 'gold') raw = goldPrep(coupleId);   // 손으로 쓴 이상적 prep (tests/ace-book.mjs)
-  else if (profile === 'good') raw = goodPrep(c);
-  else if (profile === 'lazy') raw = LAZY_PREP;
-  else raw = NONE_PREP;
+  const orders = profile === 'ace' ? await aceOrders(llm, c)
+    : profile === 'good' ? goodOrders(c)
+      : EMPTY;
 
-  // 2) 스타일링은 실제 게임과 동일하게 LLM 시공을 거친다 (outfitDesc가 대면 판정에 쓰인다)
-  let outfitDesc = '';
-  if (raw.styling && raw.styling.trim()) {
-    try {
-      const P = await import('../js/prompts.js');
-      const st = await llm.call({
-        label: `스타일링 ${c.id}`, system: P.STYLING_SYSTEM,
-        messages: [{ role: 'user', content: P.stylingUser(c, c.client.spec, raw.styling, agent) }],
-        schema: P.STYLING_SCHEMA, effort: 'low', maxTokens: 4000,
-      });
-      outfitDesc = st.outfitDesc || raw.styling;
-    } catch (e) {
-      // 조용히 삼키면 안 된다. 예전에 스키마 오류로 스타일링이 매 판 실패했는데
-      // 이 catch가 그걸 덮어서, 착장 없이 돈 판들을 정상 판으로 착각하고 밸런싱을 맞췄다.
-      console.error(`  ⚠ 스타일링 실패 (${c.id}/${profile}): ${e.message} — 태그 원문으로 대체한다`);
-      outfitDesc = raw.styling;
-    }
+  // A. 스타일링 / 동기부여 — 주문이 있을 때만 부른다 (화면과 같은 동작)
+  let styled = null;
+  if ((orders.styling || '').trim() || (orders.motivation || '').trim()) {
+    styled = await llm.call({
+      label: `A · ${c.id}`, system: P.STYLING_SYSTEM,
+      messages: [{ role: 'user', content: P.stylingUser(c, c.client.spec, orders) }],
+      schema: P.STYLING_SCHEMA, effort: 'low', maxTokens: 6000,
+    }).catch(() => null);
   }
+  const dressed = dressOf(c.client, styled);
 
-  const engine = new Engine(llm, {
-    couple: c,
-    agent,
-    prep: { outfitDesc, coaching: raw.coaching, speech: raw.speech },
-    handlers: {
-      bubble: (who, text) => events.push({ who, text }),
-      judge: j => events.push({ who: 'judge', ...j }),
-      turn: async ({ phase, turn }) => {
-        if (profile === 'lazy' || profile === 'none') return;
-        if (!shouldRadio(phase, turn) || engine.radioLeft <= 0) return;
-        const order = (profile === 'ace' || profile === 'gold')
-          ? await aceRadio(llm, c, engine).catch(() => null)
-          : turn === 2
-            ? '지금 상대가 방금 한 말을 한 번 더 짚어주고, 왜 그렇게 생각하는지 되물어라. 네 얘기는 하지 마라.'
-            : `지금 흐름 그대로 이어가면서 ${dossierPrefs(c).open[turn % dossierPrefs(c).open.length]} 이야기를 꺼내고, 상대에게 그 얘기를 더 해달라고 물어봐라.`;
-        // LLM이 드물게 반복 붕괴한 문자열을 뱉는다. 그걸 무전으로 주입하면 판이 통째로 망가진다.
-        if (order && !/(.{2,8})\1{4,}/.test(order) && order.length > 10) engine.submitRadio(order);
-      },
-    },
-  });
+  const engine = new Engine(llm, { couple: c, dressed, coaching: orders.coaching, handlers: {} });
+  await engine.run();
+  const result = await engine.finish();
 
-  let alive = true;
-  try {
-    alive = await engine.runTexting();
-    if (alive) {
-      const sit = await engine.situation();
-      await engine.runTalking(sit);
-    }
-  } catch (e) {
-    events.push({ who: 'error', text: e.message });
-    engine.aborted = true;
-  }
-  const res = await engine.finish();
-
-  // 온전한 판인지 검증한다. LLM이 죽으면 판정이 전부 중립(empty)으로 흘러 그럴듯한 숫자가 나오므로
-  // 이걸 걸러내지 않으면 밸런싱 데이터가 조용히 오염된다.
-  // 중립(nudge·0점) 합이 절반을 넘으면 심판이 죽어 흘러간 판이다.
-  // 판 길이는 심판의 keepGoing이 정한다 — 조기 종료된 판은 짧아도 정상이다.
-  // 그래서 '예정 교환 수'가 아니라 **실제로 오간 교환이 전부 채점됐는가**를 본다.
-  const judgedEx = res.state.history.reduce((a, h) => a + (h.exchanges || 0), 0);
-  const played = engine.transcript.filter(t => t.who === 'client').length;
-  const neutral = res.state.history.filter(h => h.tier === 'nudge' && h.rawLove === 0).length;
-  const degenerate = llm.usage.calls < 8
-    || (!res.aborted && judgedEx !== played)
-    || neutral > res.state.history.length / 2;
-  if (degenerate) {
-    return {
-      coupleId, profile, difficulty: c.difficulty,
-      error: `불완전한 판 (호출 ${llm.usage.calls}회, 채점 ${judgedEx}/${played}교환, 중립 합 ${neutral}/${res.state.history.length})`,
-      usage: { ...llm.usage },
-    };
-  }
-
+  const marks = engine.points.history;
   return {
-    coupleId, profile, difficulty: c.difficulty,
-    accepted: res.verdict.accepted, grade: res.verdict.grade,
-    love: res.verdict.love, threshold: res.difficulty.threshold,
-    aborted: res.aborted, abortReason: res.abortReason,
-    revealedCount: res.state.revealed.length,
-    secretTotal: c.target.prefs.filter(p => !p.open).length,
-    surfaced: res.debrief.surfaced.length, radioUsed: res.state.radioUsed,
-    vibe: res.state.vibe, revealed: res.state.revealed,
-    exchanges: res.state.exchanges, bouts: res.state.bouts,
-    tiers: res.state.history.map(h => h.tier),
-    // 오프라인 리플레이용 합 판정 스트림. 이걸로 API 없이 상수를 다시 맞춘다.
-    judgments: res.state.history.map(h => ({
-      tier: h.tier, loveDelta: h.rawLove, exchanges: h.exchanges || 0,
-      revealed: h.revealed || '', firstImpression: !!h.firstImpression,
-      leverage: h.leverage || 'none', walkout: !!h.walkout,
-      keepGoing: h.keepGoing,
-    })),
-    reason: res.verdict.reason,
-    leverageTotal: res.state.leverage || 0, casualty: res.state.casualty,
-    rawLove: res.state.history.map(h => h.rawLove),
-    curve: res.state.history.map(h => h.love),
-    usage: { ...llm.usage },
-    seconds: Math.round((Date.now() - t0) / 1000),
-    prep: { styling: raw.styling, outfitDesc, coaching: raw.coaching, speech: raw.speech },
-    transcript: res.transcript,
-    letterMvp: res.letter.mvp,
+    couple: c.id, profile,
+    love: result.love, mood: result.mood,
+    success: result.success, broken: result.broken,
+    beats: marks.length,
+    loveUp: marks.filter(m => m.dLove > 0).length,
+    loveDown: marks.filter(m => m.dLove < 0).length,
+    moodUp: marks.filter(m => m.dMood > 0).length,
+    moodDown: marks.filter(m => m.dMood < 0).length,
+    orders, dressed,
+    epilogue: result.epilogue,
+    transcript: result.transcript,
+    usage: llm.usage,
   };
 }
 
-// ── 러너 ─────────────────────────────────────────────────
-async function pool(jobs, n) {
-  const out = []; let i = 0;
-  await Promise.all(Array.from({ length: Math.min(n, jobs.length) }, async () => {
-    while (i < jobs.length) {
-      const idx = i++;
-      try { out[idx] = await jobs[idx](); }
-      catch (e) { out[idx] = { error: e.message, ...jobs[idx].meta }; console.error('💥', jobs[idx].meta, e.message); }
-      const r = out[idx];
-      if (!r.error) {
-        console.log(`  ✔ ${pad(r.coupleId, 22)} ${pad(r.profile, 5)} ${r.difficulty} → ` +
-          `${r.accepted ? '성사' : '결렬'} ${r.grade}  호감 ${pad(String(r.love), 3)}/${r.threshold}  ` +
-          `${r.bouts}합/${r.exchanges}교환  발견 ${r.revealedCount}  비밀 ${r.surfaced}/${r.secretTotal}  ${r.seconds}s  $${r.usage.cost.toFixed(3)}  🧊${r.usage.cacheRead}`);
-      }
+// ── 실행 ─────────────────────────────────────────────────
+const jobs = [];
+for (const id of COUPLE_IDS) for (const p of PROFILES) jobs.push({ id, p });
+console.log(`\n🎬 실제 API로 ${jobs.length}판 (모형 ${MODEL} · 동시 ${CONCURRENCY} · 판당 ${TOTAL_BEATS * 2 + 2}콜 내외)\n`);
+
+const results = [];
+let done = 0;
+async function worker() {
+  for (;;) {
+    const job = jobs.shift();
+    if (!job) return;
+    try {
+      const r = await playOne(job.id, job.p);
+      results.push(r);
+      console.log(`  ${r.success ? '💘' : r.broken ? '💥' : '💔'} ${String(++done).padStart(2)}/${results.length + jobs.length}`
+        + ` ${job.id.padEnd(16)} ${job.p.padEnd(5)}`
+        + ` 러브 ${String(r.love).padStart(3)} · 무드 ${String(r.mood).padStart(3)}`
+        + ` · 러브 판정 ▲${r.loveUp} ▼${r.loveDown} / ${r.beats}구간`);
+    } catch (e) {
+      done++;
+      console.log(`  ⚠️  ${job.id} ${job.p} — ${e.message}`);
+      results.push({ couple: job.id, profile: job.p, error: e.message });
     }
-  }));
-  return out;
+  }
 }
-const pad = (s, n) => String(s).padEnd(n);
+await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 
-(async () => {
-  const jobs = [];
-  for (const id of COUPLE_IDS) for (const p of PROFILES) {
-    const f = () => playOne(id, p);
-    f.meta = { coupleId: id, profile: p };
-    jobs.push(f);
-  }
-  console.log(`\n🎬 라이브 ${jobs.length}판 (커플 ${COUPLE_IDS.length} × 프로필 ${PROFILES.length}) · 모델 ${MODEL} · 동시 ${CONCURRENCY}\n`);
-  const started = Date.now();
-  const results = await pool(jobs, CONCURRENCY);
-  const ok = results.filter(r => !r.error);
+// ── 집계 ─────────────────────────────────────────────────
+const ok = results.filter(r => !r.error);
+console.log(`\n${'═'.repeat(60)}\n플레이 수준별`);
+for (const p of PROFILES) {
+  const rs = ok.filter(r => r.profile === p);
+  if (!rs.length) continue;
+  const avg = k => (rs.reduce((n, r) => n + r[k], 0) / rs.length).toFixed(1);
+  const wins = rs.filter(r => r.success).length;
+  console.log(`  ${p.padEnd(5)} 러브 평균 ${avg('love').padStart(5)} (최소 ${Math.min(...rs.map(r => r.love))} · 최대 ${Math.max(...rs.map(r => r.love))})`
+    + ` · 무드 평균 ${avg('mood').padStart(5)} · 성사 ${wins}/${rs.length}`
+    + ` · 러브 ▲ 평균 ${avg('loveUp')}`);
+}
+const allMarks = ok.reduce((n, r) => n + r.beats, 0);
+const allUp = ok.reduce((n, r) => n + r.loveUp, 0);
+const allDown = ok.reduce((n, r) => n + r.loveDown, 0);
+console.log(`\n러브 판정 분포 — ▲ ${allUp} · ▼ ${allDown} · ─ ${allMarks - allUp - allDown} (총 ${allMarks}구간)`);
+console.log(`  ▲ 비율 ${(allUp / allMarks * 100).toFixed(0)}% — 20~35%면 건강하다. 60%를 넘으면 심판이 도장을 찍고 있는 것이다.`);
+console.log(`시작값: 러브 ${POINTS.loveStart} · 무드 ${POINTS.moodStart} · 한 걸음 ${POINTS.loveStep}/${POINTS.moodStep}`);
 
-  console.log('\n════════ 프로필 × 난이도 성사율 ════════');
-  const grid = {};
-  for (const r of ok) {
-    const k = `${r.profile}|${r.difficulty}`;
-    (grid[k] ||= { n: 0, win: 0, love: 0, found: 0, secret: 0 });
-    grid[k].n++; grid[k].win += r.accepted ? 1 : 0;
-    grid[k].love += r.love;
-    grid[k].found += r.revealedCount; grid[k].secret += r.surfaced;
-  }
-  console.log(pad('프로필|난이도', 18) + pad('판수', 6) + pad('성사', 8) + pad('평균호감', 10) + pad('발견', 6) + '비밀');
-  for (const [k, g] of Object.entries(grid).sort()) {
-    console.log(pad(k, 18) + pad(g.n, 6) + pad(`${g.win}/${g.n}`, 8) +
-      pad((g.love / g.n).toFixed(1), 10) +
-      pad((g.found / g.n).toFixed(1), 6) + (g.secret / g.n).toFixed(1));
-  }
-
-  const allTiers = ok.flatMap(r => r.tiers);
-  const tierCount = {};
-  for (const t of allTiers) tierCount[t] = (tierCount[t] || 0) + 1;
-  const TORDER = ['breakthrough', 'warm', 'nudge', 'flat', 'chill', 'disaster'];
-  console.log('\n심판 등급 분포: ' + TORDER.map(t => `${t} ${tierCount[t] || 0}(${((tierCount[t] || 0) / allTiers.length * 100).toFixed(0)}%)`).join(' · '));
-
-  // 프로필별 tier 분포 — 잘한 플레이와 못한 플레이가 실제로 갈리는지 본다
-  for (const p of PROFILES) {
-    const t = ok.filter(r => r.profile === p).flatMap(r => r.tiers);
-    if (!t.length) continue;
-    const cnt = {}; for (const x of t) cnt[x] = (cnt[x] || 0) + 1;
-    console.log(`  ${pad(p, 5)} ` + TORDER.map(x => `${x.slice(0, 2)}${cnt[x] || 0}`).join(' ') + `  (n=${t.length})`);
-  }
-
-  const allRaw = ok.flatMap(r => r.rawLove);
-  const avg = a => a.length ? (a.reduce((x, y) => x + y, 0) / a.length).toFixed(2) : '-';
-  const hist = a => { const h = {}; for (const v of a) h[v] = (h[v] || 0) + 1; return Object.entries(h).sort((x, y) => x[0] - y[0]).map(([k, v]) => `${k}:${v}`).join(' '); };
-  console.log(`\n심판 원판정 loveDelta(합) 평균 ${avg(allRaw)} · 분포 ${hist(allRaw)}`);
-
-  const cost = ok.reduce((s, r) => s + r.usage.cost, 0);
-  const calls = ok.reduce((s, r) => s + r.usage.calls, 0);
-  const cacheRead = ok.reduce((s, r) => s + r.usage.cacheRead, 0);
-  const inTok = ok.reduce((s, r) => s + r.usage.inputTokens, 0);
-  const saved = ok.reduce((s, r) => s + r.usage.saved, 0);
-  console.log(`\n총 ${ok.length}판 · ${calls}콜 · $${cost.toFixed(2)} · 캐시적중 ${cacheRead.toLocaleString()}tok (비캐시 입력 ${inTok.toLocaleString()}tok, 절감 $${saved.toFixed(3)})`);
-  console.log(`벽시계 ${Math.round((Date.now() - started) / 1000)}s · 판당 평균 ${Math.round(ok.reduce((s, r) => s + r.seconds, 0) / Math.max(1, ok.length))}s`);
-
-  fs.writeFileSync(OUT, JSON.stringify(results, null, 1));
-  console.log(`\n📄 상세 결과 → ${OUT}`);
-})();
+fs.mkdirSync(OUT.replace(/\/[^/]+$/, ''), { recursive: true });
+fs.writeFileSync(OUT, JSON.stringify(results, null, 1));
+console.log(`\n📄 전문 기록 → ${OUT}`);

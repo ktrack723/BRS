@@ -36,7 +36,6 @@ export const sfx = {
   send() { blip(660, 0.07, 'square', 0.1); blip(990, 0.09, 'square', 0.1, 0.07); },
   love() { [523, 659, 784, 1047].forEach((f, i) => blip(f, 0.09, 'square', 0.11, i * 0.07)); },
   bad() { blip(220, 0.25, 'sawtooth', 0.12, 0, -80); blip(110, 0.3, 'sawtooth', 0.1, 0.1, -30); },
-  radio() { blip(1400, 0.05, 'square', 0.09); blip(700, 0.05, 'square', 0.09, 0.06); blip(1400, 0.05, 'square', 0.09, 0.12); },
   fanfare() { [523, 523, 523, 659, 784, 1047].forEach((f, i) => blip(f, i === 5 ? 0.5 : 0.12, 'square', 0.13, i * 0.13)); },
   trombone() { [392, 370, 349, 330].forEach((f, i) => blip(f, 0.4, 'sawtooth', 0.12, i * 0.35, -15)); },
   stamp() { blip(140, 0.15, 'square', 0.16, 0, -60); },

@@ -46,8 +46,8 @@ const VIEWPORTS = [
   { name: '데스크톱',              w: 1500, h: 1000 },
 ].filter(v => !args.only || `${v.w}x${v.h}` === args.only);
 
-// 'dossier'는 화면이 아니라 로스터 위에 뜨는 모달이다. show()가 특수 처리한다.
-const SCREENS = ['boot', 'intro', 'briefing', 'roster', 'dossier', 'salon', 'interro', 'gate', 'chat', 'result'];
+// 'dossier'는 화면이 아니라 스크리닝 위에 뜨는 모달이다. show()가 특수 처리한다.
+const SCREENS = ['boot', 'intro', 'roster', 'dossier', 'styling', 'coaching', 'chat', 'result'];
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
 const server = http.createServer((rq, rs) => {
@@ -63,8 +63,10 @@ function mockLlm() {
   window.__game.llm.call = async ({ label }) => {
     await new Promise(r => setTimeout(r, 1));
     if (label === '본부 인증') return '이상무';
-    if (label === '스타일링 시공') {
+    if (label.startsWith('A ·')) {
       return {
+        look: '형광 주황으로 물들인 머리에 새빨간 턱시도, 카우보이 부츠, 선글라스. 오른손에 폭탄을 들었고 머리 위에 금색 고리가 천천히 돈다.',
+        personality: '지고는 못 사는 성질이 끝까지 올라와 있다. 벌금 800만원이 머릿속에서 떠나지 않아서, 말이 평소보다 반 박자 빠르다.',
         spec: {
           skin: '#e8d0c0', hair: '#ff8a2b', hairStyle: 'spiky', top: '#dd1122', bottom: '#2a3a4a',
           shoes: '#7a5a2a', heightScale: 1.02, widthScale: 0.9, accessory: 'sunglasses',
@@ -74,22 +76,6 @@ function mockLlm() {
             { shape: 'torus', color: '#ffdd55', size: 0.4, at: 'crown', motion: 'yaw', label: '후광' },
           ],
         },
-        outfitDesc: '형광 주황으로 물들인 머리에 새빨간 턱시도, 카우보이 부츠, 선글라스. 오른손에 폭탄을 들었다.',
-        comment: '시공 완료. 책임은 안 진다.',
-        clientReaction: '아니 정말 이러라고요? …뭐, 따르겠습니다만. 근데 이 폭탄은 진짜 터지는 건 아니죠?',
-        clientFace: 'cringe',
-      };
-    }
-    if (label === '취조실 반응') {
-      return {
-        reaction: '알겠습니다. 근데 그거 하면 제가 좀 이상해 보이지 않나요? …아니 하겠습니다. 하겠다고요.',
-        face: 'cringe', note: '피조사자 항의 1회. 수용함. 조명 아래 발한 관측됨.',
-      };
-    }
-    if (label === '정문 반응') {
-      return {
-        reaction: '…그 얘기를 어떻게 아셨어요. (문고리를 잡은 채로 한참 서 있다) 다녀오겠습니다.',
-        face: 'shy', note: '동공 흔들림 관측. 사기 상승으로 판단. 출동 승인.',
       };
     }
     return '기타';
@@ -102,85 +88,64 @@ function poseScreens() {
   const c = g.state.couple;
   const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
-  // 대화 화면
-  document.querySelector('#chat-phase-label').textContent = `작전 2단계 · 대면 공작 — 네오서울 무한스크롤 카페 「플러그 앤 플레이」`;
-  document.querySelector('#vibe-text').textContent = '상대가 처음으로 정면을 봤다. 규정 얘기는 아직 안 끝났다.';
+  // B · 대화 화면
+  document.querySelector('#chat-phase-label').textContent =
+    `B · 토킹 페이즈 — ${c.client.name} × ${c.target.name}`;
   const win = document.querySelector('#chat-window');
   win.innerHTML = '';
   const lines = [
-    ['sys', `[네오서울 무한스크롤 카페] 오후 7시 04분. 벽 한 면이 통째로 구형 프린터 4천 대를 박아넣은 전시장이고, 손님이 USB를 꽂을 때마다 천장 조명이 부드러운 감속 곡선으로 내려앉는다.`],
-    ['client', '현장에서 3초 만에 절 고른 분. 리누스 정입니다. 총기 분해 순서, 어떻게 되십니까.'],
+    ['sys', '── 여기서부터 토킹 페이즈 ──'],
+    ['client', '현장에서 3초 만에 절 고른 분. 총기 분해 순서, 어떻게 되십니까. 아니 이건 인사입니다.'],
     ['target', '…누구십니까. 번호 어디서 났습니까. 분해 순서는 규정상 안 알려드립니다.'],
-    ['radio', '지금 상대가 뭔가 말하려다 삼킨 것 같다. 그거 뭐였냐고 물고 늘어져라.'],
     ['client', '냄새가, 뭡니까. 삼키지 마십시오. 좋아하는 냄새, 싫은 냄새. 떠오르는 기억이 있으십니까.'],
+    ['target', 'ㅇㅇ'],
     ['target', '…저 냄새에 예민합니다. 특히 사람 머리 냄새. 현장에서 3초, 그거 사실 거리 재기 아니었습니다.'],
   ];
   for (const [who, text] of lines) {
+    if (who === 'sys') {
+      const sep = document.createElement('div');
+      sep.className = 'judge-sep'; sep.textContent = text; win.appendChild(sep); continue;
+    }
     const d = document.createElement('div');
     d.className = `bubble ${who}`;
-    const name = who === 'client' ? c.client.name : who === 'target' ? c.target.name : who === 'radio' ? '본부 무전' : '상황';
+    const name = who === 'client' ? c.client.name : c.target.name;
     d.innerHTML = `<span class="who">${esc(name)}</span><span class="say">${esc(text)}</span>`;
     win.appendChild(d);
   }
-  // 재생 대기 표시도 자리를 차지한다 — 켜 둔 상태로 레이아웃을 본다
   document.querySelector('#chat-advance').classList.add('on');
-  const feed = document.querySelector('#judge-feed');
-  feed.innerHTML = '';
-  for (const [cls, html] of [
-    ['big', '<b>호감 +13.6</b> 방어선이 실제로 내려갔다. 규정 뒤에 숨던 사람이 처음으로 자기 얘기를 했다<span class="tag tier breakthrough">방어선 붕괴</span><span class="tag hit">새로 드러남: 현장에서 3초 센 건 거리 재기가 아니었다</span><span class="tag first">2합</span><span class="tag calc">원판정 +9</span>'],
-    ['good', '<b>호감 +0</b> 맥락은 받았다. 상대도 싫지는 않은 눈치다<span class="tag tier nudge">조금 통함</span><span class="tag first">3합</span><span class="tag calc">원판정 +0</span>'],
-    ['bad', '<b>호감 -8.2</b> 정색했다. 이 자리에서 할 얘기가 아니었다<span class="tag tier disaster">정색</span><span class="tag first">4합</span><span class="tag calc">원판정 -8</span>'],
-  ]) {
-    const d = document.createElement('div'); d.className = `judge-line ${cls}`; d.innerHTML = html; feed.appendChild(d);
-  }
-  const openPrefs = c.target.prefs.filter(p => p.open && !p.neg).map(p => p.t);
-  const negPrefs = c.target.prefs.filter(p => p.open && p.neg).map(p => p.t);
-  const hiddenPrefs = c.target.prefs.filter(p => !p.open).map(p => p.t);
-  document.querySelector('#turn-badge').textContent = '대면 4/8턴';
-  document.querySelector('#meter-love-num').textContent = '51';
-  document.querySelector('#meter-love-fill').style.width = '51%';
-  document.querySelector('#meter-threshold').style.left = '64%';
-  document.querySelector('#hud-sat').textContent = '호감 포화 ×0.6';
-  document.querySelector('#hud-turns').textContent = '남은 교환 4/8';
-  document.querySelector('#hud-bout').textContent = '2합 판정 · 다음 합 3/5교환';
-  document.querySelector('#hud-diff').textContent = `난이도 ${c.difficulty} · 성공선 64`;
-  document.querySelector('#btn-intervene').textContent = '무전 개입 (잔여 2)';
-  document.querySelector('#intel-count').textContent = '대화 중 2건 · 미확인 1건 남음';
-  document.querySelector('#intel-list').innerHTML =
-    openPrefs.map(p => `<li class="known">${esc(p)} <span class="dim">(사전 통보)</span></li>`).join('')
-    + `<li class="found">현장에서 3초 센 건 거리 재기가 아니었다</li>`
-    + `<li class="found">사람 머리 냄새에 이상하게 예민하다</li>`;
-  document.querySelector('#redline-list').innerHTML = negPrefs.map(p => `<li class="mine">${esc(p)}</li>`).join('');
 
-  // 결과 화면
-  document.querySelector('#result-stamp').textContent = c.winWord;
+  document.querySelector('#turn-badge').textContent = '토킹 3/5구간';
+  document.querySelector('#meter-mood-num').textContent = '62';
+  document.querySelector('#meter-mood-fill').style.width = '62%';
+  document.querySelector('#meter-love-num').textContent = '44';
+  document.querySelector('#meter-love-fill').style.width = '44%';
+  const MARKS = [['텍스팅 1/4', 1, 0], ['텍스팅 2/4', 0, 1], ['텍스팅 3/4', -1, 0],
+    ['텍스팅 4/4', 0, 0], ['토킹 1/5', 1, 1], ['토킹 2/5', 0, 0], ['토킹 3/5', -1, 1]];
+  const M = { 1: '▲', '-1': '▼', 0: '─' }, K = { 1: 'up', '-1': 'down', 0: 'same' };
+  document.querySelector('#verdict-log').innerHTML = MARKS.map(([w, dm, dl]) =>
+    `<li class="verdict-row ${K[dl]}"><span class="vr-when">${w}</span>`
+    + `<span class="vr-mark mood ${K[dm]}">무드 ${M[dm]}</span>`
+    + `<span class="vr-mark love ${K[dl]}">러브 ${M[dl]}</span></li>`).reverse().join('');
+
+  // C · 후일담
+  document.querySelector('#result-stamp').textContent = '성사';
   document.querySelector('#result-stamp').className = 'result-stamp ok';
-  document.querySelector('#result-grade').textContent = '공작 등급: B';
-  document.querySelector('#result-score').textContent = '호감 62/52 · 난이도 보통 · 결승선 연애';
-  document.querySelector('#result-letter').textContent =
-    '요원님. 저 해냈습니다. 아니, 저희가 해냈습니다.\n그 사람이 제 부츠를 보고 웃었을 때 저는 이미 이겼다고 생각했습니다.\n'
-    + '17프레임을 세는 사람 앞에서 손이 떨렸던 걸 들켰지만, 그게 오히려 좋았다고 합니다.\n감사합니다. 정말로.';
-  document.querySelector('#result-mvp').textContent = '승패를 가른 순간 — 3턴째 무전이 판을 갈랐다';
-  document.querySelector('#result-epilogue').textContent = '— 에필로그: 둘은 듀얼 부팅 커플이 되었다.';
-  document.querySelector('#debrief-summary').textContent = '호감 62/52 — 성공선을 10점 넘겼다.';
-  document.querySelector('#debrief-list').innerHTML = [
-    ['상대에 대해 알아낸 것', '3건', '현장에서 3초 센 건 거리 재기가 아니었다 · 사람 머리 냄새에 예민하다 · 규정을 방패로 쓴다'],
-    ['상대가 감춰둔 이야기', '2 / 3건 화제에 오름', '일부는 나왔고 일부는 끝내 안 나왔다.'],
-    ['상대가 식은 턴', '1턴', '1턴에서 상대가 물러섰다. 판이 뒤집힌 순간은 1회.'],
-    ['무전 개입', '1 / 3회', '개입권이 남은 채로 끝났다.'],
-    ['발언 성적', '호재 8 / 악재 2턴', '최고의 한마디는 3턴(호감 +14.6), 최악은 6턴(-0.5).'],
-  ].map(([n, v, t]) => `<li class="ok"><b>${n}</b> <span class="dscore">${v}</span><br><span class="dim">${t}</span></li>`).join('');
-  document.querySelector('#debrief-prefs').innerHTML =
-    openPrefs.map(p => `<li class="known">${esc(p)} <span class="dim">(사전 통보)</span></li>`).join('')
-    + hiddenPrefs.slice(0, 2).map(p => `<li class="found">${esc(p)} <span class="dim">(대화에서 화제에 올랐다)</span></li>`).join('')
-    + hiddenPrefs.slice(2).map(p => `<li class="missed">${esc(p)} <span class="dim">(끝내 안 나왔다)</span></li>`).join('');
+  document.querySelector('#result-score').textContent = '러브 포인트 68 / 100 · 무드 포인트 62 / 100';
+  document.querySelector('#result-note').textContent = '성사 여부는 러브 포인트를 보고 기록관이 정했다.';
+  document.querySelector('#result-epilogue').textContent =
+    '둘은 그날 밤 야적장에서 새벽까지 녹슨 것들 얘기만 했다.\n'
+    + '3주 뒤 한쪽이 신고 41건을 전부 취하했고, 다른 쪽은 그 취하서를 액자에 넣어 전시했다.\n'
+    + '관람객들은 그게 작품인 줄 알았고, 아무도 정정해주지 않았다.\n'
+    + '큐피드국은 이 건을 성사로 처리하고 회계에 야적장 대여료 12만원을 올렸다.';
   document.querySelector('#debrief-turns').innerHTML =
-    '<div class="turn-table-wrap"><table class="turn-table"><tr><th>합</th><th>호감</th><th>누적</th><th>해설</th></tr>'
-    + Array.from({ length: 5 }, (_, i) =>
-      `<tr class="${i % 3 ? 'good' : ''}"><td>${i + 1}${i === 0 ? '·착장' : '·5교환'}${i === 1 ? '·발견' : ''}${i === 3 ? '<b class="tt-lev">·압박</b>' : ''}</td>`
-      + `<td>+13.6 <span class="dim">[breakthrough] +9</span></td><td>51</td>`
-      + `<td>방어선이 실제로 내려갔다. 규정 뒤에 숨던 사람이 처음으로 자기 얘기를 했다</td></tr>`).join('')
+    '<div class="turn-table-wrap"><table class="turn-table"><tr><th>구간</th><th>무드</th><th>러브</th></tr>'
+    + MARKS.map(([w, dm, dl], i) =>
+      `<tr class="${dl > 0 ? 'good' : dl < 0 ? 'bad' : ''}"><td>${w}</td>`
+      + `<td class="${K[dm]}">${M[dm]} ${50 + dm * 12}</td>`
+      + `<td class="${K[dl]}">${M[dl]} ${12 + i * 8}</td></tr>`).join('')
     + '</table></div>';
+  document.querySelector('#debrief-transcript').textContent =
+    lines.filter(l => l[0] !== 'sys').map(l => `${l[0] === 'client' ? c.client.name : c.target.name}: ${l[1]}`).join('\n');
   document.querySelector('#btn-retry').classList.remove('hidden');
   document.querySelector('#btn-restart').classList.remove('hidden');
 }
@@ -327,36 +292,28 @@ await page.evaluate(installContrast);
 
 // 게임을 대화/결과 화면 상태까지 끌어올린다 (실제 흐름으로 진입해야 내용이 진짜다)
 await page.fill('#agent-name', '박큐피드');
-await page.fill('#agent-gender', '기밀');
 await page.fill('#key-input', 'sk-ant-fake');
 await page.click('#btn-boot');
 await page.waitForSelector('#screen-intro:not(.hidden)', { timeout: 20000 });
 await page.click('#btn-intro-skip');
-await page.waitForSelector('#btn-to-roster:not(.hidden)', { timeout: 30000 });
-await page.click('#btn-to-roster');
+await page.waitForSelector('#screen-roster:not(.hidden)', { timeout: 30000 });
 await page.waitForSelector('.couple-card', { timeout: 15000 });
 await page.evaluate(() => {
   const t = window.__game.COUPLES.find(c => c.id === 'os-war');
   [...document.querySelectorAll('.couple-card')].find(el => el.textContent.includes(t.client.name))
     .querySelector('.cc-take').click();
 });
-// ① 미용실
-await page.waitForSelector('#screen-salon:not(.hidden)', { timeout: 15000 });
+// A · 스타일링 / 동기부여
+await page.waitForSelector('#screen-styling:not(.hidden)', { timeout: 15000 });
 await page.fill('#styling-input', '형광 주황색으로 염색, 새빨간 턱시도, 카우보이 부츠, 선글라스, 오른손에 폭탄');
+await page.fill('#motivation-input', '오늘 안 되면 벌금 800만원이라고 못박아라. 지고는 못 사는 성질을 끝까지 끌어올려라.');
 await page.click('#btn-styling');
-await page.waitForSelector('#styling-result .react-outfit', { timeout: 30000 });
-// ② 취조실
-await page.click('#btn-salon-next');
-await page.waitForSelector('#screen-interro:not(.hidden)', { timeout: 15000 });
-await page.fill('#coaching-input', '상대가 말을 아끼면 그냥 넘어가지 말고 한 번 더 물어라. "I use Arch btw"는 절대 입 밖에 내지 마라. 리눅스 설치 권유는 금지다.');
-await page.click('#btn-coaching');
-await page.waitForSelector('#coaching-result .react-line', { timeout: 30000 });
-// ③ 정문
-await page.click('#btn-interro-next');
-await page.waitForSelector('#screen-gate:not(.hidden)', { timeout: 15000 });
-await page.fill('#speech-input', '컨퍼런스에서 장내가 얼어붙었을 때 너 혼자 심장이 얼어붙었다며. 그 온도차를 아는 사람은 너뿐이야. 오늘은 그걸 말로 해.');
-await page.click('#btn-speech');
-await page.waitForSelector('#speech-result .react-line', { timeout: 30000 });
+await page.waitForSelector('#styling-result .sheet-out', { timeout: 30000 });
+// B · 코칭
+await page.click('#btn-styling-next');
+await page.waitForSelector('#screen-coaching:not(.hidden)', { timeout: 15000 });
+await page.fill('#coaching-input', '상대가 말을 아끼면 그냥 넘어가지 말고 한 번 더 물어라. "I use Arch btw"는 절대 입 밖에 내지 마라. 리눅스 설치 권유는 금지다. 만날 곳은 새벽 폐자재 야적장으로 잡아라.');
+await page.waitForTimeout(80);
 await page.evaluate(poseScreens);
 
 console.log(`\n📐 반응형 감사 — ${VIEWPORTS.length}개 뷰포트 × ${SCREENS.length}개 화면\n`);
@@ -371,7 +328,7 @@ const show = async (name) => {
       // 실제 경로 그대로 연다 — 마크업을 손으로 흉내 내면 회귀를 못 잡는다
       const t = window.__game.COUPLES.find(c => c.id === 'gender-war') || window.__game.COUPLES[0];
       [...document.querySelectorAll('.couple-card')]
-        .find(el => el.textContent.includes(t.client.name))?.querySelector('.cc-info')?.click();
+        .find(el => el.textContent.includes(t.client.name))?.querySelector('.cc-detail')?.click();
     } else if (dm) dm.classList.add('hidden');
     window.scrollTo(0, 0);
   }, name);
