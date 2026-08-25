@@ -74,11 +74,15 @@ test('빈 지시는 빈 채로 전달된다 — 조용히 채워 넣지 않는�
   assert.ok(!cl.system.includes('WHAT OPERATIVE'), '빈 연설이 블록으로 생겼다');
 });
 
-test('지침이 있으면 이행 강제와 삼킨 충동의 배출구가 같이 붙는다', async () => {
+test('지침이 있으면 이행 강제(거부 불가)가 붙는다 — 흐름 지시는 없다', async () => {
   const { llm } = await run();
   const cl = llm.find(c => c.label.includes('발언'))[0];
   assert.ok(cl.system.includes('cannot refuse'));
-  assert.ok(cl.system.includes('the wanting does not go with'), '금지당한 충동이 옆으로 새는 규칙이 빠졌다');
+  assert.ok(cl.system.includes('못 하겠습니다'));
+  // 프롬프트 최소주의: "삼킨 충동이 옆으로 샌다", "막히면 지침으로 돌아간다" 같은
+  // 흐름 연출 지시는 전부 폐지됐다. 되살아나면 여기서 잡는다.
+  assert.ok(!cl.system.includes('the wanting does not go with'), '폐지된 충동 배출 지시가 부활했다');
+  assert.ok(!cl.system.includes('not making up as you go'), '폐지된 지침 회귀 지시가 부활했다');
 });
 
 test('같은 지침도 인물의 이행 결(comply)에 따라 다르게 실린다', () => {
@@ -121,7 +125,8 @@ test('나레이터에게 문자 기록이 실제로 넘어간다', async () => {
   assert.ok(sit.messages[0].content.includes('대사(문자 발언 1)'), '문자 내용이 안 넘어갔다');
 });
 
-test('지침은 이 사람이 유일하게 즉흥이 아닌 부분이라고 적혀 있다', () => {
-  const sys = P.clientAgentSystem(couple, PREP, 'text', AGENT);
-  assert.ok(sys.includes('not making up as you go'));
+test('빈 지침은 한 줄짜리 데이터다 — "들이대라"류 연출 지시가 붙지 않는다', () => {
+  const sys = P.clientAgentSystem(couple, { ...PREP, coaching: '' }, 'text', AGENT);
+  assert.ok(sys.includes('None. Nobody told you anything.'));
+  assert.ok(!sys.includes('push harder'), '폐지된 빈-지침 연출 지시가 부활했다');
 });

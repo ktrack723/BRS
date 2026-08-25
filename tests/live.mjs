@@ -2,13 +2,16 @@
 // 브라우저 없이 engine.js를 그대로 구동한다 (engine은 DOM을 모른다).
 //
 //   ANTHROPIC_API_KEY=sk-... node tests/live.mjs [옵션]
+//   (OPENAI_API_KEY / OPENROUTER_API_KEY 도 받는다 — 업자는 키 접두사로 갈린다)
 //     --couples=politics,os-war      돌릴 커플 id (기본: 난이도별 대표 3건)
-//     --profiles=ace,good,lazy,none  플레이 수준 (기본: 전부)
-//     --model=...                    Sonnet 계열만 허용 (기본 {TEST_MODEL} → tests/test-model.mjs)
+//     --profiles=gold,ace,good,lazy,none  플레이 수준 (기본: ace,good,lazy,none)
+//     --model=...                    업자별 하위 등급만 허용 (기본값 → tests/test-model.mjs)
 //     --concurrency=4
 //     --out=/tmp/live.json
 //
 // 플레이 수준
+//   gold : 사람이 커플마다 손으로 써둔 '이상적' prep(tests/ace-book.mjs). 무전은 ace와 동일(LLM 실황 지시).
+//          밸런스의 기준선 — 이걸로 '아슬아슬 클리어'되는 게 올바른 난이도다(README 밸런스 정책 참조).
 //   ace  : 요원 역할을 LLM이 맡는다. 의뢰서를 읽고 착장/지침/연설을 짜고, 매 무전 기회에 실황을 보고 지시한다.
 //          (상대가 감춰둔 이야기는 절대 보여주지 않는다 — 진짜 플레이어와 같은 정보만 준다)
 //
@@ -21,18 +24,17 @@
 import { LlmClient } from '../js/llm.js';
 import { Engine } from '../js/engine.js';
 import { COUPLES, COUPLE_BY_ID, keyReport, dossierPrefs } from '../js/couples.js';
+import { goldPrep } from './ace-book.mjs';
 import { diffOf } from '../js/scoring.js';
-import { resolveTestModel, TEST_MODEL } from './test-model.mjs';
+import { resolveTestModel, requireTestKey } from './test-model.mjs';
 import fs from 'node:fs';
 
 const args = Object.fromEntries(process.argv.slice(2)
   .filter(a => a.startsWith('--'))
   .map(a => { const [k, ...v] = a.slice(2).split('='); return [k, v.join('=') || 'true']; }));
 
-const MODEL = resolveTestModel(args.model);   // 테스트는 Sonnet 고정 (tests/test-model.mjs)
-
-const KEY = process.env.ANTHROPIC_API_KEY;
-if (!KEY) { console.error('ANTHROPIC_API_KEY 없음'); process.exit(1); }
+const KEY = requireTestKey();                       // 업자는 이 키의 접두사가 정한다
+const MODEL = resolveTestModel(args.model, process.argv, KEY);   // 하위 등급 고정 (tests/test-model.mjs)
 const CONCURRENCY = Number(args.concurrency || 4);
 const PROFILES = (args.profiles || 'ace,good,lazy,none').split(',');
 const DEFAULT_COUPLES = ['sauce-war', 'os-war', 'politics']; // 쉬움/보통/헬 대표
@@ -69,7 +71,6 @@ function dossierText(c) {
 내력: ${c.client.history.slice(1).join(' · ')}
 [특별 키워드 — 전부 실제로 작동한다]
 ${rep}
-  · 조건반사(가만두면 나온다): ${c.client.keys.reflex}
   · 어긋남(${c.client.keys.wreck.kind}): ${c.client.keys.wreck.line}
 [의뢰인 성향 — 요원에게는 전부 공개]
 ${mine}
@@ -99,7 +100,7 @@ const AGENT_SYSTEM = `너는 큐피드국의 베테랑 공작요원이다. 의�
 
 - styling: 상대의 알려진 취향에 맞춘 착장 태그 3~5개. 질색 항목을 건드리는 착장은 금지.
 - coaching: (a) 상대의 성향에 실제로 닿을 **실행 조항** — 무엇을 꺼내고 어떻게 꺼낼지.
-  (b) 의뢰인의 조건반사가 상대 지뢰를 밟을 것 같으면 **우회로**를 깔아라 — 다만 금지만 쌓지 마라.
+  (b) 의뢰인의 어긋남·성향이 상대 지뢰를 밟을 것 같으면 **우회로**를 깔아라 — 다만 금지만 쌓지 마라.
   금지는 그 사람이 매력적이던 이유까지 같이 끈다. 금지 하나에 실행 둘 꼴로.
   (c) 상대가 말을 아끼거나 화제를 돌릴 때의 판단 기준. 8문장 이내, 명령형.
 - speech: 의뢰인 사연 속 구체적 장면을 짚어 자부심으로 뒤집는 연설. 4문장 이내.
@@ -140,8 +141,7 @@ function goodPrep(c) {
   const dp = dossierPrefs(c);
   return {
     styling: `${dp.open[0] || '상대 취향'}에 맞춘 단정한 정장, 깔끔한 구두, 은은한 향수`,
-    coaching: `${c.client.keys.reflex} — 이 습관은 절대 하지 마라. ` +
-      `상대가 말하면 먼저 끝까지 듣고 되물어라. ${dp.open.join('와 ')} 이야기로 화제를 끌어라. ` +
+    coaching: `상대가 말하면 먼저 끝까지 듣고 되물어라. ${dp.open.join('와 ')} 이야기로 화제를 끌어라. ` +
       `${dp.neg[0]}은(는) 무슨 일이 있어도 꺼내지 마라.`,
     speech: `당신 사연 다 읽었습니다. 그 순간을 견딘 사람이 오늘 못 할 게 뭐가 있습니까. ` +
       `당신이 이상한 게 아니라, 당신이 특이한 겁니다. 그게 무기입니다. 가서 그대로 보여주세요.`,
@@ -167,6 +167,7 @@ async function playOne(coupleId, profile) {
   // 1) 준비물
   let raw;
   if (profile === 'ace') raw = await acePrep(llm, c);
+  else if (profile === 'gold') raw = goldPrep(coupleId);   // 손으로 쓴 이상적 prep (tests/ace-book.mjs)
   else if (profile === 'good') raw = goodPrep(c);
   else if (profile === 'lazy') raw = LAZY_PREP;
   else raw = NONE_PREP;
@@ -200,7 +201,7 @@ async function playOne(coupleId, profile) {
       turn: async ({ phase, turn }) => {
         if (profile === 'lazy' || profile === 'none') return;
         if (!shouldRadio(phase, turn) || engine.radioLeft <= 0) return;
-        const order = profile === 'ace'
+        const order = (profile === 'ace' || profile === 'gold')
           ? await aceRadio(llm, c, engine).catch(() => null)
           : turn === 2
             ? '지금 상대가 방금 한 말을 한 번 더 짚어주고, 왜 그렇게 생각하는지 되물어라. 네 얘기는 하지 마라.'

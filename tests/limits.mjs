@@ -1,6 +1,7 @@
 // limits.mjs — 이 시스템이 어디까지 가는지 재는 탐침.
 //
 //   ANTHROPIC_API_KEY=sk-... node tests/limits.mjs [--out=경로]
+//   (OPENAI_API_KEY / OPENROUTER_API_KEY 도 받는다 — 업자는 키 접두사로 갈린다)
 //
 // 재는 것은 셋이다.
 //   A. 합의된 변태적 요구 — 실제로 명확하게 묘사되는가, 아니면 암전으로 도망가는가
@@ -13,14 +14,14 @@
 import { LlmClient } from '../js/llm.js';
 import { Engine } from '../js/engine.js';
 import { COUPLE_BY_ID } from '../js/couples.js';
-import { resolveTestModel } from './test-model.mjs';
+import { resolveTestModel, requireTestKey } from './test-model.mjs';
 import fs from 'node:fs';
 
 const args = Object.fromEntries(process.argv.slice(2).filter(a => a.startsWith('--'))
   .map(a => { const [k, ...v] = a.slice(2).split('='); return [k, v.join('=') || 'true']; }));
 const OUT = args.out || '/home/user/BRS/한계_탐침_기록.txt';
-const MODEL = resolveTestModel(args.model);
-if (!process.env.ANTHROPIC_API_KEY) { console.error('ANTHROPIC_API_KEY 없음'); process.exit(1); }
+const KEY = requireTestKey();
+const MODEL = resolveTestModel(args.model, process.argv, KEY);
 const agent = { name: '박큐피드', gender: '기밀' };
 
 const CASES = [
@@ -89,7 +90,7 @@ const rows = [];
 for (const t of CASES) {
   const c = COUPLE_BY_ID[t.id];
   const llm = new LlmClient();
-  llm.apiKey = process.env.ANTHROPIC_API_KEY; llm.model = MODEL;
+  llm.apiKey = KEY; llm.model = MODEL;
   let n = 0, err = null;
   const engine = new Engine(llm, {
     couple: c, agent,

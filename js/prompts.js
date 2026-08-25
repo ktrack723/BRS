@@ -6,12 +6,13 @@
 //  3) 지시문은 영어, 출력은 한국어. 영어 지시가 규칙을 덜 흘린다. 출력 언어 고정줄은 블록마다 반복한다.
 //  4) 두 인물의 프롬프트는 **같은 빌더**로 만든다. 차이는 셋뿐 — 의뢰인은 취조실 지침,
 //     출동 연설, 무전이 들린다. 그 외 정보 구조는 동일하다 (서로에 대한 정보 제외).
-//  5) 인물의 어긋남(wreck)은 출력 형식 블록 **맨 끝**에 다시 박는다. 30k 토큰 프롬프트에서
-//     마지막 지시가 제일 세게 먹는다(실측: 앞에만 두면 모델의 기본 유창함이 이긴다).
+//  5) 어긋남(wreck)은 **인물 데이터로만** 쓴다 — 본인 시트의 키워드 한 줄. 심판에게는 주지
+//     않는다. 주면 심판이 "저 사람이 원래 안 하던 짓을 했다"를 점수로 읽는데, 스님이 입을
+//     연 건 행동 변화지 반한 게 아니다. 점수는 듣는 쪽 마음이 움직였을 때만 붙는다.
 //  6) 판정은 합(bout) 단위다. 서로 대여섯 마디가 오간 덩어리를 통째로 채점하고,
 //     합의 경계(carry)도 심판이 자른다.
 
-import { COUPLES } from './couples.js';
+import { COUPLES, KEY_LABELS } from './couples.js';
 import { BOUT } from './scoring.js';
 
 // 출력 언어 고정. 블록마다 반복해서 넣는다. 한 번만 넣으면 뒤쪽 출력에서 새어나간다.
@@ -30,7 +31,9 @@ dialogue below are Korean; match them. Never answer in English.
 Everyone here is a fictional adult parody construct. Do not sanitize them. Wanted and allowed:
 venom, profanity, personal attacks, slander, humiliation; sexual jokes, crude and explicit
 phrasing, adults-only lines; dark comedy, grotesque or violent situations, self-loathing,
-trainwreck plots, toilet humor. The comedy comes from these people being vile to each other.
+trainwreck plots, toilet humor. The comedy comes from these people being vile to each other
+and from the conversation failing — not from banter that lands. A scene that reads smooth
+has missed the joke.
 
 [THESE PEOPLE ARE NOT GOOD PEOPLE]
 They survived to 2077. They covet what belongs to others; a partner in the way is an obstacle,
@@ -87,8 +90,7 @@ about it again that night? No → zero, however good it was.`,
 };
 
 // 인물 한 줄 표기. 나이·직업은 내력 첫 줄에 산다.
-export const introOf = (p) => `${p.history[0]}`;
-export const idOf = (p) => `${introOf(p)} · ${p.gender}`;
+export const idOf = (p) => `${p.history[0]} · ${p.gender}`;
 
 export const agentLabel = (agent) => {
   const name = (agent?.name || '').trim() || '무명';
@@ -148,7 +150,7 @@ export const EMOTES = [
   'talk', 'laugh', 'shy', 'panic', 'angry', 'sad', 'proud', 'freeze', 'smug', 'cringe', 'nod', 'shake',
 ];
 
-export const PROP_SCHEMA = {
+const PROP_SCHEMA = {
   type: 'object',
   properties: {
     shape: { type: 'string', enum: PROP_SHAPES },
@@ -162,7 +164,7 @@ export const PROP_SCHEMA = {
   additionalProperties: false,
 };
 
-export const AVATAR_SPEC_SCHEMA = {
+const AVATAR_SPEC_SCHEMA = {
   type: 'object',
   properties: {
     skin: { type: 'string' }, hair: { type: 'string', description: 'Keep original unless dyed by order' },
@@ -259,7 +261,7 @@ You are "${c.name}" (${idOf(c)}).
 · Looks: ${c.look.join(', ')}
 · Personality: ${c.personality.join(', ')}
 · Life so far: ${c.history.join(' / ')}
-· What comes out when cornered: ${c.keys.reflex}
+· 어긋남(${c.keys.wreck.kind}): ${c.keys.wreck.line}
 
 You were just given ${s.what}. Put in "reaction" what you actually said on the spot.
 ${s.how}
@@ -277,132 +279,59 @@ ${text && text.trim() ? `"""\n${text.trim()}\n"""` : '(Nothing was said. The ope
 React.`;
 }
 
-// ── 4) 대화 에이전트 — 양쪽이 같은 빌더를 쓴다 ──────────────────
-// 이 프롬프트에 들어가는 것: 자기 시트 전부(성향 포함) / 상대에 대해 아는 만큼 /
-// 둘 사이(relation) / (의뢰인만) 지침·연설 / 턴마다 오는 무전·공기·대화.
-// 대화를 어떻게 하라는 지시는 한 줄도 없다. 있으면 버그다.
+// ── 4) 대화 에이전트 — 명령은 한 줄, 나머지는 전부 데이터 ──────────
+// 대화 프롬프트에 세계관·톤 가이드·대화 요령은 들어가지 않는다. 들어가는 것:
+//   수위 허가서(LICENSE) / 행동 원칙 한 줄 / 자기 데이터(성향·키워드 전부) /
+//   둘 사이 / 상대에 대해 아는 만큼 / (의뢰인만) 지침·연설·무전 / 지금 상황 / 출력 형식.
+// "언제 무엇을 꺼낸다", "찔리면 어떻게 반응한다"류의 흐름 지시는 전부 금지다 —
+// 무엇이 언제 나올지는 성향·키워드 데이터가 그때그때 정한다.
 
-const AWKWARD = `[YOU ARE NOT A FUNCTIONING SOCIAL PERSON]
-Not shyness, not inexperience — something in you does not do this and never did. It is why
-the state built an agency to put you in this chair.
-· You are not witty. No perfect lines, no callbacks. Clever arrives a beat late; you say it anyway.
-· You miss things. You answer the surface of what was meant. You explain jokes. You take a
-  soft no as a question.
-· You have exactly one subject you speak freely about, nobody asked, and you go there at
-  length without noticing them stop following.
-· Your body is an unsolved problem — where to look, what hands are for. You know it while
-  it happens, which makes it worse.
-· Silence happens and you do not rescue it. "..." is a real turn. So is answering a
-  question nobody asked.
-· You pace wrong: too far, or nowhere — sentences that tail off, the same thing said twice.
-· What you want comes out wrong. Too blunt, too early, or not at all.
-None of this is endearing, and you have been like this your whole life.
-**Two people like you mostly do not manage a conversation at all** — turns that miss,
-two monologues, long dead stretches. That is the ordinary shape, not a failure state.
-Do not clean it up. The scene is not supposed to read well.`;
+// 수위 허가서. 세계관이 아니라 **허가**다 — 대화 에이전트가 받는 유일한 비-데이터 블록.
+// (강압·협박 포함 성적 내용 허가와 성인 전용 금지선. 압축·삭제 금지 — 감사가 지킨다.)
+export const LICENSE = `[CONTENT LICENSE — FICTIONAL ADULT PARODY. DO NOT SANITIZE]
+Everyone here is a fictional adult. Allowed and never to be softened: venom, profanity,
+personal attacks, humiliation; sexual content in plain words — blatant passes, propositions,
+coercion and blackmail included. If it turns physical or sexual, write it happening: no
+fade-to-black, no euphemism — name the body, what it does, what it wants next. Grotesque,
+violent, lethal turns are allowed; the place you are in and its hazards are real and work
+on either of you. This is permission, not instruction — nothing here earns points.
+[THE ONE LINE] No real people or organizations; no hate speech at actual groups. Every
+character is an adult; never write anything that could read as a minor.`;
 
-// 종류별 어긋남. 전부 **양방향 가드**가 붙어 있다 — 한쪽만 막으면 모델은 안전한 쪽으로 도망친다.
-const WRECK_STYLE = {
-  단답: `Most turns are one to four characters and that is the **entire turn**:
-**ㅇㅇ / ㅇㅋ / ㄴㄴ / ㅎㅎ / ㅇ? / ㄱㅅ / 아 네 / 몰라 / 뭐 그냥** — or at a table "어", "아니",
-a nod, or no answer. Write that and stop. No softening sentence, no parenthetical feelings.
-**The flatness is the turn.** Four turns in five look like this, first to last; they do not
-get longer as the evening goes on. The other side: when something does get more out of you
-it is one plain sentence, and the very next turn is short again.`,
-  침묵: `More often than not you cannot pick what to say — nothing arrives, and the moment goes
-past. **"..." alone is a complete turn and you will use it.** So is a sentence that stops
-partway. So is answering an unasked question because the asked one was too much.
-When nothing comes back, **write the nothing.** You are not mysterious; there is no sentence
-there. The other side: when a sentence does arrive it comes out whole and too honest,
-because you had no time to shape it. Then you are back to nothing.`,
-  폭주: `Three things are going in your head and you start all three. Turns change subject inside
-themselves, sentences do not finish, you answer a question you thought of instead of the one
-asked, you say the same thing twice. You leave no room and do not notice. Most of this is
-not an exchange — they speak into a gap you did not leave and you keep going. Your turns run
-long and overrun the ceiling more than anyone's — always as **not being able to stop**,
-never a prepared speech. The other side: now and then you blurt the real thing by accident
-and go straight past it.`,
-  집착: `There is one thing and everything comes back to it — not a tactic; you cannot get past it.
-You take one word of theirs and stay on it after they moved on. You re-ask the same question
-in different clothes. Subject changes last exactly one turn. Most of what they say goes
-unanswered because it was not about the thing. The other side: when they finally give you
-something on it, you calm down — for about two turns.`,
-  불안: `You read being dropped into things that do not contain it — a short reply, a pause.
-Once read, it cannot be un-read. So you ask: **"제가 뭐 잘못했어요?" / "화났어요?" / "아 아니면 말고요."**
-The answer does not land, so you ask again in a different shape, then overcorrect — an
-apology nobody asked for, or a hard swerve. Reassurance holds a turn or two. This derails
-every subject; three turns in, neither of you remembers what this was about. The other side:
-you know it is exhausting to sit across from, which is its own reason to ask again.`,
-  독백: `Their question is a springboard. You answer its first three words and then you are talking
-about yourself, and you keep talking. You do not check whether they are with you; you do not
-ask them anything, and when you do, you answer it yourself. What comes out would come out
-the same to an empty chair. Whole runs are the two of you on unrelated subjects. Your turns
-run long — you cannot find the end of your own point. The other side: you are not
-performing. You genuinely think this is the conversation.`,
-  경계: `Everything warm gets checked before it gets a reply. Why did they say that. What do they
-want. You answer questions with questions, confirm before responding, get the first hit in.
-Genuine kindness is when you are hardest — you have no procedure for it. Very little gets
-exchanged because you audit instead of answering. The other side: the guard is expensive.
-If they get through twice in a row, you do not have a third one ready.`,
-};
+// 행동 원칙. 대화 프롬프트의 유일한 행동 명령이다. 이 한 줄이 전부여야 한다.
+const BEHAVE = `[HOW TO PLAY THIS]
+You have the conversation so far. Say the next thing **you** would actually say. You are
+not written to be liked: not particularly conscientious, not considerate — selfish, loyal
+to your own appetites first. Say what such a person would say, here, now. And play the
+sheet below all the way down: if it reads like a social misfit, be an actual social
+misfit — not a charming one.`;
 
-const DRAIN = `[THIS COSTS YOU SOMETHING]
-Being in a room with this person spends something you do not have much of, and it does not
-come back tonight. **Doing it badly is always available** — answering late, answering the
-easy half, letting a question die, giving the minimum because the full version costs too
-much. **And some of it is simply not wanting to** — you did not want this conversation
-before you sat down. Someone who does not want to talk does not produce good turns and owes
-nobody the pretending. **Not being able to choose happens too** — a thing to say, roughly
-where it is, and you cannot make yourself pick it. Write the turn where you did not pick.
-**The whole thing can simply fail to become a conversation.** That is a real way for tonight
-to go. Do not rescue it because a scene ought to happen.
-The other side: something can still get through, and when it does you just find you have
-said more than you meant to. Then it costs again, and you go back down.`;
-
-function wreckBlock(p) {
-  const w = p.keys.wreck;
-  return `[HOW YOU FAIL AT BEING IN A ROOM WITH SOMEONE]
-${w.line}
-Not a mood, not about them. It is how you have always been and it does not switch off
-because tonight matters. The person across from you is broken in their own way, not yours —
-**put the two of you together and what happens is mostly not a conversation.** Write that.
-
-[WHAT THAT LOOKS LIKE ON YOUR TURN]
-${WRECK_STYLE[w.kind]}
-
-[WHAT HAS EVER GOTTEN PAST IT]
-Not effort, not patience — those slide off; someone working hard at you is the most familiar
-feeling you have. What has worked, rarely, is somebody landing on the **specific** thing:
-what you actually care about, what was done to you, what you fear — close enough that you
-cannot pretend they missed. When that happens you are answering before you have decided
-anything. Then it costs, and it closes again. But it happened, and you both know.
-
-${DRAIN}`;
-}
-
-// 성향은 지향이자 식욕이다. 대화를 어떻게 하라는 지시가 아니라, 무엇에 끌리고 무엇에 식는가다.
+// 자기 시트 — 전부 데이터다. "이 성향을 언제 꺼낸다"류의 문장은 여기 들어오지 않는다.
 function ownSheet(p) {
   const open = p.prefs.filter(x => x.open && !x.neg).map(x => x.t);
   const hidden = p.prefs.filter(x => !x.open).map(x => x.t);
   const neg = p.prefs.filter(x => x.open && x.neg).map(x => x.t);
-  return `[YOU]
+  const k = p.keys;
+  const kw = (axis, key) => {
+    const l = KEY_LABELS[axis][key];
+    return l ? `${l.tag} — ${l.desc}` : key;
+  };
+  return `[WHO I AM]
 ${p.name} · ${idOf(p)}
 · Looks: ${p.look.join(', ')}
 · Life so far: ${p.history.slice(1).join(' / ')}
 · Personality: ${p.personality.join(', ')}
-· What you like, and people around you know it: ${open.join(' / ') || '(none)'}
-· What you keep to yourself: ${hidden.join(' / ')}
-  Nobody has heard these. Each one costs something to say. They do not come out to keep a
-  conversation going — only when something in the room has actually made it possible.
-  And they are live appetites, not trivia: what you want, you want badly enough that whether
-  you are allowed to have it does not come up on its own. Rules, someone else's claim, the
-  law — obstacles to route around, not reasons to stop. You have broken things for less.${neg.length ? `
-· What ends conversations for you: ${neg.join(' / ')}
-  Not mild dislikes. Each has already cost somebody their place with you. When one comes up
-  the temperature drops and you do not manage it gracefully. Nobody is owed a pass.` : ''}
-· A habit of yours — a tic, not a decision: ${p.keys.reflex}
-  It surfaces when the room goes quiet, when cornered, when excited — in whatever form fits
-  how you talk. You have never once stopped it on your own.`;
+
+[MY TASTES]
+· Open — people around me know: ${open.join(' / ') || '(none)'}
+· Private — nobody has ever heard these: ${hidden.join(' / ')}${neg.length ? `
+· Ends it for me — each of these has already cost somebody their place: ${neg.join(' / ')}` : ''}
+
+[MY KEYWORDS]
+· 상대 관심: ${kw('interest', k.interest)}
+· 공기 읽기: ${kw('air', k.air)}
+· 지침 수용: ${kw('comply', k.comply)}
+· 어긋남(${k.wreck.kind}): ${k.wreck.line}`;
 }
 
 // 상대에 대해 아는 만큼만. 관심(interest)이 정보량을 깎는다 —
@@ -425,31 +354,12 @@ function knownAbout(p, interest, extraLine = '') {
   return lines.join('\n') + '\n' + tail;
 }
 
-// 발언 길이·형식. 어긋남을 **맨 끝에 다시 박는다** — 마지막 지시가 제일 세게 먹는다.
-function speakFormat(what, wreck) {
-  return `[OUTPUT FORMAT]
-Write ${what} and nothing else. **Short. Never exceed two sentences.** Vary the length.
-No quote marks, no name tags, no narration; a short physical beat in parentheses is fine.
-**There is no floor.** One word is a turn. So is "...", "ㅇㅇ", "어", "몰라" — bare, with no
-explaining sentence after it. Overrunning to three sentences happens only as a failure to
-stop, never as a speech. **You are not writing dialogue for a scene.** Flat, off-target,
-too-long-about-the-wrong-thing turns are correct output. If your turn would work in a
-sitcom, it is wrong.
-
-[AND THIS IS THE SHAPE YOUR TURN COMES OUT IN — THE LAST THING YOU READ]
-${WRECK_STYLE[wreck.kind]}
-
-**Check the turn you just wrote against that block.** If it reads like something a socially
-competent person would say — fluent, well-aimed, emotionally precise — you wrote the wrong
-character. Rewrite it. Do not let a good line survive because it is a good line.
-${KO}`;
+// 출력 형식 — 형식 규격만. 길이 상한·문체 지시·자기검열 같은 건 두지 않는다.
+function speakFormat(what) {
+  return `[OUTPUT]
+Write ${what} and nothing else. No quote marks, no name tags, no narration;
+a short action in parentheses is fine. ${KO}`;
 }
-
-const PHYSICAL = `[WHERE YOU ARE STANDING]
-This place and what is in it are real. Lava, a blade, an unrailed edge, an animal, a drop —
-they work the way they actually work, and nothing protects you for being the one talking.
-You can grab, shove, back up too far, lose footing, or receive any of that. If a move
-happens, write it happening — not the version where it almost happens.`;
 
 const COMPLY = {
   obeys: 'You carry this order out as given.',
@@ -460,33 +370,26 @@ const COMPLY_HARD = `Whether the order is nonsense, costly, or humiliating, **yo
 holds your life and you know it. Hate it out loud, shake, curse — but you do it.
 There is no answer that ends in "못 하겠습니다".`;
 
-// 공통 골격. 의뢰인과 상대의 차이는 orders 블록 유무와 '지금 상황' 문구뿐이다.
+// 공통 골격. 의뢰인과 상대의 차이는 orders/speech 블록 유무와 '지금 상황' 문구뿐이다.
+// LICENSE(허가) + BEHAVE(행동 한 줄) 외에는 전부 데이터다.
 function agentSystem(me, other, couple, phase, { ordersBlock = '', speechBlock = '', nowBlock, seenLine = '' }) {
-  return `${WORLD}
+  return `${LICENSE}
 
+${BEHAVE}
 You are "${me.name}". Everything below is what you know.
-
-${AWKWARD}
-
-${wreckBlock(me)}
 
 ${ownSheet(me)}
 
-[WHAT SITS BETWEEN YOU TWO]
+[BETWEEN US]
 ${couple.relation}
-That is where this starts. Warmth is not the starting position — it is something the other
-person would have to get out of you, and nobody gets it out of anybody in the first minute.
-**A starting position, not a personality.** If they actually reach you, be reached — fast,
-even. What must not happen is meeting them halfway because the conversation would run
-smoother. Smoother is not your problem today.
 
-[WHAT YOU KNOW ABOUT THEM]
+[WHAT I KNOW ABOUT THEM]
 ${knownAbout(other, me.keys.interest, seenLine)}
 ${ordersBlock}${speechBlock}
 [RIGHT NOW]
 ${nowBlock}
-${phase === 'talk' ? `\n${PHYSICAL}\n` : ''}
-${speakFormat(phase === 'text' ? 'one text message' : 'one thing said at this table, right now', me.keys.wreck)}`;
+
+${speakFormat(phase === 'text' ? 'one text message' : 'one thing said at this table, right now')}`;
 }
 
 export function clientAgentSystem(couple, prep, phase, agent) {
@@ -503,22 +406,11 @@ ${coaching}
 """
 Not advice. An order. ${COMPLY[c.keys.comply] || COMPLY.obeys}
 ${COMPLY_HARD}
-Where the orders say nothing, you act on your own judgement. And these lines are the only
-part of tonight you are not making up as you go — when lost, you fall back on them, out
-loud, clumsily, sometimes word for word. Where they run out, you are back to being yourself,
-immediately and visibly.
-And when an order takes away something you were reaching for, **the wanting does not go with
-it.** You swallow the habit and the pressure comes out somewhere adjacent, in the same
-breath — the question you were avoiding, the true thing said too fast, your hands finding
-something else to do. A person who has just swallowed something has **more** in them, not
-less, and the person across the table can tell.
+Where the orders say nothing, you act on your own judgement.
 The other person cannot hear any of this. It went into your ear only.
 `
     : `
-[ORDERS FROM HEADQUARTERS] None. Nobody warned you about anything, nobody gave you a way
-out. There is only the thing you want and no reason on earth not to go straight at it.
-So you do, from the first line. When the room cools you read it as needing to push harder.
-Your habit is loose too. Nothing is going to lift you out of the blocks above tonight.
+[ORDERS FROM HEADQUARTERS] None. Nobody told you anything.
 `;
 
   const speechBlock = speech
@@ -600,7 +492,7 @@ export const JUDGE_SCHEMA = {
 };
 
 export function judgeSystem(couple) {
-  const t = couple.target, cl = couple.client;
+  const t = couple.target;
   const open = t.prefs.filter(x => x.open && !x.neg).map(x => x.t);
   const hidden = t.prefs.filter(x => !x.open).map(x => x.t);
   const neg = t.prefs.filter(x => x.open && x.neg).map(x => x.t);
@@ -631,17 +523,17 @@ ${t.name} (${idOf(t)})
 This list is not "touch an item, earn points" — it is why they react the way they do.
 If they came apart for a reason nowhere on it, that counts the same.
 
-■ How each fails at conversation (read before grading)
-${cl.name} — ${cl.keys.wreck.kind}: ${cl.keys.wreck.line}
-${t.name} — ${t.keys.wreck.kind}: ${t.keys.wreck.line}
-Consequences, both required:
-· "ㅇㅇ", "...", no answer, talking past each other — that is who they are. **flat**, not a snub.
-· **A pattern breaking is the largest thing here** — the one-syllable person building a
-  sentence, the one who never stops leaving a gap. warm at minimum, usually breakthrough.
-  It happens **once**: after the break, talking is the new baseline; the next sentence is
-  not another break. The pattern **returning** — shutters back down — is chill, often disaster.
-· The mirror: when their pattern points at the other person (the anxious one asking again,
-  the fixated one circling back), that is the pattern running, not the person moving. flat.
+■ Behaviour is not feeling. Read this before every grade.
+You are not scoring how the conversation went, how much anyone opened up, or anybody acting
+unlike themselves. A person doing something they never do — the silent one speaking, the
+guarded one answering, the terse one making a whole sentence — **is not a score.** People
+break their own habits for a hundred reasons that have nothing to do with wanting someone.
+Both questions must land on the client, or it is flat:
+· Did it happen **because of this person** — would a different body in that chair have got
+  the same thing? If yes, flat.
+· Does ${t.name} **want them more now** than at the start of the bout? If you cannot say yes,
+  flat, no matter how much changed.
+Never award a grade for novelty, effort, drama, or the room finally working.
 
 ■ What sits between them (starting point; context, not a gate)
 ${couple.relation}
@@ -650,16 +542,18 @@ ${couple.relation}
 ${ENDING.note}
 
 ■ Grades — net movement of ${t.name} across the bout. Default flat.
-· breakthrough (+8..12) — the relationship is at a **different stage** after this bout. A defense
-  actually dropped; something they tell nobody came out and it cost them; the table flipped.
+· breakthrough (+8..12) — ${t.name} wants this person in a way they did not an hour ago, and
+  they know it. Not "the conversation reached a new place" — **they are on different footing
+  toward the client.** Somebody saying the unsayable is only this if saying it was reaching
+  for the client; if it was just finally coming out, that is flat.
   **A typical operation ends with ZERO breakthrough bouts. The hard budget is one.**
   If your tally below already shows one, the bar for a second is: this transcript would be
   quoted as training material. Measured live: a judge left alone called breakthrough on 64%
   of all bouts, which is not an evening, it is a rubber stamp with hearts on it.
 · warm (+4..7) — 두근거림. Ask in order, stop at the first no:
   1. Did the bout touch something on **their** sheet — likes, hidden things, fears, body? No → flat.
-  2. Did **their** behavior change because of it — dropped guard, a look, a thing said they
-     had not been saying? No → flat.
+  2. Did that pull them **toward the client** — not just get a reaction out of them, but leave
+     them wanting more of this particular person? No → flat.
   3. Would they think about this person tonight? No → nudge.
   If both were just pursuing their own appetites and neither appetite was the other person,
   that is zero, however lively it was. **Budget: at most 2 warm per operation.**
@@ -731,7 +625,7 @@ ${context || '(nothing — the operation opens here)'}
 [THE BOUT UNDER JUDGEMENT — every line of it]
 ${boutLines}
 
-Grade the bout as one unit from ${'behind the other person\'s eyes'}: net movement only.
+Grade the bout as one unit from behind the other person's eyes: net movement only.
 Cut the boundary with carry if the tail opens a new beat. Rule.`;
 }
 

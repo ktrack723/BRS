@@ -23,7 +23,6 @@ for (const [who, p] of [['의뢰인', c.client], ['상대', c.target]]) {
     if (k === 'gender') { F.push({ id: `${who}.gender`, probe: [P.idOf(p)] }); continue; }
     F.push({ id: `${who}.${k}`, probe: Array.isArray(p[k]) ? p[k].map(String) : [String(p[k])] });
   }
-  F.push({ id: `${who}.keys.reflex`, probe: [p.keys.reflex] });
   F.push({ id: `${who}.keys.wreck`, probe: [p.keys.wreck.line] });
   F.push({ id: `${who}.성향.공개`, probe: p.prefs.filter(x => x.open && !x.neg).map(x => x.t) });
   F.push({ id: `${who}.성향.미공개`, probe: p.prefs.filter(x => !x.open).map(x => x.t) });
@@ -45,6 +44,8 @@ const HIST = [
   '[HQ RADIO — the other person cannot hear this]: 무전본문',
   '[SCENE]: 장면전환',
 ].join('\n');
+// 엔진이 심판·나레이터에게 넘기는 형태 (engine.#history({ noRadio: true }))
+const NO_RADIO = HIST.split('\n').filter(l => !l.includes('HQ RADIO')).join('\n');
 
 const ctx = {
   accepted: false, grade: 'E', love: 30, threshold: 60,
@@ -57,8 +58,9 @@ const NODES = {
   '정문 반응':             P.prepReactSystem(c, 'speech') + '\n' + P.prepReactUser('speech', prep.speech, AG),
   '의뢰인 에이전트':        P.clientAgentSystem(c, prep, 'talk', AG),
   '상대 에이전트':          P.targetAgentSystem(c, 'talk', prep.outfitDesc),
-  '심판':                  P.judgeSystem(c) + '\n' + P.judgeUser(HIST, '발언\n반응', ['nudge']),
-  '나레이터 (대면 장면)':   P.situationSystem(c) + '\n' + P.situationUser(c, HIST.split('\n').filter(l => !l.includes('HQ RADIO')).join('\n'), prep.outfitDesc),
+  // 심판과 나레이터는 무전을 못 본다 — 엔진이 noRadio로 걸러서 넘긴다.
+  '심판':                  P.judgeSystem(c) + '\n' + P.judgeUser(NO_RADIO, '발언\n반응', ['nudge']),
+  '나레이터 (대면 장면)':   P.situationSystem(c) + '\n' + P.situationUser(c, NO_RADIO, prep.outfitDesc),
   '결과 기록관':            P.resultSystem(c, AG) + '\n' + P.resultUser(c, ctx),
 };
 
@@ -105,6 +107,10 @@ const asym = [
   ['의뢰인.성향.미공개', '상대 에이전트', false, '반대 방향도 같다 — 완전 대칭'],
   ['의뢰인.성향.미공개', '심판', false, '심판은 철저히 상대 시점만 본다'],
   ['준비.지침', '심판', false, '요원이 쓴 것은 채점 대상이 아니다'],
+  ['무전 본문', '심판', false, '무전도 요원이 쓴 것이다 — 상대가 못 듣는 건 상대 시점에도 없다'],
+  ['상대.keys.wreck', '심판', false, '어긋남은 인물 데이터다 — 주면 심판이 행동 변화를 점수로 읽는다'],
+  ['의뢰인.keys.wreck', '심판', false, '스님이 입을 연 건 반한 게 아니다'],
+  ['상대.keys.wreck', '상대 에이전트', true, '본인은 자기 어긋남대로 연기한다'],
   ['상대.성향.지뢰', '심판', true, '반응을 해석할 배경으로 필요하다'],
   ['상대.성향.미공개', '심판', true, '무엇이 드러났는지 판단할 배경'],
 ];

@@ -1,5 +1,5 @@
 // game.js — 화면/입력 계층. 대화 오케스트레이션은 engine.js, 규칙은 scoring.js, API는 llm.js.
-import { LlmClient, RefusalError } from './llm.js';
+import { LlmClient, RefusalError, detectProvider, providerOf, defaultModelOf, modelFitsProvider, normalizeUsage, DEFAULT_PROVIDER } from './llm.js';
 import * as P from './prompts.js';
 import { Engine, prepReaction } from './engine.js';
 import { DIFFICULTIES, diffOf } from './scoring.js';
@@ -131,40 +131,108 @@ llm.onLog((entry, usage) => {
   let el = entry._el;
   if (!el) { el = document.createElement('details'); entry._el = el; box.prepend(el); while (box.children.length > 60) box.lastChild.remove(); }
   const st = { pending: '···', ok: 'OK ', error: 'ERR', refusal: 'REF' }[entry.status] || '  ?';
-  const u = entry.response?.usage;
-  const cacheTag = u?.cache_read_input_tokens ? ` · 캐시 ${u.cache_read_input_tokens}` : '';
-  el.innerHTML = `<summary>${st} <b>${escapeHtml(entry.label)}</b> · ${escapeHtml(entry.model)} · ${entry.ms ? Math.round(entry.ms) + 'ms' : '...'}${u ? ` · ${u.input_tokens}→${u.output_tokens}tok${cacheTag}` : ''}${entry.error ? ` · ${escapeHtml(entry.error)}` : ''}</summary><pre>${escapeHtml(JSON.stringify({ request: entry.request, response: entry.response ?? null }, null, 1).slice(0, 8000))}</pre>`;
+  // 사용량 필드 이름은 업자마다 다르다. llm.js가 눕혀 준 형태로 읽는다.
+  const u = entry.response ? normalizeUsage(entry.response) : null;
+  const cacheTag = u?.cacheRead ? ` · 캐시 ${u.cacheRead}` : '';
+  const via = entry.provider ? `${escapeHtml(entry.provider)}/` : '';
+  el.innerHTML = `<summary>${st} <b>${escapeHtml(entry.label)}</b> · ${via}${escapeHtml(entry.model)} · ${entry.ms ? Math.round(entry.ms) + 'ms' : '...'}${u ? ` · ${u.input}→${u.output}tok${cacheTag}` : ''}${entry.note ? ` · ${escapeHtml(entry.note)}` : ''}${entry.error ? ` · ${escapeHtml(entry.error)}` : ''}</summary><pre>${escapeHtml(JSON.stringify({ request: entry.request, response: entry.response ?? null }, null, 1).slice(0, 8000))}</pre>`;
   $('#console-usage').textContent =
     `호출 ${usage.calls} · in ${usage.inputTokens.toLocaleString()} · out ${usage.outputTokens.toLocaleString()} · 캐시적중 ${usage.cacheRead.toLocaleString()} · 약 $${usage.cost.toFixed(3)}${usage.saved > 0 ? ` (캐시 절감 $${usage.saved.toFixed(3)})` : ''}`;
 });
 
 // ── 부팅 ────────────────────────────────────────────────
+// 업자 선택란은 없다. 키 접두사가 곧 업자고(llm.js의 detectProvider),
+// 판별되는 순간 회선 표시와 모형 목록이 그 업자 것으로 갈린다.
+const CUSTOM_MODEL = '__custom';
+let bootProvider = null;   // 지금 화면에 그려져 있는 업자 (null = 미판별)
+
+// 그 업자에서 마지막으로 고른 모형. 키를 바꿔 껴도 서로 덮어쓰지 않게 업자별로 따로 둔다.
+const modelKey = id => `cupid_model_${id}`;
+function savedModelFor(id) {
+  const mine = sget('localStorage', modelKey(id));
+  if (mine) return mine;
+  const legacy = sget('localStorage', 'cupid_model');   // 업자가 하나뿐이던 시절의 저장값
+  return legacy && modelFitsProvider(legacy, id) ? legacy : null;
+}
+
+// 그 업자의 모형 목록으로 드롭다운을 다시 세운다. 목록에 없는 모형을 쓰던 중이면 '직접 입력'으로 살려 둔다.
+function fillModels(id) {
+  const p = providerOf(id);
+  const sel = $('#model-select');
+  sel.innerHTML = p.models.map(([m, note]) => `<option value="${escapeHtml(m)}">${escapeHtml(m)} (${escapeHtml(note)})</option>`).join('')
+    + (p.freeModel ? `<option value="${CUSTOM_MODEL}">직접 입력…</option>` : '');
+  const want = savedModelFor(id) || defaultModelOf(id);
+  if (p.models.some(([m]) => m === want)) {
+    sel.value = want;
+  } else if (p.freeModel) {
+    sel.value = CUSTOM_MODEL;
+    $('#model-custom').value = want;
+  }
+  syncCustomModel();
+}
+
+// 키에서 업자를 읽어 회선 표시와 모형 목록을 맞춘다. 같은 업자면 목록은 손대지 않는다.
+function renderProvider(key, { force = false } = {}) {
+  const id = detectProvider(key);
+  const badge = $('#key-provider');
+  if (!id) {
+    bootProvider = null;
+    badge.textContent = key
+      ? '판별 실패 — sk-ant- / sk- / sk-or- 로 시작하는 키가 아니다'
+      : '회선 미지정 — 키를 붙여넣으면 발급 업자를 판별한다';
+    badge.className = `key-provider ${key ? 'bad' : 'dim'}`;
+    // 아직 키가 없는 첫 방문에 빈 드롭다운을 보여주지 않는다. 판별되면 그때 갈린다.
+    if (!$('#model-select').options.length) fillModels(DEFAULT_PROVIDER);
+    return null;
+  }
+  const p = providerOf(id);
+  badge.textContent = `회선 판별: ${p.label} — ${p.host} 로 직접 송신`;
+  badge.className = 'key-provider ok';
+  if (id === bootProvider && !force) return id;
+  bootProvider = id;
+  fillModels(id);
+  return id;
+}
+function syncCustomModel() {
+  $('#model-custom-row').classList.toggle('hidden', $('#model-select').value !== CUSTOM_MODEL);
+}
+// 실제로 쓸 모형 id — 드롭다운 값, 단 '직접 입력'이면 옆 칸의 문자열.
+function chosenModel() {
+  const v = $('#model-select').value;
+  return v === CUSTOM_MODEL ? $('#model-custom').value.trim() : v;
+}
+
 function initBoot() {
   const saved = sget('localStorage', 'cupid_key') || sget('sessionStorage', 'cupid_key');
   if (saved) $('#key-input').value = saved;
-  const savedModel = sget('localStorage', 'cupid_model');
-  if (savedModel) $('#model-select').value = savedModel;
   $('#agent-name').value = sget('localStorage', 'cupid_agent_name') || '';
   $('#agent-gender').value = sget('localStorage', 'cupid_agent_gender') || '';
+  renderProvider($('#key-input').value.trim());
+
+  $('#key-input').addEventListener('input', e => renderProvider(e.target.value.trim()));
+  $('#model-select').addEventListener('change', syncCustomModel);
 
   $('#btn-boot').addEventListener('click', async () => {
     unlockAudio(); sfx.click();
     const name = $('#agent-name').value.trim();
     if (!name) return bootError('요원명 없이는 서류를 못 만든다. 아무거나 적어라.');
     const key = $('#key-input').value.trim();
-    if (!key.startsWith('sk-ant-')) return bootError('그건 API 키가 아니라 그냥 문자열이다. sk-ant-... 형식의 키를 내놔라.');
+    const provider = renderProvider(key);
+    if (!provider) return bootError('그건 API 키가 아니라 그냥 문자열이다. Anthropic(sk-ant-...) · OpenAI(sk-...) · OpenRouter(sk-or-v1-...) 중 하나를 내놔라.');
+    const model = chosenModel();
+    if (!model) return bootError('모형 id를 비워 두면 아무 데도 못 보낸다. 업자 문서에 적힌 id를 적어라.');
 
     state.agent = { name, gender: $('#agent-gender').value.trim() };
     sset('localStorage', 'cupid_agent_name', state.agent.name);
     sset('localStorage', 'cupid_agent_gender', state.agent.gender || null);
 
-    llm.apiKey = key;
-    llm.model = $('#model-select').value;
-    sset('localStorage', 'cupid_model', llm.model);
+    llm.apiKey = key;        // 업자는 이 한 줄에서 정해진다
+    llm.model = model;
+    sset('localStorage', modelKey(provider), model);
     sset('sessionStorage', 'cupid_key', key);
     sset('localStorage', 'cupid_key', $('#remember-key').checked ? key : null);
     try {
-      await withLoading('본부 회선 연결 중... (키 인증)', () => llm.ping());
+      await withLoading(`본부 회선 연결 중... (${providerOf(provider).label} 키 인증)`, () => llm.ping());
       startBgm();
       showIntro();
     } catch (e) {
@@ -172,7 +240,7 @@ function initBoot() {
       bootError(errMsg(e));
     }
   });
-  for (const sel of ['#key-input', '#agent-name', '#agent-gender']) {
+  for (const sel of ['#key-input', '#agent-name', '#agent-gender', '#model-custom']) {
     $(sel).addEventListener('keydown', e => { if (e.key === 'Enter') $('#btn-boot').click(); });
   }
 }
@@ -438,9 +506,6 @@ function sheetHtml(person, { mine = false } = {}) {
       ${rows.map(r => `<li class="lv-${r.level}"><span class="flaw-axis">${escapeHtml(r.axis)}</span>
         <span class="flaw-tag lv-${r.level}">${escapeHtml(r.tag)}</span>
         <span class="flaw-desc">${escapeHtml(r.desc)}</span></li>`).join('')}
-      <li class="lv-mid"><span class="flaw-axis">조건반사</span>
-        <span class="flaw-tag lv-mid">가만두면 나온다</span>
-        <span class="flaw-desc">${escapeHtml(person.keys.reflex)}</span></li>
       <li class="lv-high"><span class="flaw-axis">어긋남</span>
         <span class="flaw-tag wreck">${escapeHtml(wreck.tag)}</span>
         <span class="flaw-desc">${escapeHtml(person.keys.wreck.line)}<br>
@@ -474,7 +539,7 @@ function targetBriefHtml(c) {
     <p class="redline-box"><b>지뢰:</b> ${dp.neg.map(escapeHtml).join(' / ')}</p>
     <p class="handoff-warn"><b>이 화면의 정보는 의뢰인에게 자동으로 넘어가지 않는다.</b>
       의뢰인이 아는 것: ${knows} 나머지는 <b>지침에 직접 적어야</b> 그 인간 머릿속에 들어간다.</p>
-    <p class="weakness"><b>의뢰인 조건반사:</b> ${escapeHtml(k.reflex)}</p>
+    <p class="weakness"><b>의뢰인 어긋남 (${escapeHtml(WRECK_LABELS[k.wreck.kind].tag)}):</b> ${escapeHtml(k.wreck.line)}</p>
     ${comply ? `<p class="brief-flaw"><b>의뢰인 지침 수용:</b>
       ${escapeHtml(comply.tag)} — ${escapeHtml(comply.desc)}</p>` : ''}`;
 }
@@ -584,7 +649,7 @@ function gotoInterro() {
   };
   $('#coaching-input').oninput = sync;
   sync();
-  renderPrepReact('#coaching-result', 'coaching');
+  renderPrepReact('coaching');
 
   $('#btn-coaching').onclick = () => runPrepReact('coaching', '취조실 반응 대기 중...', interroViewer);
   $('#btn-interro-back').onclick = () => { sfx.click(); gotoSalon(); };
@@ -611,16 +676,16 @@ function gotoGate() {
   };
   $('#speech-input').oninput = sync;
   sync();
-  renderPrepReact('#speech-result', 'speech');
+  renderPrepReact('speech');
 
   $('#btn-speech').onclick = () => runPrepReact('speech', '정문 반응 대기 중...', gateViewer);
   $('#btn-gate-back').onclick = () => { sfx.click(); gotoInterro(); };
   $('#btn-start-op').onclick = () => { sfx.radio(); startOperation(); };
 }
 
-function renderPrepReact(sel, scene) {
+function renderPrepReact(scene) {
   const r = state.prepReact[scene];
-  const el = $(sel);
+  const el = $(scene === 'coaching' ? '#coaching-result' : '#speech-result');
   if (!r) {
     el.innerHTML = '<span class="inject-empty">아직 확인하지 않았다 — 반응을 안 보고 그냥 보내도 된다</span>';
     return;
@@ -637,7 +702,7 @@ async function runPrepReact(scene, label, viewer) {
     }));
     state.prepReact[scene] = r;
     viewer?.emote('left', r.face || 'talk');
-    renderPrepReact(scene === 'coaching' ? '#coaching-result' : '#speech-result', scene);
+    renderPrepReact(scene);
     sfx.stamp();
   } catch (e) { toast(errMsg(e)); }
 }
@@ -665,7 +730,6 @@ function updatePrepStatus() {
 let stageViewer = null;
 
 function meterUpdate(s) {
-  $('#meter-love-name').textContent = P.ENDING.meterName;
   $('#meter-love-fill').style.width = s.love + '%';
   $('#meter-love-num').textContent = s.love;
   $('#meter-threshold').style.left = s.threshold + '%';
@@ -1021,6 +1085,7 @@ function initPacing() {
 function init() {
   // 대장 건수를 화면 곳곳에 박아두면 커플을 추가할 때마다 숫자가 어긋난다. 실제로 어긋났었다.
   for (const el of $$('.n-couples')) el.textContent = COUPLES.length;
+  $('#meter-love-name').textContent = P.ENDING.meterName;   // 게이지 이름의 원본은 prompts.js다
   initBoot();
   initIntro();
   initRadio();
