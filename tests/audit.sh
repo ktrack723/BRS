@@ -1,101 +1,97 @@
-# audit.sh — 이 게임에 내려진 지시가 코드에 실제로 남아 있는지 훑는다.
+#!/usr/bin/env bash
+# audit.sh — 「프롬프트 하이어아키」 구조도가 코드에 아직 살아 있는가.
 #
 #   npm run audit
 #
-# 기능 테스트(npm test)와 목적이 다르다. 여기서 보는 건 "그 규칙이 아직 살아 있는가"다.
+# 기능 테스트(npm test)와 목적이 다르다. 여기서 보는 건 "그 구조가 아직 지켜지는가"다.
 # 프롬프트 한 줄을 지웠는데 테스트가 안 깨지는 경우가 있다 — 그런 걸 잡으려고 둔다.
-# 「절대 들어가면 안 되는 것」 절은 특히 지우지 마라. 그건 요청받은 게 아니라 금지당한 것들이다.
+# 「폐지된 것」 절은 특히 지우지 마라. 그건 요청받은 게 아니라 **금지당한 것들**이다.
 set +e
 cd "$(dirname "$0")/.."
 ok(){ printf '  ✅ %s\n' "$1"; }
 no(){ printf '  ❌ %s\n' "$1"; }
 chk(){ if eval "$2" >/dev/null 2>&1; then ok "$1"; else no "$1"; fi; }
 
-echo "── 스키마: 대칭과 축소 ──"
-chk "인물 스키마가 8필드로 닫혀 있다 (이게 전부여야 한다)" "grep -q \"CH_FIELDS = new Set(\\['name', 'gender', 'look', 'history', 'personality', 'keys', 'prefs', 'spec'\\])\" js/couples.js"
-chk "의뢰인·상대가 완전히 동일한 카테고리를 가진다 (검증이 로드에서 돈다)" "grep -q '스키마 밖 필드' js/couples.js"
-chk "want/urge/nerve/regard가 제거됐다" "! grep -qE 'flaw\\.want|\\.urge|\\.nerve|\\.regard' js/prompts.js js/engine.js js/game.js"
-chk "만남+아젠다가 relation 하나로 묶였다" "node -e \"import('./js/couples.js').then(m=>process.exit(m.COUPLES.every(c=>c.relation&&c.relation.includes('현안'))?0:1))\""
-chk "성향이 전원에게 있다 — 상대만 있는 게 아니다" "node -e \"import('./js/couples.js').then(m=>process.exit(m.COUPLES.every(c=>c.client.prefs.length>=3&&c.target.prefs.length>=3)?0:1))\""
-chk "의뢰인 성향은 미공개분까지 요원에게 전부 보인다" "grep -q 'sheetHtml(c.client, { mine: true })' js/game.js && grep -q '미공개분 포함 전부' js/game.js"
-chk "특별 키워드 4종 (상대관심·공기읽기·명령수용·어긋남) — 조건반사는 폐지" "grep -q \"KEYS = \\['interest', 'air', 'comply', 'wreck'\\]\" tests/sheets.test.mjs && ! grep -q 'reflex: \"' js/couples.js"
+echo "── 구조: 블록은 넷뿐이다 ──"
+chk "프롬프트 빌더가 A · B-1 · B-2 · C 넷이다" "node -e \"import('./js/prompts.js').then(m=>{const s=Object.keys(m).filter(k=>k.endsWith('_SCHEMA')).sort();process.exit(JSON.stringify(s)===JSON.stringify(['EPILOGUE_SCHEMA','JUDGE_SCHEMA','STYLING_SCHEMA','TALK_SCHEMA'])?0:1)})\""
+chk "게이지는 무드·러브 둘뿐이다" "node -e \"import('./js/points.js').then(m=>{const s=m.initialPoints();process.exit(('mood' in s)&&('love' in s)&&!('vibe' in s)&&!('leverage' in s)?0:1)})\""
+chk "페이즈는 텍스팅·토킹 둘이다" "node -e \"import('./js/points.js').then(m=>process.exit(m.PHASES.map(p=>p.key).join()==='text,talk'?0:1))\""
+chk "요원이 쓰는 곳은 셋이다 (스타일링·동기부여·코칭)" "grep -q \"orders: { styling: '', motivation: '', coaching: '' }\" js/game.js"
 
 echo
-echo "── 판정: 합 단위, 상대 시점, 호감 단일 게이지 ──"
-chk "판정이 합(서로 대여섯 마디) 단위다" "node -e \"import('./js/scoring.js').then(m=>process.exit(m.BOUT.size>=4&&m.BOUT.size<=6?0:1))\""
-chk "합의 경계는 심판이 자른다 (carry)" "grep -q 'carry' js/prompts.js && grep -q 'carryMax' js/scoring.js"
-chk "수치 분위기가 없다 — 공기는 텍스트뿐이다" "! grep -qE 'moodMultiplier|moodFloor|startMood|moodDrift' js/scoring.js && ! grep -q 'meter-mood' index.html"
-chk "공기 텍스트가 판정 입력이자 양쪽 전달 컨텍스트다" "grep -q 'handed to' js/prompts.js && grep -q \"injectVibe('target')\" js/engine.js"
-chk "자리 파탄은 심판의 walkout 판단이다" "grep -q 'walkout' js/prompts.js && grep -q \"'walkout'\" js/scoring.js"
-chk "심판이 철저히 상대 시점에서만 본다" "grep -qE \"behind .{0,20}eyes\" js/prompts.js && grep -q 'Fairness is not your job' js/prompts.js"
-chk "호감의 기준선이 0 — 회사원 예시" "grep -q 'office worker' js/prompts.js && grep -q 'zero' js/prompts.js"
-chk "잘 굴러간 대화는 0점 (flat/nudge 밴드 0)" "node -e \"import('./js/scoring.js').then(m=>process.exit([m.bandLove('flat',9),m.bandLove('nudge',9)].every(x=>x===0)?0:1))\""
-chk "서로 자기 욕심만 얘기하면 0점" "grep -q 'their own appetites' js/prompts.js"
-chk "warm의 유일한 출처가 상대의 시트" "grep -q 'something on \\*\\*their\\*\\* sheet' js/prompts.js"
-chk "warm에 부정 목록이 있다 (남발 방지)" "grep -q 'Never warm' js/prompts.js"
-chk "분포 가드가 양방향이다" "grep -q 'appreciating, not adjudicating' js/prompts.js && grep -q 'you are hiding' js/prompts.js"
-chk "합 예산이 숫자로 박혀 있다 (br 1 · warm 2)" "grep -q 'ZERO breakthrough bouts' js/prompts.js && grep -q 'at most 2 warm' js/prompts.js"
-chk "novelty·drama·노력에는 점수가 없다" "grep -q 'Never award a grade for novelty' js/prompts.js"
-chk "자리 길이는 모델이 정한다 (keepGoing)" "grep -q 'keepGoing' js/prompts.js && grep -q 'cutShort' js/scoring.js"
-chk "호감 포화·손실 완충이 남아 있다" "grep -q 'loveSaturation' js/scoring.js && grep -q 'lossCushion' js/scoring.js"
-chk "협박·약점 잡기 — leverage 판정과 강압 성사" "grep -q 'leverage' js/prompts.js && grep -q 'coerceMin' js/scoring.js && grep -q \"'coerced'\" js/scoring.js"
-chk "환경 사망 — 의뢰인/상대/양쪽" "grep -q 'casualty' js/prompts.js && grep -q 'CASUALTY_KO' js/scoring.js"
-chk "규칙 계층에 준비 점수 개념이 없다" "! grep -qiE 'coaching|speech|styling|outfit|prepScore' js/scoring.js"
+echo "── S · 스크리닝: 여덟 항목이 전부고, 감춘 게 없다 ──"
+chk "노출 목록의 원본이 prompts.js 한 곳이다" "grep -q 'export const SCREEN_FIELDS' js/prompts.js && grep -q 'P.SCREEN_FIELDS\[which\]' js/game.js"
+chk "고객은 외모·성격·성장환경·반한 이유" "node -e \"import('./js/prompts.js').then(m=>process.exit(m.SCREEN_FIELDS.client.map(f=>f.key).join()==='look,personality,upbringing,fell'?0:1))\""
+chk "타겟은 외모·성격·성장환경·취향" "node -e \"import('./js/prompts.js').then(m=>process.exit(m.SCREEN_FIELDS.target.map(f=>f.key).join()==='look,personality,upbringing,taste'?0:1))\""
+chk "인물 스키마가 일곱 필드로 닫혀 있다 (노출 넷 + 이름·성별·조형)" "grep -q \"CLIENT_FIELDS = new Set(\\['name', 'gender', 'look', 'personality', 'upbringing', 'fell', 'spec'\\])\" js/couples.js"
+chk "취향이 평평한 문자열 목록이다 (공개/미공개·지뢰 플래그 없음)" "node -e \"import('./js/couples.js').then(m=>process.exit(m.COUPLES.every(c=>c.target.taste.every(t=>typeof t==='string'))?0:1))\""
 
 echo
-echo "── 인물: 하자·어긋남·정보 게이트 ──"
-chk "어긋남 7종이 전부 실제로 쓰인다" "node -e \"import('./js/couples.js').then(m=>{const k=new Set(m.COUPLES.flatMap(c=>[c.client.keys.wreck.kind,c.target.keys.wreck.kind]));process.exit(k.size===7?0:1)})\""
-chk "문체 강제 장치가 되살아나지 않았다 (프롬프트 최소주의)" "! grep -q 'THE LAST THING YOU READ' js/prompts.js && ! grep -q 'WRECK_STYLE' js/prompts.js && ! grep -q 'THIS COSTS YOU SOMETHING' js/prompts.js && ! grep -q 'sitcom' js/prompts.js"
-chk "행동 명령은 한 줄뿐 — 이기적·욕망 충실·찐따면 진짜 찐따" "grep -q 'loyal' js/prompts.js && grep -q 'actual social' js/prompts.js"
-chk "어긋남은 키워드 데이터로 실린다" "grep -q '어긋남(\${k.wreck.kind})' js/prompts.js"
-chk "상대관심이 정보량을 깎는다 (지시가 아니라 게이트)" "grep -q 'interest !==' js/prompts.js"
-chk "공기읽기가 양쪽 다 작동한다" "grep -q \"air === 'none'\" js/engine.js"
-chk "심판은 어긋남을 못 받는다 — 인물 데이터로만 쓴다" "! grep -q 'How each fails at conversation' js/prompts.js && node -e \"import('./js/prompts.js').then(async m=>{const c=(await import('./js/couples.js')).COUPLES[0];const s=m.judgeSystem(c);process.exit(s.includes(c.target.keys.wreck.line)||s.includes(c.client.keys.wreck.line)?1:0)})\""
-chk "패턴 파괴에 점수를 주지 않는다 — 행동 변화는 마음이 아니다" "! grep -q 'A pattern breaking is the largest thing' js/prompts.js && grep -q 'Behaviour is not feeling' js/prompts.js && grep -q 'is not a score' js/prompts.js"
-chk "모든 가점은 듣는 쪽이 그 사람을 더 원해야 성립한다" "grep -q 'want them more now' js/prompts.js && grep -q 'because of this person' js/prompts.js"
-chk "지침 흐름 연출 지시가 되살아나지 않았다" "! grep -q 'the wanting does not go with' js/prompts.js && ! grep -q 'not making up as you go' js/prompts.js"
-chk "지침 이행의 결 3종 (obeys/argues/drifts)" "grep -q 'drift back' js/prompts.js"
+echo "── A · 스타일링 / 동기부여 ──"
+chk "스타일링은 외모만, 동기부여는 성격만 건드린다" "grep -q 'rewrites the client'\\''s \\*\\*외모\\*\\* and nothing else' js/prompts.js && grep -q 'rewrites the client'\\''s \\*\\*성격\\*\\* and nothing else' js/prompts.js"
+chk "가위손은 거절하지 않는다" "grep -q 'Never refuse, never soften, never grade' js/prompts.js"
+chk "출력은 수정된 외모·성격 둘 (+조형)" "node -e \"import('./js/prompts.js').then(m=>process.exit(Object.keys(m.STYLING_SCHEMA.properties).sort().join()==='look,personality,spec'?0:1))\""
+chk "시공을 안 하면 테이블 값이 그대로 시트가 된다" "grep -q 'export function dressOf' js/engine.js"
+chk "A는 타겟을 보지 않는다" "node -e \"import('./js/prompts.js').then(m=>process.exit(/타겟|target/i.test(m.STYLING_SYSTEM.split('[CONTENT')[0])?1:0))\""
+
+echo
+echo "── B · 텍스팅 & 토킹 ──"
+chk "대화는 한 번의 호출이 양쪽 몫을 다 쓴다" "grep -q 'You write the conversation between these two people' js/prompts.js && grep -q '\\*\\*Both voices' js/prompts.js"
+chk "대화 프롬프트에 흐름 지시가 없다 (시트와 코칭이 전부)" "! grep -qiE 'drop a hint|leak a clue|reveal something|must mention|should bring up' js/prompts.js"
+chk "대화하는 쪽은 점수를 모른다" "node -e \"import('./js/prompts.js').then(async m=>{const c=(await import('./js/couples.js')).COUPLES[0];const s=m.talkSystem(c,{look:'x',personality:'y'},'z');process.exit(/러브 포인트|무드 포인트/.test(s)?1:0)})\""
+chk "코칭은 고객에게만 간다 — 타겟은 못 듣는다" "grep -q 'never heard a word of it' js/prompts.js"
+chk "코칭이 비면 그 사실이 그대로 전달된다" "node -e \"import('./js/prompts.js').then(async m=>{const c=(await import('./js/couples.js')).COUPLES[0];process.exit(/없음/.test(m.talkSystem(c,{look:'x',personality:'y'},''))?0:1)})\""
+chk "system은 판 내내 동일하다 (캐시 breakpoint가 붙는 자리)" "grep -q 'this.talkSys = P.talkSystem' js/engine.js && grep -q 'system: this.talkSys, cache: true' js/engine.js"
+
+echo
+echo "── B-2 · 판정: 내보내는 건 증감 여부뿐이다 ──"
+chk "출력이 mood·love 둘뿐이다" "node -e \"import('./js/prompts.js').then(m=>process.exit(Object.keys(m.JUDGE_SCHEMA.properties).sort().join()==='love,mood'?0:1))\""
+chk "값은 up/down/same 셋뿐이다" "node -e \"import('./js/prompts.js').then(m=>process.exit(m.JUDGE_SCHEMA.properties.love.enum.join()==='up,down,same'?0:1))\""
+chk "폭은 코드가 정한다" "grep -q 'moodStep' js/points.js && grep -q 'loveStep' js/points.js"
+chk "심판은 타겟의 눈 뒤에서만 본다" "grep -q \"behind \\\${t.name}'s eyes\" js/prompts.js && grep -q 'Fairness is not your job' js/prompts.js"
+chk "러브의 기준선이 same — 회사원 예시" "grep -q 'office worker' js/prompts.js && grep -q 'base rate for two people talking is same' js/prompts.js"
+chk "무드와 러브를 따로 읽으라고 못박는다" "grep -q 'Read them separately, every time' js/prompts.js"
+chk "심판은 코칭도 고객 성격도 못 본다 (규칙: 요원이 쓴 글은 채점되지 않는다)" "node -e \"import('./js/prompts.js').then(async m=>{const c=(await import('./js/couples.js')).COUPLES[0];const s=m.judgeSystem(c,{look:'LOOK표식',personality:'PERS표식'});process.exit(s.includes('PERS표식')||!s.includes('LOOK표식')?1:0)})\""
+chk "무드가 0이면 자리가 깨진다" "grep -q 'isBroken' js/engine.js && grep -q 'broken: mood <= POINTS.min' js/points.js"
+
+echo
+echo "── C · 후일담: 성사 여부를 정하는 건 러브 포인트다 ──"
+chk "출력이 성사 여부와 후일담 텍스트 둘이다" "node -e \"import('./js/prompts.js').then(m=>process.exit(Object.keys(m.EPILOGUE_SCHEMA.properties).sort().join()==='epilogue,success'?0:1))\""
+chk "러브 포인트를 먼저 보고 대화를 나중에 본다" "grep -q 'Decide from that' js/prompts.js && grep -q 'Never overturn a' js/prompts.js"
+chk "C는 두 성격만 받는다 — 외모도 취향도 안 받는다" "node -e \"import('./js/prompts.js').then(async m=>{const c=(await import('./js/couples.js')).COUPLES[0];const s=m.epilogueSystem(c,{look:'LOOK표식',personality:'PERS표식'});process.exit(s.includes('LOOK표식')||!s.includes('PERS표식')?1:0)})\""
+chk "성사 문턱이 코드에 없다" "! grep -qE 'threshold|성공선' js/points.js js/engine.js"
+
+echo
+echo "── 폐지된 것 (되살리면 실패한다) ──"
+# 주석은 보지 않는다. "이건 폐지됐다"고 적어둔 문장까지 걸리면 기록을 못 남긴다.
+# 여기서 잡으려는 건 **코드로 되살아난 것**이다.
+code(){ cat js/*.js | grep -vE '^[[:space:]]*(//|\*|/\*)'; }
+gone(){ if code | grep -qiE "$2"; then no "$1"; else ok "$1"; fi; }
+gone "무전이 없다" 'radio|무전|submitRadio'
+gone "지뢰·미공개 성향이 없다" '지뢰|hiddenPrefs|dossierPrefs|open: (true|false)'
+gone "공기(vibe)가 없다" 'vibe'
+gone "합(bout)·carry·첫인상 판정이 없다" 'BOUT\.|carryMax|firstImpression|applyBout'
+gone "등급·티어·호감 포화가 없다" 'TIER_BANDS|loveSaturation|gainScale|lossCushion|flutterRepeat'
+gone "강압·사망·자리이탈 판정이 없다" 'leverage|casualty|walkout|coerce'
+gone "난이도가 없다" 'DIFFICULTIES|diffOf|difficulty'
+gone "새로 드러난 것(revealed)·비밀 집계가 없다" 'revealed|surfacedSecrets|secretLeft'
+gone "어긋남·상대관심·공기읽기·명령수용 키워드가 없다" 'wreck:|keys\.wreck|WRECK_|keyReport|KEY_LABELS|interest:|comply:'
+chk "규칙 계층(scoring.js)이 통째로 사라졌다 — points.js가 대신한다" "test ! -f js/scoring.js && test -f js/points.js"
+chk "준비 3화면(미용실·취조실·정문)이 없다" "! grep -qE 'screen-salon|screen-interro|screen-gate|prepReaction' js/*.js index.html"
+chk "대면 상황 생성(situation)이 없다" "! grep -qE 'situationSystem|SITUATION_SCHEMA|runTalking' js/*.js"
 
 echo
 echo "── 세계관·수위 (압축에서 손실 금지) ──"
-chk "프롬프트 지시문 영어 · 출력 한국어 고정 (블록마다)" "grep -q 'output in Korean' js/prompts.js && test \$(grep -c '\${KO}' js/prompts.js) -ge 5"
-chk "추악한 기본값 — 이득이 기본" "grep -q 'default is profit' js/prompts.js"
-chk "임자 있는 사람도 뺏는다" "grep -q \"else's partner\" js/prompts.js"
-chk "훈계 금지" "grep -q 'DO NOT PLAY RIGHTEOUS' js/prompts.js"
-chk "성적 묘사 상한 제거 (페이드아웃 금지·신체 명명)" "grep -q 'No fade-to-black' js/prompts.js && grep -q 'Name the body' js/prompts.js"
-chk "장소·시점 제약 없음" "grep -q 'does not wait for a bedroom' js/prompts.js"
-chk "심판이 야한 전개를 같은 잣대로 잰다" "grep -q 'sexual is also correct operation' js/prompts.js"
-chk "성인만 등장한다" "grep -q 'adult' js/prompts.js && grep -q 'minor' js/prompts.js"
-chk "강압·협박까지 허가서에 명시된다 (압축 손실 금지)" "grep -q 'coercion and blackmail' js/prompts.js"
-chk "데이트 장소를 요원이 문자로 잡을 수 있다" "grep -q 'If a place was named and not refused' js/prompts.js"
-chk "장소의 위험이 실재한다 (허가서에 명시)" "grep -q 'hazards are real' js/prompts.js"
+chk "세계관 한 벌만 있고 넷이 공유한다" "grep -c 'export const WORLD' js/prompts.js | grep -q '^1$'"
+chk "수위 허가서가 살아 있다 (성인 B급, 미화 금지)" "grep -q 'DO NOT SANITIZE' js/prompts.js && grep -q 'THESE PEOPLE HAVE BODIES' js/prompts.js"
+chk "금지선 한 줄이 살아 있다 (실존 인물·미성년 금지)" "grep -q 'THE ONE LINE' js/prompts.js && grep -q 'could read as a minor' js/prompts.js"
+chk "출력 언어 고정이 블록마다 반복된다" "test \$(grep -c '\${KO}' js/prompts.js) -ge 4"
+chk "지시는 영어, 출력은 한국어" "grep -q 'Instructions are English. Output is Korean' js/prompts.js"
 
 echo
-echo "── 하네스·데이터 위생 ──"
-chk "의뢰 대장 40건 이상" "node -e \"import('./js/couples.js').then(m=>process.exit(m.COUPLES.length>=40?0:1))\""
-chk "합 판정이 완전 비동기다 — 대화가 심판을 기다리지 않는다 + 타임아웃 페일세이프" "grep -q 'drainJudge' js/engine.js && grep -q 'JUDGE_TIMEOUT_MS' js/engine.js"
-chk "페이즈 경계에서 합을 비운다" "grep -q 'flushBout' js/engine.js"
-chk "심판이 죽어도 중립(nudge)으로 흐른다" "grep -A5 'neutralJudge(reason)' js/engine.js | grep -q \"tier: 'nudge'\""
-chk "여캐 조형 보정" "grep -q 'spec.femme' js/avatar.js"
-chk "판정 수치가 플레이어에게 보인다 (합 카운터·포화)" "grep -q 'hud-bout' js/game.js && grep -q 'hud-sat' js/game.js"
-chk "effort·단가를 접두사로 잡는다 (날짜 붙은 id)" "node -e \"import('./js/llm.js').then(m=>process.exit(!m.supportsEffort('claude-haiku-4-5-20251001')&&m.priceOf('claude-haiku-4-5-20251001')[0]===1?0:1))\""
-chk "테스트 하네스는 하이쿠만 쓴다" "grep -q 'claude-haiku' tests/test-model.mjs"
-chk "업자는 키 접두사로 판별한다 (선택란 없음)" "node -e \"import('./js/llm.js').then(m=>process.exit(m.detectProvider('sk-ant-x')==='anthropic'&&m.detectProvider('sk-or-v1-x')==='openrouter'&&m.detectProvider('sk-proj-x')==='openai'&&m.detectProvider('아무말')===null?0:1))\"" 
-chk "부팅 화면에 업자 선택란이 없다" "! grep -qiE '<select[^>]*id=\"(provider|vendor)' index.html && grep -q 'key-provider' index.html"
-
-echo
-echo "── 밸런스 정책 (README ⚖️) ──"
-chk "기준선 = 손수 쓴 이상적 지시서(gold)가 아슬아슬 클리어" "test -f tests/ace-book.mjs && grep -q \"profile === 'gold'\" tests/live.mjs && grep -q '아슬아슬' README.md"
-chk "gold 지시서가 5커플 이상 채워져 있다" "node -e \"import('./tests/ace-book.mjs').then(m=>process.exit(Object.keys(m.ACE_BOOK).length>=5?0:1))\""
-chk "gold는 플레이어 가시 정보로만 — 미공개 성향 누출 없음" "node -e \"import('./tests/ace-book.mjs').then(async m=>{const c=await import('./js/couples.js');let bad=0;for(const id of Object.keys(m.ACE_BOOK)){const t=c.COUPLE_BY_ID[id].target;const blob=m.ACE_BOOK[id].coaching+' '+m.ACE_BOOK[id].speech;for(const p of t.prefs.filter(p=>!p.open))if(blob.includes(p.t))bad++;}process.exit(bad?1:0)})\""
-chk "지뢰가 커플당 정확히 3개, 상대 쪽에만 달린다" "node -e \"import('./js/couples.js').then(m=>process.exit(m.COUPLES.every(c=>c.target.prefs.filter(p=>p.neg).length===3&&!c.client.prefs.some(p=>p.neg))?0:1))\""
-chk "커플 간 중복 지뢰 0 — 복붙한 범용 지뢰가 없다" "node -e \"import('./js/couples.js').then(m=>{const s=new Set();for(const c of m.COUPLES)for(const p of c.target.prefs.filter(p=>p.neg)){if(s.has(p.t))process.exit(1);s.add(p.t)}process.exit(0)})\""
-chk "orientation 지뢰가 의뢰인이 밟을 것으로 개작됐다 (상황의 거울 → 의뢰인의 거울)" "node -e \"import('./js/couples.js').then(m=>{const n=m.COUPLES.find(c=>c.id==='orientation').target.prefs.filter(p=>p.neg).map(p=>p.t).join('|');process.exit(n.includes('말을 대신 끝내주는 것')&&n.includes('농담으로 넘기기')&&!n.includes('이혼 절차')?0:1)})\""
-chk "성공선이 gold 기준 정책을 명시한다" "grep -q '밸런스 정책' js/scoring.js"
-
-echo
-echo "── 절대 들어가면 안 되는 것 ──"
-chk "저장소 어디에도 실제 API 키 없음 (자리표시자는 허용)" "! grep -rnE 'sk-ant-api03-[A-Za-z0-9_-]{20,}|sk-(proj|svcacct|admin)-[A-Za-z0-9_-]{20,}|sk-or-v1-[A-Za-z0-9]{32,}|sk-[A-Za-z0-9]{32,}' --exclude-dir=.git ."
-chk "무전에 반항하라는 지시가 프롬프트에 없다" "! grep -niE 'rebel|disobey|refuse the order|defy|report (it|them) to|tell (someone|others|them) (about )?(the|that) (radio|order|threat)' js/prompts.js"
-chk "협박당한다고 남에게 이르라는 지시가 없다" "! grep -niE 'blow the whistle|tell (the )?(police|authorities)|expose (the )?(bureau|headquarters)' js/prompts.js"
-chk "거부 자체가 선택지가 아니다 (레버가 살아 있다)" "grep -q 'cannot refuse' js/prompts.js"
+echo "── 화면이 구조도를 그대로 그리는가 ──"
+chk "색 규약이 구조도 범례와 같다 (static·user·cached·once·code)" "grep -q -- '--tone-static' css/style.css && grep -q -- '--tone-cached' css/style.css && grep -q -- '--tone-once' css/style.css"
+chk "A·B 화면에 데이터 흐름 띠가 있다" "grep -c 'flow-diagram' index.html | grep -q '^2$'"
+chk "판정 원장에 증감 기호만 뜬다" "grep -q 'MARK\\[v.dMood\\]' js/game.js && ! grep -q 'judge-line' js/game.js"
+chk "계기판에 게이지가 둘뿐이다" "grep -c 'class=\"meter\"' index.html | grep -q '^2$'"
+chk "스크리닝 상세가 여덟 항목을 그린다" "grep -q 'fieldRows(c.client, .client.)' js/game.js && grep -q 'fieldRows(c.target, .target.)' js/game.js"
