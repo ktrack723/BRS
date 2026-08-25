@@ -46,7 +46,8 @@ const VIEWPORTS = [
   { name: '데스크톱',              w: 1500, h: 1000 },
 ].filter(v => !args.only || `${v.w}x${v.h}` === args.only);
 
-const SCREENS = ['boot', 'intro', 'roster', 'styling', 'coaching', 'chat', 'result'];
+// 'dossier'는 화면이 아니라 스크리닝 위에 뜨는 모달이다. show()가 특수 처리한다.
+const SCREENS = ['boot', 'intro', 'roster', 'dossier', 'styling', 'coaching', 'chat', 'result'];
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
 const server = http.createServer((rq, rs) => {
@@ -152,7 +153,7 @@ function poseScreens() {
 // ── 페이지 안에서 실행: 레이아웃 검사 ────────────────────
 function audit() {
   const vw = window.innerWidth;
-  const out = { overflowPage: 0, escaped: [], clipped: [], smallTargets: [], badCanvas: [], lowContrast: [] };
+  const out = { overflowPage: 0, escaped: [], clipped: [], spill: [], inlineBox: [], smallTargets: [], badCanvas: [], lowContrast: [] };
 
   const de = document.documentElement;
   out.overflowPage = Math.max(0, de.scrollWidth - de.clientWidth);
@@ -195,6 +196,38 @@ function audit() {
       && st.whiteSpace.startsWith('nowrap') && st.overflowX === 'visible'
       && el.scrollWidth > el.clientWidth + 1) {
       out.clipped.push({ el: label(el), need: `${el.scrollWidth}w`, has: `${el.clientWidth}w` });
+    }
+    // 겹침의 진짜 원인: padding·border를 가진 '박스' 스타일을 인라인 요소에 먹인 경우.
+    // 인라인은 세로 padding이 줄 높이에 안 잡힌다 → 배경 박스만 위아래로 커져서
+    // 바로 윗줄 글자를 덮는다. 부모 밖으로 삐져나오지도 않아 rect 비교로는 안 잡힌다.
+    if (st.display === 'inline' && el.textContent.trim().length > 1) {
+      const padY = parseFloat(st.paddingTop) + parseFloat(st.paddingBottom);
+      const bordY = parseFloat(st.borderTopWidth) + parseFloat(st.borderBottomWidth);
+      const painted = bordY > 0 || !/^(transparent|rgba\(0, 0, 0, 0\))$/.test(st.backgroundColor);
+      // 세로 padding이 범인이다. 테두리 1px짜리 인라인 배지(.dscore 등)는 정상이므로 세지 않는다.
+      if (padY > 2 && painted) {
+        out.inlineBox.push({ el: label(el), padY: Math.round(padY), bordY: Math.round(bordY) });
+      }
+    }
+    // 겹침: 자식 박스가 부모 아래로 삐져나온다 → 뒤따르는 내용을 덮는다.
+    // 전형적 원인은 padding·border를 가진 스타일을 <span>(인라인)에 먹인 경우다.
+    // 인라인은 세로 padding이 줄 높이에 안 잡혀서 박스만 커지고 부모는 안 커진다.
+    const par = el.parentElement;
+    if (par && par !== document.body) {
+      const pr = par.getBoundingClientRect();
+      const ps = getComputedStyle(par);
+      const spillBottom = Math.round(r.bottom - pr.bottom);
+      const positioned = st.position === 'absolute' || st.position === 'fixed' || st.position === 'sticky';
+      const clips = /auto|scroll|hidden/.test(ps.overflowY);
+      const negMargin = parseFloat(st.marginBottom) < 0 || parseFloat(st.marginTop) < 0;
+      // 접힌 <details>의 자식은 부모보다 큰 rect를 그대로 보고한다 — 겹침이 아니라 접힘이다
+      let inClosedDetails = false;
+      for (let n = el.parentElement; n; n = n.parentElement) {
+        if (n.tagName === 'DETAILS' && !n.open) { inClosedDetails = true; break; }
+      }
+      if (spillBottom > 3 && !positioned && !clips && !negMargin && !inClosedDetails && pr.height > 0) {
+        out.spill.push({ el: label(el), parent: label(par), over: spillBottom, display: st.display });
+      }
     }
     if (el.tagName === 'CANVAS') {
       if (r.width < 40 || r.height < 40) out.badCanvas.push({ el: label(el), size: `${Math.round(r.width)}x${Math.round(r.height)}` });
@@ -286,8 +319,17 @@ await page.evaluate(poseScreens);
 console.log(`\n📐 반응형 감사 — ${VIEWPORTS.length}개 뷰포트 × ${SCREENS.length}개 화면\n`);
 const show = async (name) => {
   await page.evaluate(n => {
-    document.querySelectorAll('.screen').forEach(s => s.classList.toggle('hidden', s.id !== 'screen-' + n));
+    const isModal = n === 'dossier';
+    const base = isModal ? 'roster' : n;
+    document.querySelectorAll('.screen').forEach(s => s.classList.toggle('hidden', s.id !== 'screen-' + base));
     document.body.classList.toggle('phase-talk', n === 'chat');
+    const dm = document.querySelector('#modal-dossier');
+    if (isModal) {
+      // 실제 경로 그대로 연다 — 마크업을 손으로 흉내 내면 회귀를 못 잡는다
+      const t = window.__game.COUPLES.find(c => c.id === 'gender-war') || window.__game.COUPLES[0];
+      [...document.querySelectorAll('.couple-card')]
+        .find(el => el.textContent.includes(t.client.name))?.querySelector('.cc-detail')?.click();
+    } else if (dm) dm.classList.add('hidden');
     window.scrollTo(0, 0);
   }, name);
   await page.waitForTimeout(90);   // 리사이즈/리렌더 안정화
@@ -304,6 +346,8 @@ for (const vp of VIEWPORTS) {
     if (a.overflowPage > 1) { issues.push(`가로스크롤 +${a.overflowPage}px`); problems.push({ vp: vp.name, screen: sc, kind: '가로 스크롤', detail: `+${a.overflowPage}px` }); }
     for (const e of a.escaped.slice(0, 4)) { issues.push(`이탈 ${e.el}(+${e.over})`); problems.push({ vp: vp.name, screen: sc, kind: '뷰포트 이탈', detail: `${e.el} +${e.over}px` }); }
     for (const e of a.clipped.slice(0, 4)) { issues.push(`잘림 ${e.el}`); problems.push({ vp: vp.name, screen: sc, kind: '내용 잘림', detail: `${e.el} ${e.need}⊂${e.has}` }); }
+    for (const e of a.inlineBox.slice(0, 4)) { issues.push(`인라인박스 ${e.el}`); problems.push({ vp: vp.name, screen: sc, kind: '인라인 박스 (윗줄 덮음)', detail: `${e.el} display:inline + 세로 padding ${e.padY}px/테두리 ${e.bordY}px` }); }
+    for (const e of a.spill.slice(0, 4)) { issues.push(`겹침 ${e.el}(+${e.over})`); problems.push({ vp: vp.name, screen: sc, kind: '박스 겹침', detail: `${e.el} ⊄ ${e.parent} +${e.over}px (display:${e.display})` }); }
     for (const e of a.smallTargets.slice(0, 4)) { issues.push(`터치 ${e.el}(${e.h}px)`); problems.push({ vp: vp.name, screen: sc, kind: '터치 타깃 <40px', detail: `${e.el} ${e.h}px` }); }
     for (const e of a.badCanvas) { issues.push(`캔버스 ${e.size}`); problems.push({ vp: vp.name, screen: sc, kind: '캔버스 이상', detail: `${e.el} ${e.size}` }); }
     for (const e of a.lowContrast.slice(0, 3)) { issues.push(`명암 ${e.ratio}:1`); problems.push({ vp: vp.name, screen: sc, kind: '명암비 미달', detail: `"${e.txt}" ${e.ratio}:1 ${e.color}` }); }
