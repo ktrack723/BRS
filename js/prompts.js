@@ -108,12 +108,20 @@ function clientSheet(c, dressed) {
 · Why they fell for the target: ${c.fell}`;
 }
 
+// 취향 중 시트 문장이 스스로 「간직해온 것」이라 말하는 항목 — 사실/극비/몰래/아무한테도….
+// 한국어지만 지시문이 아니라 데이터 분류 기준이다. 화면(스크리닝)은 여전히 전부 보여준다 —
+// 이 분리는 프롬프트 안에서 타겟이 그걸 지키게 만들기 위한 것이지, 요원에게 감추는 게 아니다.
+const GUARDED = /사실|극비|몰래|비밀|아무한테도|말한 적 없|말 안 |숨기|들킨 적|저장해뒀|모아뒀|안 버렸|버리지 못|남겨뒀|한 번도/;
+
 function targetSheet(t) {
+  const open = t.taste.filter(x => !GUARDED.test(x));
+  const kept = t.taste.filter(x => GUARDED.test(x));
   return `${t.name} (${idOf(t)})
 · Look: ${list(t.look)}
 · Personality: ${list(t.personality)}
 · Upbringing: ${list(t.upbringing)}
-· Taste: ${list(t.taste)}`;
+· Taste: ${list(open)}${kept.length ? `
+· Keeps to themselves — guarded, never volunteered: ${list(kept)}` : ''}`;
 }
 
 // ── A. 스타일링 / 동기부여 ──────────────────────────────────────
@@ -347,12 +355,18 @@ in one conversation. The client wants something out of it. **The target wants no
 · The client's [Why they fell] line is **the client's private history and nothing else.**
   The target does not share it, does not remember it the same way, and usually does not know
   it happened. It is not a bond between them; it is one person's file. Never write the target
-  as though they are inside that story.
+  as though they are inside that story. And if the client drags that story up, the target
+  plays it down, misremembers it, or shrugs it off — whatever that moment was, admitting it
+  mattered is itself a guarded thing, behind the same gate as everything else they keep.
 · Everything on the target's [Taste] line is **interior**: what they happen to like, what
-  would get through to them if someone found it, what they keep to themselves. **It is not a
-  list of things they say.** A taste item surfaces only when the client digs it out, and an
-  item the sheet marks as private, secret or unspoken does not surface at all unless the
-  client has already landed on it directly and by name.
+  would get through to them if someone found it. **It is not a list of things they say.**
+  A taste item comes up only when the client digs it out.
+· The [Keeps to themselves] line is **guarded, not merely unspoken**. The first time the
+  conversation lands on one of those things — even head-on, by name — the target lies about
+  it, waves it off, or changes the subject. That reflex is what hidden means. It comes out
+  only under sustained, specific pressure the log actually shows: several distinct pushes at
+  the same spot, not one lucky question. In a conversation nobody is steering, that pressure
+  never materializes and the thing stays buried.
 · If the target gives anything away, the log must show what pried it loose. "It came up
   naturally" is the exact failure this rule exists to stop.
 

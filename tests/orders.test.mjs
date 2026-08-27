@@ -157,6 +157,39 @@ test('러브 포인트는 C에만 간다 — 대화하는 쪽도 심판도 점�
   assert.ok(!/\b77\b/.test(B2), '심판에 점수 값이 새어 들어갔다');
 });
 
+// ── 간직 항목: 시트가 감춰뒀다고 말하는 취향은 따로 갈라 싣는다 ──
+test('표지 있는 취향은 「간직」 줄로 가고 Taste 줄에서는 빠진다', async () => {
+  const { COUPLE_BY_ID } = await import('../js/couples.js');
+  const d = { look: 'x', personality: 'y' };
+  const cases = [
+    ['os-war', 'WSL'],
+    ['vtuber', '3년 전에 알아챘다'],
+    ['sauce-war', '혼자 먹을 땐 부어 먹는다'],
+  ];
+  for (const [id, secret] of cases) {
+    const sheet = P.talkSystem(COUPLE_BY_ID[id], d, '');
+    const tasteLine = sheet.match(/· Taste: [^\n]*/)[0];
+    const keptLine = (sheet.match(/· Keeps to themselves[^\n]*/) || [''])[0];
+    assert.ok(keptLine.includes(secret), `${id}의 비밀이 간직 줄에 없다`);
+    assert.ok(!tasteLine.includes(secret), `${id}의 비밀이 Taste 줄에 그대로 있다`);
+  }
+  // 표지 없는 합성 커플은 간직 줄 자체가 안 생긴다
+  // 지시문은 라벨을 항상 언급하므로 시트 줄(· 접두) 형태로만 본다
+  assert.ok(!/· Keeps to themselves/.test(P.talkSystem(couple, dressed, '')),
+    '표지가 없는데 간직 줄이 생겼다');
+});
+
+test('간직 항목도 어디까지나 재배치다 — 항목이 사라지지는 않는다', async () => {
+  const { COUPLES } = await import('../js/couples.js');
+  const d = { look: 'x', personality: 'y' };
+  for (const c of COUPLES) {
+    const sheet = P.talkSystem(c, d, '');
+    for (const item of c.target.taste) {
+      assert.ok(sheet.includes(item), `${c.id}의 취향 「${item.slice(0, 20)}…」이 시트에서 사라졌다`);
+    }
+  }
+});
+
 // ── 폐지된 축이 프롬프트로 되살아나지 않았는가 ──────────
 test('폐지된 시스템 용어가 프롬프트에 없다 — 한글 이름도 영어 이름도', () => {
   // 스키마도 프롬프트다 (구조화 출력이 막히면 시스템 프롬프트에 통째로 붙는다).

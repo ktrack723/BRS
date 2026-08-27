@@ -1523,9 +1523,8 @@ export const COUPLES = [
       taste: [
         "수율 이야기",
         "방송 다시보기 타임스탬프",
-        "목소리가 중년 남자인 걸 3년 전에 알아챘다",
-        "알고도 후원 금액을 늘렸다",
-        "그 사실을 아무한테도 말한 적 없다",
+        "사실 목소리가 중년 남자인 걸 3년 전에 알아챘다",
+        "알고도 후원 금액을 늘렸다 — 아무한테도 말한 적 없다",
       ],
       spec: {"skin":"#f2ddc2","hair":"#26221e","hairStyle":"spiky","top":"#d8e4f0","bottom":"#2f3a48","shoes":"#8a8a90","heightScale":1,"widthScale":0.96,"accessory":"glasses","accessoryColor":"#111111","expression":"happy","aura":"sparkle","species":"human"},
     },
