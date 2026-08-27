@@ -113,7 +113,18 @@ function clientSheet(c, dressed) {
 // 이 분리는 프롬프트 안에서 타겟이 그걸 지키게 만들기 위한 것이지, 요원에게 감추는 게 아니다.
 const GUARDED = /사실|극비|몰래|비밀|아무한테도|말한 적 없|말 안 |숨기|들킨 적|저장해뒀|모아뒀|안 버렸|버리지 못|남겨뒀|한 번도/;
 
-function targetSheet(t) {
+// splitGuarded — 간직 항목을 따로 줄로 가를지. **B-1(대화 생성)만 켠다.**
+// 숨김/공개의 차이는 「타겟이 알아서 꺼내느냐」 하나뿐이고 그건 생성의 일이다.
+// 심판(B-2)은 구분 없는 평평한 목록을 받는다 — 심판이 구분을 받으면 비밀에 닿은
+// 구간을 더 큰 사건으로 읽는 두 번째 차이가 생긴다. 그런 보너스 채널은 두지 않는다.
+function targetSheet(t, { splitGuarded = false } = {}) {
+  if (!splitGuarded) {
+    return `${t.name} (${idOf(t)})
+· Look: ${list(t.look)}
+· Personality: ${list(t.personality)}
+· Upbringing: ${list(t.upbringing)}
+· Taste: ${list(t.taste)}`;
+  }
   const open = t.taste.filter(x => !GUARDED.test(x));
   const kept = t.taste.filter(x => GUARDED.test(x));
   return `${t.name} (${idOf(t)})
@@ -398,7 +409,7 @@ scene moving. If it should die, let it die on the table.
 ${clientSheet(c, dressed)}
 
 [TARGET]
-${targetSheet(t)}
+${targetSheet(t, { splitGuarded: true })}
 
 ${voiceBlock(couple)}
 [HQ COACHING — went into the client's ear only]

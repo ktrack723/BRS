@@ -179,6 +179,15 @@ test('표지 있는 취향은 「간직」 줄로 가고 Taste 줄에서는 빠�
     '표지가 없는데 간직 줄이 생겼다');
 });
 
+test('심판은 간직/공개 구분을 못 받는다 — 차이는 대화 생성 안에서만 존재한다', async () => {
+  const { COUPLE_BY_ID } = await import('../js/couples.js');
+  const c = COUPLE_BY_ID['os-war'];
+  const j = P.judgeSystem(c, { look: 'x', personality: 'y' });
+  assert.ok(!/· Keeps to themselves/.test(j), '심판 시트에 간직 줄이 생겼다 — 비밀 보너스 채널이다');
+  const tasteLine = j.match(/· Taste: [^\n]*/)[0];
+  assert.ok(tasteLine.includes('WSL'), '심판의 Taste 줄에 비밀 항목이 빠졌다 — 심판은 전부 평평하게 본다');
+});
+
 test('간직 항목도 어디까지나 재배치다 — 항목이 사라지지는 않는다', async () => {
   const { COUPLES } = await import('../js/couples.js');
   const d = { look: 'x', personality: 'y' };
