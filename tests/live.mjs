@@ -54,33 +54,36 @@ const AGENT_SCHEMA = {
 
 function screeningText(c) {
   const rows = (who, person) => P.SCREEN_FIELDS[who]
-    .map(f => `  · ${f.label}: ${Array.isArray(person[f.key]) ? person[f.key].join(' / ') : person[f.key]}`)
+    .map(f => `  · ${f.en}: ${Array.isArray(person[f.key]) ? person[f.key].join(' / ') : person[f.key]}`)
     .join('\n');
-  return `[고객] ${c.client.name} (${P.idOf(c.client)})
+  return `[CLIENT] ${c.client.name} (${P.idOf(c.client)})
 ${rows('client', c.client)}
-[타겟] ${c.target.name} (${P.idOf(c.target)})
+[TARGET] ${c.target.name} (${P.idOf(c.target)})
 ${rows('target', c.target)}`;
 }
 
-const AGENT_SYSTEM = `너는 큐피드국의 베테랑 공작요원이다. 스크리닝 정보를 읽고 세 가지를 쓴다.
-셋 다 채점되지 않는다. 그대로 대화 프롬프트에 주입되어 실제 대화 행동을 바꿀 뿐이다.
-그러니 "잘 보이게 쓰는 글"이 아니라 "그 인간이 실제로 그렇게 행동하게 만드는 문장"을 써라.
+const AGENT_SYSTEM = `You are a veteran Bureau of Cupid field operative. You read the screening sheet
+and write three things. None of them is scored — each is injected verbatim into the conversation
+prompt and changes what the client actually does. So do not write to look good; write the sentence
+that makes that person behave that way.
 
-- styling: 고객의 **외모**를 통째로 덮어쓴다. 타겟 취향에 실제로 닿는 꼴로. 3~5개 항목.
-- motivation: 고객의 **성격**을 통째로 덮어쓴다. 어떤 인간으로 그 자리에 앉을지를 정하는 문장이다.
-- coaching: 고객에게만 들어가는 명령. 타겟 취향은 고객이 모르므로 **여기에 직접 적어야** 안다.
-  무엇을 꺼내고 무엇을 하지 말지, 8문장 이내, 명령형. 만날 장소도 여기서 정할 수 있다.
+- styling: overwrites the client's **look** wholesale. Aim it at the target's taste. 3-5 items.
+- motivation: overwrites the client's **personality** wholesale. It decides who sits down at that table.
+- coaching: an order the client alone hears. The client does not know the target's taste, so it
+  only reaches them if you **write it out here**. What to raise, what to avoid. Imperative, 8
+  sentences at most. You can also fix where they meet.
 
-러브 포인트가 어떻게 오르는지 알아둬라. 대화가 잘 굴러가는 건 0이다.
-회사원은 하루에 열두 번 대화하고 그중 아무하고도 사랑에 빠지지 않는다.
-점수는 동료가 일으킬 수 없는 일에만 붙는다 — 이 사람이라서 닿은 말,
-주제가 아니라 사람 쪽으로 내려간 방어선, 자리를 안 끝내려고 붙잡는 몸짓.
-한국어로 쓴다.`;
+Know how LOVE moves. A conversation going well is worth zero. An office worker has a dozen
+conversations a day and falls in love with none of them. It only moves for what a colleague could
+not have caused — a line that landed because it was this person, a guard dropped toward the person
+instead of the topic, a move to keep the evening from ending.
+
+Write all three in Korean.`;
 
 async function aceOrders(llm, c) {
   return llm.call({
     label: `[요원AI] ${c.id}`, system: AGENT_SYSTEM,
-    messages: [{ role: 'user', content: screeningText(c) + '\n\n세 가지를 써라.' }],
+    messages: [{ role: 'user', content: screeningText(c) + '\n\nWrite the three.' }],
     schema: AGENT_SCHEMA, effort: 'medium', maxTokens: 6000,
   });
 }
@@ -109,15 +112,24 @@ async function playOne(coupleId, profile) {
     : profile === 'good' ? goodOrders(c)
       : EMPTY;
 
-  // A. 스타일링 / 동기부여 — 주문이 있을 때만 부른다 (화면과 같은 동작)
-  let styled = null;
-  if ((orders.styling || '').trim() || (orders.motivation || '').trim()) {
-    styled = await llm.call({
-      label: `A · ${c.id}`, system: P.STYLING_SYSTEM,
-      messages: [{ role: 'user', content: P.stylingUser(c, c.client.spec, orders) }],
-      schema: P.STYLING_SCHEMA, effort: 'low', maxTokens: 6000,
-    }).catch(() => null);
-  }
+  // A. 스타일링 / 동기부여 — 칸마다 한 호출. 주문이 있을 때만 부른다 (화면과 같은 동작)
+  const styled = { look: null, personality: null };
+  const [look, persona] = await Promise.all([
+    (orders.styling || '').trim()
+      ? llm.call({
+        label: `A-1 · ${c.id}`, system: P.STYLING_SYSTEM,
+        messages: [{ role: 'user', content: P.stylingUser(c, c.client.spec, orders.styling) }],
+        schema: P.STYLING_SCHEMA, effort: 'low', maxTokens: 6000,
+      }).catch(() => null) : null,
+    (orders.motivation || '').trim()
+      ? llm.call({
+        label: `A-2 · ${c.id}`, system: P.MOTIVATION_SYSTEM,
+        messages: [{ role: 'user', content: P.motivationUser(c, orders.motivation) }],
+        schema: P.MOTIVATION_SCHEMA, effort: 'low', maxTokens: 6000,
+      }).catch(() => null) : null,
+  ]);
+  styled.look = look?.look || null;
+  styled.personality = persona?.personality || null;
   const dressed = dressOf(c.client, styled);
 
   const engine = new Engine(llm, { couple: c, dressed, coaching: orders.coaching, handlers: {} });
@@ -157,7 +169,7 @@ async function worker() {
       results.push(r);
       console.log(`  ${r.success ? '💘' : r.broken ? '💥' : '💔'} ${String(++done).padStart(2)}/${results.length + jobs.length}`
         + ` ${job.id.padEnd(16)} ${job.p.padEnd(5)}`
-        + ` 러브 ${String(r.love).padStart(3)} · 무드 ${String(r.mood).padStart(3)}`
+        + ` 러브 ${String(r.love).padStart(2)}/${POINTS.loveMax} · 무드 ${String(r.mood).padStart(2)}/${POINTS.moodMax}`
         + ` · 러브 판정 ▲${r.loveUp} ▼${r.loveDown} / ${r.beats}구간`);
     } catch (e) {
       done++;
@@ -185,7 +197,8 @@ const allUp = ok.reduce((n, r) => n + r.loveUp, 0);
 const allDown = ok.reduce((n, r) => n + r.loveDown, 0);
 console.log(`\n러브 판정 분포 — ▲ ${allUp} · ▼ ${allDown} · ─ ${allMarks - allUp - allDown} (총 ${allMarks}구간)`);
 console.log(`  ▲ 비율 ${(allUp / allMarks * 100).toFixed(0)}% — 20~35%면 건강하다. 60%를 넘으면 심판이 도장을 찍고 있는 것이다.`);
-console.log(`시작값: 러브 ${POINTS.loveStart} · 무드 ${POINTS.moodStart} · 한 걸음 ${POINTS.loveStep}/${POINTS.moodStep}`);
+console.log(`눈금: 러브 ${POINTS.loveStart}→0..${POINTS.loveMax} · 무드 ${POINTS.moodStart}→0..${POINTS.moodMax}`
+  + ` · 무드 ▲/▼ 한 칸 · 러브 ▼ 한 칸, ▲ 1~4칸 (달아오름 ≥${POINTS.moodHot} +1, 연속 +${POINTS.loveStreak.at(-1)}까지)`);
 
 fs.mkdirSync(OUT.replace(/\/[^/]+$/, ''), { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify(results, null, 1));

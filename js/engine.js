@@ -18,7 +18,7 @@
 // 새로 드러난 것 · 난이도. 전부 폐지됐다.
 
 import * as P from './prompts.js';
-import { BEAT, PHASES, RADIO, initialPoints, applyVerdict, isBroken } from './points.js';
+import { BEAT, PHASES, RADIO, initialPoints, applyVerdict, isBroken, loveOutOf100 } from './points.js';
 
 /** 스타일링/동기부여를 거친 고객 시트. 시공을 안 했으면 테이블 값이 그대로 시트가 된다. */
 export function dressOf(client, styled) {
@@ -164,7 +164,7 @@ export class Engine {
       const last = this.points.history.at(-1);
       await this.h.verdict?.({
         phase: ph.key, phaseLabel: ph.label, beat, beats: ph.beats,
-        dMood: last.dMood, dLove: last.dLove,
+        dMood: last.dMood, dLove: last.dLove, step: last.step,
         mood: Math.round(this.points.mood), love: Math.round(this.points.love),
       });
       this.h.points?.(this.snapshot());
@@ -270,26 +270,29 @@ export class Engine {
   // ── C. 후일담 ─────────────────────────────────────────
   async finish() {
     const love = Math.round(this.points.love);
+    // 안쪽 눈금은 0..20이지만 C가 읽는 눈금은 0..100이다 (points.js의 loveOutOf100 참고).
+    // 환산은 여기서 한 번만 하고, 후일담 프롬프트는 한 글자도 모른다.
+    const reading = loveOutOf100(love);
     const transcript = this.fullTranscript();
     let out;
     try {
       out = await this.llm.call({
         label: '후일담 생성',
         system: P.epilogueSystem(this.couple, this.dressed),
-        messages: [{ role: 'user', content: P.epilogueUser(this.couple, love, transcript) }],
+        messages: [{ role: 'user', content: P.epilogueUser(this.couple, reading, transcript) }],
         schema: P.EPILOGUE_SCHEMA, effort: 'medium', maxTokens: 6000,
       });
     } catch {
       // 후일담이 안 와도 러브 포인트는 이미 나와 있다. 성사 여부만 숫자로 떨어뜨린다.
       out = {
-        success: love >= 60,
+        success: reading >= 60,
         epilogue: '(기록관이 자리를 비웠다. 후일담은 남지 않았다.)',
       };
     }
     return {
       success: !!out.success,
       epilogue: out.epilogue || '',
-      love, mood: Math.round(this.points.mood),
+      love, reading, mood: Math.round(this.points.mood),
       broken: this.points.broken,
       points: this.points, couple: this.couple, dressed: this.dressed,
       transcript,

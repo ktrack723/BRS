@@ -83,16 +83,17 @@
       <div id="roster-cards" class="roster"></div>
     </section>
 
-    <!-- A. 스타일링 / 동기부여 -->
+    <!-- A-1. 미용실 — 스타일링 (고객 외모) -->
     <section id="screen-styling" class="screen hidden">
       <div class="prep-head">
-        <span class="prep-step">A</span>
-        <h2 class="section-title" id="styling-title">스타일링 / 동기부여</h2>
-        <p class="section-sub">여기서 쓴 두 문장이 <b>고객 외모</b>와 <b>고객 성격</b>을 덮어쓴다. 채점은 없다 — 시트가 바뀔 뿐이다.</p>
+        <span class="prep-step">A-1</span>
+        <h2 class="section-title" id="styling-title">미용실 · 스타일링</h2>
+        <p class="section-sub">여기서 쓴 문장이 <b>고객 외모</b>를 덮어쓴다. 채점은 없다 — 시트가 바뀔 뿐이다.
+          <b>성격은 여기서 안 건드린다</b> — 취조실 몫이고, 이 방은 그걸 보지도 않는다.</p>
       </div>
       <div class="prep-grid">
         <div class="prep-left">
-          <div class="stage-wrap panel95" data-title="시공대 · 3D 재구성"><span class="win-status">2인</span>
+          <div class="stage-wrap panel95" data-title="큐피드국 미용실 · 3D 재구성"><span class="win-status">2인</span>
             <div class="stage-label">◀ 고객 ─── 참고용 타겟 ▶</div>
             <canvas id="stage-styling" class="stage-canvas"></canvas>
           </div>
@@ -101,11 +102,11 @@
         <div class="prep-right">
           <div class="panel95 flow-card" data-title="이 화면이 하는 일">
             <div class="flow-diagram">
-              <span class="fl user">스타일링 / 동기부여 내용</span>
+              <span class="fl user">스타일링 내용</span>
               <span class="fl plus">+</span>
-              <span class="fl static">고객 외모 / 성격</span>
+              <span class="fl static">고객 외모</span>
               <span class="fl arrow">▶</span>
-              <span class="fl cached">수정된 고객 외모 &amp; 성격</span>
+              <span class="fl cached">수정된 고객 외모</span>
             </div>
           </div>
           <div class="panel95 prep-card" data-title="스타일링 — 고객 외모">
@@ -113,16 +114,54 @@
               <b>폭탄이든 후광이든 등에 멘 기타든</b> 도형으로 조립해 붙인다. 이 꼴은 <b>토킹 페이즈에서 타겟이 직접 본다.</b></p>
             <textarea id="styling-input" rows="3" placeholder="예: 형광 주황 염색, 새빨간 턱시도, 등에 폭탄, 머리 위에 도는 금색 고리"></textarea>
           </div>
+          <button id="btn-styling" class="btn95 big" type="button">가위 넣는다 · 외모 갱신</button>
+          <div id="styling-react" class="react-box"></div>
+          <div id="styling-result" class="react-box"></div>
+          <div class="prep-nav">
+            <button id="btn-styling-back" class="btn95" type="button">◀ 스크리닝으로</button>
+            <button id="btn-styling-next" class="btn95 big" type="button">취조실 ▶</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- A-2. 취조실 — 동기부여 (고객 성격). 시공은 여기서 확정된다 -->
+    <section id="screen-motivation" class="screen hidden">
+      <div class="prep-head">
+        <span class="prep-step">A-2</span>
+        <h2 class="section-title" id="motivation-title">취조실 · 동기부여</h2>
+        <p class="section-sub">여기서 쓴 문장이 <b>고객 성격</b>을 덮어쓴다. 형광등 하나, 의자 하나, 앉아 있는 건 고객이다.
+          <b>외모는 여기서 안 건드린다</b> — 미용실 몫이고, 이 방은 그걸 보지도 않는다.</p>
+      </div>
+      <div class="prep-grid">
+        <div class="prep-left">
+          <div class="stage-wrap panel95" data-title="지하 3층 취조실 · 감시 카메라 2"><span class="win-status">1인</span>
+            <div class="stage-label">피조사자 ─ 고객</div>
+            <canvas id="stage-motivation" class="stage-canvas"></canvas>
+          </div>
+          <details class="panel95 prep-dossier" data-title="스크리닝 정보"><summary>여덟 항목 열람</summary><div id="motivation-dossier"></div></details>
+        </div>
+        <div class="prep-right">
+          <div class="panel95 flow-card" data-title="이 화면이 하는 일">
+            <div class="flow-diagram">
+              <span class="fl user">동기부여 내용</span>
+              <span class="fl plus">+</span>
+              <span class="fl static">고객 성격</span>
+              <span class="fl arrow">▶</span>
+              <span class="fl cached">수정된 고객 성격</span>
+            </div>
+          </div>
           <div class="panel95 prep-card" data-title="동기부여 — 고객 성격">
             <p class="prep-hint">고객이 <b>어떤 인간으로 이 자리에 나가는가</b>를 다시 쓴다. 겁을 주든, 자신감을 주입하든,
               없던 신념을 심든 상관없다. 여기 적힌 성격이 그대로 대화 프롬프트의 고객 시트가 된다.</p>
             <textarea id="motivation-input" rows="3" placeholder="예: 오늘 안 되면 벌금 800만원이라고 못박아라. 지고는 못 사는 성질을 끝까지 끌어올려라"></textarea>
           </div>
-          <button id="btn-styling" class="btn95 big" type="button">시공 개시 · 시트 갱신</button>
-          <div id="styling-result" class="react-box"></div>
+          <button id="btn-motivation" class="btn95 big" type="button">주입한다 · 성격 갱신</button>
+          <div id="motivation-react" class="react-box"></div>
+          <div id="motivation-result" class="react-box"></div>
           <div class="prep-nav">
-            <button id="btn-styling-back" class="btn95" type="button">◀ 스크리닝으로</button>
-            <button id="btn-styling-next" class="btn95 big" type="button">코칭 하달 ▶</button>
+            <button id="btn-motivation-back" class="btn95" type="button">◀ 미용실로</button>
+            <button id="btn-motivation-next" class="btn95 big" type="button">코칭 하달 ▶</button>
           </div>
         </div>
       </div>
@@ -164,8 +203,10 @@
             <textarea id="coaching-input" rows="7" placeholder="예: 상대는 녹슨 것의 색 얘기를 좋아한다. 그 얘기부터 꺼내라. 네 규정 조항 암송은 절대 하지 마라. 만날 곳은 새벽 폐자재 야적장으로 잡아라"></textarea>
             <div id="coaching-inject" class="eval-result"></div>
           </div>
+          <button id="btn-coaching" class="btn95 big" type="button">하달한다 · 반응 확인</button>
+          <div id="coaching-react" class="react-box"></div>
           <div class="prep-nav">
-            <button id="btn-coaching-back" class="btn95" type="button">◀ 스타일링으로</button>
+            <button id="btn-coaching-back" class="btn95" type="button">◀ 취조실로</button>
             <button id="btn-start-op" class="btn95 big danger" type="button">작전 개시</button>
           </div>
         </div>
@@ -185,13 +226,13 @@
             <div class="meter">
               <span class="meter-name">무드 포인트</span>
               <div class="meter-bar"><div id="meter-mood-fill" class="meter-fill mood"></div></div>
-              <span id="meter-mood-num" class="meter-num">50</span>
+              <span id="meter-mood-num" class="meter-num">8/12</span>
             </div>
             <p class="meter-note">자리가 굴러가는가. <b>0이 되면 그 자리는 거기서 끝난다.</b></p>
             <div class="meter">
               <span class="meter-name">러브 포인트</span>
               <div class="meter-bar"><div id="meter-love-fill" class="meter-fill love"></div></div>
-              <span id="meter-love-num" class="meter-num">12</span>
+              <span id="meter-love-num" class="meter-num">2/12</span>
             </div>
             <p class="meter-note">타겟이 고객을 원하게 됐는가. <b>후일담이 읽는 유일한 숫자다.</b></p>
             <h4 class="hud-h">판정 원장 <span class="dim">— 심판이 내보내는 건 증감 여부뿐이다</span></h4>

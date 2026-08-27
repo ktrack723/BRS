@@ -35,32 +35,53 @@ const dressed = { look: M.dlook, personality: M.dpers };
 const orders = { styling: M.style, motivation: M.motiv };
 
 // 네 프롬프트를 한 번씩 만들어 둔다. 이게 이 게임이 보내는 전부다.
-const A = P.STYLING_SYSTEM + '\n' + P.stylingUser(couple, { species: 'human' }, orders);
+const A1 = P.STYLING_SYSTEM + '\n' + P.stylingUser(couple, { species: 'human' }, M.style);
+const A2 = P.MOTIVATION_SYSTEM + '\n' + P.motivationUser(couple, M.motiv);
+const A = A1 + '\n' + A2;
 const B1 = P.talkSystem(couple, dressed, M.coach) + '\n'
   + P.talkUser(couple, 'text', 1, 4) + '\n' + P.talkUser(couple, 'talk', 2, 5);
 // 무전이 실린 판. 무전은 system이 아니라 이 user 메시지에만 실린다.
 const B1R = P.talkUser(couple, 'talk', 3, 5, M.radio);
 const B2 = P.judgeSystem(couple, dressed) + '\n' + P.judgeUser(couple, '이전대화', '이번대화');
 const C = P.epilogueSystem(couple, dressed) + '\n' + P.epilogueUser(couple, 77, '대화전문표식');
+// R은 구조도 밖이다. 주문 하나와 고객 테이블 시트만 받고, 출력은 어디로도 안 간다.
+const R = Object.keys(P.REACT_ROOMS).map(k =>
+  P.reactSystem(couple, k) + '\n' + P.reactUser(k, M.coach)).join('\n');
 
 const has = (hay, needle) => hay.includes(needle);
 
-// ── A. 스타일링 / 동기부여 ───────────────────────────────
-test('A는 유저의 두 주문과 고객의 테이블 외모·성격을 받는다', () => {
-  for (const k of ['style', 'motiv', 'clook', 'cpers']) {
-    assert.ok(has(A, M[k]), `A에 ${k}가 안 실렸다`);
-  }
+// ── A. 스타일링 / 동기부여 — 한 상자, 두 호출 ────────────
+test('A-1 미용실은 스타일링 주문과 테이블 외모를 받는다', () => {
+  assert.ok(has(A1, M.style), 'A-1에 스타일링 주문이 안 실렸다');
+  assert.ok(has(A1, M.clook), 'A-1에 테이블 외모가 안 실렸다');
 });
 
-test('A는 타겟을 한 글자도 보지 않는다 — 시공은 고객 시트만 건드린다', () => {
+test('A-1은 성격을 보지 않는다 — 미용실은 사람을 안 고친다', () => {
+  assert.ok(!has(A1, M.cpers), 'A-1에 고객 성격이 새어 들어갔다');
+  assert.ok(!has(A1, M.motiv), 'A-1에 동기부여 주문이 새어 들어갔다');
+});
+
+test('A-2 취조실은 동기부여 주문과 테이블 성격을 받는다', () => {
+  assert.ok(has(A2, M.motiv), 'A-2에 동기부여 주문이 안 실렸다');
+  assert.ok(has(A2, M.cpers), 'A-2에 테이블 성격이 안 실렸다');
+});
+
+test('A-2는 외모를 보지 않는다 — 취조실은 옷을 안 고친다', () => {
+  assert.ok(!has(A2, M.clook), 'A-2에 고객 외모가 새어 들어갔다');
+  assert.ok(!has(A2, M.style), 'A-2에 스타일링 주문이 새어 들어갔다');
+  assert.ok(!/AVATAR SPEC/.test(A2), 'A-2에 조형 스펙이 새어 들어갔다');
+});
+
+test('A는 어느 쪽도 타겟을 한 글자도 보지 않는다', () => {
   for (const k of ['tlook', 'tpers', 'tup', 'ttaste']) {
     assert.ok(!has(A, M[k]), `A에 타겟 ${k}가 새어 들어갔다`);
   }
   assert.ok(!has(A, M.coach), 'A에 코칭이 새어 들어갔다');
 });
 
-test('A의 출력은 수정된 외모와 성격 둘뿐이다 (+ 렌더링용 스펙)', () => {
-  assert.deepEqual(Object.keys(P.STYLING_SCHEMA.properties).sort(), ['look', 'personality', 'spec']);
+test('A의 출력은 칸마다 하나씩이다 — 외모(+조형) / 성격', () => {
+  assert.deepEqual(Object.keys(P.STYLING_SCHEMA.properties).sort(), ['look', 'spec']);
+  assert.deepEqual(Object.keys(P.MOTIVATION_SCHEMA.properties).sort(), ['personality']);
 });
 
 // ── B-1. 대화 생성 ───────────────────────────────────────
@@ -91,7 +112,7 @@ test('코칭은 B-1에만 실린다', () => {
 test('코칭이 비면 그 사실이 그대로 전달된다 — 조용히 채워 넣지 않는다', () => {
   const empty = P.talkSystem(couple, dressed, '');
   assert.ok(!has(empty, M.coach));
-  assert.ok(/없음/.test(empty), '코칭 없음이 명시되지 않는다');
+  assert.ok(/\(none — nobody briefed the client/.test(empty), '코칭 없음이 명시되지 않는다');
 });
 
 // ── B-2. 판정 ────────────────────────────────────────────
@@ -128,20 +149,32 @@ test('C는 외모도 취향도 성장환경도 보지 않는다', () => {
 });
 
 test('러브 포인트는 C에만 간다 — 대화하는 쪽도 심판도 점수를 모른다', () => {
-  assert.ok(!/러브 포인트/.test(B1), 'B-1이 러브 포인트를 안다');
+  // 라벨을 영어로 옮겼으므로 두 표기를 다 막는다. 한쪽만 보면 통과가 공허해진다.
+  const POINTS_WORD = /러브 포인트|무드 포인트|\blove\b|\bmood\b|love[- ]point|mood[- ]point/i;
+  assert.ok(!POINTS_WORD.test(B1), 'B-1이 점수 축을 안다');
   assert.ok(!/\b77\b/.test(B1), 'B-1에 점수가 새어 들어갔다');
+  assert.ok(POINTS_WORD.test(B2), 'B-2가 판정할 축의 이름을 모른다');
+  assert.ok(!/\b77\b/.test(B2), '심판에 점수 값이 새어 들어갔다');
 });
 
 // ── 폐지된 축이 프롬프트로 되살아나지 않았는가 ──────────
-test('폐지된 시스템 용어가 프롬프트에 없다', () => {
-  const all = A + B1 + B2 + C + P.WORLD;
+test('폐지된 시스템 용어가 프롬프트에 없다 — 한글 이름도 영어 이름도', () => {
+  // 스키마도 프롬프트다 (구조화 출력이 막히면 시스템 프롬프트에 통째로 붙는다).
+  const all = [A, B1, B2, C, R, P.WORLD,
+    ...['STYLING', 'MOTIVATION', 'TALK', 'JUDGE', 'EPILOGUE', 'REACT']
+      .map(k => JSON.stringify(P[`${k}_SCHEMA`]))].join('\n');
+  // 한글 이름만 막아두면 영어로 되살아나는 것을 못 잡는다. 둘 다 적는다.
   const DEAD = [
-    '지뢰', '강압', '어긋남', '공기 읽기', '미공개', '성공선', '난이도',
-    'leverage', 'walkout', 'casualty', 'breakthrough', 'carryMax', 'loveDelta', 'keepGoing',
-    'firstImpression', 'outfitDesc',
+    // 무전은 이 목록에 없다 — 되살아났다. 아래 「무전」 절이 그 규칙을 대신 지킨다.
+    /지뢰/, /\blandmines?\b/i, /미공개/, /\bundisclosed\b/i, /hidden pref/i,
+    /강압/, /\bcoerc/i, /\bleverage\b/i,
+    /어긋남/, /\bwreck\b/i, /공기 읽기/, /read the room/i, /sense the air/i,
+    /성공선/, /success line/i, /난이도/, /\bdifficulty\b/i,
+    /\bwalkout\b/i, /\bcasualt/i, /\bbreakthrough\b/i, /\bvibe\b/i,
+    /carryMax/, /loveDelta/, /keepGoing/, /firstImpression/, /outfitDesc/,
   ];
-  for (const w of DEAD) {
-    assert.ok(!all.includes(w), `폐지된 「${w}」가 프롬프트에 남아 있다`);
+  for (const re of DEAD) {
+    assert.ok(!re.test(all), `폐지된 「${re.source}」가 프롬프트에 남아 있다`);
   }
 });
 
@@ -155,12 +188,13 @@ test('무전은 B-1의 user 메시지에만 실린다 — system도 판정도 �
   assert.ok(!has(B2, M.radio), '무전이 판정에 새어 들어갔다 — 요원이 쓴 글은 채점되지 않는다');
   assert.ok(!has(C, M.radio), '무전이 후일담에 새어 들어갔다');
   assert.ok(!has(A, M.radio), '무전이 시공에 새어 들어갔다');
+  assert.ok(!has(R, M.radio), '무전이 준비 단계 반응에 새어 들어갔다');
 });
 
 test('무전이 없으면 그 자리에 아무것도 안 붙는다', () => {
   assert.equal(P.talkUser(couple, 'talk', 3, 5), P.talkUser(couple, 'talk', 3, 5, ''));
   assert.equal(P.talkUser(couple, 'talk', 3, 5), P.talkUser(couple, 'talk', 3, 5, '   '));
-  assert.ok(!has(B1, '본부 무전'), '무전을 안 때렸는데 무전 블록이 붙었다');
+  assert.ok(!has(B1, 'HQ RADIO'), '무전을 안 때렸는데 무전 블록이 붙었다');
 });
 
 test('무전은 조언이 아니라 반드시 이행되는 명령이다', () => {
@@ -173,8 +207,13 @@ test('무전은 조언이 아니라 반드시 이행되는 명령이다', () => 
 
 test('무전도 코칭과 같은 자리로 간다 — 타겟은 못 듣는다', () => {
   const block = P.radioOrder(M.radio);
-  assert.ok(/고객의 이어폰/.test(block), '무전이 고객에게 간다는 말이 없다');
-  assert.ok(/타겟 heard nothing/.test(block), '타겟이 못 듣는다는 못이 빠졌다');
+  assert.ok(/client's earpiece/.test(block), '무전이 고객에게 간다는 말이 없다');
+  assert.ok(/The target heard nothing/.test(block), '타겟이 못 듣는다는 못이 빠졌다');
+});
+
+test('명령받았다고 고객이 갑자기 유능해지지는 않는다', () => {
+  assert.ok(/does not make them good at it/.test(P.radioOrder(M.radio)),
+    '무전이 고객의 시트를 덮어써 버린다');
 });
 
 test('무전은 점수를 모른다 — 게이지도 판정도 실리지 않는다', () => {
@@ -182,7 +221,89 @@ test('무전은 점수를 모른다 — 게이지도 판정도 실리지 않는�
   assert.ok(!/러브 포인트|무드 포인트|love point|mood point/i.test(block));
 });
 
-test('보내는 스키마는 넷뿐이다', () => {
+test('보내는 스키마는 하이어아키 넷 + 반응 하나뿐이다', () => {
   const schemas = Object.keys(P).filter(k => k.endsWith('_SCHEMA'));
-  assert.deepEqual(schemas.sort(), ['EPILOGUE_SCHEMA', 'JUDGE_SCHEMA', 'STYLING_SCHEMA', 'TALK_SCHEMA']);
+  assert.deepEqual(schemas.sort(),
+    ['EPILOGUE_SCHEMA', 'JUDGE_SCHEMA', 'MOTIVATION_SCHEMA', 'REACT_SCHEMA', 'STYLING_SCHEMA', 'TALK_SCHEMA']);
+});
+
+// ── R. 준비 단계 반응 — 구조도 밖이므로 아무것도 물어오면 안 된다 ──
+test('R은 방 셋뿐이다 — 스타일링 · 동기부여 · 코칭', () => {
+  assert.deepEqual(Object.keys(P.REACT_ROOMS).sort(), ['coaching', 'motivation', 'styling']);
+});
+
+test('R은 고객의 **테이블** 시트만 받는다 — 시공된 시트가 아니다', () => {
+  for (const k of ['clook', 'cpers', 'cup']) {
+    assert.ok(has(R, M[k]), `R에 고객 ${k}가 없다`);
+  }
+  // 부정 단언만 두면 공허하다 — reactSystem 이 애초에 시공물을 받을 자리가 없어야 한다.
+  assert.equal(P.reactSystem.length, 2, 'reactSystem이 인자를 더 받는다 — 시공된 시트가 들어올 자리가 생겼다');
+  assert.equal(P.reactUser.length, 2, 'reactUser가 인자를 더 받는다');
+  assert.ok(!has(R, M.dlook), 'R에 시공된 외모가 새어 들어갔다 — 반응은 시공 전에 나온다');
+  assert.ok(!has(R, M.dpers), 'R에 동기부여된 성격이 새어 들어갔다');
+});
+
+test('R은 타겟을 한 글자도 보지 않는다', () => {
+  for (const k of ['tlook', 'tpers', 'tup', 'ttaste']) {
+    assert.ok(!has(R, M[k]), `R에 타겟 ${k}가 새어 들어갔다`);
+  }
+});
+
+test('R의 출력은 대사와 표정 둘뿐이다 — 점수도 판정도 없다', () => {
+  assert.deepEqual(Object.keys(P.REACT_SCHEMA.properties).sort(), ['face', 'reaction']);
+});
+
+test('R은 방마다 주문을 하나씩만 본다', () => {
+  const only = P.reactSystem(couple, 'styling') + '\n' + P.reactUser('styling', M.style);
+  assert.ok(has(only, M.style), 'R에 스타일링 주문이 안 실렸다');
+  assert.ok(!has(only, M.motiv), 'R에 다른 방의 주문이 새어 들어갔다');
+  assert.ok(!has(only, M.coach), 'R에 코칭이 새어 들어갔다');
+});
+
+// ── 지시는 영어다 ──────────────────────────────────────
+// 데이터가 전부 ASCII인 인물로 프롬프트를 만들면, 남는 한글은 전부 **지시문**이다.
+test('다섯 프롬프트의 지시문에 한글이 한 글자도 없다', () => {
+  const ascii = {
+    id: 'ascii', category: 'audit',
+    client: {
+      name: 'Kay', gender: 'F', look: ['tall'], personality: ['loud'],
+      upbringing: ['40 / clerk', 'grew up in a mall'], fell: 'the hat',
+      spec: { species: 'human' },
+    },
+    target: {
+      name: 'Ro', gender: 'M', look: ['thin'], personality: ['dry'],
+      upbringing: ['41 / welder', 'raised by a crane'], taste: ['rust'],
+      spec: { species: 'human' },
+    },
+  };
+  const d = { look: 'a red suit', personality: 'a coward' };
+  const built = {
+    'A-1': P.STYLING_SYSTEM + P.stylingUser(ascii, { species: 'human' }, 'x'),
+    'A-2': P.MOTIVATION_SYSTEM + P.motivationUser(ascii, 'y'),
+    'A-1(주문없음)': P.stylingUser(ascii, { species: 'human' }, ''),
+    'A-2(주문없음)': P.motivationUser(ascii, ''),
+    'B-1': P.talkSystem(ascii, d, 'z') + P.talkUser(ascii, 'text', 1, 4) + P.talkUser(ascii, 'talk', 2, 5),
+    'B-1(코칭없음)': P.talkSystem(ascii, d, ''),
+    'B-1(마지막 구간)': P.talkUser(ascii, 'talk', 4, 4),
+    'B-1(무전)': P.talkUser(ascii, 'text', 1, 4, 'go') + P.talkUser(ascii, 'talk', 3, 5, 'go'),
+    'B-2': P.judgeSystem(ascii, d) + P.judgeUser(ascii, '', 'seg'),
+    'B-2(앞대화 있음)': P.judgeUser(ascii, 'prior', 'seg'),
+    C: P.epilogueSystem(ascii, d) + P.epilogueUser(ascii, 77, 'log'),
+    R: Object.keys(P.REACT_ROOMS).map(k => P.reactSystem(ascii, k) + P.reactUser(k, 'q')).join(''),
+    'R(주문없음)': Object.keys(P.REACT_ROOMS).map(k => P.reactUser(k, '')).join(''),
+    // 스키마도 모형에게 간다 — 구조화 출력이 막히면 시스템 프롬프트에 통째로 붙는다.
+    스키마: ['STYLING', 'MOTIVATION', 'TALK', 'JUDGE', 'EPILOGUE', 'REACT']
+      .map(k => JSON.stringify(P[`${k}_SCHEMA`])).join(''),
+  };
+  for (const [name, text] of Object.entries(built)) {
+    // 한글 전 영역 — 조합 자모 · 호환 자모 · 확장 A · 음절 · 반각까지 전부 본다.
+    const HANGUL = /[\u1100-\u11ff\u3130-\u318f\ua960-\ua97f\uac00-\ud7ff\uffa0-\uffdc]/g;
+    const han = [...new Set(text.match(HANGUL) || [])];
+    assert.deepEqual(han, [], `${name} 지시문에 한글이 남아 있다: ${han.join('')}`);
+  }
+});
+
+test('그래도 출력 언어 고정은 다섯 블록 전부에 붙어 있다', () => {
+  const KO = /Output is Korean|output in Korean/;
+  for (const t of [A, B1, B2, C, R]) assert.ok(KO.test(t), '출력 언어 고정이 빠진 블록이 있다');
 });
