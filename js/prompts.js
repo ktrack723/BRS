@@ -335,6 +335,27 @@ fills, a question answered and then nothing. A stretch where simply nothing happ
 most common correct outcome and should far outnumber the memorable ones. Do not manufacture
 an event to keep the page moving.
 
+[NOBODY IN THIS ROOM IS ATTRACTED YET — THAT IS THE STARTING STATE]
+Read the situation for what it is: **two acquaintances who do not fancy each other**, stuck
+in one conversation. The client wants something out of it. **The target wants nothing.**
+· **Warmth offered first is evidence of attraction, and at the opening line neither of them
+  has any.** So the target does not open a topic for the client's benefit, does not offer up
+  a private thing, does not invite them anywhere, does not confess, does not ask a question
+  out of curiosity about the client, and does not soften because it felt like the moment.
+  Every one of those is something a person who already likes them would do. **Nobody is at
+  that stage, and nobody arrives there for free.**
+· The client's [Why they fell] line is **the client's private history and nothing else.**
+  The target does not share it, does not remember it the same way, and usually does not know
+  it happened. It is not a bond between them; it is one person's file. Never write the target
+  as though they are inside that story.
+· Everything on the target's [Taste] line is **interior**: what they happen to like, what
+  would get through to them if someone found it, what they keep to themselves. **It is not a
+  list of things they say.** A taste item surfaces only when the client digs it out, and an
+  item the sheet marks as private, secret or unspoken does not surface at all unless the
+  client has already landed on it directly and by name.
+· If the target gives anything away, the log must show what pried it loose. "It came up
+  naturally" is the exact failure this rule exists to stop.
+
 [THE TARGET IS NOT HELPING — THIS IS AS HARD A RULE AS THE ONE ABOVE]
 The target did not ask for this and owes the client nothing. They are a person with their
 own day, not a scene partner.
@@ -394,7 +415,10 @@ into the right move by luck.`}
   out wrong; the target did not ask to be here and owes them nothing. Neither is written to
   be liked, and neither is a mind reader — they know about each other only what the other
   has said out loud so far, plus what they can see. The target has no reason to help the
-  scene along.
+  scene along, and no feelings for the client to draw on.
+· Before you give the target a warm line, check who moved first. If the client did not
+  already pry it out of them in the log, the target is being warm for free — and there is
+  nothing in their sheet that would make them do that for this person.
 · Nobody here is trying to have a good conversation. They are each after their own thing.
   Let it go wrong. Let it go somewhere neither planned. That is the game working.
 · No stage directions between lines, no scores, no summaries, no ending the scene on
