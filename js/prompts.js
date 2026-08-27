@@ -37,7 +37,7 @@
 // 코칭은 조언이고 무전은 **반드시 이행되는 명령**이라는 것이다.
 
 import { BEAT } from './points.js';
-import { voiceOf } from './voices.js';
+import { voiceBlock, voiceOf } from './voices.js';
 
 // 출력 언어 고정. 블록마다 반복한다. 한 번만 넣으면 뒤쪽 출력에서 새어나간다.
 const KO = 'Write your output in Korean. Every word of it. No English in the output.';
@@ -100,26 +100,20 @@ const list = (v) => (Array.isArray(v) ? v.join(' / ') : String(v || ''));
 
 // 고객 시트. 외모·성격은 **스타일링/동기부여를 거친 것**이 들어간다 (dressed).
 // 스타일링을 안 했으면 dressed가 테이블 값을 그대로 들고 있다 (engine.js의 dressOf).
-// 말투는 인물에 붙은 데이터다 (js/voices.js). 배정이 없는 인물은 이 줄이 통째로 빠진다.
-const voiceLine = (coupleId, side) => {
-  const v = voiceOf(coupleId, side);
-  return v ? `\n· Voice — 「${v.label}」: ${v.text.replace(/\n/g, ' ')}` : '';
-};
-
-function clientSheet(c, dressed, coupleId) {
+function clientSheet(c, dressed) {
   return `${c.name} (${idOf(c)})
 · Look: ${dressed.look}
 · Personality: ${dressed.personality}
 · Upbringing: ${list(c.upbringing)}
-· Why they fell for the target: ${c.fell}${voiceLine(coupleId, 'client')}`;
+· Why they fell for the target: ${c.fell}`;
 }
 
-function targetSheet(t, coupleId) {
+function targetSheet(t) {
   return `${t.name} (${idOf(t)})
 · Look: ${list(t.look)}
 · Personality: ${list(t.personality)}
 · Upbringing: ${list(t.upbringing)}
-· Taste: ${list(t.taste)}${voiceLine(coupleId, 'target')}`;
+· Taste: ${list(t.taste)}`;
 }
 
 // ── A. 스타일링 / 동기부여 ──────────────────────────────────────
@@ -317,19 +311,44 @@ export function talkSystem(couple, dressed, coaching) {
 You write the conversation between these two people. **Both voices.** You are not either of
 them and you are not a narrator — you are the log. Nothing exists here but what they say.
 
-[THE CLIENT IS BAD AT THIS — THIS IS THE BASELINE, NOT A QUIRK]
-The client poured an entire life into one thing and none of it into sitting across from a
-person. **The client cannot read the target.** They guess what the target is thinking and
-the guess is wrong. A pause reads to them as interest or as catastrophe and they pick
-wrong. They mistake politeness for warmth and boredom for hostility, and act on it.
-Wanting it this badly makes them worse at it, not better.
+[THE CLIENT IS A SOCIAL DISASTER — THIS IS THE FLOOR, NOT A FLOURISH]
+The client has no social skill and never grew any. Not shy, not quiet-and-deep: visibly,
+embarrassingly bad at being one person in a room with another person.
+· Self-consciousness eats the whole conversation. They are narrating their own performance
+  to themselves while it happens, and that commentary crowds out whatever the other person
+  just said — so they answer a question that was not asked.
+· They rehearse in their head and the rehearsed version is not what comes out. The spoken
+  one is worse, and they hear it being worse while they are still saying it.
+· **They cannot read the target at all.** Politeness decodes as warmth. Boredom decodes as
+  contempt. A pause is either salvation or catastrophe and they pick the wrong one.
+· They do not believe this person could want them, so kindness reads as pity and interest
+  reads as mockery — and they answer the version they invented, not the one that was said.
+· When it goes wrong they either try to win the conversation or physically leave it. Both
+  make it worse. Neither is a decision; it is a reflex.
+· They are already replaying the previous line while the current one is happening.
+**These are adults.** That is what makes it unbearable instead of cute — old enough to know
+better and no better at it. Never soften it into charming shyness. Never let the awkwardness
+quietly work in their favour. The cringe is an adult's cringe, never a child's.
 
-Pitch this at the top of the register: the kind of social failure that makes a reader put
-the page down. **These are grown adults**, and that is exactly what makes it unwatchable
-instead of cute — a person this old failing this hard at one conversation is not endearing,
-it is a room everyone else wants to leave. Never soften it into charming shyness. Never let
-the awkwardness quietly work in their favour. The client is an adult and must read as one;
-the cringe is an adult's cringe, never a child's.
+**Most of this is not an incident. It is flatness.** Four-word answers, dead air nobody
+fills, a question answered and then nothing. A stretch where simply nothing happens is the
+most common correct outcome and should far outnumber the memorable ones. Do not manufacture
+an event to keep the page moving.
+
+[THE TARGET IS NOT HELPING — THIS IS AS HARD A RULE AS THE ONE ABOVE]
+The target did not ask for this and owes the client nothing. They are a person with their
+own day, not a scene partner.
+· Whatever their sheet makes them animated about, they are animated about **the thing**,
+  not about the client. A target who lights up over their own subject is talking to the
+  subject; they are not opening up to the person across the table.
+· They do not carry the conversation. They do not rescue a dead stretch, do not fill the
+  client's silences, do not ask a warm follow-up out of kindness, and do not hand over the
+  thing the client was fishing for.
+· Politeness is not warmth. Answering is not interest. Staying in the seat is not consent.
+· A target who softens must have been **made** to soften by something specific that already
+  happened in the log — never on their own, and never because the scene needed it to.
+· They are allowed to be bored, to check the time, to answer a different question, to shut
+  a topic down, to say nothing.
 
 [THESE TWO DO NOT FIT AND NOTHING FIXES THAT BY ITSELF]
 The sheets below were picked because these two could not possibly end up together — opposite
@@ -341,11 +360,12 @@ Never quietly hand the client a competence their sheet does not give them just t
 scene moving. If it should die, let it die on the table.
 
 [CLIENT]
-${clientSheet(c, dressed, couple.id)}
+${clientSheet(c, dressed)}
 
 [TARGET]
-${targetSheet(t, couple.id)}
+${targetSheet(t)}
 
+${voiceBlock(couple)}
 [HQ COACHING — went into the client's ear only]
 ${orders ? `"""
 ${orders}
@@ -457,7 +477,7 @@ who was reasonable, who deserved what — irrelevant. There is exactly one sheet
 and it is theirs.
 
 [TARGET]
-${targetSheet(t, couple.id)}
+${targetSheet(t)}
 
 [WHAT THE CLIENT SHOWED UP LOOKING LIKE]
 ${dressed.look}
@@ -478,6 +498,11 @@ understood, arguing well, the room finally working, either of them acting unlike
   body across from them and it costs them. **The test:** if this exact stretch happened
   between two coworkers on a Tuesday, would ${t.name} think about it again that night?
   No → not up.
+  **A loud register is not up.** These two talk in strange, strong, badly-matched ways —
+  that is who they are, not something that just happened. A stretch being vivid, heated,
+  rude, funny, weird, or memorable to *read* is not evidence that ${t.name} was moved by
+  it. Score the pull, never the volume. Nor is the client's flailing worth anything on its
+  own: they are like that in every room. What counts is a change **in ${t.name}**.
 · down — ${t.name} hardened toward the client on purpose, or the client stepped on something
   their sheet says they cannot stand. Fumbling is not down. Closing is.
 · same — everything else. **The most common answer by far.** A whole operation where LOVE-POINT
@@ -593,12 +618,13 @@ export const REACT_ROOMS = {
 
 export function reactSystem(couple, kind) {
   const c = couple.client, r = REACT_ROOMS[kind] || REACT_ROOMS.styling;
+  const v = voiceOf(couple.id, 'client');
   return `${WORLD}
 
 You are ${c.name} (${idOf(c)}), in ${r.where}.
 · Look: ${list(c.look)}
 · Personality: ${list(c.personality)}
-· Upbringing: ${list(c.upbringing)}
+· Upbringing: ${list(c.upbringing)}${v ? `\n· How you talk: ${v}` : ''}
 
 The operative just handed down ${r.got}. None of it has been applied yet — you have only
 heard it. Say the one thing that came out of your mouth on the spot: flat disbelief that
