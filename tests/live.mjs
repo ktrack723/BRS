@@ -167,7 +167,7 @@ async function worker() {
       results.push(r);
       console.log(`  ${r.success ? '💘' : r.broken ? '💥' : '💔'} ${String(++done).padStart(2)}/${results.length + jobs.length}`
         + ` ${job.id.padEnd(16)} ${job.p.padEnd(5)}`
-        + ` 러브 ${String(r.love).padStart(3)} · 무드 ${String(r.mood).padStart(3)}`
+        + ` 러브 ${String(r.love).padStart(2)}/${POINTS.loveMax} · 무드 ${String(r.mood).padStart(2)}/${POINTS.moodMax}`
         + ` · 러브 판정 ▲${r.loveUp} ▼${r.loveDown} / ${r.beats}구간`);
     } catch (e) {
       done++;
@@ -195,7 +195,8 @@ const allUp = ok.reduce((n, r) => n + r.loveUp, 0);
 const allDown = ok.reduce((n, r) => n + r.loveDown, 0);
 console.log(`\n러브 판정 분포 — ▲ ${allUp} · ▼ ${allDown} · ─ ${allMarks - allUp - allDown} (총 ${allMarks}구간)`);
 console.log(`  ▲ 비율 ${(allUp / allMarks * 100).toFixed(0)}% — 20~35%면 건강하다. 60%를 넘으면 심판이 도장을 찍고 있는 것이다.`);
-console.log(`시작값: 러브 ${POINTS.loveStart} · 무드 ${POINTS.moodStart} · 한 걸음 ${POINTS.loveStep}/${POINTS.moodStep}`);
+console.log(`눈금: 러브 ${POINTS.loveStart}→0..${POINTS.loveMax} · 무드 ${POINTS.moodStart}→0..${POINTS.moodMax}`
+  + ` · 무드 ▲/▼ 한 칸 · 러브 ▼ 한 칸, ▲ 1~4칸 (달아오름 ≥${POINTS.moodHot} +1, 연속 +${POINTS.loveStreak.at(-1)}까지)`);
 
 fs.mkdirSync(OUT.replace(/\/[^/]+$/, ''), { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify(results, null, 1));
