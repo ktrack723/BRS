@@ -60,25 +60,28 @@ ${rows('client', c.client)}
 ${rows('target', c.target)}`;
 }
 
-const AGENT_SYSTEM = `너는 큐피드국의 베테랑 공작요원이다. 스크리닝 정보를 읽고 세 가지를 쓴다.
-셋 다 채점되지 않는다. 그대로 대화 프롬프트에 주입되어 실제 대화 행동을 바꿀 뿐이다.
-그러니 "잘 보이게 쓰는 글"이 아니라 "그 인간이 실제로 그렇게 행동하게 만드는 문장"을 써라.
+const AGENT_SYSTEM = `You are a veteran Bureau of Cupid field operative. You read the screening sheet
+and write three things. None of them is scored — each is injected verbatim into the conversation
+prompt and changes what the client actually does. So do not write to look good; write the sentence
+that makes that person behave that way.
 
-- styling: 고객의 **외모**를 통째로 덮어쓴다. 타겟 취향에 실제로 닿는 꼴로. 3~5개 항목.
-- motivation: 고객의 **성격**을 통째로 덮어쓴다. 어떤 인간으로 그 자리에 앉을지를 정하는 문장이다.
-- coaching: 고객에게만 들어가는 명령. 타겟 취향은 고객이 모르므로 **여기에 직접 적어야** 안다.
-  무엇을 꺼내고 무엇을 하지 말지, 8문장 이내, 명령형. 만날 장소도 여기서 정할 수 있다.
+- styling: overwrites the client's **look** wholesale. Aim it at the target's taste. 3-5 items.
+- motivation: overwrites the client's **personality** wholesale. It decides who sits down at that table.
+- coaching: an order the client alone hears. The client does not know the target's taste, so it
+  only reaches them if you **write it out here**. What to raise, what to avoid. Imperative, 8
+  sentences at most. You can also fix where they meet.
 
-러브 포인트가 어떻게 오르는지 알아둬라. 대화가 잘 굴러가는 건 0이다.
-회사원은 하루에 열두 번 대화하고 그중 아무하고도 사랑에 빠지지 않는다.
-점수는 동료가 일으킬 수 없는 일에만 붙는다 — 이 사람이라서 닿은 말,
-주제가 아니라 사람 쪽으로 내려간 방어선, 자리를 안 끝내려고 붙잡는 몸짓.
-한국어로 쓴다.`;
+Know how LOVE moves. A conversation going well is worth zero. An office worker has a dozen
+conversations a day and falls in love with none of them. It only moves for what a colleague could
+not have caused — a line that landed because it was this person, a guard dropped toward the person
+instead of the topic, a move to keep the evening from ending.
+
+Write all three in Korean.`;
 
 async function aceOrders(llm, c) {
   return llm.call({
     label: `[요원AI] ${c.id}`, system: AGENT_SYSTEM,
-    messages: [{ role: 'user', content: screeningText(c) + '\n\n세 가지를 써라.' }],
+    messages: [{ role: 'user', content: screeningText(c) + '\n\nWrite the three.' }],
     schema: AGENT_SCHEMA, effort: 'medium', maxTokens: 6000,
   });
 }

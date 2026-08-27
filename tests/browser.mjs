@@ -109,6 +109,9 @@ function installMockLlm() {
         ],
       };
     }
+    if (label.startsWith('R ·')) {
+      return { reaction: '…진짜로 이걸 하라고요? (의자를 반 뼘 뒤로 민다) 합니다. 합니다만 이건 아니라고 봅니다.', face: 'cringe' };
+    }
     if (label.includes('후일담')) {
       return {
         success: true,
@@ -234,14 +237,29 @@ try {
   await shot('04-dossier');
   await page.click('#dossier-take');
 
-  // ── A. 스타일링 / 동기부여 ─────────────────────────────
-  console.log('\n✂️  A · 스타일링 / 동기부여');
+  // ── A-1. 미용실 · 스타일링 ─────────────────────────────
+  console.log('\n✂️  A-1 · 미용실 (스타일링)');
   await page.waitForSelector('#screen-styling:not(.hidden)', { timeout: ms(10000) });
   const specBefore = await page.evaluate(() => structuredClone(window.__game.state.clientSpec));
   await page.fill('#styling-input', '형광 주황 염색, 새빨간 턱시도, 등에 폭탄, 머리 위에 도는 금색 고리');
-  await page.fill('#motivation-input', '오늘 안 되면 벌금 800만원이라고 못박아라. 지고는 못 사는 성질을 끝까지 끌어올려라');
   await page.click('#btn-styling');
+  await page.waitForSelector('#styling-react .react-line', { timeout: ms(120000) });
+  const salonReact = await page.textContent('#styling-react');
+  check('주문을 내리면 고객이 그 자리에서 대꾸한다', salonReact.trim().length > 8);
+  check('반응이 시공을 대신하지 않는다 (아직 시트는 그대로)',
+    await page.evaluate(() => window.__game.state.styled === null));
+  await shot('05-salon');
+  await page.click('#btn-styling-next');
+
+  // ── A-2. 취조실 · 동기부여 (시공이 확정되는 자리) ───────
+  console.log('\n🔦 A-2 · 취조실 (동기부여)');
+  await page.waitForSelector('#screen-motivation:not(.hidden)', { timeout: ms(10000) });
+  await page.fill('#motivation-input', '오늘 안 되면 벌금 800만원이라고 못박아라. 지고는 못 사는 성질을 끝까지 끌어올려라');
+  await page.click('#btn-motivation');
   await page.waitForFunction(() => window.__game.state.styled !== null, null, { timeout: ms(120000) });
+  await page.waitForSelector('#motivation-react .react-line', { timeout: ms(120000) });
+  const interroReact = await page.textContent('#motivation-react');
+  check('취조실에서도 고객이 대꾸한다', interroReact.trim().length > 8);
   const specAfter = await page.evaluate(() => structuredClone(window.__game.state.clientSpec));
   check('시공이 아바타 스펙을 바꾼다', JSON.stringify(specBefore) !== JSON.stringify(specAfter));
   const styled = await page.evaluate(() => window.__game.state.styled);
@@ -254,8 +272,8 @@ try {
     const props = await page.evaluate(() => window.__game.state.clientSpec.props.length);
     check('자유 도형이 붙는다 (폭탄·후광)', props === 2, `${props}개`);
   }
-  await shot('05-styling');
-  await page.click('#btn-styling-next');
+  await shot('06-interro');
+  await page.click('#btn-motivation-next');
 
   // ── B 준비. 코칭 ───────────────────────────────────────
   console.log('\n🎧 B · 코칭 하달');
@@ -269,7 +287,10 @@ try {
   await page.waitForTimeout(60);
   const inject = await page.textContent('#coaching-inject');
   check('코칭이 프롬프트에 어떻게 박히는지 그대로 보여준다', inject.includes(COACH) && inject.includes('본부 코칭'));
-  await shot('06-coaching');
+  await page.click('#btn-coaching');
+  await page.waitForSelector('#coaching-react .react-line', { timeout: ms(120000) });
+  check('코칭에도 고객이 대꾸한다', (await page.textContent('#coaching-react')).trim().length > 8);
+  await shot('07-coaching');
   await page.click('#btn-start-op');
 
   // ── B. 텍스팅 & 토킹 ───────────────────────────────────
@@ -335,7 +356,17 @@ try {
     check('생성 system이 판 내내 동일하다 (캐시가 붙는 자리)', sysSet.size === 1, `${sysSet.size}종`);
     const labels = new Set(calls.map(c => c.label.replace(/\d+/g, 'N')));
     check('구조도에 없는 호출이 없다',
-      [...labels].every(l => /본부 인증|A ·|대화 생성|판정|후일담/.test(l)), [...labels].join(' / '));
+      [...labels].every(l => /본부 인증|A ·|R ·|대화 생성|판정|후일담/.test(l)), [...labels].join(' / '));
+    const react = calls.filter(c => c.label.startsWith('R ·'));
+    check('주문 셋마다 반응을 한 번씩 물어본다', react.length === 3, `${react.length}회`);
+    const targetName = await page.evaluate(() => window.__game.state.couple.target.name);
+    check('반응 프롬프트는 타겟을 안 본다',
+      react.every(c => !c.system.includes(targetName)));
+    check('시공은 두 주문을 모아 한 번만 돈다',
+      calls.filter(c => c.label.startsWith('A ·')).length === 1);
+    const reactLine = (await page.textContent('#coaching-react')).replace(/\s+/g, ' ').trim().slice(-24);
+    check('고객의 대꾸는 어느 프롬프트에도 실리지 않는다',
+      [...gen, ...judge, ...epilogue].every(c => !c.system.includes(reactLine)));
   }
 
   // 재착수

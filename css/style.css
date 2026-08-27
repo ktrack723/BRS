@@ -504,7 +504,7 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 .diff-inline { font-size: var(--fs-sm); padding: 1px var(--s2); border: 1px solid; }
 
 /* ══════════════════════════════════════════════════════════
-   작전 준비 — 미용실 · 취조실 · 정문 세 화면 공용
+   작전 준비 — 미용실 · 취조실 · 코칭 세 화면 공용
    ══════════════════════════════════════════════════════════ */
 .prep-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.04fr); gap: var(--s3); align-items: start; }
 .prep-left, .prep-right { min-width: 0; }
@@ -536,6 +536,13 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
   padding: var(--s2) var(--s3); min-height: 26px; font-size: var(--fs-sm);
   margin-top: var(--s2);
 }
+/* 주문을 받은 고객이 그 자리에서 한 말. 점수도 아니고 어디로 흘러가지도 않는다 */
+.react-line { display: block; }
+.react-who {
+  display: block; font-size: var(--fs-xs); font-weight: 700;
+  color: var(--file); letter-spacing: .04em; margin-bottom: 2px;
+}
+.react-who small { font-weight: 400; color: var(--ink-mid); letter-spacing: 0; }
 
 .stage-wrap { position: relative; padding: var(--s1); container-type: inline-size; }
 .stage-label { text-align: center; font-size: var(--fs-xs); color: var(--ink-mid); padding-bottom: 2px; }

@@ -40,6 +40,9 @@ const B1 = P.talkSystem(couple, dressed, M.coach) + '\n'
   + P.talkUser(couple, 'text', 1, 4) + '\n' + P.talkUser(couple, 'talk', 2, 5);
 const B2 = P.judgeSystem(couple, dressed) + '\n' + P.judgeUser(couple, '이전대화', '이번대화');
 const C = P.epilogueSystem(couple, dressed) + '\n' + P.epilogueUser(couple, 77, '대화전문표식');
+// R은 구조도 밖이다. 주문 하나와 고객 테이블 시트만 받고, 출력은 어디로도 안 간다.
+const R = Object.keys(P.REACT_ROOMS).map(k =>
+  P.reactSystem(couple, k) + '\n' + P.reactUser(k, M.coach)).join('\n');
 
 const has = (hay, needle) => hay.includes(needle);
 
@@ -89,7 +92,7 @@ test('코칭은 B-1에만 실린다', () => {
 test('코칭이 비면 그 사실이 그대로 전달된다 — 조용히 채워 넣지 않는다', () => {
   const empty = P.talkSystem(couple, dressed, '');
   assert.ok(!has(empty, M.coach));
-  assert.ok(/없음/.test(empty), '코칭 없음이 명시되지 않는다');
+  assert.ok(/\(none — nobody briefed the client/.test(empty), '코칭 없음이 명시되지 않는다');
 });
 
 // ── B-2. 판정 ────────────────────────────────────────────
@@ -126,8 +129,12 @@ test('C는 외모도 취향도 성장환경도 보지 않는다', () => {
 });
 
 test('러브 포인트는 C에만 간다 — 대화하는 쪽도 심판도 점수를 모른다', () => {
-  assert.ok(!/러브 포인트/.test(B1), 'B-1이 러브 포인트를 안다');
+  // 라벨을 영어로 옮겼으므로 두 표기를 다 막는다. 한쪽만 보면 통과가 공허해진다.
+  const POINTS_WORD = /러브 포인트|무드 포인트|\bLOVE\b|\bMOOD\b/;
+  assert.ok(!POINTS_WORD.test(B1), 'B-1이 점수 축을 안다');
   assert.ok(!/\b77\b/.test(B1), 'B-1에 점수가 새어 들어갔다');
+  assert.ok(POINTS_WORD.test(B2), 'B-2가 판정할 축의 이름을 모른다');
+  assert.ok(!/\b77\b/.test(B2), '심판에 점수 값이 새어 들어갔다');
 });
 
 // ── 폐지된 축이 프롬프트로 되살아나지 않았는가 ──────────
@@ -143,7 +150,74 @@ test('폐지된 시스템 용어가 프롬프트에 없다', () => {
   }
 });
 
-test('보내는 스키마는 넷뿐이다', () => {
+test('보내는 스키마는 하이어아키 넷 + 반응 하나뿐이다', () => {
   const schemas = Object.keys(P).filter(k => k.endsWith('_SCHEMA'));
-  assert.deepEqual(schemas.sort(), ['EPILOGUE_SCHEMA', 'JUDGE_SCHEMA', 'STYLING_SCHEMA', 'TALK_SCHEMA']);
+  assert.deepEqual(schemas.sort(),
+    ['EPILOGUE_SCHEMA', 'JUDGE_SCHEMA', 'REACT_SCHEMA', 'STYLING_SCHEMA', 'TALK_SCHEMA']);
+});
+
+// ── R. 준비 단계 반응 — 구조도 밖이므로 아무것도 물어오면 안 된다 ──
+test('R은 방 셋뿐이다 — 스타일링 · 동기부여 · 코칭', () => {
+  assert.deepEqual(Object.keys(P.REACT_ROOMS).sort(), ['coaching', 'motivation', 'styling']);
+});
+
+test('R은 고객의 **테이블** 시트만 받는다 — 시공된 시트가 아니다', () => {
+  for (const k of ['clook', 'cpers', 'cup']) {
+    assert.ok(has(R, M[k]), `R에 고객 ${k}가 없다`);
+  }
+  assert.ok(!has(R, M.dlook), 'R에 시공된 외모가 새어 들어갔다 — 반응은 시공 전에 나온다');
+  assert.ok(!has(R, M.dpers), 'R에 동기부여된 성격이 새어 들어갔다');
+});
+
+test('R은 타겟을 한 글자도 보지 않는다', () => {
+  for (const k of ['tlook', 'tpers', 'tup', 'ttaste']) {
+    assert.ok(!has(R, M[k]), `R에 타겟 ${k}가 새어 들어갔다`);
+  }
+});
+
+test('R의 출력은 대사와 표정 둘뿐이다 — 점수도 판정도 없다', () => {
+  assert.deepEqual(Object.keys(P.REACT_SCHEMA.properties).sort(), ['face', 'reaction']);
+});
+
+test('R은 방마다 주문을 하나씩만 본다', () => {
+  const only = P.reactSystem(couple, 'styling') + '\n' + P.reactUser('styling', M.style);
+  assert.ok(has(only, M.style), 'R에 스타일링 주문이 안 실렸다');
+  assert.ok(!has(only, M.motiv), 'R에 다른 방의 주문이 새어 들어갔다');
+  assert.ok(!has(only, M.coach), 'R에 코칭이 새어 들어갔다');
+});
+
+// ── 지시는 영어다 ──────────────────────────────────────
+// 데이터가 전부 ASCII인 인물로 프롬프트를 만들면, 남는 한글은 전부 **지시문**이다.
+test('다섯 프롬프트의 지시문에 한글이 한 글자도 없다', () => {
+  const ascii = {
+    id: 'ascii', category: 'audit',
+    client: {
+      name: 'Kay', gender: 'F', look: ['tall'], personality: ['loud'],
+      upbringing: ['40 / clerk', 'grew up in a mall'], fell: 'the hat',
+      spec: { species: 'human' },
+    },
+    target: {
+      name: 'Ro', gender: 'M', look: ['thin'], personality: ['dry'],
+      upbringing: ['41 / welder', 'raised by a crane'], taste: ['rust'],
+      spec: { species: 'human' },
+    },
+  };
+  const d = { look: 'a red suit', personality: 'a coward' };
+  const built = {
+    A: P.STYLING_SYSTEM + P.stylingUser(ascii, { species: 'human' }, { styling: 'x', motivation: 'y' }),
+    'B-1': P.talkSystem(ascii, d, 'z') + P.talkUser(ascii, 'text', 1, 4) + P.talkUser(ascii, 'talk', 2, 5),
+    'B-1(코칭없음)': P.talkSystem(ascii, d, ''),
+    'B-2': P.judgeSystem(ascii, d) + P.judgeUser(ascii, '', 'seg'),
+    C: P.epilogueSystem(ascii, d) + P.epilogueUser(ascii, 77, 'log'),
+    R: Object.keys(P.REACT_ROOMS).map(k => P.reactSystem(ascii, k) + P.reactUser(k, 'q')).join(''),
+  };
+  for (const [name, text] of Object.entries(built)) {
+    const han = [...new Set(text.match(/[\uac00-\ud7a3\u3131-\u318e]/g) || [])];
+    assert.deepEqual(han, [], `${name} 지시문에 한글이 남아 있다: ${han.join('')}`);
+  }
+});
+
+test('그래도 출력 언어 고정은 다섯 블록 전부에 붙어 있다', () => {
+  const KO = /Output is Korean|output in Korean/;
+  for (const t of [A, B1, B2, C, R]) assert.ok(KO.test(t), '출력 언어 고정이 빠진 블록이 있다');
 });

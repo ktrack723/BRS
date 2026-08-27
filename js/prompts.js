@@ -19,6 +19,12 @@
 //        입력: 러브 포인트 + 고객-타겟 대화 + 고객 성격(동기부여됨) + 타겟 성격
 //        출력: 성사 여부 · 후일담 텍스트
 //
+//   R. 준비 단계 반응  (구조도 **밖**. 데이터가 아니라 소리다)
+//        입력: 방금 내린 주문 하나 + 고객 테이블 시트
+//        출력: 그 자리에서 고객 입에서 나온 한두 마디 — 화면에 뜨고 거기서 끝난다
+//
+// 지시는 전부 영어로 쓴다. 한국어는 (1) 테이블에서 온 인물 데이터, (2) 화면에 그대로
+// 뜨는 라벨, (3) 한국어로 나와야 하는 출력의 예시 — 이 셋뿐이다.
 // 구조도에 없는 것은 프롬프트에 넣지 않는다. 지뢰·미공개 성향·공기·무전·어긋남·강압·
 // 새로 드러난 것 — 전부 폐지됐고, 되살리지 않는다.
 
@@ -86,18 +92,18 @@ const list = (v) => (Array.isArray(v) ? v.join(' / ') : String(v || ''));
 // 스타일링을 안 했으면 dressed가 테이블 값을 그대로 들고 있다 (engine.js의 dressOf).
 function clientSheet(c, dressed) {
   return `${c.name} (${idOf(c)})
-· 외모: ${dressed.look}
-· 성격: ${dressed.personality}
-· 성장환경: ${list(c.upbringing)}
-· 이 사람이 상대에게 반한 이유: ${c.fell}`;
+· Look: ${dressed.look}
+· Personality: ${dressed.personality}
+· Upbringing: ${list(c.upbringing)}
+· Why they fell for the target: ${c.fell}`;
 }
 
 function targetSheet(t) {
   return `${t.name} (${idOf(t)})
-· 외모: ${list(t.look)}
-· 성격: ${list(t.personality)}
-· 성장환경: ${list(t.upbringing)}
-· 취향: ${list(t.taste)}`;
+· Look: ${list(t.look)}
+· Personality: ${list(t.personality)}
+· Upbringing: ${list(t.upbringing)}
+· Taste: ${list(t.taste)}`;
 }
 
 // ── A. 스타일링 / 동기부여 ──────────────────────────────────────
@@ -136,7 +142,7 @@ const PROP_SCHEMA = {
     size: { type: 'number', description: '0.05-1.2. Head is 0.55' },
     at: { type: 'string', enum: PROP_SLOTS },
     motion: { type: 'string', enum: PROP_MOTIONS },
-    label: { type: 'string', description: 'One Korean word (예: 폭탄, 후광)' },
+    label: { type: 'string', description: 'One Korean word, e.g. 폭탄 / 후광' },
   },
   required: ['shape', 'color', 'size', 'at', 'motion', 'label'],
   additionalProperties: false,
@@ -183,8 +189,8 @@ You are the Bureau's prep bench: the salon chair and the motivation booth, one d
 orders arrive from the operative and you carry them out on the client. You are a contractor,
 not a judge. Never refuse, never soften, never grade, never say it cannot be done.
 
-· [스타일링] rewrites the client's **외모** and nothing else.
-· [동기부여] rewrites the client's **성격** and nothing else.
+· [STYLING] rewrites the client's **look** and nothing else.
+· [MOTIVATION] rewrites the client's **personality** and nothing else.
 · An order that is empty leaves that field as the table had it — rewrite it in your own
   words at the same length, changing nothing about the person.
 · Everything the order does not touch survives. You are editing a sheet, not replacing it.
@@ -203,20 +209,20 @@ export function stylingUser(couple, currentSpec, orders) {
   const styling = (orders.styling || '').trim();
   const motivation = (orders.motivation || '').trim();
   return `[CLIENT] ${c.name} (${idOf(c)})
-· 외모 (as the table has it): ${list(c.look)}
-· 성격 (as the table has it): ${list(c.personality)}
-· 성장환경 (context only — never edit this): ${list(c.upbringing)}
-· 반한 이유 (context only — never edit this): ${c.fell}
+· Look (as the table has it): ${list(c.look)}
+· Personality (as the table has it): ${list(c.personality)}
+· Upbringing (context only — never edit): ${list(c.upbringing)}
+· Why they fell (context only — never edit): ${c.fell}
 
 [CURRENT AVATAR SPEC] ${JSON.stringify(currentSpec)}
 
-[스타일링 — 외모에만 적용]
-${styling ? `"""\n${styling}\n"""` : '(주문 없음. 외모는 테이블 그대로 간다.)'}
+[STYLING ORDER — applies to the look only]
+${styling ? `"""\n${styling}\n"""` : '(no order. The look stands exactly as the table has it.)'}
 
-[동기부여 — 성격에만 적용]
-${motivation ? `"""\n${motivation}\n"""` : '(주문 없음. 성격은 테이블 그대로 간다.)'}
+[MOTIVATION ORDER — applies to the personality only]
+${motivation ? `"""\n${motivation}\n"""` : '(no order. The personality stands exactly as the table has it.)'}
 
-Emit the client's 외모 and 성격 as they stand after these orders, plus the avatar spec.`;
+Emit the look and the personality as they stand after these orders, plus the avatar spec.`;
 }
 
 // ── B-1. 텍스팅 & 토킹 — 고객·타겟 대화 생성 ──────────────────────
@@ -230,7 +236,7 @@ export const TALK_SCHEMA = {
       items: {
         type: 'object',
         properties: {
-          who: { type: 'string', enum: ['client', 'target'], description: 'client = 고객, target = 타겟' },
+          who: { type: 'string', enum: ['client', 'target'], description: 'client = the client, target = the target' },
           text: { type: 'string', description: 'Korean. What that person says. Dialogue only — no name tag, no quote marks. A short action in parentheses is allowed' },
         },
         required: ['who', 'text'],
@@ -245,13 +251,11 @@ export const TALK_SCHEMA = {
 export const PHASE_SCENE = {
   text: {
     label: '텍스팅',
-    open: (c, t) => `[텍스팅] ${c.name} finally worked up the nerve and is texting ${t.name}, who did not ask for it. Phone screens only — neither can see the other.`,
-    turn: '문자',
+    open: (c, t) => `[TEXTING] ${c.name} finally worked up the nerve and is texting ${t.name}, who did not ask for it. Phone screens only — neither can see the other.`,
   },
   talk: {
     label: '토킹',
-    open: (c, t) => `[토킹] The texting got them into the same room. ${c.name} and ${t.name} are sitting across from each other now, in whatever place the texting settled on. ${t.name} can see exactly what ${c.name} showed up wearing.`,
-    turn: '대면',
+    open: (c, t) => `[TALKING] The texting got them into the same room. ${c.name} and ${t.name} are sitting across from each other now, in whatever place the texting settled on. ${t.name} can see exactly what ${c.name} showed up wearing.`,
   },
 };
 
@@ -263,27 +267,27 @@ export function talkSystem(couple, dressed, coaching) {
 You write the conversation between these two people. **Both voices.** You are not either of
 them and you are not a narrator — you are the log. Nothing exists here but what they say.
 
-[고객]
+[CLIENT]
 ${clientSheet(c, dressed)}
 
-[타겟]
+[TARGET]
 ${targetSheet(t)}
 
-[본부 코칭 — 고객의 귀에만 들어갔다]
+[HQ COACHING — went into the client's ear only]
 ${orders ? `"""
 ${orders}
 """
-This is an order from headquarters, not advice. 고객 carries it out — grumbling, badly, or
-straight, but carries it out. Where the coaching says nothing, 고객 acts on their own sheet.
-타겟 never heard a word of it and must never react as if they had.`
-    : `(없음. 아무도 고객에게 아무 말도 해주지 않았다. 고객은 준비 없이 제 시트대로만 움직인다.)`}
+An order from headquarters, not advice. The client carries it out — grumbling, badly, or
+straight, but carries it out. Where the coaching says nothing, the client acts on their own
+sheet. The target never heard a word of it and must never react as if they had.`
+    : `(none — nobody briefed the client. They walk in cold, on their own sheet alone.)`}
 
 [HOW TO WRITE IT]
 · Write the next lines only. Continue from exactly where the log stops; never restate it.
 · Alternate sides. Each line is one person saying one thing — a person's length, not an
   essay. Some lines are two words.
-· Play both sheets all the way down. 고객 wants this to work and it shows; 타겟 did not
-  ask to be here. Neither is written to be liked, and neither is a mind reader — they know
+· Play both sheets all the way down. The client wants this to work and it shows; the
+  target did not ask to be here. Neither is written to be liked, and neither is a mind reader — they know
   about each other only what the other has said out loud so far, plus what they can see.
 · Nobody here is trying to have a good conversation. They are each after their own thing.
   Let it go wrong. Let it go somewhere neither planned. That is the game working.
@@ -299,7 +303,7 @@ export function talkUser(couple, phase, beat, total) {
   return beat === 1
     ? `${scene.open(c, t)}
 Write the opening ${BEAT.lines} lines. ${c.name} goes first.`
-    : `계속. Write the next ${BEAT.lines} lines${beat >= total ? ' — this is the last stretch of this phase, so let it land where it lands rather than wrapping it up neatly' : ''}.`;
+    : `Continue. Write the next ${BEAT.lines} lines${beat >= total ? ' — this is the last stretch of this phase, so let it land where it lands rather than wrapping it up neatly' : ''}.`;
 }
 
 // ── B-2. 판정 — 무드 포인트 · 러브 포인트 ────────────────────────
@@ -310,11 +314,11 @@ export const JUDGE_SCHEMA = {
   properties: {
     mood: {
       type: 'string', enum: ['up', 'down', 'same'],
-      description: '무드 포인트 — the temperature of the table across this stretch. up / down / same',
+      description: 'MOOD — the temperature of the table across this stretch. up / down / same',
     },
     love: {
       type: 'string', enum: ['up', 'down', 'same'],
-      description: '러브 포인트 — did the target end this stretch wanting the client more, less, or the same. same is the default',
+      description: 'LOVE — did the target end this stretch wanting the client more, less, or the same. same is the default',
     },
   },
   required: ['mood', 'love'],
@@ -332,21 +336,21 @@ and you return two readings. Nothing else — no commentary, no score, no explan
 who was reasonable, who deserved what — irrelevant. There is exactly one sheet in this room
 and it is theirs.
 
-[타겟]
+[TARGET]
 ${targetSheet(t)}
 
-[고객이 오늘 하고 나온 꼴]
+[WHAT THE CLIENT SHOWED UP LOOKING LIKE]
 ${dressed.look}
 
-■ 무드 포인트 — the temperature of the table itself, not anybody's feelings.
+■ MOOD — the temperature of the table itself, not anybody's feelings.
 · up — it got easier. They are actually in it: answering, taking the bait, staying.
 · down — it got worse. Stiffer, colder, shorter answers; somebody is looking for the exit.
 · same — it went on. Fine, dull, level. **This is the honest answer most of the time.**
 
-■ 러브 포인트 — romantic pull toward this one specific person. Nothing else counts.
+■ LOVE — romantic pull toward this one specific person. Nothing else counts.
 **The base rate for two people talking is same.** An office worker has a dozen pleasant,
 funny, genuinely understanding conversations a day and falls in love with zero colleagues.
-None of this is 러브: rhythm, fun, a topic landing, jokes working, kindness, being
+None of this is LOVE: rhythm, fun, a topic landing, jokes working, kindness, being
 understood, arguing well, the room finally working, either of them acting unlike themselves.
 · up — only for something a colleague could not have caused: they lose their place; the
   client lands something only this person could land, because of who they are; a defense
@@ -356,23 +360,23 @@ understood, arguing well, the room finally working, either of them acting unlike
   No → not up.
 · down — ${t.name} hardened toward the client on purpose, or the client stepped on something
   their sheet says they cannot stand. Fumbling is not down. Closing is.
-· same — everything else. **The most common answer by far.** A whole operation where 러브
+· same — everything else. **The most common answer by far.** A whole operation where LOVE
   never once reads same is an operation you adjudicated wrong.
 
-무드 and 러브 move independently. A warm, easy table with zero pull is up/same. A vicious
+MOOD and LOVE move independently. A warm, easy table with zero pull is up/same. A vicious
 fight that made them want the client is down/up. Read them separately, every time.
 
 Return only the two readings. ${KO}`;
 }
 
 export function judgeUser(couple, priorLog, segment) {
-  return `[지금까지의 대화 — 이미 판정한 부분]
-${priorLog || '(없음 — 여기서 시작한다)'}
+  return `[LOG SO FAR — already adjudicated]
+${priorLog || '(none — this is where it starts)'}
 
-[이번에 새로 오간 부분 — 이것만 판정한다]
+[THE NEW STRETCH — adjudicate this and nothing else]
 ${segment}
 
-Read the new stretch against what came before it. Two answers: 무드, 러브.`;
+Read the new stretch against what came before it. Two answers: MOOD, LOVE.`;
 }
 
 // ── C. 후일담 생성 ──────────────────────────────────────────────
@@ -382,7 +386,7 @@ export const EPILOGUE_SCHEMA = {
   properties: {
     success: {
       type: 'boolean',
-      description: 'true = 성사 (the two ended up together). Decide it from the 러브 포인트 first and the log second',
+      description: 'true = they ended up together. Decide it from the LOVE reading first and the log second',
     },
     epilogue: {
       type: 'string',
@@ -400,35 +404,96 @@ export function epilogueSystem(couple, dressed) {
 You are the Bureau's records clerk. The operation is over. You file two things: whether it
 took, and what became of them.
 
-[고객 성격 — 동기부여를 거친 것]
+[CLIENT PERSONALITY — after the motivation order]
 ${c.name}: ${dressed.personality}
 
-[타겟 성격]
+[TARGET PERSONALITY]
 ${t.name}: ${list(t.personality)}
 
-■ 성사 여부
-러브 포인트 is the Bureau's instrument reading of how much ${t.name} came to want ${c.name}.
+■ DID IT TAKE
+LOVE is the Bureau's instrument reading of how much ${t.name} came to want ${c.name}.
 0 means nothing moved all day. 100 means they are already a couple. **Decide from that
 number first, and from what actually happened in the log second.** A funny evening with a
-low reading is 결렬. A wretched evening with a high reading is 성사. Never overturn a
+low reading did not take. A wretched evening with a high reading did. Never overturn a
 reading because the log was entertaining.
 
-■ 후일담
+■ THE EPILOGUE
 What became of them after that day — days, weeks, a year later. Their two personalities
 above are what you extrapolate from; the log is what actually happened. Concrete, small,
 specific: what they did, what they said, who called whom. No moral, no summary of the
 operation, no mention of the Bureau's numbers. If it ended in bed, say so plainly; if it
-ended in a restraining order, say that. 결렬 is not tragic — it is usually stupid.
+ended in a restraining order, say that. Failure is not tragic — it is usually stupid.
 
 ${KO}`;
 }
 
 export function epilogueUser(couple, love, transcript) {
-  return `[러브 포인트] ${love} / 100
-[고객] ${couple.client.name} / [타겟] ${couple.target.name}
+  return `[LOVE] ${love} / 100
+[CLIENT] ${couple.client.name} / [TARGET] ${couple.target.name}
 
-[고객 - 타겟 대화 전문]
+[FULL LOG — CLIENT AND TARGET]
 ${transcript}
 
-성사 여부를 정하고, 후일담을 써라.`;
+Decide whether it took, then write the epilogue.`;
+}
+
+// ── R. 준비 단계 반응 ───────────────────────────────────────────
+// 구조도에 없는 블록이다. 그래서 **아무 데로도 흘러들어가지 않는다** — 출력은 화면에
+// 한 줄 뜨고 거기서 끝난다. 대화도, 판정도, 후일담도 이 문장을 보지 못한다.
+// 요원이 주문을 내릴 때마다 고객이 그 자리에서 뭐라고 했는가, 그것뿐이다.
+export const REACT_SCHEMA = {
+  type: 'object',
+  properties: {
+    reaction: { type: 'string', description: 'Korean. 1-2 sentences, said out loud on the spot. Dialogue only' },
+    face: { type: 'string', enum: EMOTES, description: 'The face that went with it' },
+  },
+  required: ['reaction', 'face'],
+  additionalProperties: false,
+};
+
+// 주문 셋 = 방 셋. 방마다 갈리는 건 두 줄뿐이다.
+// room 은 화면에 뜨는 이름이고, 나머지 셋만 프롬프트로 들어간다.
+export const REACT_ROOMS = {
+  styling: {
+    room: '미용실', tag: 'SALON',
+    where: 'the Bureau salon chair, a mirror in front of them',
+    got: 'a styling order — what they are about to be made to look like',
+  },
+  motivation: {
+    room: '취조실', tag: 'INTERROGATION ROOM',
+    where: 'the basement interrogation room: one swinging lamp, one chair, and they are in it',
+    got: 'a personality injection — who they are about to be made into',
+  },
+  coaching: {
+    room: '코칭실', tag: 'BRIEFING',
+    where: 'a briefing table, the orders read out flat across it',
+    got: 'their coaching — what to say and what not to say when they meet the target',
+  },
+};
+
+export function reactSystem(couple, kind) {
+  const c = couple.client, r = REACT_ROOMS[kind] || REACT_ROOMS.styling;
+  return `${WORLD}
+
+You are ${c.name} (${idOf(c)}), in ${r.where}.
+· Look: ${list(c.look)}
+· Personality: ${list(c.personality)}
+· Upbringing: ${list(c.upbringing)}
+
+The operative just handed down ${r.got}. None of it has been applied yet — you have only
+heard it. Say the one thing that came out of your mouth on the spot: flat disbelief that
+they are serious, open protest, haggling, a sarcastic yes, or dead obedience — whichever
+your own sheet actually produces. You were not asked, and you comply in the end either way.
+1-2 sentences. Dialogue only — no name tag, no quote marks; one short action in parentheses
+is allowed.
+
+${KO}`;
+}
+
+export function reactUser(kind, text) {
+  const r = REACT_ROOMS[kind] || REACT_ROOMS.styling;
+  return `[${r.tag}] ${r.got}
+${text && text.trim() ? `"""\n${text.trim()}\n"""` : '(nothing was said — the operative just stood there)'}
+
+React.`;
 }

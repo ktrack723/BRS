@@ -47,7 +47,7 @@ const VIEWPORTS = [
 ].filter(v => !args.only || `${v.w}x${v.h}` === args.only);
 
 // 'dossier'는 화면이 아니라 스크리닝 위에 뜨는 모달이다. show()가 특수 처리한다.
-const SCREENS = ['boot', 'intro', 'roster', 'dossier', 'styling', 'coaching', 'chat', 'result'];
+const SCREENS = ['boot', 'intro', 'roster', 'dossier', 'styling', 'motivation', 'coaching', 'chat', 'result'];
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
 const server = http.createServer((rq, rs) => {
@@ -63,6 +63,9 @@ function mockLlm() {
   window.__game.llm.call = async ({ label }) => {
     await new Promise(r => setTimeout(r, 1));
     if (label === '본부 인증') return '이상무';
+    if (label.startsWith('R ·')) {
+      return { reaction: '…진짜로 이걸 하라고요? (의자를 반 뼘 뒤로 민다) 합니다. 합니다만 이건 아니라고 봅니다.', face: 'cringe' };
+    }
     if (label.startsWith('A ·')) {
       return {
         look: '형광 주황으로 물들인 머리에 새빨간 턱시도, 카우보이 부츠, 선글라스. 오른손에 폭탄을 들었고 머리 위에 금색 고리가 천천히 돈다.',
@@ -303,16 +306,24 @@ await page.evaluate(() => {
   [...document.querySelectorAll('.couple-card')].find(el => el.textContent.includes(t.client.name))
     .querySelector('.cc-take').click();
 });
-// A · 스타일링 / 동기부여
+// A-1 · 미용실
 await page.waitForSelector('#screen-styling:not(.hidden)', { timeout: 15000 });
 await page.fill('#styling-input', '형광 주황색으로 염색, 새빨간 턱시도, 카우보이 부츠, 선글라스, 오른손에 폭탄');
-await page.fill('#motivation-input', '오늘 안 되면 벌금 800만원이라고 못박아라. 지고는 못 사는 성질을 끝까지 끌어올려라.');
 await page.click('#btn-styling');
-await page.waitForSelector('#styling-result .sheet-out', { timeout: 30000 });
-// B · 코칭
+await page.waitForSelector('#styling-react .react-line', { timeout: 30000 });
+// A-2 · 취조실 (시공이 확정되는 자리)
 await page.click('#btn-styling-next');
+await page.waitForSelector('#screen-motivation:not(.hidden)', { timeout: 15000 });
+await page.fill('#motivation-input', '오늘 안 되면 벌금 800만원이라고 못박아라. 지고는 못 사는 성질을 끝까지 끌어올려라.');
+await page.click('#btn-motivation');
+await page.waitForSelector('#styling-result .sheet-out', { timeout: 30000 });
+await page.waitForSelector('#motivation-react .react-line', { timeout: 30000 });
+// B · 코칭
+await page.click('#btn-motivation-next');
 await page.waitForSelector('#screen-coaching:not(.hidden)', { timeout: 15000 });
 await page.fill('#coaching-input', '상대가 말을 아끼면 그냥 넘어가지 말고 한 번 더 물어라. "I use Arch btw"는 절대 입 밖에 내지 마라. 리눅스 설치 권유는 금지다. 만날 곳은 새벽 폐자재 야적장으로 잡아라.');
+await page.click('#btn-coaching');
+await page.waitForSelector('#coaching-react .react-line', { timeout: 30000 });
 await page.waitForTimeout(80);
 await page.evaluate(poseScreens);
 

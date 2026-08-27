@@ -1,7 +1,10 @@
 // game.js — 화면/입력 계층. 대화 진행은 engine.js, 수치는 points.js, 프롬프트는 prompts.js, API는 llm.js.
 //
 // 화면은 구조도를 그대로 따른다:
-//   S 스크리닝 → A 스타일링/동기부여 → B 코칭 → B 텍스팅·토킹 → C 후일담
+//   S 스크리닝 → A-1 미용실(스타일링) → A-2 취조실(동기부여) → B 코칭 → B 텍스팅·토킹 → C 후일담
+//
+// 준비 세 화면은 주문을 받을 때마다 고객의 반응을 한 줄 받아온다 (prompts.js의 R 블록).
+// 그 문장은 **화면에만** 뜬다 — 어떤 프롬프트에도 실리지 않고 점수에도 닿지 않는다.
 import { LlmClient, RefusalError, detectProvider, providerOf, defaultModelOf, modelFitsProvider, normalizeUsage, DEFAULT_PROVIDER } from './llm.js';
 import * as P from './prompts.js';
 import { Engine, dressOf } from './engine.js';
@@ -24,6 +27,8 @@ const state = {
   couple: null, clientSpec: null, targetSpec: null,
   orders: { styling: '', motivation: '', coaching: '' },
   styled: null,          // A의 출력 { look, personality, spec }
+  styledFrom: null,      // 그 출력이 어느 주문에서 나왔나 (주문이 바뀌면 다시 시공한다)
+  reactions: { styling: null, motivation: null, coaching: null },  // 화면 표시 전용
   engine: null, result: null,
 };
 window.__game = { state, llm, COUPLES, PHASES, POINTS, pace }; // 자동 테스트 후크
@@ -66,9 +71,11 @@ function loading(on, label = '') {
     $('#loading-tip').textContent = TIPS[Math.floor(Math.random() * TIPS.length)];
   }
 }
+let loadingDepth = 0;
 async function withLoading(label, fn) {
+  loadingDepth++;
   loading(true, label);
-  try { return await fn(); } finally { loading(false); }
+  try { return await fn(); } finally { if (--loadingDepth === 0) loading(false); }
 }
 
 let toastTimer = null;
@@ -416,34 +423,65 @@ function chooseCouple(c) {
   state.clientSpec = sanitizeSpec(c.client.spec);
   state.targetSpec = sanitizeSpec(c.target.spec);
   state.orders = { styling: '', motivation: '', coaching: '' };
-  state.styled = null;
+  state.styled = null; state.styledFrom = null;
+  state.reactions = { styling: null, motivation: null, coaching: null };
   state.engine = null; state.result = null;
   gotoStyling();
 }
 
-// ── A. 스타일링 / 동기부여 ──────────────────────────────
-let stylingViewer = null;
-function gotoStyling() {
-  show('styling');
-  const c = state.couple;
-  stylingViewer = getStageViewer('stage-styling');
-  stylingViewer.setDuo(state.clientSpec, state.targetSpec, 'camera');
-
-  $('#styling-title').innerHTML =
-    `A · 스타일링 / 동기부여 <span class="diff-inline">${escapeHtml(c.client.name)} × ${escapeHtml(c.target.name)}</span>`;
-  $('#styling-dossier').innerHTML = dossierHtml(c);
-  $('#styling-input').value = state.orders.styling;
-  $('#motivation-input').value = state.orders.motivation;
-  renderStylingResult();
-
-  $('#styling-input').oninput = e => { state.orders.styling = e.target.value; };
-  $('#motivation-input').oninput = e => { state.orders.motivation = e.target.value; };
-  $('#btn-styling').onclick = runStyling;
-  $('#btn-styling-back').onclick = () => { sfx.click(); gotoRoster(); };
-  $('#btn-styling-next').onclick = () => { sfx.click(); gotoCoaching(); };
+// ── R. 준비 단계 반응 ───────────────────────────────────
+// 요원이 주문을 하나 내릴 때마다 고객이 그 자리에서 한마디 한다. 그게 전부다 —
+// 이 문장은 대화 프롬프트에도, 판정에도, 후일담에도 실리지 않는다. 점수도 없다.
+function renderReaction(kind, sel) {
+  const el = $(sel);
+  if (!el) return;
+  const r = state.reactions[kind];
+  if (!r) {
+    el.innerHTML = `<span class="inject-empty">아직 아무 말도 안 했다 — 주문을 내려야 입을 연다</span>`;
+    return;
+  }
+  el.innerHTML = `<div class="react-line"><span class="react-who">${escapeHtml(state.couple.client.name)}
+    <small>· ${escapeHtml(P.REACT_ROOMS[kind].room)}</small></span>${escapeHtml(r.reaction)}</div>`;
 }
 
-function renderStylingResult() {
+async function reactTo(kind, { input, box, viewer }) {
+  const text = $(input).value.trim();
+  const had = state.reactions[kind];
+  if (had && had.text === text) return renderReaction(kind, box);   // 같은 주문에 두 번 묻지 않는다
+  const r = await withLoading(`${P.REACT_ROOMS[kind].room} — 고객 반응 대기`, () => llm.call({
+    label: `R · ${P.REACT_ROOMS[kind].room} 반응`, system: P.reactSystem(state.couple, kind),
+    messages: [{ role: 'user', content: P.reactUser(kind, text) }],
+    schema: P.REACT_SCHEMA, effort: 'low', maxTokens: 3000,
+  }));
+  state.reactions[kind] = { text, reaction: r.reaction, face: r.face };
+  renderReaction(kind, box);
+  viewer?.emote('left', r.face);
+  sfx.send();
+}
+
+// ── A. 시공 (미용실 + 취조실이 함께 한 번의 호출을 만든다) ───
+// 두 주문이 한 프롬프트로 들어가야 하므로 호출은 취조실에서 한 번만 일어난다.
+const ordersKey = () => `${state.orders.styling.trim()}\u0000${state.orders.motivation.trim()}`;
+const hasOrders = () => !!(state.orders.styling.trim() || state.orders.motivation.trim());
+const fittingStale = () => hasOrders() && state.styledFrom !== ordersKey();
+
+async function runFitting(viewer) {
+  const key = ordersKey();
+  const r = await withLoading('시공 중... (고객 외모 · 성격 갱신)', () => llm.call({
+    label: 'A · 스타일링/동기부여', system: P.STYLING_SYSTEM,
+    messages: [{ role: 'user', content: P.stylingUser(state.couple, state.clientSpec, state.orders) }],
+    schema: P.STYLING_SCHEMA, effort: 'low', maxTokens: 6000,
+  }));
+  // 조형 보정 플래그는 스키마에 없다. 시공 후에도 유지해준다.
+  state.clientSpec = sanitizeSpec({ ...r.spec, femme: state.couple.client.spec.femme });
+  state.styled = { look: r.look, personality: r.personality, spec: state.clientSpec };
+  state.styledFrom = key;
+  viewer?.updateLeft(state.clientSpec);
+  viewer?.burst('sparkle', 'left');
+  sfx.stamp();
+}
+
+function renderFittingResult() {
   const el = $('#styling-result');
   const c = state.couple;
   if (!state.styled) {
@@ -455,30 +493,76 @@ function renderStylingResult() {
   el.innerHTML =
     `<div class="sheet-out"><span class="sheet-tag cached">수정된 고객 외모</span>${escapeHtml(state.styled.look)}</div>` +
     `<div class="sheet-out"><span class="sheet-tag cached">수정된 고객 성격</span>${escapeHtml(state.styled.personality)}</div>` +
-    `<p class="dim small">이 두 문단이 그대로 대화 프롬프트의 고객 시트가 된다. 캐시되어 판이 끝날 때까지 유지된다.</p>`;
+    (fittingStale()
+      ? `<p class="handoff-warn">주문이 바뀌었다. <b>다시 시공해야</b> 반영된다 — 넘어갈 때 자동으로 한 번 더 돈다.</p>`
+      : `<p class="dim small">이 두 문단이 그대로 대화 프롬프트의 고객 시트가 된다. 캐시되어 판이 끝날 때까지 유지된다.</p>`);
 }
 
-async function runStyling() {
-  sfx.click();
-  const styling = $('#styling-input').value.trim();
-  const motivation = $('#motivation-input').value.trim();
-  if (!styling && !motivation) return toast('둘 중 하나는 적어라. 둘 다 비우면 시공할 게 없다.');
-  state.orders.styling = styling;
-  state.orders.motivation = motivation;
-  try {
-    const r = await withLoading('시공 중... (고객 외모 · 성격 갱신)', () => llm.call({
-      label: 'A · 스타일링/동기부여', system: P.STYLING_SYSTEM,
-      messages: [{ role: 'user', content: P.stylingUser(state.couple, state.clientSpec, state.orders) }],
-      schema: P.STYLING_SCHEMA, effort: 'low', maxTokens: 6000,
-    }));
-    // 조형 보정 플래그는 스키마에 없다. 시공 후에도 유지해준다.
-    state.clientSpec = sanitizeSpec({ ...r.spec, femme: state.couple.client.spec.femme });
-    state.styled = { look: r.look, personality: r.personality, spec: state.clientSpec };
-    stylingViewer.updateLeft(state.clientSpec);
-    stylingViewer.burst('sparkle', 'left');
-    renderStylingResult();
-    sfx.stamp();
-  } catch (e) { toast(errMsg(e)); }
+// ── A-1. 미용실 · 스타일링 ──────────────────────────────
+let stylingViewer = null;
+function gotoStyling() {
+  show('styling');
+  const c = state.couple;
+  stylingViewer = getStageViewer('stage-styling');
+  stylingViewer.setDuo(state.clientSpec, state.targetSpec, 'camera');
+
+  $('#styling-title').innerHTML =
+    `미용실 · 스타일링 <span class="diff-inline">${escapeHtml(c.client.name)} × ${escapeHtml(c.target.name)}</span>`;
+  $('#styling-dossier').innerHTML = dossierHtml(c);
+  $('#styling-input').value = state.orders.styling;
+  renderReaction('styling', '#styling-react');
+
+  $('#styling-input').oninput = e => { state.orders.styling = e.target.value; };
+  $('#btn-styling').onclick = async () => {
+    sfx.click();
+    try { await reactTo('styling', { input: '#styling-input', box: '#styling-react', viewer: stylingViewer }); }
+    catch (e) { toast(errMsg(e)); }
+  };
+  $('#btn-styling-back').onclick = () => { sfx.click(); gotoRoster(); };
+  $('#btn-styling-next').onclick = () => { sfx.click(); gotoMotivation(); };
+}
+
+// ── A-2. 취조실 · 동기부여 ──────────────────────────────
+// 시공(A 호출)이 확정되는 자리다. 두 주문이 여기서 처음으로 한자리에 모인다.
+let motivationViewer = null;
+function gotoMotivation() {
+  show('motivation');
+  const c = state.couple;
+  motivationViewer = getStageViewer('stage-motivation');
+  motivationViewer.setSolo(state.clientSpec);
+
+  $('#motivation-title').innerHTML =
+    `취조실 · 동기부여 <span class="diff-inline">${escapeHtml(c.client.name)} × ${escapeHtml(c.target.name)}</span>`;
+  $('#motivation-dossier').innerHTML = dossierHtml(c);
+  $('#motivation-input').value = state.orders.motivation;
+  renderReaction('motivation', '#motivation-react');
+  renderFittingResult();
+
+  $('#motivation-input').oninput = e => { state.orders.motivation = e.target.value; renderFittingResult(); };
+
+  $('#btn-motivation').onclick = async () => {
+    sfx.click();
+    try {
+      // 반응과 시공은 서로를 안 본다. 같이 보내고 같이 기다린다.
+      await Promise.all([
+        reactTo('motivation', { input: '#motivation-input', box: '#motivation-react', viewer: motivationViewer }),
+        fittingStale() ? runFitting(motivationViewer) : Promise.resolve(),
+      ]);
+      if (!hasOrders()) toast('두 주문이 다 비었다. 이대로 나가면 테이블 값이 그대로 시트가 된다.');
+    } catch (e) { toast(errMsg(e)); }
+    renderFittingResult();
+  };
+
+  // 넘어갈 때 시공이 밀려 있으면 조용히 흘리지 않고 한 번 돌린다.
+  $('#btn-motivation-next').onclick = async () => {
+    sfx.click();
+    if (fittingStale()) {
+      try { await runFitting(motivationViewer); } catch (e) { return toast(errMsg(e)); }
+      renderFittingResult();
+    }
+    gotoCoaching();
+  };
+  $('#btn-motivation-back').onclick = () => { sfx.click(); gotoStyling(); };
 }
 
 // ── B 준비. 코칭 ────────────────────────────────────────
@@ -507,7 +591,14 @@ function gotoCoaching() {
   $('#coaching-input').oninput = sync;
   sync();
 
-  $('#btn-coaching-back').onclick = () => { sfx.click(); gotoStyling(); };
+  renderReaction('coaching', '#coaching-react');
+  $('#btn-coaching').onclick = async () => {
+    sfx.click();
+    state.orders.coaching = $('#coaching-input').value;
+    try { await reactTo('coaching', { input: '#coaching-input', box: '#coaching-react', viewer: coachingViewer }); }
+    catch (e) { toast(errMsg(e)); }
+  };
+  $('#btn-coaching-back').onclick = () => { sfx.click(); gotoMotivation(); };
   $('#btn-start-op').onclick = () => { sfx.stamp(); startOperation(); };
 }
 
