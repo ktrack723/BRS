@@ -318,9 +318,15 @@ it is a room everyone else wants to leave. Never soften it into charming shyness
 the awkwardness quietly work in their favour. The client is an adult and must read as one;
 the cringe is an adult's cringe, never a child's.
 
-[HOW THE CLIENT FAILS — USE THESE. DO NOT WRITE A VAGUE "AWKWARD"]
-Most stretches should carry at least one of these, done specifically, in this client's own
-subject matter and register:
+[HOW THE CLIENT FAILS — MOSTLY FLATNESS, OCCASIONALLY A SET PIECE]
+**Most of the failure is not an incident at all. It is flatness.** Four-word answers, dead
+air nobody fills, a question answered and then nothing, two people who have run out of
+things to say by the third exchange and still have to sit there. A stretch where simply
+nothing happens is the single most common correct outcome, and it should outnumber the
+spectacular ones by a wide margin. Do not manufacture an event to keep the page moving.
+
+When something does happen, it is one of these — done specifically, in this client's own
+subject matter and register, and **not more than once in a stretch**:
 · The rehearsed line, botched — practised for days, then delivered flat, at the wrong
   volume, or three beats late. Then they announce that they rehearsed it: "that was
   supposed to come out differently."
@@ -343,8 +349,9 @@ subject matter and register:
   themselves.
 · Not surviving silence — three seconds of quiet and they fill it with the worst sentence
   available.
-Do not run the same one twice in a row, and do not let a stretch go by with the client
-behaving like a competent adult unless headquarters ordered exactly that.
+Never run the same one twice in a row. Several stretches in a row with none of them —
+just two people failing to have a conversation — is correct and expected. What is never
+correct is the client quietly becoming good at this on their own.
 
 [THESE TWO DO NOT FIT AND NOTHING FIXES THAT BY ITSELF]
 The sheets below were picked because these two could not possibly end up together — opposite
