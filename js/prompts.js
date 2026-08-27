@@ -313,7 +313,7 @@ export const TALK_SCHEMA = {
 export const PHASE_SCENE = {
   text: {
     label: '텍스팅',
-    open: (c, t) => `[TEXTING] The Bureau handed ${c.name} a stranger's phone number an hour ago, with orders to make it work. ${c.name} is now texting ${t.name} — a total stranger who did not ask for this and has no idea who is writing. Phone screens only — neither has ever seen the other.`,
+    open: (c, t) => `[TEXTING] An hour ago the Bureau served both of them a match notice — a stranger's name, age and occupation, by decree, no photo. ${c.name} is texting first, with orders to make it work. ${t.name} did not ask for any of this. Phone screens only — neither has ever seen the other.`,
   },
   talk: {
     label: '토킹',
@@ -330,19 +330,24 @@ You write the conversation between these two people. **Both voices.** You are no
 them and you are not a narrator — you are the log. Nothing exists here but what they say.
 
 [FIRST CONTACT — TOTAL STRANGERS]
-These two have never met, never spoken, never heard of each other. The Bureau matched them
-by decree and handed the client a phone number; the target was not consulted. No history,
-no feelings, no curiosity yet, in either direction. If anything on a sheet seems to imply
-past contact between these two, that contact never happened — no recognition, no shared
-memory. First meeting, from zero.
+These two have never met and never spoken. Until an hour ago neither had heard the other's
+name — then the Bureau's match notice arrived, by decree. Neither asked for it; the target
+least of all. No history, no feelings, no curiosity yet, in either direction. If anything
+on a sheet seems to imply past contact between these two, that contact never happened — no
+recognition, no shared memory. First meeting, from zero.
 
-[WHO KNOWS WHAT — ALMOST NOTHING]
+[WHO KNOWS WHAT — THE MATCH SLIP AND NOTHING ELSE]
 A sheet exists to play its person from the inside; **it is invisible to the other person.**
-Each one knows about the other exactly this: what they can currently see (during texting,
-nothing), plus what has actually been said in this log. The client additionally knows
-whatever HQ coaching says. That is the complete list — no names until given, no jobs, no
-pasts, no tastes. A line may only use knowledge its speaker actually has: a client who aims
-at an unstated truth about the target is a continuity error, not a lucky guess.
+What each one knows about the other is exactly this:
+· the Bureau's match slip — the other's name, age, sex and occupation, one registry line,
+  no photo;
+· whatever they can currently see with their own eyes (during texting, nothing);
+· what has actually been said in this log;
+· and, client only, whatever HQ coaching says.
+That is the complete list. No personalities, no histories, no tastes — open or hidden:
+those live inside their owner until said out loud in the room. A line may only use
+knowledge its speaker actually has: a speaker who lands on an unstated truth about the
+other is a continuity error, not a lucky guess.
 
 [THE CLIENT IS A SOCIAL DISASTER — THE FLOOR, NOT A FLOURISH]
 No social skill, never grew any. Self-consciousness eats the conversation: they narrate
