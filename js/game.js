@@ -5,7 +5,7 @@
 import { LlmClient, RefusalError, detectProvider, providerOf, defaultModelOf, modelFitsProvider, normalizeUsage, DEFAULT_PROVIDER } from './llm.js';
 import * as P from './prompts.js';
 import { Engine, dressOf } from './engine.js';
-import { PHASES, POINTS, MARK, MARK_CLASS } from './points.js';
+import { PHASES, POINTS, MARK, MARK_CLASS, gauge } from './points.js';
 import { COUPLES } from './couples.js';
 import { AvatarViewer, sanitizeSpec, renderThumb } from './avatar.js';
 import { sfx, startBgm, toggleBgm, unlockAudio } from './audio.js';
@@ -515,11 +515,12 @@ function gotoCoaching() {
 let stageViewer = null;
 
 function pointsUpdate(s) {
-  $('#meter-mood-fill').style.width = s.mood + '%';
-  $('#meter-mood-num').textContent = s.mood;
-  $('#meter-love-fill').style.width = s.love + '%';
-  $('#meter-love-num').textContent = s.love;
-  $('#meter-mood-fill').classList.toggle('danger', s.mood <= POINTS.moodStep);
+  // 눈금이 둘 다 다르므로 막대 길이는 각자의 최대치로 환산한다. 숫자는 눈금 그대로 띄운다.
+  $('#meter-mood-fill').style.width = gauge(s.mood, POINTS.moodMax).pct + '%';
+  $('#meter-mood-num').textContent = `${s.mood}/${POINTS.moodMax}`;
+  $('#meter-love-fill').style.width = gauge(s.love, POINTS.loveMax).pct + '%';
+  $('#meter-love-num').textContent = `${s.love}/${POINTS.loveMax}`;
+  $('#meter-mood-fill').classList.toggle('danger', s.mood <= POINTS.moodDanger);
   $('#turn-badge').textContent = `${s.phaseLabel} ${Math.min(s.beat + 1, s.beats)}/${s.beats}구간`;
 }
 
@@ -564,7 +565,7 @@ function addVerdict(v) {
   li.innerHTML =
     `<span class="vr-when">${escapeHtml(v.phaseLabel)} ${v.beat}/${v.beats}</span>` +
     `<span class="vr-mark mood ${MARK_CLASS[v.dMood]}">무드 ${MARK[v.dMood]}</span>` +
-    `<span class="vr-mark love ${MARK_CLASS[v.dLove]}">러브 ${MARK[v.dLove]}</span>`;
+    `<span class="vr-mark love ${MARK_CLASS[v.dLove]}">러브 ${MARK[v.dLove]}${v.step > 1 ? v.step : ''}</span>`;
   w.prepend(li);
   while (w.children.length > 24) w.lastChild.remove();
 
@@ -647,7 +648,8 @@ async function gotoResult() {
   const stamp = $('#result-stamp');
   stamp.textContent = r.success ? '성사' : r.broken ? '자리 파탄' : '결렬';
   stamp.className = `result-stamp ${r.success ? 'ok' : 'fail'}`;
-  $('#result-score').textContent = `러브 포인트 ${r.love} / 100 · 무드 포인트 ${r.mood} / 100`;
+  $('#result-score').textContent =
+    `러브 포인트 ${r.love} / ${POINTS.loveMax} · 무드 포인트 ${r.mood} / ${POINTS.moodMax}`;
   $('#result-note').textContent = r.broken
     ? '무드 포인트가 바닥나 자리가 중간에 깨졌다. 남은 구간은 돌지 않았다.'
     : '성사 여부는 러브 포인트를 보고 기록관이 정했다.';
