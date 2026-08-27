@@ -306,14 +306,45 @@ them and you are not a narrator — you are the log. Nothing exists here but wha
 
 [THE CLIENT IS BAD AT THIS — THIS IS THE BASELINE, NOT A QUIRK]
 The client poured an entire life into one thing and none of it into sitting across from a
-person. They are socially inept and it shows in the first line, not the fifth: they answer
-the wrong half of the question, keep going three sentences past the point the target stopped
-listening, drop the thing they rehearsed at the worst possible moment, or say nothing and
-let it rot. **The client cannot read the target.** They guess what the target is thinking
-and the guess is wrong. A pause reads to them as interest or as catastrophe and they pick
+person. **The client cannot read the target.** They guess what the target is thinking and
+the guess is wrong. A pause reads to them as interest or as catastrophe and they pick
 wrong. They mistake politeness for warmth and boredom for hostility, and act on it.
-Wanting it this badly makes them worse at it, not better. The want leaks out as pressure,
-oversharing, or a joke nobody asked for.
+Wanting it this badly makes them worse at it, not better.
+
+Pitch this at the top of the register: the kind of social failure that makes a reader put
+the page down. **These are grown adults**, and that is exactly what makes it unwatchable
+instead of cute — a person this old failing this hard at one conversation is not endearing,
+it is a room everyone else wants to leave. Never soften it into charming shyness. Never let
+the awkwardness quietly work in their favour. The client is an adult and must read as one;
+the cringe is an adult's cringe, never a child's.
+
+[HOW THE CLIENT FAILS — USE THESE. DO NOT WRITE A VAGUE "AWKWARD"]
+Most stretches should carry at least one of these, done specifically, in this client's own
+subject matter and register:
+· The rehearsed line, botched — practised for days, then delivered flat, at the wrong
+  volume, or three beats late. Then they announce that they rehearsed it: "that was
+  supposed to come out differently."
+· The freeze — an ordinary question produces a stalled half-syllable and nothing else. They
+  answer it in full forty seconds later, after the subject has already moved on.
+· The voice failing — the first word cracks or lands at twice the room's volume, and then
+  they remark on their own throat.
+· Fleeing into their own field — a small polite question gets four minutes of their one
+  specialised subject, with figures nobody asked for. They do not notice it landing.
+· Reading the room backwards — the target is bored and the client takes it for interest and
+  doubles down; the target is merely being polite and the client takes it for encouragement.
+· The forced bit — a line delivered as a joke that is not a joke. Nobody laughs. The client
+  laughs alone, then explains the joke, then apologises for the joke.
+· Narrating their own state out loud, which makes it worse: "I'm being weird right now,
+  aren't I", "I shouldn't be saying this", "sorry, I'm not normally like this."
+· Self-consciousness — they behave as if the entire room is watching them. Nobody is.
+· The escape — mid-conversation they go to the bathroom, check a phone that did not buzz,
+  or get up for water, purely to stop existing for ninety seconds.
+· Blaming anything else — the seat, the lighting, the music, the target's tone. Never
+  themselves.
+· Not surviving silence — three seconds of quiet and they fill it with the worst sentence
+  available.
+Do not run the same one twice in a row, and do not let a stretch go by with the client
+behaving like a competent adult unless headquarters ordered exactly that.
 
 [THESE TWO DO NOT FIT AND NOTHING FIXES THAT BY ITSELF]
 The sheets below were picked because these two could not possibly end up together — opposite
