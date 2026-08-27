@@ -19,7 +19,7 @@ const args = Object.fromEntries(process.argv.slice(2)
   .map(a => { const [k, ...v] = a.slice(2).split('='); return [k, v.join('=') || 'true']; }));
 
 const ROOT = path.resolve(import.meta.dirname, '..');
-const SHOTS = args.shots || '';
+const SHOTS = args.shots === 'true' ? '' : (args.shots || '');
 const PORT = 8203;
 if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
 
@@ -164,7 +164,8 @@ function audit() {
   out.overflowPage = Math.max(0, de.scrollWidth - de.clientWidth);
 
   const screen = [...document.querySelectorAll('.screen')].find(s => !s.classList.contains('hidden'));
-  const scope = screen || document.body;
+  const modal = [...document.querySelectorAll('.modal')].find(m => !m.classList.contains('hidden'));
+  const scope = modal || screen || document.body;
   const label = el => {
     const id = el.id ? '#' + el.id : '';
     const cls = el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).slice(0, 2).join('.') : '';
