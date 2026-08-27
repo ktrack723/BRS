@@ -30,6 +30,7 @@ import { COUPLES, COUPLE_BY_ID } from '../js/couples.js';
 import * as P from '../js/prompts.js';
 import { POINTS, PHASES, TOTAL_BEATS, applyVerdict, initialPoints, isBroken, loveOutOf100 } from '../js/points.js';
 import { requireTestKey, resolveTestModel } from './test-model.mjs';
+import { HAND_ORDERS, HAND_COUPLE_IDS } from './coaching-profiles.mjs';
 import fs from 'node:fs';
 
 const args = Object.fromEntries(process.argv.slice(2).filter(a => a.startsWith('--'))
@@ -44,7 +45,7 @@ const CONC = Number(args.concurrency || 6);
 const CURVE_N = Number(args['curve-n'] || 6);
 const CORPUS = args.corpus || '/tmp/claude-0/calibrate-corpus.json';
 const OUT = args.out || '/tmp/claude-0/calibrate-result.json';
-const DEFAULT_COUPLES = ['sauce-war', 'os-war', 'politics'];
+const DEFAULT_COUPLES = HAND_COUPLE_IDS;
 const COUPLE_IDS = (args.couples ? args.couples.split(',') : DEFAULT_COUPLES).filter(id => COUPLE_BY_ID[id]);
 
 // 키를 먼저 넣어야 업자가 정해진다. 모델은 그 뒤에 얹는다 (setter가 안 맞는 모델을 갈아 끼운다).
@@ -70,17 +71,13 @@ async function pool(items, limit, fn) {
   return out;
 }
 
-const goodOrders = c => {
-  const taste = c.target.taste.slice(0, 3).join(' / ');
-  return {
-    styling: `${c.target.name}이 좋아한다고 알려진 것(${taste})에 맞춘 차림. 과하지 않게, 한 군데만 확실히 눈에 띄게.`,
-    motivation: '오늘 이 자리가 마지막 기회라는 걸 알고 있다. 초조하지만 그걸 숨기지 못한다.',
-    coaching: `상대가 좋아하는 건 이거다: ${taste}. 그중 하나를 네가 먼저 꺼내라.\n`
-      + '네 얘기를 세 문장 이상 이어서 하지 마라. 상대가 말을 아끼면 한 번 더 물어라.',
-  };
-};
+// 프로필 둘. 「일괄 지침 vs 없음」을 비교하면 아무것도 안 나온다 — 요원이 시트를 실제로
+// 읽고 짠 공작안이라야 코칭이 뭘 하는지가 보인다. hand는 커플별 손글씨다 (coaching-profiles.mjs).
 const EMPTY = { styling: '', motivation: '', coaching: '' };
-const PROFILES = { none: () => EMPTY, good: goodOrders };
+const PROFILES = {
+  none: c => EMPTY,
+  hand: c => HAND_ORDERS[c.id] || EMPTY,
+};
 
 // ── 1단계. 대화 코퍼스 ───────────────────────────────────
 // 진짜 Engine을 그대로 돌린다. 판정만 가로채서 API를 안 태우고, 심판에게 갔을
@@ -92,7 +89,18 @@ async function buildCorpus() {
   const per = await pool(jobs, CONC, async ({ id, p }) => {
     checkBudget('코퍼스');
     const c = COUPLE_BY_ID[id];
+    const orders = PROFILES[p](c);
     const beats = [];
+    // A. 스타일링/동기부여를 실제로 돌린다. 주문이 없으면 테이블 값이 그대로 시트가 된다.
+    let dressed = dressOf(c.client, null);
+    if (orders.styling || orders.motivation) {
+      const styled = await llm.call({
+        label: `시공 ${id}/${p}`, system: P.STYLING_SYSTEM, cache: true,
+        messages: [{ role: 'user', content: P.stylingUser(c, c.client.spec || { species: 'human' }, orders) }],
+        schema: P.STYLING_SCHEMA, effort: 'low', maxTokens: 4000,
+      }).catch(() => null);
+      if (styled) dressed = dressOf(c.client, styled);
+    }
     // 판정만 가로채는 대역. 대화 생성은 그대로 API로 나간다.
     const spy = {
       usage: llm.usage,
@@ -104,11 +112,10 @@ async function buildCorpus() {
         return llm.call(a);
       },
     };
-    const e = new Engine(spy, {
-      couple: c, dressed: dressOf(c.client, null),
-      coaching: PROFILES[p](c).coaching, handlers: {},
-    });
+    const e = new Engine(spy, { couple: c, dressed, coaching: orders.coaching, handlers: {} });
     await e.run().catch(() => {});
+    // 판정·후일담이 볼 고객 시트. 프로필마다 다르므로 구간마다 같이 저장한다.
+    for (const b of beats) b.dressed = dressed;
     console.log(`  [${++done}/${jobs.length}] ${id.padEnd(16)} ${p.padEnd(5)} 구간 ${beats.length}  누적 ${fmt(money())}`);
     return beats;
   });
@@ -120,7 +127,7 @@ async function judgeCorpus(beats) {
   let done = 0;
   const rows = await pool(beats, CONC, async (b) => {
     const c = COUPLE_BY_ID[b.couple];
-    const sys = P.judgeSystem(c, dressOf(c.client, null));
+    const sys = P.judgeSystem(c, b.dressed || dressOf(c.client, null));
     const votes = [];
     // 같은 payload를 REPEATS번 반복한다 — 2회차부터는 프롬프트 캐시가 그대로 먹는다.
     for (let r = 0; r < REPEATS; r++) {
@@ -149,7 +156,7 @@ async function successCurve(transcripts) {
     const c = COUPLE_BY_ID[t.couple];
     const r = await llm.call({
       label: `후일담 ${t.couple}/${t.profile} love=${love}`,
-      system: P.epilogueSystem(c, dressOf(c.client, null)), cache: true,
+      system: P.epilogueSystem(c, t.dressed || dressOf(c.client, null)), cache: true,
       messages: [{ role: 'user', content: P.epilogueUser(c, love, t.transcript) }],
       schema: P.EPILOGUE_SCHEMA, effort: 'medium', maxTokens: 4000,
     }).catch(() => null);
@@ -216,7 +223,7 @@ try {
       const [head, tail = ''] = b.user.split('[이번에 새로 오간 부분 — 이것만 판정한다]');
       const prior = head.replace(/^\[지금까지의 대화[^\]]*\]\n/, '').trim();
       const seg = tail.split('Read the new stretch')[0].trim();
-      return { couple: b.couple, profile: b.profile, transcript: `${prior}\n${seg}`.trim() };
+      return { couple: b.couple, profile: b.profile, dressed: b.dressed, transcript: `${prior}\n${seg}`.trim() };
     });
     console.log(`\n③ 성사 곡선 — 대화 ${ts.length}건 × 러브 ${LOVE_GRID.join('/')}`);
     const spent = money();

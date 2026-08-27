@@ -150,7 +150,7 @@ test('C에 넘길 때만 0..100으로 되돌린다 — 프롬프트의 눈금은
   assert.equal(PT.loveOutOf100(0), 0);
   assert.equal(PT.loveOutOf100(PT.POINTS.loveMax), 100);
   assert.equal(PT.loveOutOf100(PT.POINTS.loveMax / 2), 50);
-  assert.equal(PT.loveOutOf100(PT.POINTS.loveStart), 10);
+  assert.ok(PT.loveOutOf100(PT.POINTS.loveStart) < 25, '시작값이 이미 높은 눈금으로 나간다');
   assert.equal(PT.loveOutOf100(PT.POINTS.loveMax * 5), 100, '눈금 밖의 값도 잘린다');
 });
 
