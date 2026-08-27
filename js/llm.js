@@ -440,8 +440,8 @@ export class LlmClient {
   async ping() {
     return this.call({
       label: '본부 인증',
-      system: '한 단어로만 답하라.',
-      messages: [{ role: 'user', content: '통신 상태 확인. "이상무"라고만 답하라.' }],
+      system: 'Answer in one word.',
+      messages: [{ role: 'user', content: 'Comms check. Reply with 이상무 and nothing else.' }],
       maxTokens: 1000, effort: 'low',
     });
   }

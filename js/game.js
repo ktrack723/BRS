@@ -1,11 +1,17 @@
 // game.js — 화면/입력 계층. 대화 진행은 engine.js, 수치는 points.js, 프롬프트는 prompts.js, API는 llm.js.
 //
 // 화면은 구조도를 그대로 따른다:
-//   S 스크리닝 → A 스타일링/동기부여 → B 코칭 → B 텍스팅·토킹 → C 후일담
+//   S 스크리닝 → A-1 미용실(외모) → A-2 취조실(성격) → B 코칭 → B 텍스팅·토킹 → C 후일담
+//
+// A는 한 상자지만 호출은 둘이다. 미용실은 외모만, 취조실은 성격만 고친다 —
+// 서로의 주문도, 서로의 결과도 보지 않는다.
+//
+// 준비 세 화면은 주문을 받을 때마다 고객의 반응을 한 줄 받아온다 (prompts.js의 R 블록).
+// 그 문장은 **화면에만** 뜬다 — 어떤 프롬프트에도 실리지 않고 점수에도 닿지 않는다.
 import { LlmClient, RefusalError, detectProvider, providerOf, defaultModelOf, modelFitsProvider, normalizeUsage, DEFAULT_PROVIDER } from './llm.js';
 import * as P from './prompts.js';
 import { Engine, dressOf } from './engine.js';
-import { PHASES, POINTS, MARK, MARK_CLASS } from './points.js';
+import { PHASES, POINTS, MARK, MARK_CLASS, gauge } from './points.js';
 import { COUPLES } from './couples.js';
 import { AvatarViewer, sanitizeSpec, renderThumb } from './avatar.js';
 import { sfx, startBgm, toggleBgm, unlockAudio } from './audio.js';
@@ -23,7 +29,9 @@ const state = {
   agent: { name: '' },
   couple: null, clientSpec: null, targetSpec: null,
   orders: { styling: '', motivation: '', coaching: '' },
-  styled: null,          // A의 출력 { look, personality, spec }
+  styled: { look: null, personality: null },   // A-1 / A-2 의 출력. 각자 따로 채워진다
+  styledFrom: { styling: '', motivation: '' },  // 그 칸이 어느 주문에서 나왔나 ('' = 손 안 댐)
+  reactions: { styling: null, motivation: null, coaching: null },  // 화면 표시 전용
   engine: null, result: null,
 };
 window.__game = { state, llm, COUPLES, PHASES, POINTS, pace }; // 자동 테스트 후크
@@ -66,9 +74,11 @@ function loading(on, label = '') {
     $('#loading-tip').textContent = TIPS[Math.floor(Math.random() * TIPS.length)];
   }
 }
+let loadingDepth = 0;
 async function withLoading(label, fn) {
+  loadingDepth++;
   loading(true, label);
-  try { return await fn(); } finally { loading(false); }
+  try { return await fn(); } finally { if (--loadingDepth === 0) loading(false); }
 }
 
 let toastTimer = null;
@@ -416,12 +426,165 @@ function chooseCouple(c) {
   state.clientSpec = sanitizeSpec(c.client.spec);
   state.targetSpec = sanitizeSpec(c.target.spec);
   state.orders = { styling: '', motivation: '', coaching: '' };
-  state.styled = null;
+  state.styled = { look: null, personality: null };
+  state.styledFrom = { styling: '', motivation: '' };
+  state.reactions = { styling: null, motivation: null, coaching: null };
   state.engine = null; state.result = null;
   gotoStyling();
 }
 
-// ── A. 스타일링 / 동기부여 ──────────────────────────────
+// ── R. 준비 단계 반응 ───────────────────────────────────
+// 요원이 주문을 하나 내릴 때마다 고객이 그 자리에서 한마디 한다. 그게 전부다 —
+// 이 문장은 대화 프롬프트에도, 판정에도, 후일담에도 실리지 않는다. 점수도 없다.
+function renderReaction(kind, sel) {
+  const el = $(sel);
+  if (!el) return;
+  const r = state.reactions[kind];
+  if (!r) {
+    el.innerHTML = `<span class="inject-empty">아직 아무 말도 안 했다 — 주문을 내려야 입을 연다</span>`;
+    return;
+  }
+  el.innerHTML = `<div class="react-line"><span class="react-who">${escapeHtml(state.couple.client.name)}
+    <small>· ${escapeHtml(P.REACT_ROOMS[kind].room)}</small></span>${escapeHtml(r.reaction)}</div>`
+    + (r.text === state.orders[kind].trim() ? ''
+      : `<p class="dim small">주문이 그 뒤로 바뀌었다 — 이건 <b>이전 주문</b>에 대한 대꾸다.</p>`);
+}
+
+async function reactTo(kind, { input, box, viewer }) {
+  const text = $(input).value.trim();
+  const had = state.reactions[kind];
+  if (had && had.text === text) return renderReaction(kind, box);   // 같은 주문에 두 번 묻지 않는다
+  const r = await withLoading(`${P.REACT_ROOMS[kind].room} — 고객 반응 대기`, () => llm.call({
+    label: `R · ${P.REACT_ROOMS[kind].room} 반응`, system: P.reactSystem(state.couple, kind),
+    messages: [{ role: 'user', content: P.reactUser(kind, text) }],
+    schema: P.REACT_SCHEMA, effort: 'low', maxTokens: 3000,
+  }));
+  state.reactions[kind] = { text, reaction: r.reaction, face: r.face };
+  renderReaction(kind, box);
+  viewer?.emote('left', r.face);
+  sfx.send();
+}
+
+// ── A. 시공 — 미용실과 취조실이 각자 제 칸만 고친다 ─────
+// 두 호출은 서로를 모른다. 스타일링 프롬프트에 성격이 없고, 동기부여 프롬프트에 외모가 없다.
+// 주문이 비어 있으면 부르지 않는다 — 그 칸은 테이블 값이 그대로 시트가 된다 (engine.js의 dressOf).
+// 주문을 **지운** 것도 어긋난 것이다. 지운 걸 못 본 척하고 예전 시공물을
+// 계속 대화 프롬프트에 실어 보내면 안 된다.
+const stale = (kind) => state.styledFrom[kind] !== state.orders[kind].trim();
+
+// 주문이 비면 부르지 않고 그 칸을 테이블 값으로 되돌린다.
+function clearSheet(kind, viewer) {
+  if (kind === 'styling') {
+    state.styled.look = null;
+    state.clientSpec = sanitizeSpec(state.couple.client.spec);
+    viewer?.updateLeft(state.clientSpec);
+  } else {
+    state.styled.personality = null;
+  }
+  state.styledFrom[kind] = '';
+}
+
+// 그 칸을 지금 주문에 맞춘다 — 부르거나, 되돌리거나, 이미 맞으면 아무것도 안 한다.
+function syncSheet(kind, viewer) {
+  if (!stale(kind)) return Promise.resolve();
+  if (!state.orders[kind].trim()) { clearSheet(kind, viewer); return Promise.resolve(); }
+  return kind === 'styling' ? runStyling(viewer) : runMotivation();
+}
+
+async function runStyling(viewer) {
+  const order = state.orders.styling.trim();
+  const r = await withLoading('시공 중... (고객 외모 갱신)', () => llm.call({
+    label: 'A-1 · 스타일링', system: P.STYLING_SYSTEM,
+    messages: [{ role: 'user', content: P.stylingUser(state.couple, state.clientSpec, order) }],
+    schema: P.STYLING_SCHEMA, effort: 'low', maxTokens: 6000,
+  }));
+  // 조형 보정 플래그는 스키마에 없다. 시공 후에도 유지해준다.
+  state.clientSpec = sanitizeSpec({ ...r.spec, femme: state.couple.client.spec.femme });
+  state.styled.look = r.look;
+  state.styledFrom.styling = order;
+  viewer?.updateLeft(state.clientSpec);
+  viewer?.burst('sparkle', 'left');
+  sfx.stamp();
+}
+
+async function runMotivation() {
+  const order = state.orders.motivation.trim();
+  const r = await withLoading('주입 중... (고객 성격 갱신)', () => llm.call({
+    label: 'A-2 · 동기부여', system: P.MOTIVATION_SYSTEM,
+    messages: [{ role: 'user', content: P.motivationUser(state.couple, order) }],
+    schema: P.MOTIVATION_SCHEMA, effort: 'low', maxTokens: 6000,
+  }));
+  state.styled.personality = r.personality;
+  state.styledFrom.motivation = order;
+  sfx.stamp();
+}
+
+// 한 화면은 제 칸 하나만 보여준다. 미용실은 외모, 취조실은 성격.
+function renderSheetOut(sel, kind) {
+  const el = $(sel);
+  if (!el) return;
+  const c = state.couple.client;
+  const [tag, out, table] = kind === 'styling'
+    ? ['수정된 고객 외모', state.styled.look, list(c.look)]
+    : ['수정된 고객 성격', state.styled.personality, list(c.personality)];
+  if (!out) {
+    el.innerHTML = `<span class="inject-empty">아직 손대지 않았다 — 이대로 나가면 <b>테이블 값이 그대로 시트</b>가 된다<br>
+      <span class="dim">${escapeHtml(table)}</span></span>`;
+    return;
+  }
+  el.innerHTML =
+    `<div class="sheet-out"><span class="sheet-tag cached">${tag}</span>${escapeHtml(out)}</div>`
+    + (stale(kind)
+      ? `<p class="handoff-warn">주문이 바뀌었다. <b>다시 돌려야</b> 반영된다 — 넘어갈 때 자동으로 한 번 더 돈다.</p>`
+      : `<p class="dim small">이 문단이 그대로 대화 프롬프트의 고객 시트에 들어간다. 캐시되어 판이 끝날 때까지 유지된다.</p>`);
+}
+
+// 준비 화면의 버튼은 한 번에 하나만 돈다. 대기막은 포인터를 막지 키보드를 막지 않는다 —
+// 초점이 버튼에 있으면 엔터로 얼마든지 또 누를 수 있다.
+let prepBusy = false;
+const oncePerPress = fn => async () => {
+  if (prepBusy) return;
+  prepBusy = true;
+  try { return await fn(); } finally { prepBusy = false; }
+};
+
+// 주문 하나 = 반응 하나 + 시공 하나. 둘은 서로를 안 보므로 같이 보내고,
+// **둘 다 끝난 뒤에** 그린다. 하나가 엎어졌다고 성공한 쪽까지 안 그리면 안 된다.
+function orderHandler(kind, { input, box, out, viewer }) {
+  return oncePerPress(async () => {
+    sfx.click();
+    const done = await Promise.allSettled([
+      reactTo(kind, { input, box, viewer: viewer() }),
+      syncSheet(kind, viewer()),
+    ]);
+    renderReaction(kind, box);
+    renderSheetOut(out, kind);
+    const failed = done.find(r => r.status === 'rejected');
+    if (failed) toast(errMsg(failed.reason));
+  });
+}
+
+// 넘어갈 때 시공이 밀려 있으면 조용히 흘리지 않고 한 번 돌린다.
+// 다만 회선이 죽었다고 화면에 가둬두지는 않는다 — 한 번 더 누르면 그대로 내보낸다.
+function nextHandler(kind, { out, viewer, go }) {
+  let forced = false;
+  return oncePerPress(async () => {
+    sfx.click();
+    if (stale(kind) && !forced) {
+      try { await syncSheet(kind, viewer()); }
+      catch (e) {
+        forced = true;
+        renderSheetOut(out, kind);
+        return toast(`${errMsg(e)} — 한 번 더 누르면 시공 없이 넘어간다.`);
+      }
+      renderSheetOut(out, kind);
+    }
+    forced = false;
+    go();
+  });
+}
+
+// ── A-1. 미용실 · 스타일링 (고객 외모) ──────────────────
 let stylingViewer = null;
 function gotoStyling() {
   show('styling');
@@ -430,55 +593,55 @@ function gotoStyling() {
   stylingViewer.setDuo(state.clientSpec, state.targetSpec, 'camera');
 
   $('#styling-title').innerHTML =
-    `A · 스타일링 / 동기부여 <span class="diff-inline">${escapeHtml(c.client.name)} × ${escapeHtml(c.target.name)}</span>`;
+    `미용실 · 스타일링 <span class="diff-inline">${escapeHtml(c.client.name)} × ${escapeHtml(c.target.name)}</span>`;
   $('#styling-dossier').innerHTML = dossierHtml(c);
   $('#styling-input').value = state.orders.styling;
-  $('#motivation-input').value = state.orders.motivation;
-  renderStylingResult();
+  renderReaction('styling', '#styling-react');
+  renderSheetOut('#styling-result', 'styling');
 
-  $('#styling-input').oninput = e => { state.orders.styling = e.target.value; };
-  $('#motivation-input').oninput = e => { state.orders.motivation = e.target.value; };
-  $('#btn-styling').onclick = runStyling;
+  $('#styling-input').oninput = e => {
+    state.orders.styling = e.target.value;
+    renderReaction('styling', '#styling-react');
+    renderSheetOut('#styling-result', 'styling');
+  };
+  const viewer = () => stylingViewer;
+  $('#btn-styling').onclick = orderHandler('styling', {
+    input: '#styling-input', box: '#styling-react', out: '#styling-result', viewer,
+  });
   $('#btn-styling-back').onclick = () => { sfx.click(); gotoRoster(); };
-  $('#btn-styling-next').onclick = () => { sfx.click(); gotoCoaching(); };
+  $('#btn-styling-next').onclick = nextHandler('styling', {
+    out: '#styling-result', viewer, go: gotoMotivation,
+  });
 }
 
-function renderStylingResult() {
-  const el = $('#styling-result');
+// ── A-2. 취조실 · 동기부여 (고객 성격) ──────────────────
+let motivationViewer = null;
+function gotoMotivation() {
+  show('motivation');
   const c = state.couple;
-  if (!state.styled) {
-    el.innerHTML = `<span class="inject-empty">아직 시공하지 않았다 — 이대로 나가면 <b>테이블 값이 그대로 시트</b>가 된다<br>
-      <span class="dim">외모: ${escapeHtml(list(c.client.look))}</span><br>
-      <span class="dim">성격: ${escapeHtml(list(c.client.personality))}</span></span>`;
-    return;
-  }
-  el.innerHTML =
-    `<div class="sheet-out"><span class="sheet-tag cached">수정된 고객 외모</span>${escapeHtml(state.styled.look)}</div>` +
-    `<div class="sheet-out"><span class="sheet-tag cached">수정된 고객 성격</span>${escapeHtml(state.styled.personality)}</div>` +
-    `<p class="dim small">이 두 문단이 그대로 대화 프롬프트의 고객 시트가 된다. 캐시되어 판이 끝날 때까지 유지된다.</p>`;
-}
+  motivationViewer = getStageViewer('stage-motivation');
+  motivationViewer.setSolo(state.clientSpec);
 
-async function runStyling() {
-  sfx.click();
-  const styling = $('#styling-input').value.trim();
-  const motivation = $('#motivation-input').value.trim();
-  if (!styling && !motivation) return toast('둘 중 하나는 적어라. 둘 다 비우면 시공할 게 없다.');
-  state.orders.styling = styling;
-  state.orders.motivation = motivation;
-  try {
-    const r = await withLoading('시공 중... (고객 외모 · 성격 갱신)', () => llm.call({
-      label: 'A · 스타일링/동기부여', system: P.STYLING_SYSTEM,
-      messages: [{ role: 'user', content: P.stylingUser(state.couple, state.clientSpec, state.orders) }],
-      schema: P.STYLING_SCHEMA, effort: 'low', maxTokens: 6000,
-    }));
-    // 조형 보정 플래그는 스키마에 없다. 시공 후에도 유지해준다.
-    state.clientSpec = sanitizeSpec({ ...r.spec, femme: state.couple.client.spec.femme });
-    state.styled = { look: r.look, personality: r.personality, spec: state.clientSpec };
-    stylingViewer.updateLeft(state.clientSpec);
-    stylingViewer.burst('sparkle', 'left');
-    renderStylingResult();
-    sfx.stamp();
-  } catch (e) { toast(errMsg(e)); }
+  $('#motivation-title').innerHTML =
+    `취조실 · 동기부여 <span class="diff-inline">${escapeHtml(c.client.name)} × ${escapeHtml(c.target.name)}</span>`;
+  $('#motivation-dossier').innerHTML = dossierHtml(c);
+  $('#motivation-input').value = state.orders.motivation;
+  renderReaction('motivation', '#motivation-react');
+  renderSheetOut('#motivation-result', 'motivation');
+
+  $('#motivation-input').oninput = e => {
+    state.orders.motivation = e.target.value;
+    renderReaction('motivation', '#motivation-react');
+    renderSheetOut('#motivation-result', 'motivation');
+  };
+  const viewer = () => motivationViewer;
+  $('#btn-motivation').onclick = orderHandler('motivation', {
+    input: '#motivation-input', box: '#motivation-react', out: '#motivation-result', viewer,
+  });
+  $('#btn-motivation-back').onclick = () => { sfx.click(); gotoStyling(); };
+  $('#btn-motivation-next').onclick = nextHandler('motivation', {
+    out: '#motivation-result', viewer, go: gotoCoaching,
+  });
 }
 
 // ── B 준비. 코칭 ────────────────────────────────────────
@@ -503,11 +666,20 @@ function gotoCoaching() {
       ? `<span class="inject-label">고객 프롬프트에 이렇게 박힌다 · ${t.length}자</span>`
         + `<code class="inject-code">[본부 코칭 — 고객의 귀에만 들어갔다]\n"""\n${escapeHtml(t)}\n"""</code>`
       : `<span class="inject-empty">코칭 없음 → 고객은 <b>아무 준비 없이</b> 제 시트대로만 움직인다</span>`;
+    renderReaction('coaching', '#coaching-react');
   };
   $('#coaching-input').oninput = sync;
   sync();
 
-  $('#btn-coaching-back').onclick = () => { sfx.click(); gotoStyling(); };
+  renderReaction('coaching', '#coaching-react');
+  $('#btn-coaching').onclick = oncePerPress(async () => {
+    sfx.click();
+    state.orders.coaching = $('#coaching-input').value;
+    try { await reactTo('coaching', { input: '#coaching-input', box: '#coaching-react', viewer: coachingViewer }); }
+    catch (e) { toast(errMsg(e)); }
+    renderReaction('coaching', '#coaching-react');
+  });
+  $('#btn-coaching-back').onclick = () => { sfx.click(); gotoMotivation(); };
   $('#btn-start-op').onclick = () => { sfx.stamp(); startOperation(); };
 }
 
@@ -515,11 +687,12 @@ function gotoCoaching() {
 let stageViewer = null;
 
 function pointsUpdate(s) {
-  $('#meter-mood-fill').style.width = s.mood + '%';
-  $('#meter-mood-num').textContent = s.mood;
-  $('#meter-love-fill').style.width = s.love + '%';
-  $('#meter-love-num').textContent = s.love;
-  $('#meter-mood-fill').classList.toggle('danger', s.mood <= POINTS.moodStep);
+  // 눈금이 둘 다 다르므로 막대 길이는 각자의 최대치로 환산한다. 숫자는 눈금 그대로 띄운다.
+  $('#meter-mood-fill').style.width = gauge(s.mood, POINTS.moodMax).pct + '%';
+  $('#meter-mood-num').textContent = `${s.mood}/${POINTS.moodMax}`;
+  $('#meter-love-fill').style.width = gauge(s.love, POINTS.loveMax).pct + '%';
+  $('#meter-love-num').textContent = `${s.love}/${POINTS.loveMax}`;
+  $('#meter-mood-fill').classList.toggle('danger', s.mood <= POINTS.moodDanger);
   $('#turn-badge').textContent = `${s.phaseLabel} ${Math.min(s.beat + 1, s.beats)}/${s.beats}구간`;
 }
 
@@ -564,7 +737,7 @@ function addVerdict(v) {
   li.innerHTML =
     `<span class="vr-when">${escapeHtml(v.phaseLabel)} ${v.beat}/${v.beats}</span>` +
     `<span class="vr-mark mood ${MARK_CLASS[v.dMood]}">무드 ${MARK[v.dMood]}</span>` +
-    `<span class="vr-mark love ${MARK_CLASS[v.dLove]}">러브 ${MARK[v.dLove]}</span>`;
+    `<span class="vr-mark love ${MARK_CLASS[v.dLove]}">러브 ${MARK[v.dLove]}${v.step > 1 ? v.step : ''}</span>`;
   w.prepend(li);
   while (w.children.length > 24) w.lastChild.remove();
 
@@ -647,7 +820,8 @@ async function gotoResult() {
   const stamp = $('#result-stamp');
   stamp.textContent = r.success ? '성사' : r.broken ? '자리 파탄' : '결렬';
   stamp.className = `result-stamp ${r.success ? 'ok' : 'fail'}`;
-  $('#result-score').textContent = `러브 포인트 ${r.love} / 100 · 무드 포인트 ${r.mood} / 100`;
+  $('#result-score').textContent =
+    `러브 포인트 ${r.love} / ${POINTS.loveMax} · 무드 포인트 ${r.mood} / ${POINTS.moodMax}`;
   $('#result-note').textContent = r.broken
     ? '무드 포인트가 바닥나 자리가 중간에 깨졌다. 남은 구간은 돌지 않았다.'
     : '성사 여부는 러브 포인트를 보고 기록관이 정했다.';
