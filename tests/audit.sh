@@ -93,7 +93,7 @@ chk "세계관 한 벌만 있고 넷이 공유한다" "grep -c 'export const WOR
 chk "수위 허가서가 살아 있다 (성인 B급, 미화 금지)" "grep -q 'DO NOT SANITIZE' js/prompts.js && grep -q 'THESE PEOPLE HAVE BODIES' js/prompts.js"
 chk "금지선 한 줄이 살아 있다 (실존 인물·미성년 금지)" "grep -q 'THE ONE LINE' js/prompts.js && grep -q 'could read as a minor' js/prompts.js"
 chk "출력 언어 고정이 블록마다 반복된다" "test \$(grep -c '\${KO}' js/prompts.js) -ge 5"
-chk "지시는 영어, 출력은 한국어" "grep -q 'Instructions are English. Output is Korean' js/prompts.js"
+chk "지시는 영어, 출력은 한국어" "grep -q 'Instructions and labels are English' js/prompts.js && grep -q 'Output is Korean, always' js/prompts.js"
 # ASCII 인물로 프롬프트를 지으면 남는 한글은 전부 지시문이다. 한 글자도 없어야 한다.
 chk "다섯 프롬프트의 지시문에 한글이 한 글자도 없다" "node --test tests/orders.test.mjs 2>&1 | grep -q '^ok .*다섯 프롬프트의 지시문에 한글이 한 글자도 없다'"
 

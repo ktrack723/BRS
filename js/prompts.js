@@ -42,8 +42,8 @@ not possibly end up together. The player is a field operative who never speaks: 
 does the talking. Tone: straight-faced spy thriller × idiot comedy. B-movie register —
 overblown, meme-brained, absurd in the details.
 
-[LANGUAGE] Instructions are English. Output is Korean, always. The sheets and dialogue
-below are Korean; match them. Never answer in English.
+[LANGUAGE] Instructions and labels are English. The character data and the dialogue are
+Korean. Output is Korean, always — every word of it. Never answer in English.
 
 [CONTENT REGISTER — ADULT B-MOVIE COMEDY. DO NOT SANITIZE]
 Everyone here is a fictional adult parody construct. Wanted and allowed: venom, profanity,
@@ -217,7 +217,7 @@ export function stylingUser(couple, currentSpec, styling) {
 [STYLING ORDER]
 ${order ? `"""\n${order}\n"""` : '(no order. The look stands exactly as the table has it.)'}
 
-Emit the look as it stands after this order, plus the avatar spec.`;
+Emit the look, in Korean, as it stands after this order, plus the avatar spec.`;
 }
 
 // ── A-2. 취조실 — 동기부여 (고객 성격) ─────────────────────────
@@ -259,7 +259,7 @@ export function motivationUser(couple, motivation) {
 [MOTIVATION ORDER]
 ${order ? `"""\n${order}\n"""` : '(no order. The personality stands exactly as the table has it.)'}
 
-Emit the personality as it stands after this order.`;
+Emit the personality, in Korean, as it stands after this order.`;
 }
 
 // ── B-1. 텍스팅 & 토킹 — 고객·타겟 대화 생성 ──────────────────────
@@ -273,7 +273,7 @@ export const TALK_SCHEMA = {
       items: {
         type: 'object',
         properties: {
-          who: { type: 'string', enum: ['client', 'target'], description: 'client = the client, target = the target' },
+          who: { type: 'string', enum: ['client', 'target'], description: 'client = the person under [CLIENT], target = the person under [TARGET]' },
           text: { type: 'string', description: 'Korean. What that person says. Dialogue only — no name tag, no quote marks. A short action in parentheses is allowed' },
         },
         required: ['who', 'text'],
@@ -351,11 +351,11 @@ export const JUDGE_SCHEMA = {
   properties: {
     mood: {
       type: 'string', enum: ['up', 'down', 'same'],
-      description: 'MOOD — the temperature of the table across this stretch. up / down / same',
+      description: 'MOOD-POINT — the temperature of the table across this stretch. up / down / same',
     },
     love: {
       type: 'string', enum: ['up', 'down', 'same'],
-      description: 'LOVE — did the target end this stretch wanting the client more, less, or the same. same is the default',
+      description: 'LOVE-POINT — did the target end this stretch wanting the client more, less, or the same. same is the default',
     },
   },
   required: ['mood', 'love'],
@@ -379,15 +379,15 @@ ${targetSheet(t)}
 [WHAT THE CLIENT SHOWED UP LOOKING LIKE]
 ${dressed.look}
 
-■ MOOD — the temperature of the table itself, not anybody's feelings.
+■ MOOD-POINT — the temperature of the table itself, not anybody's feelings.
 · up — it got easier. They are actually in it: answering, taking the bait, staying.
 · down — it got worse. Stiffer, colder, shorter answers; somebody is looking for the exit.
 · same — it went on. Fine, dull, level. **This is the honest answer most of the time.**
 
-■ LOVE — romantic pull toward this one specific person. Nothing else counts.
+■ LOVE-POINT — romantic pull toward this one specific person. Nothing else counts.
 **The base rate for two people talking is same.** An office worker has a dozen pleasant,
 funny, genuinely understanding conversations a day and falls in love with zero colleagues.
-None of this is LOVE: rhythm, fun, a topic landing, jokes working, kindness, being
+None of this is LOVE-POINT: rhythm, fun, a topic landing, jokes working, kindness, being
 understood, arguing well, the room finally working, either of them acting unlike themselves.
 · up — only for something a colleague could not have caused: they lose their place; the
   client lands something only this person could land, because of who they are; a defense
@@ -397,10 +397,10 @@ understood, arguing well, the room finally working, either of them acting unlike
   No → not up.
 · down — ${t.name} hardened toward the client on purpose, or the client stepped on something
   their sheet says they cannot stand. Fumbling is not down. Closing is.
-· same — everything else. **The most common answer by far.** A whole operation where LOVE
+· same — everything else. **The most common answer by far.** A whole operation where LOVE-POINT
   never once reads same is an operation you adjudicated wrong.
 
-MOOD and LOVE move independently. A warm, easy table with zero pull is up/same. A vicious
+MOOD-POINT and LOVE-POINT move independently. A warm, easy table with zero pull is up/same. A vicious
 fight that made them want the client is down/up. Read them separately, every time.
 
 Return only the two readings. ${KO}`;
@@ -413,7 +413,7 @@ ${priorLog || '(none — this is where it starts)'}
 [THE NEW STRETCH — adjudicate this and nothing else]
 ${segment}
 
-Read the new stretch against what came before it. Two answers: MOOD, LOVE.`;
+Read the new stretch against what came before it. Two answers: MOOD-POINT, LOVE-POINT.`;
 }
 
 // ── C. 후일담 생성 ──────────────────────────────────────────────
@@ -423,7 +423,7 @@ export const EPILOGUE_SCHEMA = {
   properties: {
     success: {
       type: 'boolean',
-      description: 'true = they ended up together. Decide it from the LOVE reading first and the log second',
+      description: 'true = they ended up together. Decide it from the LOVE-POINT reading first and the log second',
     },
     epilogue: {
       type: 'string',
@@ -448,10 +448,10 @@ ${c.name}: ${dressed.personality}
 ${t.name}: ${list(t.personality)}
 
 ■ DID IT TAKE
-LOVE is the Bureau's instrument reading of how much ${t.name} came to want ${c.name}.
+LOVE-POINT is the Bureau's instrument reading of how much ${t.name} came to want ${c.name}.
 0 means nothing moved all day. 100 means they are already a couple. **Decide from that
 number first, and from what actually happened in the log second.** A funny evening with a
-low reading did not take. A wretched evening with a high reading did. Never overturn a
+low reading did not take. A wretched evening with a high reading did take. Never overturn a
 reading because the log was entertaining.
 
 ■ THE EPILOGUE
@@ -459,13 +459,13 @@ What became of them after that day — days, weeks, a year later. Their two pers
 above are what you extrapolate from; the log is what actually happened. Concrete, small,
 specific: what they did, what they said, who called whom. No moral, no summary of the
 operation, no mention of the Bureau's numbers. If it ended in bed, say so plainly; if it
-ended in a restraining order, say that. Failure is not tragic — it is usually stupid.
+ended in a restraining order, say that. Not taking is not tragic — it is usually stupid.
 
 ${KO}`;
 }
 
 export function epilogueUser(couple, love, transcript) {
-  return `[LOVE] ${love} / 100
+  return `[LOVE-POINT] ${love} / 100
 [CLIENT] ${couple.client.name} / [TARGET] ${couple.target.name}
 
 [FULL LOG — CLIENT AND TARGET]

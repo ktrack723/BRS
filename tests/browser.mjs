@@ -73,7 +73,11 @@ function installMockLlm() {
   const LOVE = ['same', 'up', 'same', 'same', 'up', 'same', 'same', 'up', 'same'];
   let judged = 0, beat = 0;
   llm.call = async ({ label, system, messages, schema }) => {
-    window.__mock.calls.push({ label, system: system || '', schema: !!schema });
+    window.__mock.calls.push({
+      label, system: system || '', schema: !!schema,
+      // system 만 보면 판정·후일담이 user 메시지로 나르는 대화 전문을 못 본다.
+      body: (system || '') + JSON.stringify(messages || []),
+    });
     await new Promise(r => setTimeout(r, window.__mockLatency ?? 120));
     if (label === '본부 인증') return '이상무';
     if (label.startsWith('A-1')) {
@@ -243,7 +247,8 @@ try {
   console.log('\n✂️  A-1 · 미용실 (스타일링)');
   await page.waitForSelector('#screen-styling:not(.hidden)', { timeout: ms(10000) });
   const specBefore = await page.evaluate(() => structuredClone(window.__game.state.clientSpec));
-  await page.fill('#styling-input', '형광 주황 염색, 새빨간 턱시도, 등에 폭탄, 머리 위에 도는 금색 고리');
+  const STYLE = '형광 주황 염색, 새빨간 턱시도, 등에 폭탄, 머리 위에 도는 금색 고리';
+  await page.fill('#styling-input', STYLE);
   await page.click('#btn-styling');
   await page.waitForFunction(() => window.__game.state.styled.look !== null, null, { timeout: ms(120000) });
   await page.waitForSelector('#styling-react .react-line', { timeout: ms(120000) });
@@ -260,11 +265,36 @@ try {
     check('자유 도형이 붙는다 (폭탄·후광)', props === 2, `${props}개`);
   }
   await shot('05-salon');
-  await page.click('#btn-styling-next');
 
-  // ── A-2. 취조실 · 동기부여 (시공이 확정되는 자리) ───────
-  console.log('\n🔦 A-2 · 취조실 (동기부여)');
+  // 주문을 **지우면** 그 칸은 테이블 값으로 돌아가야 한다 — 예전 시공물이 남으면
+  // 지운 적 없는 외모가 대화 프롬프트로 실려 나간다.
+  const a1n = () => page.evaluate(() => window.__mock.calls.filter(c => c.label.startsWith('A-1')).length);
+  const a1Before = await a1n();
+  await page.fill('#styling-input', '');
+  await page.click('#btn-styling-next');
   await page.waitForSelector('#screen-motivation:not(.hidden)', { timeout: ms(10000) });
+  check('주문을 지우면 외모가 테이블 값으로 돌아간다',
+    await page.evaluate(() => window.__game.state.styled.look === null));
+  check('되돌릴 때는 부르지 않는다', await a1n() === a1Before);
+  check('아바타도 원래 꼴로 돌아온다',
+    JSON.stringify(specBefore) === await page.evaluate(() => JSON.stringify(window.__game.state.clientSpec)));
+
+  // 다시 넣고, 같은 주문으로 한 번 더 지나가 본다 — 두 번 부르면 안 된다.
+  await page.click('#btn-motivation-back');
+  await page.waitForSelector('#screen-styling:not(.hidden)', { timeout: ms(10000) });
+  await page.fill('#styling-input', STYLE);
+  await page.click('#btn-styling-next');
+  await page.waitForFunction(() => window.__game.state.styled.look !== null, null, { timeout: ms(120000) });
+  await page.waitForSelector('#screen-motivation:not(.hidden)', { timeout: ms(10000) });
+  const a1Refit = await a1n();
+  await page.click('#btn-motivation-back');
+  await page.waitForSelector('#screen-styling:not(.hidden)', { timeout: ms(10000) });
+  await page.click('#btn-styling-next');
+  await page.waitForSelector('#screen-motivation:not(.hidden)', { timeout: ms(10000) });
+  check('같은 주문에는 다시 부르지 않는다', await a1n() === a1Refit, `${await a1n()} / ${a1Refit}`);
+
+  // ── A-2. 취조실 · 동기부여 ─────────────────────────────
+  console.log('\n🔦 A-2 · 취조실 (동기부여)');
   await page.fill('#motivation-input', '오늘 안 되면 벌금 800만원이라고 못박아라. 지고는 못 사는 성질을 끝까지 끌어올려라');
   const specAtInterro = await page.evaluate(() => structuredClone(window.__game.state.clientSpec));
   await page.click('#btn-motivation');
@@ -350,14 +380,15 @@ try {
     const epilogue = calls.filter(c => c.label.includes('후일담'));
     check('생성과 판정이 구간마다 짝을 이룬다', gen.length === judge.length, `${gen.length} / ${judge.length}`);
     check('후일담은 딱 한 번 불린다', epilogue.length === 1, `${epilogue.length}회`);
+    // system 뿐 아니라 user 메시지까지 합쳐서 본다 — 대화 전문은 그쪽으로 간다.
     check('코칭은 생성 프롬프트에만 실린다',
-      gen.every(c => c.system.includes(COACH)) && judge.every(c => !c.system.includes(COACH)));
+      gen.every(c => c.system.includes(COACH)) && judge.every(c => !c.body.includes(COACH)));
     check('판정은 코칭도 고객 성격도 못 본다',
-      judge.every(c => !c.system.includes(COACH) && !c.system.includes(styled.personality)));
+      judge.every(c => !c.body.includes(COACH) && !c.body.includes(styled.personality)));
     check('판정은 스타일링된 고객 외모를 본다', judge.every(c => c.system.includes(styled.look)));
     check('후일담은 동기부여된 고객 성격을 받는다', epilogue[0].system.includes(styled.personality));
     check('후일담은 취향도 외모도 안 받는다',
-      !epilogue[0].system.includes(styled.look));
+      !epilogue[0].body.includes(styled.look));
     const sysSet = new Set(gen.map(c => c.system));
     check('생성 system이 판 내내 동일하다 (캐시가 붙는 자리)', sysSet.size === 1, `${sysSet.size}종`);
     const labels = new Set(calls.map(c => c.label.replace(/\d+/g, 'N')));
@@ -367,16 +398,21 @@ try {
     check('주문 셋마다 반응을 한 번씩 물어본다', react.length === 3, `${react.length}회`);
     const targetName = await page.evaluate(() => window.__game.state.couple.target.name);
     check('반응 프롬프트는 타겟을 안 본다',
-      react.every(c => !c.system.includes(targetName)));
+      react.every(c => !c.body.includes(targetName)));
     const a1 = calls.filter(c => c.label.startsWith('A-1'));
     const a2 = calls.filter(c => c.label.startsWith('A-2'));
-    check('미용실과 취조실이 각자 한 번씩만 돈다', a1.length === 1 && a2.length === 1, `${a1.length} / ${a2.length}`);
-    check('미용실 프롬프트에 성격이 없다', !a1[0].system.includes(styled.personality));
+    // 미용실은 주문 두 벌(원본 · 지웠다 되넣은 것)에 두 번. 취조실은 한 벌에 한 번.
+    check('시공은 주문이 바뀔 때만 돈다', a1.length === 2 && a2.length === 1, `${a1.length} / ${a2.length}`);
+    const table = await page.evaluate(() => ({
+      look: window.__game.state.couple.client.look[0],
+      personality: window.__game.state.couple.client.personality[0],
+    }));
+    check('미용실 프롬프트에 성격이 없다', !a1[0].body.includes(table.personality));
     check('취조실 프롬프트에 외모도 조형도 없다',
-      !a2[0].system.includes(styled.look) && !/AVATAR SPEC/.test(a2[0].system));
+      !a2[0].body.includes(table.look) && !/AVATAR SPEC/.test(a2[0].body));
     const reactLine = (await page.textContent('#coaching-react')).replace(/\s+/g, ' ').trim().slice(-24);
-    check('고객의 대꾸는 어느 프롬프트에도 실리지 않는다',
-      [...gen, ...judge, ...epilogue].every(c => !c.system.includes(reactLine)));
+    check('고객의 대꾸는 어느 프롬프트에도 실리지 않는다 (system도 user도)',
+      [...gen, ...judge, ...epilogue].every(c => !c.body.includes(reactLine)));
   }
 
   // 재착수

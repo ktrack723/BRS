@@ -30,7 +30,7 @@ const state = {
   couple: null, clientSpec: null, targetSpec: null,
   orders: { styling: '', motivation: '', coaching: '' },
   styled: { look: null, personality: null },   // A-1 / A-2 의 출력. 각자 따로 채워진다
-  styledFrom: { styling: null, motivation: null },  // 그 칸이 어느 주문에서 나왔나
+  styledFrom: { styling: '', motivation: '' },  // 그 칸이 어느 주문에서 나왔나 ('' = 손 안 댐)
   reactions: { styling: null, motivation: null, coaching: null },  // 화면 표시 전용
   engine: null, result: null,
 };
@@ -427,7 +427,7 @@ function chooseCouple(c) {
   state.targetSpec = sanitizeSpec(c.target.spec);
   state.orders = { styling: '', motivation: '', coaching: '' };
   state.styled = { look: null, personality: null };
-  state.styledFrom = { styling: null, motivation: null };
+  state.styledFrom = { styling: '', motivation: '' };
   state.reactions = { styling: null, motivation: null, coaching: null };
   state.engine = null; state.result = null;
   gotoStyling();
@@ -466,10 +466,28 @@ async function reactTo(kind, { input, box, viewer }) {
 // ── A. 시공 — 미용실과 취조실이 각자 제 칸만 고친다 ─────
 // 두 호출은 서로를 모른다. 스타일링 프롬프트에 성격이 없고, 동기부여 프롬프트에 외모가 없다.
 // 주문이 비어 있으면 부르지 않는다 — 그 칸은 테이블 값이 그대로 시트가 된다 (engine.js의 dressOf).
-const stale = (kind) => {
-  const order = state.orders[kind].trim();
-  return !!order && state.styledFrom[kind] !== order;
-};
+// 주문을 **지운** 것도 어긋난 것이다. 지운 걸 못 본 척하고 예전 시공물을
+// 계속 대화 프롬프트에 실어 보내면 안 된다.
+const stale = (kind) => state.styledFrom[kind] !== state.orders[kind].trim();
+
+// 주문이 비면 부르지 않고 그 칸을 테이블 값으로 되돌린다.
+function clearSheet(kind, viewer) {
+  if (kind === 'styling') {
+    state.styled.look = null;
+    state.clientSpec = sanitizeSpec(state.couple.client.spec);
+    viewer?.updateLeft(state.clientSpec);
+  } else {
+    state.styled.personality = null;
+  }
+  state.styledFrom[kind] = '';
+}
+
+// 그 칸을 지금 주문에 맞춘다 — 부르거나, 되돌리거나, 이미 맞으면 아무것도 안 한다.
+function syncSheet(kind, viewer) {
+  if (!stale(kind)) return Promise.resolve();
+  if (!state.orders[kind].trim()) { clearSheet(kind, viewer); return Promise.resolve(); }
+  return kind === 'styling' ? runStyling(viewer) : runMotivation();
+}
 
 async function runStyling(viewer) {
   const order = state.orders.styling.trim();
@@ -520,13 +538,13 @@ function renderSheetOut(sel, kind) {
 }
 
 // 주문 하나 = 반응 하나 + 시공 하나. 둘은 서로를 안 보므로 같이 보낸다.
-function orderHandler(kind, { input, box, out, viewer, run }) {
+function orderHandler(kind, { input, box, out, viewer }) {
   return async () => {
     sfx.click();
     try {
       await Promise.all([
         reactTo(kind, { input, box, viewer: viewer() }),
-        stale(kind) ? run(viewer()) : Promise.resolve(),
+        syncSheet(kind, viewer()),
       ]);
     } catch (e) { toast(errMsg(e)); }
     renderSheetOut(out, kind);
@@ -534,11 +552,11 @@ function orderHandler(kind, { input, box, out, viewer, run }) {
 }
 
 // 넘어갈 때 시공이 밀려 있으면 조용히 흘리지 않고 한 번 돌린다.
-function nextHandler(kind, { out, viewer, run, go }) {
+function nextHandler(kind, { out, viewer, go }) {
   return async () => {
     sfx.click();
     if (stale(kind)) {
-      try { await run(viewer()); } catch (e) { return toast(errMsg(e)); }
+      try { await syncSheet(kind, viewer()); } catch (e) { return toast(errMsg(e)); }
       renderSheetOut(out, kind);
     }
     go();
@@ -566,11 +584,11 @@ function gotoStyling() {
   };
   const viewer = () => stylingViewer;
   $('#btn-styling').onclick = orderHandler('styling', {
-    input: '#styling-input', box: '#styling-react', out: '#styling-result', viewer, run: runStyling,
+    input: '#styling-input', box: '#styling-react', out: '#styling-result', viewer,
   });
   $('#btn-styling-back').onclick = () => { sfx.click(); gotoRoster(); };
   $('#btn-styling-next').onclick = nextHandler('styling', {
-    out: '#styling-result', viewer, run: runStyling, go: gotoMotivation,
+    out: '#styling-result', viewer, go: gotoMotivation,
   });
 }
 
@@ -595,12 +613,11 @@ function gotoMotivation() {
   };
   const viewer = () => motivationViewer;
   $('#btn-motivation').onclick = orderHandler('motivation', {
-    input: '#motivation-input', box: '#motivation-react', out: '#motivation-result',
-    viewer, run: runMotivation,
+    input: '#motivation-input', box: '#motivation-react', out: '#motivation-result', viewer,
   });
   $('#btn-motivation-back').onclick = () => { sfx.click(); gotoStyling(); };
   $('#btn-motivation-next').onclick = nextHandler('motivation', {
-    out: '#motivation-result', viewer, run: runMotivation, go: gotoCoaching,
+    out: '#motivation-result', viewer, go: gotoCoaching,
   });
 }
 
