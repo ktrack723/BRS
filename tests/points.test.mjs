@@ -207,24 +207,42 @@ test('성사 여부는 코드가 아니라 C(후일담)가 정한다', () => {
 import * as V from '../js/voices.js';
 import { COUPLES } from '../js/couples.js';
 
-test('94명 전원에게 말투가 하나씩 붙어 있다', () => {
+test('47커플 94명 전원에게 말투가 하나씩 있다', () => {
   for (const c of COUPLES) {
-    const v = V.VOICE_BY_COUPLE[c.id];
-    assert.ok(v, `${c.id}에 말투 배정이 없다`);
+    const v = V.VOICES[c.id];
+    assert.ok(v, `${c.id}에 말투가 없다`);
     for (const side of ['client', 'target']) {
-      assert.ok(V.VOICE_PRESETS[v[side]], `${c.id}/${side}의 말투 '${v[side]}'가 프리셋에 없다`);
-      assert.ok(V.voiceOf(c.id, side)?.text?.trim(), `${c.id}/${side}의 말투가 비었다`);
+      assert.ok(v[side]?.trim(), `${c.id}/${side}의 말투가 비었다`);
+      assert.ok(v[side].length <= 90, `${c.id}/${side}의 말투가 ${v[side].length}자다 — 한두 마디로 묶는다`);
     }
   }
 });
 
-test('말투는 열 개를 돌려 쓴다 — 인물마다 새로 만들지 않는다', () => {
-  assert.ok(V.VOICE_IDS.length >= 8 && V.VOICE_IDS.length <= 14,
-    `프리셋이 ${V.VOICE_IDS.length}개다 — 너무 적으면 전부 같은 사람이 되고, 너무 많으면 데이터가 된다`);
-  const used = new Set(Object.values(V.VOICE_BY_COUPLE).flatMap(v => [v.client, v.target]));
-  assert.equal(used.size, V.VOICE_IDS.length, '한 번도 안 쓰인 프리셋이 있다');
+test('말투는 커플마다 따로 디자인한 것이다 — 프리셋 돌려쓰기가 아니다', () => {
+  const all = COUPLES.flatMap(c => [V.VOICES[c.id].client, V.VOICES[c.id].target]);
+  assert.equal(new Set(all).size, all.length, '같은 문장이 두 인물에게 붙어 있다');
 });
 
-test('배정이 없는 인물은 프롬프트에 말투 줄이 안 붙는다', () => {
+test('배정이 없는 커플은 말투 블록이 통째로 빠진다', () => {
   assert.equal(V.voiceOf('그런-커플-없음', 'client'), null);
+  assert.equal(V.voiceBlock({ id: '그런-커플-없음', client: {}, target: {} }), '');
+});
+
+test('말투는 대화·반응 생성에만 간다 — 심판도 후일담도 화면도 못 본다', async () => {
+  const P = await import('../js/prompts.js');
+  const { dressOf } = await import('../js/engine.js');
+  for (const c of COUPLES) {
+    const d = dressOf(c.client, null);
+    const v = V.VOICES[c.id];
+    for (const side of ['client', 'target']) {
+      assert.ok(P.talkSystem(c, d, '').includes(v[side]), `${c.id}/${side} 말투가 B-1에 안 실렸다`);
+      assert.ok(!P.judgeSystem(c, d).includes(v[side]), `${c.id}/${side} 말투가 심판에게 샜다`);
+      assert.ok(!P.epilogueUser(c, 50, '').includes(v[side]), `${c.id}/${side} 말투가 후일담에 샜다`);
+      assert.ok(!P.epilogueSystem(c, d).includes(v[side]), `${c.id}/${side} 말투가 후일담에 샜다`);
+    }
+    assert.ok(P.reactSystem(c, 'styling').includes(v.client), `${c.id} 고객 말투가 R에 안 실렸다`);
+  }
+  // 화면에 뜨는 항목 목록에도 없어야 한다 — 요원은 이걸 못 본다
+  const fields = [...P.SCREEN_FIELDS.client, ...P.SCREEN_FIELDS.target].map(f => f.key);
+  assert.ok(!fields.includes('voice'), '말투가 스크리닝 화면 항목에 올라왔다');
 });

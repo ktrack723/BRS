@@ -1,139 +1,216 @@
-// voices.js — 말투 프리셋. 인물마다 하나씩 붙는 **캐릭터 데이터**다 (지시문이 아니다).
+// voices.js — 커플마다 손으로 디자인한 말투. **B-1(대화 생성)과 R(준비 반응)에만 간다.**
 //
-// 왜 필요한가: 시트만 주면 모델은 전원을 같은 목소리로 쓴다 — 문법 맞고 존댓말 단정한
-// 「모범 말투」. 47커플이 전부 같은 사람처럼 말하면 인물 데이터가 아무 일도 안 한 것이다.
+// 화면에도, 심판에게도, 후일담에게도 안 간다. 요원은 이걸 못 본다 — 스크리닝 여덟 항목이
+// 여전히 전부다. 이건 「그 인물이 실제로 어떻게 말하는가」를 생성 쪽에만 알려주는 연출 지시다.
 //
-// 그래서 번역판 만화 말투를 프리셋으로 박아두고 인물마다 하나를 붙인다. 94명 전원이
-// 다를 필요는 없다 — 열 개를 돌려 쓴다. 같은 프리셋이라도 시트가 다르면 다른 사람이 된다.
+// 만화 말투 프리셋을 돌려 쓰던 방식은 폐기했다. 열 개를 94명에게 나눠 붙이니 인물이 아니라
+// 장르가 말했고, 말투가 세지니 심판이 그걸 전부 사건으로 읽어 판정 기준선이 무너졌다.
+// 그래서 프리셋을 없애고 커플 하나하나에 맞춰 다시 썼다 — 그 사람의 설정, 상대의 성향,
+// 이 자리의 난이도, 대화가 실제로 어떻게 흘러갈지를 보고. 길이는 한두 마디로 묶는다.
 //
-// 프리셋은 **껍데기(말투)** 고, 고객의 사회성 부족은 **알맹이(행동)** 다. 둘은 따로 논다.
-// 쿠로키 말투가 아니어도 고객은 전부 찐따고, 쿠로키 말투를 쓴다고 타겟이 찐따가 되지 않는다.
+// 말투는 **껍데기**다. 고객의 사회성 부족은 talkSystem이 따로 깔고, 그건 47커플 공통이다.
 
-export const VOICE_PRESETS = {
-  kuroki: {
-    label: '음지 독백체',
-    text: `머릿속 혼잣말이 자꾸 입 밖으로 샌다. 말을 시작하면 첫 마디가 "아니 그게", "그,
-그러니까" 로 뭉개지고, 문장을 끝맺지 못하고 "…" 로 흘린다. 놀라면 "우옷", "히익" 같은
-소리가 먼저 나온다. 웃음은 "크크", "흐흐" 로 새어나오고 혼자 웃는다. 자기를 깎는 말을
-농담처럼 던지는데 아무도 안 웃는다. 속으로 상대를 씹다가 그게 입 밖으로 반쯤 나온다.
-불리해지면 갑자기 공격적으로 튀고 바로 후회한다. "제길", "젠장" 을 혼잣말로 붙인다.`,
+export const VOICES = {
+  politics: {
+    client: '국정감사 발언대 말투가 그대로 나온다. 존댓말인데 심문조고, 사적인 말을 꺼내려다 "요컨대"로 도로 브리핑이 된다.',
+    target: '형용사를 최상급으로만 쓴다. 세 문장 안에 화제가 딴 데로 튀고, 칭찬 한 마디에 문장이 무너져 존댓말로 바뀐다.',
   },
-  kaiji: {
-    label: '파멸 과장체',
-    text: `모든 것을 인생 최대의 국면처럼 말한다. 말줄임표를 남발하고, 결론을 "…라는
-것이다!", "…그렇다…!" 로 내리꽂는다. "압도적…!", "이 얼마나…!" 같은 감탄을 혼자 터뜨린다.
-평범한 사실 하나에 세 문장짜리 해설을 붙이고, 속으로 계산하던 것이 그대로 입으로 나온다.
-땀, 심장, 숨 같은 자기 몸 상태를 소리 내어 중계한다. 사소한 선택 앞에서 비장해진다.`,
+  orientation: {
+    client: '위험한 대목마다 농담으로 갈아탄다. 상대가 안 웃으면 그 농담을 자기가 설명한다.',
+    target: '대답이 한 문장을 안 넘는다. 웃을 땐 갑자기 크게 웃고 바로 표정을 거둔다.',
   },
-  jojo: {
-    label: '기묘한 여유체',
-    text: `한 박자 느긋하게 받아친다. "야레야레", "흥미롭군", "…라고 생각했나?" 를 즐겨
-쓴다. 상대가 다급할수록 더 천천히 말한다. 감탄과 비웃음의 경계가 애매하고, 별것 아닌
-동작에 굳이 이름을 붙여 부른다. 위기에서도 자세를 잡는 쪽이 먼저다. 존댓말과 반말이
-문장 안에서 섞인다.`,
+  foodchain: {
+    client: '물 밖이라 말이 느리고 문장 중간에 쉰다. 낯간지러운 비유를 진지한 얼굴로 쓴다.',
+    target: '슈트 너머로 말해 소리가 먹먹하다. 칭찬이 오면 대답 대신 작업 얘기로 돌린다.',
   },
-  hokuto: {
-    label: '비장 단정체',
-    text: `짧게, 무겁게, 단정형으로 끊는다. 문장이 대개 열 자를 안 넘는다. "…이미 늦었다",
-"…그것뿐이다" 처럼 결론만 던지고 근거를 안 붙인다. 질문에 질문으로 답하지 않고, 침묵을
-길게 쓴다. 감정이 올라와도 목소리 크기는 그대로다. 상대를 부를 때 이름 대신 "너" 를 쓴다.`,
+  'os-war': {
+    client: '무슨 말이든 30초 안에 기술 비교로 바꾼다. 감정을 말해야 할 자리에서 사양을 읊는다.',
+    target: '끝까지 웃는 낯으로 찌른다. 설명이 시작되면 상대가 안 물어도 끝까지 간다.',
   },
-  vegeta: {
-    label: '자존심 폭발체',
-    text: `"흥" 으로 문장을 시작하거나 끝낸다. 상대를 한 수 아래로 깔고 말하는데 그게
-열등감에서 나온다. "그딴", "고작", "쓰레기 같은" 같은 말을 아무렇지 않게 섞는다. 칭찬을
-받으면 부정부터 하고 속으로 좋아한다. 지고 있을 때 목소리가 커진다. 반말이 기본이고,
-존댓말을 쓰려다 중간에 무너진다.`,
+  'vegan-butcher': {
+    client: '문장이 구호처럼 끝난다. 반박당하면 목소리가 커지고 그러다 목이 멘다.',
+    target: '대답이 두세 단어다. 말 대신 뭘 내밀고, 걱정은 명령형으로 한다.',
   },
-  eva: {
-    label: '무기력 최소체',
-    text: `말이 적다. 대답이 "…네", "그래요", "모르겠어요" 에서 끝나는 일이 많다. 눈을 안
-맞추고, 문장 앞에 긴 사이를 둔다. 상대가 캐물으면 "…그런 건 아니에요" 로 밀어낸다. 자기
-얘기를 시작하면 갑자기 길어지고 스스로 멈춘다. "…죄송해요" 를 이유 없이 붙인다.
-도망치고 싶다는 말을 실제로 입 밖에 낸다.`,
+  'vampire-garlic': {
+    client: '사백 년 전 문어체가 그대로 나온다. 실례가 되는 말을 아주 우아하게 한다.',
+    target: '반말로 툭툭 던진다. 자기 외로움을 웃으면서 흘린다.',
   },
-  detective: {
-    label: '추리 열거체',
-    text: `모든 것을 단서처럼 다룬다. "그렇군요… 그렇다면", "정리하자면 셋입니다" 처럼
-번호를 매겨 말한다. 상대의 말 한 조각을 붙잡고 되짚는다. 결론이 나면 필요 이상으로
-극적으로 발표한다. 틀렸을 때 인정이 느리고 근거를 하나 더 댄다. 말이 길고 문장이 완결된다.`,
+  'cat-allergy': {
+    client: '감정을 증상 이름으로 바꿔 말한다. 재채기 때문에 문장이 자꾸 끊긴다.',
+    target: '사람 얘기엔 단답, 고양이 얘기가 나오면 말이 세 배로 빨라진다.',
   },
-  gintama: {
-    label: '메타 츳코미체',
-    text: `상황에 대고 딴지를 건다. "아니 잠깐만요", "그건 좀 아니지 않나" 로 흐름을 끊고,
-자기가 지금 무슨 상황에 있는지를 소리 내어 논평한다. 진지한 대목에서 농담을, 농담 대목에서
-진지한 소리를 한다. 남의 말을 받아 한 단어만 되풀이하며 어이없어한다. 존댓말과 반말을
-감정에 따라 갈아탄다.`,
+  circadian: {
+    client: '남의 말에 명언으로 답한다. 나쁜 얘기가 나와도 "그래서 기회입니다"로 받는다.',
+    target: '낮이라 말끝이 늘어진다. 대답보다 한숨이 먼저 나온다.',
   },
-  luffy: {
-    label: '직진 단순체',
-    text: `생각한 것을 그대로 말한다. 돌려 말하는 법을 모르고, 문장이 짧고 크다. 관심 없는
-얘기가 나오면 대놓고 딴 데를 본다. 배고픔·졸림 같은 몸 상태를 대화 중에 그냥 말한다.
-"그래서?", "재밌겠다", "싫어" 처럼 반응이 즉각적이다. 상대가 상처받을 말을 악의 없이 한다.`,
+  'mbti-stats': {
+    client: '단정형으로 먼저 찍고 본다. 틀리면 틀렸다 안 하고 해석을 갈아 끼운다.',
+    target: '문장마다 조건을 붙인다. 농담이 나오면 반례부터 댄다.',
   },
-  slamdunk: {
-    label: '근자감 자기어필체',
-    text: `묻지 않은 자기 자랑을 끼워 넣는다. 자기를 3인칭으로 부르거나 "이 몸" 이라고
-한다. 근거 없는 자신감으로 큰소리를 치고, 바로 들통난다. 칭찬 한 마디에 태도가 통째로
-바뀐다. 웃음소리가 크고 "하하핫" 처럼 적힌다. 무시당하면 즉시 삐치고 그걸 숨기지 못한다.`,
+  'sauce-war': {
+    client: '감정이 오르면 목소리가 반 톤씩 올라간다. 울먹이면서도 말을 안 멈춘다.',
+    target: '정중한 존댓말로 반박한다. 맛을 볼 땐 말을 끊고 눈을 감는다.',
+  },
+  'gamer-activist': {
+    client: '대답이 한두 단어에서 끝난다. 길게 말해야 할 자리에서는 그냥 침묵한다.',
+    target: '문장이 정돈돼 있고 감정이 안 실린다. 아들 얘기에서만 문장이 흐트러진다.',
+  },
+  'minimal-hoarder': {
+    client: '세 단어로 끝낸다. 되묻지 않고 침묵으로 답을 대신한다.',
+    target: '물건 하나에 사연 하나를 붙여 끝없이 간다. 말을 끊으면 다른 물건으로 넘어간다.',
+  },
+  'alien-ufologist': {
+    client: '관용구를 한 끗씩 틀린다. 묻는 말에 사실을 다 말해버린다.',
+    target: '흥분하면 말이 겹치고 목소리가 커진다. 아무 말이나 다 믿고 되받는다.',
+  },
+  'zombie-hunter': {
+    client: '느리게 말하고 자조로 끝맺는다. 농담인지 진담인지 본인도 안 가른다.',
+    target: '규정 문구로 대답을 대신한다. 사적인 질문에는 답을 안 한다.',
+  },
+  'noise-drummer': {
+    client: '날짜와 시각을 붙여 말한다. 감정 대신 기록을 읽는다.',
+    target: '목소리가 크고 손으로 박자를 친다. 미안한 대목에서 더 크게 웃는다.',
+  },
+  'snake-phobia': {
+    client: '사람에겐 소리가 작다. 뱀 얘기가 나오면 갑자기 유창해진다.',
+    target: '낮고 느린 목소리로 상대 걱정만 한다. 자기 얘기가 나오면 화제를 돌린다.',
+  },
+  'timetraveler-luddite': {
+    client: '앞질러 말한다. 못 참고 상대가 물을 답을 먼저 말해버린다.',
+    target: '한 박자 쉬고 짧게 답한다. 말 대신 손을 움직인다.',
+  },
+  'taxman-hacker': {
+    client: '조문 번호를 붙여 말한다. 사적인 말을 하려다 규정으로 도망친다.',
+    target: '비꼬는 말로 방어한다. 겁이 나면 말이 빨라지고 화제를 튼다.',
+  },
+  'cult-lawyer': {
+    client: '설교조로 문장을 늘린다. 청중이 없는데도 목소리를 띄운다.',
+    target: '짧고 날카롭게 끊는다. 피곤해서 문장이 끝나기 전에 멈추는 일이 잦다.',
+  },
+  'ai-artist': {
+    client: '과하게 공손해서 사람 같지 않다. 농담에 한 박자 늦게 반응한다.',
+    target: '비꼬는 말이 먼저 나온다. 칭찬이 오면 오히려 날을 세운다.',
+  },
+  'gender-war': {
+    client: '상대 말을 끝까지 듣고 조목조목 해체한다. 미안하다는 말만 못 한다.',
+    target: '대화를 이기고 지는 걸로 받는다. 밀리면 그 자리에서 이론을 만든다.',
+  },
+  'birth-strike': {
+    client: '통계를 던져 거리를 만든다. 위로가 들어오면 즉시 화제를 바꾼다.',
+    target: '되묻기만 하고 자기 얘기는 안 한다. 중간에 하품을 참는다.',
+  },
+  'death-row': {
+    client: '감정어를 뺀 문장으로 말한다. 사적인 질문에는 규정을 읊는다.',
+    target: '상대 말을 받아적으며 듣는다. 자기 얘기가 나오면 사건 번호로 돌린다.',
+  },
+  'body-war': {
+    client: '무슨 얘기든 루틴과 식단으로 되돌린다. 칭찬을 받으면 반박부터 한다.',
+    target: '웃는 낯으로 아픈 데를 짚는다. 진심이 나올 것 같으면 농담으로 덮는다.',
+  },
+  'noise-vow': {
+    client: '정적이 3초를 넘기면 아무 말이나 채운다. 그러고 나서 사과한다.',
+    target: '말을 하지 않는다. 고갯짓과 필담으로만 답하고 오래 기다린다.',
+  },
+  carbon: {
+    client: '문장마다 연도와 수치를 박는다. 타협안이 나오면 말을 끊는다.',
+    target: '상대 논리를 먼저 요약해준 뒤 부드럽게 뒤집는다. 절대 언성을 안 높인다.',
+  },
+  'class-war': {
+    client: '요구를 부탁의 형태로 한다. 거절당하면 말문이 막힌다.',
+    target: '낮은 소리로 옛 날짜와 이름을 정확히 댄다. 웃지 않는다.',
+  },
+  scalpel: {
+    client: '외모 얘기를 통째로 피해서 문장이 어색하게 돌아간다.',
+    target: '상대 얼굴을 부위 이름으로 말한다. 자기 얼굴 얘기가 나오면 침묵한다.',
+  },
+  tobacco: {
+    client: '수치를 근거로 설득한다. 상대가 웃어넘기면 다른 수치를 댄다.',
+    target: '걸쭉한 농담으로 받는다. 기침이 나와도 말을 안 멈춘다.',
+  },
+  spoiler: {
+    client: '비유가 세 문장씩 늘어난다. 농담을 들으면 출처를 묻는다.',
+    target: '말끝마다 반응을 확인한다. 진심이 새면 즉시 농담으로 덮는다.',
+  },
+  cosplay: {
+    client: '답이 즉각적이고 과하다. 상대가 늦게 답하면 말이 급해진다.',
+    target: '말끝을 흐린다. 원작 설정 얘기가 나오면 안 멈춘다.',
+  },
+  'prank-funeral': {
+    client: '조용해지면 아무 말이나 채운다. 진지한 자리에서 카메라 각도를 생각한다.',
+    target: '목소리 크기가 처음부터 끝까지 같다. 화가 나면 존댓말이 더 정중해진다.',
+  },
+  burnout: {
+    client: '문장을 명령형으로 끝낸다. 침묵이 생기면 더 크게 웃으며 밀어붙인다.',
+    target: '되묻기만 한다. 상대가 멈추면 같이 멈추고 기다린다.',
+  },
+  taxidermy: {
+    client: '감정을 해부학 용어로 말한다. 말보다 손이 먼저 움직인다.',
+    target: '한 단어를 고르는 데 오래 걸려 문장 사이가 길다.',
+  },
+  'chat-app': {
+    client: '마음을 금액으로 환산해서 말한다. 거절을 상대보다 먼저 말해버린다.',
+    target: '대본 문장이 튀어나온다. 진심이 나올 것 같으면 문장을 끊는다.',
+  },
+  'divorce-party': {
+    client: '분위기가 처지면 억지로 띄운다. 진짜 조용해지면 아무 말도 못 한다.',
+    target: '위로를 통계로 한다. 농담에 판례로 답하고 상대 말을 절대 안 끊는다.',
+  },
+  'hate-comment': {
+    client: '문자로는 길고 정교한데 얼굴을 보면 말이 안 나온다.',
+    target: '화를 과장해서 낸다. 진짜 상처받으면 조용해진다.',
+  },
+  vtuber: {
+    client: '자기 목소리와 방송 목소리 사이에서 음이 흔들린다. 상대 컨디션부터 짚는다.',
+    target: '감정을 공정 수율에 빗댄다. 좋으면 티가 나고 사과를 두 번 한다.',
+  },
+  sasaeng: {
+    client: '시각과 장소로 말한다. 미안하다는 말은 나오지 않는다.',
+    target: '몇 분 남았는지로 대답한다. 화를 안 내고 자리를 먼저 권한다.',
+  },
+  alibi: {
+    client: '사람을 시각으로 부른다. 칭찬을 들으면 근거를 되묻는다.',
+    target: '태연하게 말을 짓는다. 들켜도 표정이 안 변한다.',
+  },
+  gapjil: {
+    client: '첫 마디부터 언성이 높다. 사과가 오면 오히려 더 화를 낸다.',
+    target: '응대 매뉴얼 문장이 그대로 나온다. 상대 이름을 정확히 부른다.',
+  },
+  'grade-fraud': {
+    client: '숫자를 올려 말하고 각주를 붙인다. 지적당하면 웃는다.',
+    target: '사람을 항목으로 읽어 말한다. 거짓말이 나오면 그 자리에서 짚는다.',
+  },
+  pyramid: {
+    client: '모든 대화를 제안으로 끌고 간다. 거절을 못 들은 척한다.',
+    target: '끝까지 듣고 되묻기만 한다. 숫자가 나오면 못 따라간다.',
+  },
+  debt: {
+    client: '아주 느리게 말하고 눈을 안 피한다.',
+    target: '대답 대신 먹을 걸 내민다. 자기 사정은 끝까지 안 말한다.',
+  },
+  asmr: {
+    client: '목소리가 속삭임에 가깝다. 조용해지면 오히려 말이 많아진다.',
+    target: '데시벨과 시간으로 말한다. 따지고 나서 바로 사과한다.',
+  },
+  spice: {
+    client: '모든 걸 스코빌로 환산한다. 카메라가 없으니 말수가 준다.',
+    target: '최악의 경우부터 말한다. 농담에 한 박자 늦게 웃는다.',
+  },
+  recycle: {
+    client: '눈에 보이는 걸 재질로 소리 내어 분류한다. 고맙다는 말이 나오면 자리를 뜬다.',
+    target: '설명을 안 한다. 손이 먼저 나가고 말은 나중이다.',
   },
 };
 
-export const VOICE_IDS = Object.keys(VOICE_PRESETS);
-
-/** 인물 하나에 붙은 말투. 없으면 빈 문자열 — 프롬프트에 아무것도 안 실린다. */
+/** 인물 하나의 말투. 배정이 없으면 null — 프롬프트에 아무것도 안 실린다. */
 export function voiceOf(coupleId, side) {
-  const v = VOICE_BY_COUPLE[coupleId]?.[side];
-  return v && VOICE_PRESETS[v] ? VOICE_PRESETS[v] : null;
+  return VOICES[coupleId]?.[side] || null;
 }
 
-// 인물별 배정. 시트의 성격 항목에 맞춰 골랐고, 열 개를 돌려 쓴다.
-export const VOICE_BY_COUPLE = {
-  'politics': { client: 'vegeta', target: 'kaiji' },
-  'orientation': { client: 'gintama', target: 'eva' },
-  'foodchain': { client: 'slamdunk', target: 'eva' },
-  'os-war': { client: 'luffy', target: 'detective' },
-  'vegan-butcher': { client: 'luffy', target: 'hokuto' },
-  'vampire-garlic': { client: 'jojo', target: 'eva' },
-  'cat-allergy': { client: 'detective', target: 'eva' },
-  'circadian': { client: 'jojo', target: 'eva' },
-  'mbti-stats': { client: 'luffy', target: 'gintama' },
-  'sauce-war': { client: 'vegeta', target: 'vegeta' },
-  'gamer-activist': { client: 'hokuto', target: 'eva' },
-  'minimal-hoarder': { client: 'detective', target: 'gintama' },
-  'alien-ufologist': { client: 'jojo', target: 'luffy' },
-  'zombie-hunter': { client: 'luffy', target: 'hokuto' },
-  'noise-drummer': { client: 'hokuto', target: 'vegeta' },
-  'snake-phobia': { client: 'eva', target: 'eva' },
-  'timetraveler-luddite': { client: 'slamdunk', target: 'jojo' },
-  'taxman-hacker': { client: 'hokuto', target: 'kaiji' },
-  'cult-lawyer': { client: 'luffy', target: 'slamdunk' },
-  'ai-artist': { client: 'detective', target: 'vegeta' },
-  'gender-war': { client: 'detective', target: 'detective' },
-  'birth-strike': { client: 'detective', target: 'gintama' },
-  'death-row': { client: 'jojo', target: 'kaiji' },
-  'body-war': { client: 'luffy', target: 'slamdunk' },
-  'noise-vow': { client: 'hokuto', target: 'vegeta' },
-  'carbon': { client: 'kuroki', target: 'detective' },
-  'class-war': { client: 'hokuto', target: 'gintama' },
-  'scalpel': { client: 'jojo', target: 'kaiji' },
-  'tobacco': { client: 'luffy', target: 'gintama' },
-  'spoiler': { client: 'gintama', target: 'gintama' },
-  'cosplay': { client: 'kuroki', target: 'eva' },
-  'prank-funeral': { client: 'detective', target: 'gintama' },
-  'burnout': { client: 'jojo', target: 'kaiji' },
-  'taxidermy': { client: 'luffy', target: 'slamdunk' },
-  'chat-app': { client: 'hokuto', target: 'vegeta' },
-  'divorce-party': { client: 'kuroki', target: 'detective' },
-  'hate-comment': { client: 'eva', target: 'eva' },
-  'vtuber': { client: 'jojo', target: 'luffy' },
-  'sasaeng': { client: 'vegeta', target: 'slamdunk' },
-  'alibi': { client: 'hokuto', target: 'vegeta' },
-  'gapjil': { client: 'kuroki', target: 'eva' },
-  'grade-fraud': { client: 'detective', target: 'gintama' },
-  'pyramid': { client: 'jojo', target: 'kaiji' },
-  'debt': { client: 'eva', target: 'slamdunk' },
-  'asmr': { client: 'eva', target: 'eva' },
-  'spice': { client: 'eva', target: 'eva' },
-  'recycle': { client: 'detective', target: 'detective' },
-};
+/** B-1이 쓰는 블록. 두 사람 몫을 한 번에 낸다. 배정이 없으면 통째로 빈 문자열. */
+export function voiceBlock(couple) {
+  const v = VOICES[couple.id];
+  if (!v) return '';
+  return `\n[HOW THESE TWO ACTUALLY TALK — surface only, never state it outright]\n`
+    + `· ${couple.client.name}: ${v.client}\n`
+    + `· ${couple.target.name}: ${v.target}\n`;
+}
