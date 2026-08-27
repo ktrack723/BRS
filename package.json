@@ -10,6 +10,7 @@
     "responsive": "node tests/responsive.mjs",
     "live": "node tests/live.mjs",
     "serve": "python3 -m http.server 8000",
-    "audit": "bash tests/audit.sh"
+    "audit": "bash tests/audit.sh",
+    "calibrate": "node tests/calibrate.mjs"
   }
 }
