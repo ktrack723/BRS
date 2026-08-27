@@ -8,7 +8,9 @@
 //   무드가 바닥나면 자리가 깨지고 남은 구간은 돌지 않는다.
 //   끝나면 C를 한 번 불러 성사 여부와 후일담을 받는다.
 //
-//   무전 — 요원이 판 도중에 쓰는 유일한 레버. 페이즈마다 한 번(points.js의 RADIO).
+//   무전 — 요원이 판 도중에 쓰는 레버 하나. 페이즈마다 한 번(points.js의 RADIO).
+//   현장 무전 — 판 도중의 두 번째 레버. 현장 요원이 물리 지원(꽃다발·차량·연출)을 그대로
+//     실행한다. 페이즈 무관 판 전체 1회(points.js의 FIELD). 같은 게이트, 같은 주입 경로다.
 //     버튼을 누르면 다음 줄 경계에서 대화가 **멈춘다**(#gate). 무전을 때리면 그 명령이
 //     다음 생성 프롬프트에 「반드시 이행」으로 실린다. 구간 중간에서 잘렸으면 남은 대사는
 //     없던 것이 되고, 실제로 오간 데까지만 다시 판정한다 — 하지 않은 말은 채점되지 않는다.
@@ -18,7 +20,7 @@
 // 새로 드러난 것 · 난이도. 전부 폐지됐다.
 
 import * as P from './prompts.js';
-import { BEAT, PHASES, RADIO, initialPoints, applyVerdict, isBroken, loveOutOf100 } from './points.js';
+import { BEAT, PHASES, RADIO, FIELD, initialPoints, applyVerdict, isBroken, loveOutOf100 } from './points.js';
 
 /** 스타일링/동기부여를 거친 고객 시트. 시공을 안 했으면 테이블 값이 그대로 시트가 된다. */
 export function dressOf(client, styled) {
@@ -49,6 +51,10 @@ export class Engine {
     // 무전 — 페이즈마다 한 번씩 배급된다. 남은 횟수는 코드가 들고 있고 프롬프트는 모른다.
     this.radioLeft = Object.fromEntries(PHASES.map(p => [p.key, RADIO.perPhase]));
     this.radioLog = [];        // [{phase, phaseLabel, beat, text}] — 화면용. transcript에는 안 들어간다
+    // 현장 무전 — 페이즈 무관, 판 전체 1회. 같은 게이트를 쓰고 다음 생성에 실린다.
+    this.fieldLeft = FIELD.perOp;
+    this.fieldLog = [];
+    this.pendingField = null;
     this.pendingRadio = null;  // 다음 생성 호출에 실릴 명령
     this.holdWanted = false;   // 버튼이 눌렸다 — 다음 경계에서 멈춘다
     this.held = false;         // 지금 멈춰 서서 무전을 기다리는 중
@@ -93,8 +99,10 @@ export class Engine {
   async #generate(phase, beat, beats) {
     this.writesLeft = Math.max(0, this.writesLeft - 1);
     const radio = this.pendingRadio;
+    const field = this.pendingField;
     this.pendingRadio = null;
-    this.messages.push({ role: 'user', content: P.talkUser(this.couple, phase, beat, beats, radio) });
+    this.pendingField = null;
+    this.messages.push({ role: 'user', content: P.talkUser(this.couple, phase, beat, beats, radio, field) });
     let out;
     try {
       out = await this.llm.call({
@@ -190,6 +198,21 @@ export class Engine {
       && this.radioFor() > 0 && this.writesLeft > 0;
   }
 
+  /** 현장 무전을 부를 수 있는가 — 판 전체 배급이 남았고, 실릴 대사가 남아 있어야 한다. */
+  canField() {
+    return !this.aborted && !this.held && !this.holdWanted
+      && this.fieldLeft > 0 && this.writesLeft > 0;
+  }
+
+  /** 현장 무전 버튼이 그릴 것 전부. */
+  fieldState() {
+    return {
+      left: this.fieldLeft, per: FIELD.perOp,
+      can: this.canField(), armed: this.holdWanted, open: this.held,
+      spent: this.fieldLog.length,
+    };
+  }
+
   /** 화면이 버튼 하나를 그릴 때 보는 것 전부. */
   radioState() {
     const cur = PHASES.find(p => p.key === this.phase) || PHASES[0];
@@ -201,9 +224,9 @@ export class Engine {
     };
   }
 
-  /** 무전 버튼. 다음 줄 경계에서 대화가 선다. 실제로 서는 건 #gate다. */
+  /** 개입 버튼. 다음 줄 경계에서 대화가 선다. 무전이든 현장이든 회선은 하나다. */
   requestHold() {
-    if (!this.canRadio()) return false;
+    if (!this.canRadio() && !this.canField()) return false;
     this.holdWanted = true;
     return true;
   }
@@ -219,6 +242,24 @@ export class Engine {
     this.pendingRadio = order;
     const cur = PHASES.find(p => p.key === this.phase) || PHASES[0];
     this.radioLog.push({
+      phase: this.phase, phaseLabel: cur.label,
+      beat: this.points.beats + 1, text: order,
+    });
+    this.#release();
+    return true;
+  }
+
+  /**
+   * 현장 무전을 때린다. 명령은 다음 생성 프롬프트에 「그대로 실행된 물리 사건」으로 실린다.
+   * 판 전체 1회 — 배급은 이때 깎인다.
+   */
+  sendField(text) {
+    const order = String(text || '').trim();
+    if (!this.held || !order || this.fieldLeft <= 0) return this.releaseHold();
+    this.fieldLeft -= 1;
+    this.pendingField = order;
+    const cur = PHASES.find(p => p.key === this.phase) || PHASES[0];
+    this.fieldLog.push({
       phase: this.phase, phaseLabel: cur.label,
       beat: this.points.beats + 1, text: order,
     });
@@ -249,8 +290,9 @@ export class Engine {
     await open;
     this.held = false;
     const order = this.pendingRadio;
-    await this.h.resume?.({ phase: this.phase, at, order: order || null, left: this.radioFor() });
-    return !!order;
+    const field = this.pendingField;
+    await this.h.resume?.({ phase: this.phase, at, order: order || null, field: field || null, left: this.radioFor() });
+    return !!(order || field);
   }
 
   async #note(text) {

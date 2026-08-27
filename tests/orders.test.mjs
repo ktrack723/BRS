@@ -11,7 +11,7 @@ const M = {
   clook: 'CLOOK표식', cpers: 'CPERS표식', cup: 'CUP표식', cfell: 'CFELL표식',
   tlook: 'TLOOK표식', tpers: 'TPERS표식', tup: 'TUP표식', ttaste: 'TTASTE표식',
   dlook: 'DLOOK표식', dpers: 'DPERS표식',
-  coach: 'COACH표식', style: 'STYLE표식', motiv: 'MOTIV표식', radio: 'RADIO표식',
+  coach: 'COACH표식', style: 'STYLE표식', motiv: 'MOTIV표식', radio: 'RADIO표식', field: 'FIELD표식',
 };
 
 const couple = {
@@ -200,6 +200,31 @@ test('간직 항목도 어디까지나 재배치다 — 항목이 사라지지�
   }
 });
 
+// ── 현장 무전: 물리 지원 — 그대로 실행되고, 심판은 못 본다 ──
+test('현장 무전은 B-1의 user 메시지에만 실린다', () => {
+  const u = P.talkUser(couple, 'talk', 2, 5, '', M.field);
+  assert.ok(u.includes(M.field), '현장 무전이 생성 user에 안 실렸다');
+  assert.ok(u.includes('FIELD SUPPORT'), '현장 블록 머리가 없다');
+  assert.ok(!P.talkSystem(couple, dressed, '').includes(M.field), 'system에 샜다');
+  assert.ok(!P.judgeSystem(couple, dressed).includes(M.field), '심판이 봤다');
+  assert.ok(!P.judgeUser(couple, 'p', 's').includes(M.field), '심판 user가 봤다');
+  assert.ok(!P.epilogueUser(couple, 50, 'log').includes(M.field), '후일담이 봤다');
+});
+
+test('현장 무전은 그대로 실행되는 물리 사건이다 — 마음은 못 움직인다', () => {
+  const f = P.fieldOrder(M.field);
+  assert.ok(/exactly as ordered/.test(f), '그대로 실행 규칙이 없다');
+  assert.ok(/things, not feelings/.test(f), '물건-만 규칙이 없다');
+  assert.ok(/cannot make anyone attracted/.test(f), '호감 조작 금지가 없다');
+  assert.equal(P.fieldOrder(''), '', '빈 현장 무전이 뭔가를 내보냈다');
+});
+
+test('고객 무전과 현장 무전은 한 메시지에 같이 실릴 수 있다', () => {
+  const u = P.talkUser(couple, 'talk', 2, 5, M.radio, M.field);
+  assert.ok(u.includes(M.radio) && u.includes(M.field));
+  assert.ok(u.indexOf(M.field) < u.indexOf(M.radio), '현장 사건이 무전 명령보다 뒤에 실렸다');
+});
+
 // ── 폐지된 축이 프롬프트로 되살아나지 않았는가 ──────────
 test('폐지된 시스템 용어가 프롬프트에 없다 — 한글 이름도 영어 이름도', () => {
   // 스키마도 프롬프트다 (구조화 출력이 막히면 시스템 프롬프트에 통째로 붙는다).
@@ -328,6 +353,7 @@ test('다섯 프롬프트의 지시문에 한글이 한 글자도 없다', () =>
     'B-1': P.talkSystem(ascii, d, 'z') + P.talkUser(ascii, 'text', 1, 4) + P.talkUser(ascii, 'talk', 2, 5),
     'B-1(코칭없음)': P.talkSystem(ascii, d, ''),
     'B-1(마지막 구간)': P.talkUser(ascii, 'talk', 4, 4),
+    'B-1(현장 무전)': P.fieldOrder('x'),
     'B-1(무전)': P.talkUser(ascii, 'text', 1, 4, 'go') + P.talkUser(ascii, 'talk', 3, 5, 'go'),
     'B-2': P.judgeSystem(ascii, d) + P.judgeUser(ascii, '', 'seg'),
     'B-2(앞대화 있음)': P.judgeUser(ascii, 'prior', 'seg'),

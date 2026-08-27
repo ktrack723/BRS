@@ -244,21 +244,84 @@ test('무전을 때리면 그 명령이 다음 생성 프롬프트에 실린다'
   assert.ok(!gen.some(c => c.system.includes(RADIO_MARK)), '무전이 system으로 새어 들어갔다');
 });
 
-test('무전은 페이즈당 한 번뿐이다 — 두 번째 요청은 회선이 안 열린다', async () => {
+test('무전은 페이즈당 한 번뿐이다 — 배급이 끝나면 송출해도 나가지 않는다', async () => {
+  // 회선(정지) 자체는 현장 배급 몫으로 또 열릴 수 있다. 계약은 「고객 무전이 두 번
+  // 나가지 않는다」이지 「정지가 안 걸린다」가 아니다.
+  const llm = new MockLlm();
+  let n = 0;
+  const e = new Engine(llm, {
+    couple, dressed: DRESSED, coaching: '',
+    handlers: {
+      line: () => { n++; if (n === 3 || n === 9) e.requestHold(); },   // 둘 다 텍스팅 구간이다
+      hold: () => { e.sendRadio(RADIO_MARK); },
+    },
+  });
+  await e.run();
+  assert.equal(e.radioLog.length, 1, '고객 무전이 두 번 나갔다');
+  assert.equal(e.radioFor('text'), 0);
+  assert.equal(e.radioFor('talk'), RADIO.perPhase, '안 쓴 페이즈의 배급까지 깎였다');
+  const hits = llm.labels(/대화 생성/).filter(c => JSON.stringify(c.messages).includes(RADIO_MARK));
+  assert.equal(hits.length >= 1, true);
+});
+
+const FIELD_MARK = '현장표식 — 창밖에 롤스로이스를 대라';
+
+test('현장 무전은 판 전체에 한 번뿐이다 — 두 번째는 회선이 안 열린다', async () => {
   const llm = new MockLlm();
   let n = 0;
   const opened = [];
   const e = new Engine(llm, {
     couple, dressed: DRESSED, coaching: '',
     handlers: {
-      line: () => { n++; if (n === 3 || n === 9) e.requestHold(); },   // 둘 다 텍스팅 구간이다
-      hold: (h) => { opened.push(h.phase); e.sendRadio(RADIO_MARK); },
+      line: () => { n++; if (n === 3 || n === 21) e.requestHold(); },   // 텍스팅에서 한 번, 토킹에서 한 번
+      hold: (h) => { opened.push(h.phase); e.sendField(FIELD_MARK); },
     },
   });
   await e.run();
-  assert.equal(opened.filter(p => p === 'text').length, 1, '텍스팅에서 두 번 열렸다');
-  assert.equal(e.radioFor('text'), 0);
-  assert.equal(e.radioFor('talk'), RADIO.perPhase, '안 쓴 페이즈의 배급까지 깎였다');
+  assert.equal(e.fieldLeft, 0, '배급이 안 깎였다');
+  assert.equal(e.fieldLog.length, 1, '판 전체 1회 제한이 안 걸렸다');
+  assert.equal(opened.length, 1, '배급이 소진됐는데 회선이 또 열렸다 (고객 무전 배급은 안 씀)');
+});
+
+test('현장 무전은 다음 생성 프롬프트에 실리고 system은 안 건드린다', async () => {
+  const llm = new MockLlm();
+  let n = 0;
+  const e = new Engine(llm, {
+    couple, dressed: DRESSED, coaching: '',
+    handlers: {
+      line: () => { n++; if (n === 3) e.requestHold(); },
+      hold: () => { e.sendField(FIELD_MARK); },
+    },
+  });
+  await e.run();
+  const gen = llm.labels(/대화 생성/);
+  const first = gen.findIndex(c => JSON.stringify(c.messages).includes(FIELD_MARK));
+  assert.ok(first > 0, '현장 무전이 어느 생성 호출에도 안 실렸다');
+  assert.ok(!JSON.stringify(gen[first - 1].messages).includes(FIELD_MARK),
+    '누르기도 전의 호출에 실렸다');
+  assert.equal(new Set(gen.map(c => c.system)).size, 1, '현장 무전이 system을 갈아 캐시를 깼다');
+  // 판정·후일담은 이 문장을 못 본다
+  for (const c of llm.labels(/판정|후일담/)) {
+    assert.ok(!JSON.stringify(c.messages).includes(FIELD_MARK), `${c.label}이 현장 무전을 봤다`);
+  }
+});
+
+test('고객 무전과 현장 무전은 배급이 따로 간다 — 한 판에 둘 다 쓸 수 있다', async () => {
+  const llm = new MockLlm();
+  let n = 0;
+  const sent = [];
+  const e = new Engine(llm, {
+    couple, dressed: DRESSED, coaching: '',
+    handlers: {
+      line: () => { n++; if (n === 3 || n === 9) e.requestHold(); },
+      hold: () => { sent.length ? e.sendRadio(RADIO_MARK) : e.sendField(FIELD_MARK); sent.push(1); },
+    },
+  });
+  await e.run();
+  assert.equal(e.fieldLog.length, 1);
+  assert.equal(e.radioFor('text'), 0, '고객 무전 배급이 그대로다');
+  const all = JSON.stringify(llm.labels(/대화 생성/).map(c => c.messages));
+  assert.ok(all.includes(FIELD_MARK) && all.includes(RADIO_MARK), '둘 중 하나가 안 실렸다');
 });
 
 test('두 페이즈에서 한 번씩, 각각 그 페이즈에 먹는다', async () => {

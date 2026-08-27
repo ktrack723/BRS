@@ -483,10 +483,37 @@ ${order}
 Carry it out, then let the scene keep going from wherever that leaves them.`;
 }
 
-export function talkUser(couple, phase, beat, total, radio) {
+// 현장 무전 — 고객이 아니라 **현장 요원**에게 때리는 무전. 물리 지원이다.
+// 거대 꽃다발이 도착하고, 롤스로이스가 창밖에 서고, 현악 4중주가 짐을 푼다 — 적힌 그대로
+// 실제로 벌어진다. 판 전체에 한 번(points.js의 FIELD). 고객 무전과 같은 이유로 messages에
+// 실리고, 심판도 기록관도 이 문장을 못 본다 — 두 사람이 입 밖에 낸 반응만 채점된다.
+export function fieldOrder(text) {
+  const order = String(text || '').trim();
+  if (!order) return '';
+  return `[FIELD SUPPORT — the operative's ground team just staged this, physically, on site]
+"""
+${order}
+"""
+**It happens exactly as ordered, immediately, and it is real.** Whatever is written above is
+now physically present in the scene — delivered to wherever its recipient is (during texting
+only that end experiences it and can only describe it over the phone; across a table, both
+see it land).
+· Stage it through what the two of them say. They react out loud to a real thing that just
+  happened — no narrator, no stage direction paragraphs.
+· Neither of them arranged it. The client knows the Bureau backs them and may ride the moment
+  or be exactly as blindsided as the target; the target has no idea where it came from.
+· The order stages **things, not feelings**. It can put objects, people, vehicles, music,
+  weather into the room — how these two feel about that is still their own sheets' business:
+  awe, suspicion, secondhand embarrassment, a demand to know who is paying. It cannot script
+  anyone's lines and it cannot make anyone attracted.
+· The client does not get smoother because the props got expensive.
+Play the arrival out, then let the scene keep going from wherever that leaves them.`;
+}
+
+export function talkUser(couple, phase, beat, total, radio, field) {
   const c = couple.client, t = couple.target;
   const scene = PHASE_SCENE[phase] || PHASE_SCENE.text;
-  const cut = radioOrder(radio);
+  const cut = [fieldOrder(field), radioOrder(radio)].filter(Boolean).join('\n\n');
   const head = cut ? `${cut}\n\n` : '';
   return beat === 1
     ? `${head}${scene.open(c, t)}

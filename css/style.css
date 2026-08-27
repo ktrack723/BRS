@@ -1014,3 +1014,6 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 /* 교육 슬라이드 추가 도형 */
 .slide-art .a-user { fill: #cfdcee; stroke: var(--tone-user); stroke-width: 2; }
 .slide-art .a-cachebox { fill: #eee2d4; stroke: var(--tone-cached); stroke-width: 2; }
+
+/* 무전 패널 안의 고객/현장 구획 구분선 */
+.radio-sep { border: none; border-top: 1px dashed var(--dlg-edge); margin: var(--s3) 0; }

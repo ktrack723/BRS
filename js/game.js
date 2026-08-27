@@ -57,8 +57,8 @@ function show(screen) {
 
 const TIPS = [
   '참고 · 출격 전에 요원이 쓰는 곳은 셋이다. 스타일링 · 동기부여 · 코칭. 셋 다 채점되지 않는다.',
-  '참고 · 판이 굴러가는 도중에 쓸 수 있는 건 무전 하나다. 텍스팅 1회 · 토킹 1회, 그게 전부다.',
-  '참고 · 무전은 조언이 아니라 명령이다. 고객은 바로 다음 대사부터 반드시 이행한다.',
+  '참고 · 판 도중의 레버는 둘이다. 고객 무전(페이즈당 1회)과 현장 무전(판 전체 1회).',
+  '참고 · 고객 무전은 명령이고, 현장 무전은 물리 지원이다 — 적은 그대로 실제로 벌어진다.',
   '참고 · 스타일링은 고객 외모를, 동기부여는 고객 성격을 통째로 덮어쓴다.',
   '참고 · 코칭은 고객에게만 간다. 타겟도 심판도 그 문장을 못 본다.',
   '참고 · 심판이 내보내는 것은 증감 여부뿐이다 — 무드 ▲▼─, 러브 ▲▼─. 점수도 해설도 없다.',
@@ -309,7 +309,7 @@ const SLIDES = [
       + '<rect class="a-track" x="236" y="88" width="96" height="18"/>'
       + '<rect class="a-stamp" x="238" y="90" width="26" height="14"/>', 2),
     line: '<b>B</b> — 대화가 구간 단위로 굴러가고, 매 구간 심판은 <b>증감 여부만</b> 답한다. 점수도, 해설도 없다.'
-      + ' 굴러가는 도중에 딱 한 번, <b>무전</b>으로 자리를 세우고 고객에게 명령을 꽂을 수 있다 — 페이즈마다 1회다.',
+      + ' 굴러가는 도중에는 <b>무전</b>으로 자리를 세우고 고객에게 명령을 꽂거나(페이즈마다 1회), <b>현장 무전</b>으로 물리 지원을 그대로 실행시킨다(판 전체 1회).',
   },
   {
     art: aSvg('러브 게이지 하나가 도장 하나로 이어지는 그림',
@@ -758,7 +758,8 @@ function paintRadio() {
   const e = state.engine;
   if (!e) { btn.disabled = true; btn.textContent = '📻 무전 개입'; btn.classList.remove('armed'); return; }
   const s = e.radioState();
-  btn.disabled = !s.can;
+  const f = e.fieldState();
+  btn.disabled = !s.can && !f.can;
   btn.classList.toggle('armed', s.armed);
   btn.textContent = s.armed ? '📻 대기 — 곧 회선이 열린다'
     : s.left > 0 ? `📻 무전 개입 · ${s.phaseLabel} ${s.left}회`
@@ -776,10 +777,23 @@ function syncRadioInject() {
     : `<span class="inject-empty">비워서 보내면 무전은 나가지 않고 배급도 그대로다</span>`;
 }
 
+function paintField() {
+  const e = state.engine;
+  const btn = $('#btn-field-send');
+  const box = $('#field-input');
+  const f = e?.fieldState();
+  const left = f ? f.left : 0;
+  btn.disabled = !left;
+  box.disabled = !left;
+  btn.textContent = left ? '🚚 현장 투입 — 회선 재개' : '🚚 현장 배급 소진 (판 전체 1회)';
+}
+
 function openRadio() {
   const p = $('#radio-panel');
   p.classList.remove('hidden');
   $('#radio-input').value = '';
+  $('#field-input').value = '';
+  paintField();
   syncRadioInject();
   paintRadio();
   sfx.click();
@@ -804,6 +818,18 @@ function markRadio(order) {
   sfx.send();
 }
 
+// 현장 무전이 실행된 자리 표시. 화면에만 뜬다 — 대화 기록에는 두 사람의 반응만 남는다.
+function markField(order) {
+  const w = $('#chat-window');
+  const div = document.createElement('div');
+  div.className = 'bubble sys radio-cut';
+  div.innerHTML = `<span class="who">현장</span><span class="say">🚚 현장팀 투입 — "${escapeHtml(order)}" `
+    + `<b>(그대로 실행됨)</b>. 누가 시켰는지는 아무도 모른다.</span>`;
+  w.appendChild(div);
+  w.scrollTop = w.scrollHeight;
+  sfx.send();
+}
+
 function initRadio() {
   $('#btn-radio').addEventListener('click', () => {
     const e = state.engine;
@@ -819,6 +845,11 @@ function initRadio() {
     state.engine?.sendRadio(t);
   });
   $('#btn-radio-cancel').addEventListener('click', () => { sfx.click(); state.engine?.releaseHold(); });
+  $('#btn-field-send').addEventListener('click', () => {
+    const t = $('#field-input').value.trim();
+    if (!t) { toast('현장 지시가 비었다. 무엇을 실행할지 적어라.', 3000); return; }
+    state.engine?.sendField(t);
+  });
   paintRadio();
 }
 
@@ -835,7 +866,7 @@ async function startOperation() {
     points: pointsUpdate,
     // 무전 — 버튼이 눌리면 engine이 여기서 대화를 세운다. 송출/취소가 다시 굴린다.
     hold: () => { openRadio(); },
-    resume: ({ order }) => { closeRadio(); if (order) markRadio(order); },
+    resume: ({ order, field }) => { closeRadio(); if (order) markRadio(order); if (field) markField(field); },
     phase: async p => {
       setChatTitle(p.label);
       paintRadio();
