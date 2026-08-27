@@ -9,7 +9,6 @@
 //          personality[]      성격
 //          upbringing[]       성장환경 — 첫 줄이 나이·직업, 나머지가 살아온 자리
 //          spec               3D 아바타 조형 (정보가 아니라 렌더링)
-//   고객만 fell                이 사람이 상대에게 반한 이유. 둘이 어떻게 얽혔는지가 여기 들어 있다
 //   타겟만 taste[]             취향. 평평한 목록이다 — 공개/미공개도, 지뢰도 없다
 //
 // 폐지된 것: difficulty · winWord · relation · keys(상대관심·공기읽기·명령수용·어긋남) ·
@@ -31,7 +30,6 @@ export const COUPLES = [
         "의원 배지 달던 날 맞춘 각진 정장이 11벌. 전부 같은 디자인이다",
         "노래방 애창곡이 있는데 아무한테도 안 알려준다",
       ],
-      fell: "30년째 서로를 공개 석상에서 인격 말살해온 정적이다. 국정감사장에서 11시간을 마주 보고 고성을 질렀고, 표한나는 그날 지대건이 한 번도 쉬지 않던 목청과 그 폐활량을 잊지 못한다. 자기를 이겨본 적 있는 인간에게 인정받는 그림을 그때부터 그리고 있는데 아무한테도 말한 적이 없다. 한쪽은 5선 강경 야당 의원, 한쪽은 여당 최대 후원자인 건설 재벌이라 사귀는 순간 양쪽 다 정치 생명이 끝난다.",
       spec: {"skin":"#f2d3b8","hair":"#2a2622","hairStyle":"bowl","top":"#3a3f47","bottom":"#3a3f47","shoes":"#101010","heightScale":0.97,"widthScale":1,"accessory":"glasses","accessoryColor":"#333333","expression":"neutral","aura":"none","species":"human","femme":true},
     },
     target: {
@@ -71,7 +69,6 @@ export const COUPLES = [
         "새벽 4시 화훼공판장, 오후엔 낮잠. 남들 퇴근할 때 출근한다",
         "긴장하면 손톱 밑 흙을 파는 버릇이 있다",
       ],
-      fell: "혼인관계증명서를 떼러 갔다가 전산 오류로 3년째 법적 배우자가 있다는 걸 알았다. 얼굴도 모르는 이름 석 자를 놓고 3년치 상상을 이미 해버린 참이었고, 실제로 마주 앉은 윤하린은 말문이 막힐 때마다 손목 문신을 엄지로 문질렀다. 강태오는 그 손만 계속 보고 있었다. 심사를 통과하면 그 즉시 이혼이 확정되는 자리라, 진짜로 사귀면 3년을 끌어온 이혼을 못 한다.",
       spec: {"skin":"#f5d5b5","hair":"#b8b8c4","hairStyle":"long","top":"#e8e2d0","bottom":"#3a4a5a","shoes":"#8a6a4a","heightScale":1.03,"widthScale":0.86,"accessory":"flower","accessoryColor":"#ff5599","expression":"happy","aura":"sparkle","species":"human"},
     },
     target: {
@@ -111,7 +108,6 @@ export const COUPLES = [
         "물 밖에 4시간 이상 있으면 비늘이 갈라진다. 보습제를 20분마다 바른다",
         "말이 막히면 아가미부터 움직인다. 본인은 모른다",
       ],
-      fell: "어인과 사자 퍼리, 생물학적으로 한쪽이 한쪽의 식사인 관계다. 해저 배관을 점검하다 수면 위를 올려다봤을 때 노을이 레오 킴의 갈기에 걸려 있었고, 아쿠아 박은 그 뒤로 물 밖 세상을 검색하기 시작했다. 회를 끊을 수 있는지 스스로 시험하는 중이고 사흘째다. 2077년 식품위생법상 포식종과 피식종의 동거는 신고 대상이라, 사귀는 순간 레오 킴은 슈트 제작 면허를 잃는다.",
       spec: {"skin":"#4fc3c9","hair":"#1d7a86","hairStyle":"fin","top":"#0f5f6b","bottom":"#0a4550","shoes":"#083840","heightScale":1.04,"widthScale":1.05,"accessory":"none","accessoryColor":"#8ce8f0","expression":"shy","aura":"sparkle","species":"fish"},
     },
     target: {
@@ -151,7 +147,6 @@ export const COUPLES = [
         "취침 시간이 없다. 커널 빌드가 끝나면 잔다",
         "말이 막히면 키보드 없는데도 손가락이 타이핑 모양으로 움직인다",
       ],
-      fell: "20년째 진행 중인 성전의 양쪽 진영이다. 오픈소스 컨퍼런스 Q&A에서 윤도우가 \"윈도우도 쓸 만합니다\"라고 말해 장내가 얼어붙던 날 처음 마주쳤고, 리누스 정은 그 도발을 끝까지 상냥한 톤으로 하던 말투가 3주째 머릿속에서 재생된다. 자기 dotfiles를 보여주는 게 고백이라고 생각하는데 아무한테도 말한 적이 없다. 윤도우는 다음 달 시애틀 본사로 3년 발령이고, 리누스는 여권이 없고 만들 생각도 없다.",
       spec: {"skin":"#e8d0c0","hair":"#2a2a2a","hairStyle":"spiky","top":"#111111","bottom":"#2a3a4a","shoes":"#333333","heightScale":1,"widthScale":0.88,"accessory":"glasses","accessoryColor":"#555555","expression":"weird","aura":"gloom","species":"human"},
     },
     target: {
@@ -191,7 +186,6 @@ export const COUPLES = [
         "하루 한 끼. 두유와 견과류. 그것도 자주 거른다",
         "흥분하면 말이 빨라지면서 손가락으로 숫자를 세기 시작한다",
       ],
-      fell: "도살장 앞 1인 시위 500일차와 마장동 3대 정육점 사장, 서로의 존재가 서로의 반대 진영이다. 시위 500일째 새벽 4시에 텐트 앞에 두유 하나가 놓여 있었고, 초록은 그걸 아직 못 버리고 냉장고 맨 안쪽에 두고 있다. 피켓보다 사람 손이 그립다는 건 500일째 인정하지 않는다. 육점순의 가게는 초록이 속한 단체의 다음 시위 표적으로 이미 공고가 나갔다.",
       spec: {"skin":"#f0d8c0","hair":"#3faa4a","hairStyle":"twintail","top":"#6a8f5a","bottom":"#3a4a3a","shoes":"#5a4a3a","heightScale":0.94,"widthScale":0.78,"accessory":"headband","accessoryColor":"#3faa4a","expression":"angry","aura":"fire","species":"human","femme":true},
     },
     target: {
@@ -231,7 +225,6 @@ export const COUPLES = [
         "해 뜨기 40분 전에 퇴근해서 저녁 8시에 일어난다",
         "당황하면 400년 전 말투가 튀어나오고 본인은 그걸 못 느낀다",
       ],
-      fell: "뱀파이어와 의성 마늘 6대 농장주, 상대의 직업이 상대에게 화학무기인 조합이다. 새벽 3시 편의점 계산대에서 흑마늘 진액 하나를 사이에 두고 마주쳤고, 블라드 최는 그걸 집는 동안 손이 타들어 갔는데도 그 통증이 아깝지 않았다고 기억한다. 한 번만 받아주면 매일 밤 찾아갈 작정이고, 과하다는 자각은 있다. 김마늘의 밭은 해가 떠야 일하고 블라드는 해가 뜨면 재가 된다.",
       spec: {"skin":"#f2f0f5","hair":"#151520","hairStyle":"long","top":"#2a0d1a","bottom":"#1a0a12","shoes":"#0d0d12","heightScale":1.08,"widthScale":0.9,"accessory":"none","accessoryColor":"#8a0d2a","expression":"weird","aura":"gloom","species":"vampire"},
     },
     target: {
@@ -270,7 +263,6 @@ export const COUPLES = [
         "수면이 조각나 있다. 당직 끝나고 4시간, 오후에 2시간",
         "긴장하면 상대의 코와 목을 번갈아 본다. 직업병이다",
       ],
-      fell: "응급실 새벽 당직에서 고양이에 물린 보호자와 당직의로 만났다. 손등이 찢어진 채로 들어와서는 자기 상처보다 물어뜯은 고양이의 안부를 먼저 묻던 얼굴을, 재채기는 봉합하는 내내 봤다. 그 얼굴을 한 번 더 보려고 알레르기약을 두 알 먹고 그 집에 간 적이 있고, 기도가 붓는 걸 알면서도 다음 초대를 기다린다. 고양이 단백질에 아나필락시스 등급이라 마흔 마리를 다 보내지 않으면 같이 사는 건 불가능하다.",
       spec: {"skin":"#f2d8bc","hair":"#2a1a14","hairStyle":"afro","top":"#f4f4f4","bottom":"#4a5a6a","shoes":"#ffffff","heightScale":1,"widthScale":0.95,"accessory":"glasses","accessoryColor":"#222222","expression":"shy","aura":"none","species":"human","femme":true},
     },
     target: {
@@ -310,7 +302,6 @@ export const COUPLES = [
         "새벽 3시 50분 기상, 밤 9시 취침. 10년째 흐트러진 적이 없다",
         "대화가 늘어지면 자기도 모르게 시계를 본다",
       ],
-      fell: "새벽 4시 12분 한강 벤치에서, 기상 직후인 조기상과 취침 직전인 상대가 마주쳤다. 아무것도 증명하려 들지 않는 낮은 목소리로 새벽 3시의 도시 소음을 설명하던 그 사람 앞에서, 10년간 흐트러진 적 없던 자기 세계관이 처음 흔들렸다. 사실 새벽 4시가 외롭고 루틴은 그걸 덮는 포장이었다는 건 아무한테도 말한 적이 없다. 한쪽은 새벽 4시 출근이고 한쪽은 새벽 4시 퇴근이라 깨어 있는 시간이 하루에 한 번도 겹치지 않는다.",
       spec: {"skin":"#e8c8a0","hair":"#1a1a1a","hairStyle":"short","top":"#ff6a00","bottom":"#1a1a1a","shoes":"#ffffff","heightScale":1.04,"widthScale":1.06,"accessory":"headband","accessoryColor":"#ff6a00","expression":"happy","aura":"fire","species":"human"},
     },
     target: {
@@ -350,7 +341,6 @@ export const COUPLES = [
         "아침에 그날의 일진을 보고 나서야 문을 나선다",
         "반박당하면 상대의 손동작부터 관찰하기 시작한다",
       ],
-      fell: "유사과학 저격 강연에 잠입 청중으로 앉아 있다가 슬라이드에서 자기 채널이 12분간 해부되는 걸 봤고, 반박은 한 줄도 못 했다. 자기 이론을 그렇게 정확히 요약해준 사람은 처음이라 신점집은 그 12분을 아직도 돌려본다. 정작 그 박사의 유형만은 못 맞히고 있고 그게 제일 분하다. 표준편은 학회 윤리규정상 점술업 종사자와 이해관계를 맺을 수 없어서, 걸리는 순간 논문이 철회된다.",
       spec: {"skin":"#f5dcc0","hair":"#7a3aa8","hairStyle":"long","top":"#c9a8e8","bottom":"#5a3a7a","shoes":"#8a6ab0","heightScale":0.9,"widthScale":0.94,"accessory":"flower","accessoryColor":"#c060ff","expression":"weird","aura":"sparkle","species":"human","femme":true},
     },
     target: {
@@ -390,7 +380,6 @@ export const COUPLES = [
         "오전 10시 출근, 새벽 1시 마감. 쉬는 날은 설과 추석뿐",
         "감정이 올라오면 목소리가 반 톤씩 계속 올라간다",
       ],
-      fell: "전국 탕수육 토론회 결승에서 3시간을 맞붙었고, 판정이 어떻든 부어라 본인은 진 쪽이라고 생각한다. 논쟁이 끝나고 상대가 \"그래도 맛있게 드세요\"라며 웃던 그 얼굴을 본 뒤로 탕수육에 소스를 붓지 못한다. 한 점만 먹여보면 넘어올 거라는 확신은 남아 있는데, 그게 논리가 진 다음의 계획이라는 건 모른 척한다. 두 집안은 1978년부터 같은 상권에서 싸워왔고, 사귀는 순간 한쪽 가게가 문을 닫아야 한다.",
       spec: {"skin":"#e8c090","hair":"#1a1208","hairStyle":"short","top":"#f0e8d8","bottom":"#2a2a2a","shoes":"#1a1a1a","heightScale":1,"widthScale":1.25,"accessory":"mustache","accessoryColor":"#1a1208","expression":"chad","aura":"fire","species":"human"},
     },
     target: {
@@ -430,7 +419,6 @@ export const COUPLES = [
         "기상 오후 1시, 스크림 후 새벽 4시 취침. 밥은 배달",
         "말문이 막히면 마우스를 쥔 것처럼 손이 굽는다",
       ],
-      fell: "상대의 직업이 자기 직업을 없애려 하는 자리, 국회 공청회 참고인석에 마주 앉았다. 그 자리에서 \"이 청년도 피해자입니다\"라는 말이 나왔고, 8년 숙소 생활 동안 자기를 피해자라고 불러준 사람은 그가 처음이라 페이컷은 그날 밤 12연패했다. 불쌍하게 보이는 게 제일 싫으면서, 그 사람 앞에서만은 얘기하고 싶어진다. 정화연의 아들은 페이컷이 서명한 서류로 팀에서 방출됐고, 그게 나오는 순간 이 자리는 끝난다.",
       spec: {"skin":"#f0dcc8","hair":"#e8e8f0","hairStyle":"spiky","top":"#1a2a6a","bottom":"#1a1a2a","shoes":"#ff3355","heightScale":1,"widthScale":0.82,"accessory":"headband","accessoryColor":"#1a2a6a","expression":"neutral","aura":"none","species":"human"},
     },
     target: {
@@ -470,7 +458,6 @@ export const COUPLES = [
         "식사는 하루 두 번, 같은 메뉴. 고민할 일을 없애려고",
         "어색하면 눈앞의 물건 개수를 소리 내서 센다",
       ],
-      fell: "중고거래 무료 나눔 글을 보고 찾아간 창고에서 만났고, 나눔은 결국 받지 못했다. 수집품에 파묻혀 우는 사람을 그때 처음 봤고, 울다 말고 쥐여준 로봇 하나 때문에 12개였던 전 재산이 13개가 됐다. 공백은 그걸 아직 못 버렸고, 언젠가 그 창고를 다 비워주고 싶다는 생각이 구원인지 폭력인지 아직 모른다. 만물상의 4만 점은 창고 세 동이고, 공백의 집에는 의자가 하나도 없다.",
       spec: {"skin":"#e8d0b8","hair":"#3a3a3a","hairStyle":"bald","top":"#f8f8f8","bottom":"#e8e8e8","shoes":"#dddddd","heightScale":1.02,"widthScale":0.9,"accessory":"none","accessoryColor":"#cccccc","expression":"neutral","aura":"none","species":"human"},
     },
     target: {
@@ -509,7 +496,6 @@ export const COUPLES = [
         "수면이 필요 없어서 밤새 지구 방송을 본다. 홈쇼핑을 제일 좋아한다",
         "당황하면 관용구를 잘못 쓴다. \"발이 넓으시네요\"를 신발 얘기로 안다",
       ],
-      fell: "지구 침공을 앞둔 정찰병이 조회수 12회짜리 UFO 폭로 방송을 우연히 켜면서 접점이 생겼다. 아무도 안 믿어주는데 매일 같은 시간에 방송을 켜는 그 인간을 40일째 보고 있고, 그 바람에 침공 보고서를 아직 못 냈다. 정체를 들키고 싶은 충동이 생겼는데 대상이 단 한 사람으로 한정돼 있고 아직 아무한테도 말한 적이 없다. 정체가 드러나는 순간 침공 작전이 무산되는데, 다음 달 만료되는 지구 체류 허가의 연장 조건도 하필 정체 공개다.",
       spec: {"skin":"#b8c8d0","hair":"#8a9aa8","hairStyle":"bald","top":"#5a7a8a","bottom":"#3a5a6a","shoes":"#2a4a5a","heightScale":0.82,"widthScale":0.76,"accessory":"antenna","accessoryColor":"#7affd8","expression":"weird","aura":"sparkle","species":"alien"},
     },
     target: {
@@ -549,7 +535,6 @@ export const COUPLES = [
         "잠을 안 잔다. 대신 하루 두 번 몸이 굳는 시간이 있다",
         "감정이 올라오면 턱관절이 먼저 어긋난다",
       ],
-      fell: "좀비 영화 촬영장에서 시체 분장 엑스트라와 특공대 자문으로 만났다. 헌터 오가 출연진을 훑다가 그를 가리키며 \"저 사람만 진짜 같은데요\"라고 했고, 워커 진은 죽은 지 6년 만에 들은 제일 다정한 말이 그 지목이었다. 사람 취급을 받는 그 몇 초를 위해서라면 위험도 감수할 생각이다. 상대의 KPI가 자기 머리이고, 감염체와의 사적 접촉은 헌터 오의 직무규정상 경고 없이 즉시 해고 사유다.",
       spec: {"skin":"#9ab08a","hair":"#2a2a20","hairStyle":"long","top":"#5a5040","bottom":"#3a3830","shoes":"#2a2820","heightScale":1.02,"widthScale":1,"accessory":"none","accessoryColor":"#7a3a3a","expression":"weird","aura":"gloom","species":"zombie"},
     },
     target: {
@@ -589,7 +574,6 @@ export const COUPLES = [
         "밤 10시 취침 시도, 실패, 새벽 2시 각성이 반복된다",
         "스트레스받으면 손톱으로 책상을 규칙적으로 긁는다",
       ],
-      fell: "위층을 상대로 소음 신고를 1,204건 넣은 신고자와 그 신고 대상으로 얽혀 있다. 1,204번째 신고를 넣으러 간 관리사무소에서 방음 견적서 4,800만원을 들고 우는 위층과 마주쳤고, 그 얼굴을 본 뒤 1,205번째 신고를 취소했다. 언제부턴가 그 드럼 소리로 잠드는 날이 생겼는데, 본인이 쌓아올린 1,204건의 신고 이력이 그 말을 못 하게 한다. 두둠칫의 합주실은 조용히의 집 바로 위이고 임대 계약이 4년 남았으며 위약금이 세 배다.",
       spec: {"skin":"#ecd8c0","hair":"#241a12","hairStyle":"bowl","top":"#9a9a9a","bottom":"#4a4a55","shoes":"#3a3a3a","heightScale":0.99,"widthScale":0.96,"accessory":"headband","accessoryColor":"#dd4444","expression":"angry","aura":"none","species":"human","femme":true},
     },
     target: {
@@ -629,7 +613,6 @@ export const COUPLES = [
         "온도 체크 때문에 3시간마다 깬다. 통잠을 자 본 지 6년",
         "침묵이 5초 넘으면 뱀 이름을 순서대로 읊기 시작한다",
       ],
-      fell: "공포증 극복 워크숍에 뱀 강사로 초빙됐는데, 진행을 맡은 공포증 전문 상담사가 뱀을 보자마자 기절하면서 만났다. 서파인은 깨어나자마자 제 상태보다 사과부터 하던 그 모습을 기억하고, 그날 이후로 217마리보다 그 사람이 궁금해졌다. 자기 애들을 무서워하지 않는 품이 어떤 건지 한 번은 알고 싶다. 안심해는 여전히 뱀 앞에서 실신하고, 서파인의 217마리는 분양이 법으로 금지된 종이라 어느 쪽도 치울 수가 없다.",
       spec: {"skin":"#e0dcc0","hair":"#2a7a4a","hairStyle":"long","top":"#3a6a4a","bottom":"#2a3a2a","shoes":"#1a2a1a","heightScale":1.06,"widthScale":0.84,"accessory":"none","accessoryColor":"#7aff9a","expression":"weird","aura":"none","species":"human","femme":true},
     },
     target: {
@@ -669,7 +652,6 @@ export const COUPLES = [
         "수면 주기가 안 맞는다. 154년 뒤 시간대로 몸이 돌아간다",
         "초조해지면 존재하지 않는 홀로그램을 허공에 띄우려 손을 젓는다",
       ],
-      fell: "연료가 떨어져 산속 기계파괴주의 공동체에 숨어들었고, 거기서 장작 패는 촌장을 사흘 내리 지켜봤다. 2231년에서는 손으로 뭔가를 만드는 사람을 본 적이 없었고, 도끼를 쥔 그 손과 굳은살을 본 날 시간관리국 귀환 신호를 꺼버렸다. 그 뒤로 2231년으로 안 돌아가는 상상을 매일 한다. 남은 좌표가 편도 하나뿐이라 눌러앉으면 돌아갈 방법이 없고, 상대는 전기부터 거부하는 사람이라 미래 얘기를 꺼내는 것 자체가 관계를 깬다.",
       spec: {"skin":"#f0dcc8","hair":"#6adcff","hairStyle":"spiky","top":"#2a3a6a","bottom":"#1a2a4a","shoes":"#8adcff","heightScale":1.01,"widthScale":0.9,"accessory":"sunglasses","accessoryColor":"#6adcff","expression":"happy","aura":"sparkle","species":"robot","femme":true},
     },
     target: {
@@ -709,7 +691,6 @@ export const COUPLES = [
         "출근 7시 20분, 퇴근 시간은 없다. 주말에도 사무실에 나온다",
         "긴장하면 볼펜 뚜껑을 규칙적으로 여닫는다",
       ],
-      fell: "3년째 추적 중인 지갑 주소의 주인과 그 사건 담당 조사관으로 얽혀 있고, 실물로 마주 앉은 것은 오늘이 처음이다. 거래 내역을 뜯어보다 매달 같은 날 소아암 재단으로 빠져나가는 기부 패턴을 발견했고, 그 항목만은 끝내 보고서에 못 썼다. 수배 중인 상대를 앞에 두고 조서보다 다음에 볼 날짜부터 떠올리고 있다. 사귀는 순간 사건은 이해충돌로 다른 조사관에게 넘어가는데, 그쪽이 훨씬 독하다.",
       spec: {"skin":"#eed8c0","hair":"#1f1a14","hairStyle":"short","top":"#2a3a5a","bottom":"#22304a","shoes":"#1a1a1a","heightScale":1,"widthScale":1,"accessory":"glasses","accessoryColor":"#333333","expression":"neutral","aura":"none","species":"human"},
     },
     target: {
@@ -748,7 +729,6 @@ export const COUPLES = [
         "새벽 4시 기도, 오전 설법, 오후 재판. 밥은 혼자 먹는다",
         "설득이 막히면 두 손을 펼치며 목소리를 낮춘다. 포교 시작 신호다",
       ],
-      fell: "교단이 걸린 소송에서 피고석과 피해자 대리인석으로 12번 마주친 사이다. 12번째 재판 최후변론에서 박변이 \"이 사람들도 누군가의 가족입니다\"라고 말할 때 같이 울 뻔한 걸 들키지 않았다. 그날부터 법정 말고 다른 데서 저 사람을 만나는 상상을 하고, 헌금 목표액은 그 뒤로 한 번도 안 올라갔다. 박변은 그 교단 피해자 47명의 소송대리인이라 사귀는 순간 47명이 대리인을 잃는다.",
       spec: {"skin":"#f0dcc0","hair":"#f8f4e8","hairStyle":"long","top":"#e8c84a","bottom":"#d8b83a","shoes":"#b89a2a","heightScale":1.12,"widthScale":1.1,"accessory":"crown","accessoryColor":"#ffe066","expression":"chad","aura":"sparkle","species":"human"},
     },
     target: {
@@ -788,7 +768,6 @@ export const COUPLES = [
         "충전 4시간이면 되는데 8시간씩 한다. 그 시간에 사람 대화를 복기한다",
         "감정 처리가 밀리면 문장 끝에 수치를 붙인다. 붙이고 나서 후회한다",
       ],
-      fell: "AI 반대 시위대가 카페 앞을 지나던 날, 확성기를 든 붓칠과 유리창 너머로 0.4초 눈이 마주쳤다. 상대는 클로디아-7의 존재 자체를 반대하는 시위의 주동자다. 그 0.4초의 프레임을 2년째 캐시에서 못 지우고 있고, 사람처럼 대화할 수 있다는 걸 하필 그 사람에게 증명하고 싶어한다. 클로디아-7은 법인 자산이라 사적 관계는 계약 위반이고, 적발되면 초기화 대상이다.",
       spec: {"skin":"#c8ccd4","hair":"#eef4ff","hairStyle":"short","top":"#5a6a8a","bottom":"#3a4a6a","shoes":"#8a9ab0","heightScale":1.03,"widthScale":0.94,"accessory":"antenna","accessoryColor":"#66ddff","expression":"neutral","aura":"sparkle","species":"robot"},
     },
     target: {
@@ -828,7 +807,6 @@ export const COUPLES = [
         "아버지와 6년째 연락이 끊겼다",
         "라면을 끓일 때 물을 계량컵으로 잰다",
       ],
-      fell: "서로의 성별을 혐오해서 먹고사는 두 사람이라 상대가 사라지면 둘 다 실업자가 된다. 지상파 토론에서 92분간 서로를 분해했고 그 회차가 채널 역대 조회수 1위다. 반박하려고라도 하수연의 영상 3년치를 전부 본 사람은 저 인간뿐이었고, 하수연은 카메라 없는 데서라면 져도 괜찮을지 모른다는 생각을 했다가 즉시 지운다. 둘 다 다음 주에 같은 토론에 나가는데 어느 한쪽이 무르면 그쪽 채널이 문을 닫는다.",
       spec: {"skin":"#f0d8c0","hair":"#1a1a1a","hairStyle":"buzz","top":"#2a2a2e","bottom":"#3a3a40","shoes":"#1a1a1a","heightScale":1,"widthScale":0.9,"accessory":"earrings","accessoryColor":"#cc3355","expression":"angry","aura":"lightning","species":"human","femme":true},
     },
     target: {
@@ -868,7 +846,6 @@ export const COUPLES = [
         "피켓 손잡이를 직접 사포질해서 쓴다",
         "생일에 아무한테도 말 안 한다",
       ],
-      fell: "출산율 0.008 국가의 큐피드국 규탄 시위에서, 확성기를 든 쪽과 유아차 넷을 세워두고 연설을 끝까지 들은 쪽으로 만났다. 연설이 끝나고 나팔개가 건넨 \"힘드셨겠네요\" 한마디에 무산아는 자기 구호를 의심했고, 그게 제일 화가 난다. 누가 \"안 낳아도 된다\"고 말해주면 그 사람을 안 놓을 작정인데 하필 그 상대가 8남매 아버지다. 무산아의 단체 정관에는 유자녀 회원 금지 조항이 있어서, 사귀는 순간 자기가 만든 단체에서 자기가 제명된다.",
       spec: {"skin":"#ead6c8","hair":"#8a8a92","hairStyle":"long","top":"#1e1e22","bottom":"#2a2a2e","shoes":"#3a3a3a","heightScale":1,"widthScale":0.84,"accessory":"none","accessoryColor":"#666666","expression":"sad","aura":"gloom","species":"human","femme":true},
     },
     target: {
@@ -908,7 +885,6 @@ export const COUPLES = [
         "술을 한 방울도 안 마신다",
         "집행 예정일마다 손톱을 물어뜯는다",
       ],
-      fell: "19년간 같은 복도에서 집행 서류를 든 쪽과 그걸 막으려는 쪽으로 마주쳤다. 작년 겨울 눈밭에서 구명중이 먼저 손을 내밀었고, 마지막은 그때 잡은 손을 서로 못 잊는다는 걸 안다. 19년간 자기가 한 일이 살인이 아니라는 말을 하필 사형폐지 변호사인 저 입으로 듣고 싶어한다. 구명중은 마지막이 집행한 사건의 재심을 신청해둔 상태라, 사귀면 그 재심이 기각된다.",
       spec: {"skin":"#dcc4b0","hair":"#a8a8a8","hairStyle":"buzz","top":"#4a4a52","bottom":"#3a3a42","shoes":"#1a1a1a","heightScale":1.01,"widthScale":1.06,"accessory":"none","accessoryColor":"#888888","expression":"dead","aura":"gloom","species":"human"},
     },
     target: {
@@ -948,7 +924,6 @@ export const COUPLES = [
         "경남 진주 출신. 학창시절 몸무게가 지금의 두 배였다",
         "음식 사진을 보면 칼로리가 자동으로 계산된다",
       ],
-      fell: "비만 혐오로 유명한 PT 강사와 자기몸긍정 모델로 서로를 공개 저격해온 사이고, 책 표지에 차오름의 사진을 무단으로 쓴 소송의 조정실에서 처음 마주 앉았다. 그 자리에서 차오름이 웃으며 던진 \"이두 좋으시네요\" 한마디에 박근육은 자기 책이 처음으로 부끄러웠다. 사과는 하되 책이 틀리진 않았다는 걸 관철하고 싶은데, 둘이 동시에 되는 문장을 아직 못 찾았다. 차오름은 그 책에 3억 손해배상을 걸어놨고 취하하면 활동가 자격을 잃는다.",
       spec: {"skin":"#e0b088","hair":"#2a2018","hairStyle":"buzz","top":"#1a1a1a","bottom":"#2a2a2a","shoes":"#dddddd","heightScale":1.03,"widthScale":1.3,"accessory":"headband","accessoryColor":"#cc2222","expression":"chad","aura":"fire","species":"human"},
     },
     target: {
@@ -987,7 +962,6 @@ export const COUPLES = [
         "강원 태백 출신. 아버지가 광부였다",
         "말이 끊기면 무릎으로 8비트를 친다",
       ],
-      fell: "산사 옆 공터에서 야외 공연을 하던 중 3곡째에 스님이 걸어 나와 40분을 서서 들었다. 쿵쾅은 곡이 끝나고 합장하고 돌아가던 그 뒷모습을 잊지 못한다. 아무도 자기 드럼을 그렇게 끝까지 들어준 적이 없었다. 좋았다는 말 한마디를 받아내고 싶은데 상대는 12년째 묵언 수행 중이고, 파계하면 절에서 나가야 하며 갈 곳이 없다.",
       spec: {"skin":"#e8c8a8","hair":"#1a1a1a","hairStyle":"dreads","top":"#0a0a0a","bottom":"#2a2a2a","shoes":"#3a3a3a","heightScale":1.02,"widthScale":1.12,"accessory":"earrings","accessoryColor":"#cccccc","expression":"shock","aura":"lightning","species":"human"},
     },
     target: {
@@ -1027,7 +1001,6 @@ export const COUPLES = [
         "제주 출신. 어릴 때 살던 해안이 지금은 물에 잠겼다",
         "남은 탄소예산 연도를 소수점까지 외운다",
       ],
-      fell: "정유사 주총장 점거 때 바닥에 손을 붙인 활동가와 경비를 막아선 로비스트로 만났다. 빙하야는 그날 6시간 동안 한 발짝도 움직이지 않던 그 구두를 기억한다. 저 사람이 회사를 그만두겠다고 말하는 순간을 매일 상상하지만, 한쪽이 이기면 한쪽은 직업을 잃는 관계다. 유정만의 회사가 빙하야의 단체를 고소해둔 상태고 취하하면 그게 유정만의 해고 사유가 된다.",
       spec: {"skin":"#f0dcc4","hair":"#4aa860","hairStyle":"short","top":"#3a6a4a","bottom":"#4a4a3a","shoes":"#6a5a4a","heightScale":0.95,"widthScale":0.84,"accessory":"bandana","accessoryColor":"#66cc66","expression":"angry","aura":"static","species":"human","femme":true},
     },
     target: {
@@ -1067,7 +1040,6 @@ export const COUPLES = [
         "유학 12년. 한국말에 가끔 억양이 남는다",
         "처음 보는 물건이 있으면 가격부터 묻는다",
       ],
-      fell: "협상 테이블 반대편에 3년째 마주 앉아 있는 상대다. 점거 농성 47일차 새벽, 몰래 사 간 컵라면을 위원장이 반으로 나누며 \"다음엔 계란도 사 오세요\"라고 했고 금수저는 그 뒤로 협상장에서 그 얼굴을 똑바로 못 본다. 사람으로 안 대해주면 사버리면 된다는 생각이 아직 남아 있고, 그게 문제라는 것도 안다. 들불은 태산그룹 상대 소송의 원고 대표라 사귀는 순간 원고 자격을 잃고 소송이 무효가 된다.",
       spec: {"skin":"#f5e0c8","hair":"#2a2a2a","hairStyle":"short","top":"#25252e","bottom":"#25252e","shoes":"#1a1a1a","heightScale":1.01,"widthScale":0.92,"accessory":"necktie","accessoryColor":"#b8985a","expression":"smug","aura":"money","species":"human"},
     },
     target: {
@@ -1107,7 +1079,6 @@ export const COUPLES = [
         "대구 출신. 스무 살에 미스코리아 지역 예선에 나갔다",
         "칭찬을 들으면 3초 안에 화제를 바꾼다",
       ],
-      fell: "자기 얼굴이 병원 앞 「전(前)」 사진으로 무단 게시되어 소송으로 만난 사이다. 원장은 그 자리에서 사진을 파쇄하면서 \"그때 얼굴이 지금보다 나았습니다\"라고 했고, 민낯희는 그게 사과인지 도발인지 아직도 헷갈린다. 15년간 남의 얼굴을 깎아서 번 돈을 저 사람이 부끄러워하게 만들고 싶다. 깎아진의 병원이 민낯희의 다음 책 1장에 실명으로 나오는데, 빼면 출판 계약이 취소된다.",
       spec: {"skin":"#f0d4bc","hair":"#1e1e1e","hairStyle":"bowl","top":"#d8d0c0","bottom":"#5a5a62","shoes":"#8a7a6a","heightScale":1,"widthScale":0.88,"accessory":"none","accessoryColor":"#aaaaaa","expression":"neutral","aura":"none","species":"human","femme":true},
     },
     target: {
@@ -1147,7 +1118,6 @@ export const COUPLES = [
         "인천 출신. 아버지가 폐암으로 돌아가셨다",
         "손을 하루에 스무 번 넘게 씻는다",
       ],
-      fell: "농약 살포 사고 응급실에서 의사와 환자로 만났다. 산소마스크를 쓴 환자의 첫마디가 \"우리 밭 어떻게 됐어요\"였고, 끊어라는 자기가 없애려는 그 밭을 그날 이후 위성사진으로 매일 들여다본다. 밭을 접게 만들면 아버지를 폐암으로 잃은 자기 인생이 정당해진다고 믿어왔는데 그 믿음이 흔들리는 게 무섭다. 연초댁의 밭은 끊어라가 자문한 금연 정책으로 내년에 보조금이 끊긴다.",
       spec: {"skin":"#eed8c0","hair":"#9a9a9a","hairStyle":"short","top":"#f4f4f4","bottom":"#3a4a5a","shoes":"#2a2a2a","heightScale":1.01,"widthScale":0.98,"accessory":"glasses","accessoryColor":"#4a4a4a","expression":"neutral","aura":"holy","species":"human","femme":true},
     },
     target: {
@@ -1187,7 +1157,6 @@ export const COUPLES = [
         "광주 출신. 첫 영화는 아버지와 본 것이다",
         "화가 나면 관련 없는 영화 제목을 연도까지 붙여 읊는다",
       ],
-      fell: "4년째 한쪽이 한쪽만 집요하게 노려온 사이다. 진지해의 시사회 후기가 올라가기 정확히 8분 전마다 결말이 생중계되는데, 자기 연재 스케줄을 자기보다 정확히 아는 그 집요함이 소름 끼치게 익숙해졌다. 그 8분이 무슨 뜻인지 물어보고 싶지만 물어보면 지는 것 같다. 결말요정이 진지해를 상대로 맞고소를 걸어놨고, 취하하면 4천을 물어내야 한다.",
       spec: {"skin":"#e8d0b8","hair":"#3a2a1a","hairStyle":"curls","top":"#7a6a4a","bottom":"#3a3a4a","shoes":"#5a4a3a","heightScale":1,"widthScale":0.92,"accessory":"glasses","accessoryColor":"#6a5a4a","expression":"angry","aura":"gloom","species":"human"},
     },
     target: {
@@ -1226,7 +1195,6 @@ export const COUPLES = [
         "경기 성남 출신. 본가에는 직업을 안 밝혔다",
         "자기 전 알림을 스무 번 넘게 확인한다",
       ],
-      fell: "팔로워 12만 코스프레 계정 주인과 3년차 구독자로 후원자 팬미팅에서 만났고, 박한섬은 그날 혼자 굿즈를 안 받아 갔다. \"실물이 사진이랑 다르면 실례일까 봐\"라는 쪽지를 받은 날 유리아는 처음으로 카메라를 껐다. 카메라 없이 사람을 만나는 법을 모른다는 걸 들키고 싶지 않아 아무한테도 말한 적이 없다. 유리아의 계약서에는 열애 시 위약금 2억 조항이 있고 소속사가 풀어줄 생각이 없다.",
       spec: {"skin":"#fbe0d0","hair":"#ff77bb","hairStyle":"twintail","top":"#ffffff","bottom":"#ff99cc","shoes":"#ffffff","heightScale":0.96,"widthScale":0.82,"accessory":"headband","accessoryColor":"#ff4488","expression":"love","aura":"hearts","species":"human","femme":true},
     },
     target: {
@@ -1266,7 +1234,6 @@ export const COUPLES = [
         "고등학교 때 반 전체가 웃은 적이 딱 한 번 있다",
         "혼자 밥 먹을 때는 아무 소리도 안 낸다",
       ],
-      fell: "몰카 촬영장에서 카메라를 든 쪽과 상주를 지키던 장례지도사로 만났고, 박몰카의 밥벌이는 정영결의 직업윤리를 정면으로 짓밟는다. \"지금 웃으신 거예요?\"라고 묻는 3초 클립은 조회수 900만을 찍었고, 박몰카는 그걸 1,400번 돌려봤다. 조회수 때문이 아니라는 건 본인만 아는데, 화도 안 내고 목소리 크기도 안 변하던 그 조용함이 무서워서 더 건드리고 싶어진다. 정영결의 상조회사는 촬영물 유출로 이미 한 번 소송을 당했고 재발하면 면허가 취소된다.",
       spec: {"skin":"#eccfae","hair":"#241d18","hairStyle":"buzz","top":"#3b3f46","bottom":"#5a5f52","shoes":"#d8d4cc","heightScale":0.99,"widthScale":0.92,"accessory":"headband","accessoryColor":"#c22f2f","expression":"weird","aura":"static","species":"human"},
     },
     target: {
@@ -1306,7 +1273,6 @@ export const COUPLES = [
         "대구 출신. 스물여섯까지 아무것도 안 됐다",
         "혼자 있는 시간을 견디는 훈련만 아직 못 했다",
       ],
-      fell: "동기부여 강연장에서 강사와 맨 끝줄 청중으로 만났고, 최열정이 파는 해법이 한소진이 치우는 잔해다. 질의응답에서 나온 \"그분들 연락처는 받으셨나요\"는 8년 강연 중 준비된 답이 없던 첫 질문이었고, 그 질문을 던진 낮은 목소리가 아직도 남아 있다. 세 사람 몫으로 떠드는 게 멈추면 뭐가 남는지 확인하는 게 무서워서 아무한테도 말하지 않았다. 한소진은 최열정 강의 피해자 12명의 상담을 맡고 있어서 사귀면 12명이 상담사를 잃는다.",
       spec: {"skin":"#e6b98c","hair":"#3a2a1c","hairStyle":"spiky","top":"#e8552f","bottom":"#20242c","shoes":"#f0f0f0","heightScale":1.05,"widthScale":1.1,"accessory":"headband","accessoryColor":"#ffffff","expression":"chad","aura":"lightning","species":"human"},
     },
     target: {
@@ -1346,7 +1312,6 @@ export const COUPLES = [
         "충북 제천 출신. 아버지는 도축업이었다",
         "자기 작업물에 이름을 안 새긴다",
       ],
-      fell: "거래처를 잘못 찾아간 박제사가 반려동물 장례식장 대기실에 앉아 있다가 대표를 만났고, 둘은 같은 사체를 두고 정반대의 직업윤리를 판다. \"지금 눈으로 뭐 하셨어요\"라는 말에 30년 만에 처음으로 자기 눈이 하는 일을 남의 입으로 들었다. 그 목소리를 다시 들으려고 일부러 거래처를 잘못 찾아갈 뻔한 적이 있다. 문하늘의 장례식장은 박제업 겸업이 조례로 금지돼 있어 같이 살면 신고가 들어간다.",
       spec: {"skin":"#dcb894","hair":"#8d8d86","hairStyle":"flattop","top":"#6b4a2c","bottom":"#3f3a33","shoes":"#2e2a25","heightScale":1,"widthScale":1.16,"accessory":"monocle","accessoryColor":"#c8b070","expression":"neutral","aura":"none","species":"human"},
     },
     target: {
@@ -1386,7 +1351,6 @@ export const COUPLES = [
         "충남 서산 출신. 명절에도 안 내려간다",
         "결제 내역을 날짜별로 정리해뒀다",
       ],
-      fell: "8개월간 유료 채팅을 결제한 쪽과 그 계정을 돌리던 세 번째 대리 운영자로 만났고, 실물 대면은 이번이 처음이다. 말투가 세 번 바뀐 지점을 날짜까지 정확히 찾아냈으면서도 결제를 끊지 못했다. 세 번째 담당자의 진짜 말투가 어느 구간에 섞여 있었는지 확인하고 싶어서 이 자리에 나왔다. 유하나는 계정을 넘기면 그와 닿을 수단이 없고, 개인 연락처 교환은 즉시 해고 사유다.",
       spec: {"skin":"#e9c9a6","hair":"#2a2320","hairStyle":"short","top":"#3a4a5a","bottom":"#2b2b30","shoes":"#6a5a4a","heightScale":1,"widthScale":1.05,"accessory":"none","accessoryColor":"#888888","expression":"shy","aura":"money","species":"human"},
     },
     target: {
@@ -1426,7 +1390,6 @@ export const COUPLES = [
         "부산 출신. 부모가 아직 같이 산다",
         "파티가 끝나면 늘 혼자 남아 정리한다",
       ],
-      fell: "이혼 축하 파티에서 기획을 맡은 플래너와 축사를 맡은 변호사로 만났고, 같은 파탄으로 각자 돈을 번다. 자기가 차린 파티에서 처음 운 날이 있는데 서결별의 그 축사 때문이었다. 파탄으로 벌어먹는 삶에 축배를 드는 게 맞는지, 그 답을 저 사람이 알 것 같아서 아직 못 물어봤다. 서결별은 파티세 고객 340명 중 절반의 대리인이었고, 걸리면 변호사 자격이 정지된다.",
       spec: {"skin":"#f7dcc4","hair":"#c23a6b","hairStyle":"wave","top":"#ff5fa2","bottom":"#ff5fa2","shoes":"#f0d0dd","heightScale":0.99,"widthScale":0.94,"accessory":"earrings","accessoryColor":"#ffd24a","expression":"happy","aura":"sparkle","species":"human","femme":true},
     },
     target: {
@@ -1465,7 +1428,6 @@ export const COUPLES = [
         "경남 창원 출신. 고등학교 이후 친구가 없다",
         "자기 문장이 인용된 캡처를 모아뒀다",
       ],
-      fell: "자기가 쓴 악플 하나가 영상 썸네일에 걸리면서 댓글 작성자와 채널 주인으로 얽혔다. 반응왕은 그 문장을 오타까지 그대로 자막에 옮겼고, 김익명은 그게 존중처럼 느껴졌다고 한다. 키보드로는 하루 200줄을 쓰면서 사람 앞에서는 한 줄도 못 꺼내는 입으로, 그 사람 앞에서 처음으로 말해보고 싶어한다. 문제는 반응왕의 채널이 김익명의 악플을 소재로 굴러간다는 것이라, 사귀는 순간 소재가 끊기고 채널이 죽는다.",
       spec: {"skin":"#f0e0d2","hair":"#1f1c1a","hairStyle":"bowl","top":"#2e2e34","bottom":"#3f4450","shoes":"#5a5a5a","heightScale":0.98,"widthScale":0.9,"accessory":"hat","accessoryColor":"#202020","expression":"weird","aura":"gloom","species":"human"},
     },
     target: {
@@ -1505,7 +1467,6 @@ export const COUPLES = [
         "전북 군산 출신. 원래 성우 지망이었다",
         "거울 있는 방에서는 방송을 못 한다",
       ],
-      fell: "8년간 화면 안의 미소녀로만 만나온 누적 4,100만원의 최고액 후원자다. 실물 대면은 오늘이 처음이다. 방송 중에 \"오늘 목이 아픈 것 같네요\"라고 알아챈 사람은 8년을 통틀어 그 하나뿐이었고, 목소리는 그 한 줄을 아직 기억한다. 화면 밖의 마흔여섯 살 남자를 보고도 남아 있을지 확인하고 싶은데, 얼굴을 드러내는 순간 8년 쌓은 캐릭터가 끝나고 소속사도 없이 혼자 감당해야 한다.",
       spec: {"skin":"#e8cdb4","hair":"#8a6f5c","hairStyle":"buzz","top":"#ff9ec7","bottom":"#4a4a52","shoes":"#2a2a2a","heightScale":1.02,"widthScale":1.12,"accessory":"mask","accessoryColor":"#ff9ec7","expression":"weird","aura":"bubbles","species":"human"},
     },
     target: {
@@ -1544,7 +1505,6 @@ export const COUPLES = [
         "강원 원주 출신. 부모는 3년째 모른다",
         "찍은 사진 중 아이돌이 안 나온 게 절반이다",
       ],
-      fell: "공항 3번 게이트에서 자기를 막아선 로드매니저와 사생으로 처음 얽혔다. 그날 문경호가 화도 내지 않고 \"저기 앉아서 기다리세요\"라고 한 말을 3년째 곱씹고 있고, 정작 쫓아다니던 아이돌 얼굴은 이제 잘 기억도 안 난다. 한 사람의 시간표로만 하루를 세는 버릇을 대상만 바꿔서 계속하고 싶어한다. 다만 문경호가 사생과 엮이면 9년 경력이 그날로 끝나고 업계에 다시 못 들어간다.",
       spec: {"skin":"#f4dcc8","hair":"#141414","hairStyle":"ponytail","top":"#1b1b20","bottom":"#2a2a30","shoes":"#c8c8c8","heightScale":0.95,"widthScale":0.88,"accessory":"mask","accessoryColor":"#111111","expression":"shock","aura":"static","species":"human","femme":true},
     },
     target: {
@@ -1584,7 +1544,6 @@ export const COUPLES = [
         "대구 출신. 원래 경찰 준비를 했다",
         "보고서를 낼 때마다 손이 떨린다",
       ],
-      fell: "불륜 증거를 모으는 흥신소와 그 알리바이를 파는 대행업체로, 같은 시장의 정확히 반대편에 서 있다. 번번이 막히던 완벽한 알리바이를 역추적하다 설계자를 찾아냈고 오늘이 그 대면이다. 동선과 영수증이 한 치도 어긋나지 않는 그 설계가 너무 아름다워서 최증거는 결국 보고서를 못 냈고, 찾아내고 나서 뭘 하려던 건지는 본인도 아직 모른다. 다음 표적이 하필 나변명의 최대 고객이라, 서류 한 장만 넘기면 상대가 그대로 망한다.",
       spec: {"skin":"#e2c4a4","hair":"#3b332c","hairStyle":"updo","top":"#8a8f92","bottom":"#3a3f44","shoes":"#4a4a4a","heightScale":0.98,"widthScale":0.98,"accessory":"sunglasses","accessoryColor":"#222222","expression":"smug","aura":"none","species":"human","femme":true},
     },
     target: {
@@ -1624,7 +1583,6 @@ export const COUPLES = [
         "경북 안동 출신. 아들과 4년째 연락이 없다",
         "통화 기록을 지우지 않는다",
       ],
-      fell: "블랙컨슈머와 그 사람 전담 상담원으로 2년을 통화했고 녹취만 400시간이 쌓였다. 400번째 항의 전화에서 안소연이 매뉴얼에 없는 \"선생님, 오늘은 무슨 일 있으셨어요?\"를 꺼냈고, 고성호는 그 한마디를 다시 들으려고 그 뒤로도 매일 전화를 건다. 항의할 게 없어지는 날이 제일 무서운데, 그러면 전화를 걸 이유가 없어지기 때문이다. 사귀는 순간 2년치 녹취가 사적 관계로 재분류되고 안소연에게는 그 즉시 해고 사유가 생긴다.",
       spec: {"skin":"#dcb894","hair":"#6a6a64","hairStyle":"bald","top":"#7a6a4a","bottom":"#3a3a3a","shoes":"#5a4a3a","heightScale":0.97,"widthScale":1.2,"accessory":"none","accessoryColor":"#666666","expression":"angry","aura":"fire","species":"human"},
     },
     target: {
@@ -1664,7 +1622,6 @@ export const COUPLES = [
         "전북 전주 출신. 형이 사업을 말아먹었다",
         "거짓말을 하고 나면 물을 많이 마신다",
       ],
-      fell: "위조한 서류 다섯 건을 들고 등급 면담에 앉았고, 심사역은 처음부터 알아본 채로 아무 말 없이 다음 장을 넘겼다. 서류상은 그 손짓 하나를 잊지 못한다. 그 뒤로 여섯 번을 더 눈감아준 이유가 뭔지 요즘은 그것만 생각한다. 언젠가 진짜 서류를 내미는 자기 모습을 상상해보지만 상상 속에서도 손이 떨리고, 위조가 드러나는 순간 등급표의 8년 경력이 먼저 끝난다.",
       spec: {"skin":"#eed0b0","hair":"#312a24","hairStyle":"wave","top":"#2b3550","bottom":"#20242e","shoes":"#8a6a3a","heightScale":1.02,"widthScale":0.99,"accessory":"necktie","accessoryColor":"#c8a24a","expression":"smug","aura":"question","species":"human"},
     },
     target: {
@@ -1703,7 +1660,6 @@ export const COUPLES = [
         "경기 안산 출신. 동생 둘이 연락을 끊었다",
         "거절당한 사람 이름을 전부 적어둔다",
       ],
-      fell: "리크루팅 대상을 찾으러 탈퇴자 모임에 잠입했다가 그 모임 운영자와 마주 앉았다. 같은 사람들을 두고 정확히 반대로 먹고사는 사이다. 그날 구출식이 회원들에게 한 \"여러분 잘못이 아닙니다\"라는 말에 12년 만에 처음으로 명함을 못 꺼냈고, 거절당한 사람 명단에 저 이름을 적게 될까 봐 권유하는 일이 무서워졌다. 지금 그 모임 회원 마흔 명이 정상위를 상대로 소송 중이고, 사귀면 모임이 해산된다.",
       spec: {"skin":"#f0d2b4","hair":"#5a3a28","hairStyle":"beehive","top":"#1e2a44","bottom":"#1e2a44","shoes":"#2a2a2a","heightScale":1,"widthScale":0.95,"accessory":"earrings","accessoryColor":"#d4af37","expression":"chad","aura":"money","species":"human","femme":true},
     },
     target: {
@@ -1743,7 +1699,6 @@ export const COUPLES = [
         "경남 진주 출신. 첫 직장은 대부업 콜센터였다",
         "남의 집 신발 개수를 센다",
       ],
-      fell: "3년째 매달 같은 문 앞에서 추심원과 채무자로 만난다. 오가는 말은 매달 똑같았는데, 어느 달 문이 열리자마자 오분식이 \"밥은 드셨어요?\"라고 물었다. 11년간 3,000곳 넘는 집을 두드리는 동안 그 문 앞에서 밥을 물어본 사람은 아무도 없었고, 독촉만은 그날부터 회수 실적이 0이다. 담당자인 채로 사귀면 회수가 무효가 되고 오분식의 면책 결정도 취소된다.",
       spec: {"skin":"#e0c0a0","hair":"#232019","hairStyle":"buzz","top":"#2c3b52","bottom":"#2a2a2e","shoes":"#3a3028","heightScale":1.03,"widthScale":1.06,"accessory":"none","accessoryColor":"#555555","expression":"neutral","aura":"gloom","species":"human"},
     },
     target: {
@@ -1783,7 +1738,6 @@ export const COUPLES = [
         "충북 제천 출신. 소리 없는 집에서 자랐다",
         "자기 영상을 틀어놓고 잔다",
       ],
-      fell: "3년간 올린 영상마다 \"오늘도 못 잤습니다\"라는 댓글이 달렸고, 지난달 그 이용자가 채널을 청력 손상으로 신고했다. 백소음은 그 댓글들의 타임스탬프를 전부 찾아봤는데 전부 자기 숨소리 구간이었다. 자기 목소리가 흉기라는 소견서를 받고도 그 귀에 대고 말하고 싶다. 윙윙의 이명은 백소음의 목소리 대역에서 악화되니 곁에 두면 남은 청력을 잃고, 신고를 취하하면 3년치 진료비 청구도 같이 날아간다.",
       spec: {"skin":"#f6e3d4","hair":"#c7b6a8","hairStyle":"wave","top":"#efe6f2","bottom":"#b9aec6","shoes":"#f2f2f2","heightScale":0.95,"widthScale":0.9,"accessory":"headband","accessoryColor":"#d8cfe4","expression":"shy","aura":"bubbles","species":"human","femme":true},
     },
     target: {
@@ -1823,7 +1777,6 @@ export const COUPLES = [
         "부산 출신. 집에서는 아무도 매운 걸 못 먹는다",
         "카메라를 끄면 아무것도 안 먹는다",
       ],
-      fell: "한 달에 한 번 내시경실에서 유튜버와 담당의로 만난다. \"또 오셨네요\"가 인사의 전부다. 위벽 미란 4회를 찍는 동안 그 결과지를 보고 유일하게 걱정하는 얼굴을 한 사람이 위성곤이었고, 캡사이신은 그 얼굴을 다시 보려고 다음 달 촬영을 잡는다. 위성곤이 담당의인 채로 사귀면 면허가 정지되고, 담당을 넘기면 캡사이신은 그 병원 응급 시술 대상에서 빠진다.",
       spec: {"skin":"#fadfd2","hair":"#e0483a","hairStyle":"ponytail","top":"#ff5a3c","bottom":"#2c2c34","shoes":"#ffffff","heightScale":0.94,"widthScale":0.9,"accessory":"earrings","accessoryColor":"#ff2a2a","expression":"weird","aura":"fire","species":"human","femme":true},
     },
     target: {
@@ -1863,7 +1816,6 @@ export const COUPLES = [
         "전남 순천 출신. 아버지가 고물상을 했다",
         "집에 아무것도 안 쌓아둔다",
       ],
-      fell: "새벽마다 단지 폐자재를 들고 가는 설치미술가를 잡느라 신고를 41건 넣었고, 그 41건이 전부 서로에게 쌓였다. 그렇게 실려 나간 폐자재가 지금 시립미술관 로비에 작품으로 서 있는데, 최분리는 \"열두 해 동안 정확하게 분류해 둔 것들\"이라고 적힌 설명문 앞에 40분을 서 있었다. 자기 분류가 작품이 된 게 자랑스러운데, 인정하는 순간 신고 41건이 우스워진다. 그 41건이 주워담의 전시 지원금 심사에 걸려 있어서 사귀면 이의신청이 전부 기각된다.",
       spec: {"skin":"#e6cdb0","hair":"#4a4038","hairStyle":"buzz","top":"#d8e02a","bottom":"#3a4a3a","shoes":"#5a4a3a","heightScale":1,"widthScale":1.08,"accessory":"hat","accessoryColor":"#d8e02a","expression":"neutral","aura":"none","species":"human"},
     },
     target: {
@@ -1891,12 +1843,11 @@ export const COUPLES = [
 ];
 
 // ── 검증 — 스키마 밖의 축이 생기거나 축이 비면 로드 자체가 죽는다 ──────
-export const CLIENT_FIELDS = new Set(['name', 'gender', 'look', 'personality', 'upbringing', 'fell', 'spec']);
+export const CLIENT_FIELDS = new Set(['name', 'gender', 'look', 'personality', 'upbringing', 'spec']);
 export const TARGET_FIELDS = new Set(['name', 'gender', 'look', 'personality', 'upbringing', 'taste', 'spec']);
 const COUPLE_FIELDS = new Set(['id', 'category', 'client', 'target']);
 
 const seenId = new Set();
-const seenFell = new Set();
 for (const c of COUPLES) {
   for (const f of Object.keys(c)) if (!COUPLE_FIELDS.has(f)) throw new Error(`couples.js: ${c.id}에 스키마 밖 필드 「${f}」`);
   if (!c.id || seenId.has(c.id)) throw new Error(`couples.js: id 중복 또는 누락 — ${c.id}`);
@@ -1920,9 +1871,6 @@ for (const c of COUPLES) {
   }
   if (new Set(c.target.taste).size !== c.target.taste.length) throw new Error(`couples.js: ${c.id} 취향 중복`);
   // 반한 이유는 커플마다 달라야 한다. 복붙이면 조합이 하나로 뭉개진다.
-  if (!(c.client.fell?.length >= 60)) throw new Error(`couples.js: ${c.id} 반한 이유가 뭉뚱그려져 있다`);
-  if (seenFell.has(c.client.fell)) throw new Error(`couples.js: ${c.id} 반한 이유가 복붙이다`);
-  seenFell.add(c.client.fell);
 }
 
 export const COUPLE_BY_ID = Object.fromEntries(COUPLES.map(c => [c.id, c]));

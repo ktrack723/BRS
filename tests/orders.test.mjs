@@ -20,7 +20,6 @@ const couple = {
     name: '고객갑', gender: '여',
     look: [M.clook], personality: [M.cpers],
     upbringing: [`40세 · ${M.cup}`, `${M.cup}2`],
-    fell: M.cfell,
     spec: { species: 'human' },
   },
   target: {
@@ -98,9 +97,11 @@ test('B-1의 고객 외모·성격은 **수정된 것**이다 — 테이블 원�
   assert.ok(!has(B1, M.cpers), 'B-1에 덮어써지기 전 성격이 남아 있다');
 });
 
-test('B-1은 고객 성장환경과 반한 이유를 받는다', () => {
+test('B-1은 고객 성장환경은 받고, 반한 이유는 폐지돼 어디에도 없다', () => {
   assert.ok(has(B1, M.cup));
-  assert.ok(has(B1, M.cfell));
+  for (const built of [A1, A2, B1, B2, C]) {
+    assert.ok(!built.includes(M.cfell), '폐지된 반한 이유가 프롬프트에 되살아났다');
+  }
 });
 
 test('코칭은 B-1에만 실린다', () => {

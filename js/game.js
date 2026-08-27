@@ -279,7 +279,7 @@ const SLIDES = [
       + '<rect class="a-paper" x="180" y="8" width="150" height="112"/>'
       + '<rect class="a-file" x="181" y="9" width="148" height="20"/>'
       + '<text class="a-hdr" x="255" y="24">고객</text>'
-      + ['외모', '성격', '성장환경', '반한 이유'].map((t, i) => aCap(255, 48 + i * 18, t)).join(''), 0),
+      + ['외모', '성격', '성장환경'].map((t, i) => aCap(255, 48 + i * 18, t)).join(''), 0),
     line: '스크리닝에서 <b>여덟 항목</b>이 전부 열린다. 미공개도, 함정도, 나중에 드러나는 것도 <b>없다</b>.',
   },
   {
@@ -378,7 +378,6 @@ function renderRosterCards() {
         <div class="cc-vs">✕</div>
         <figure><img alt="${escapeHtml(c.target.name)}" src="${renderThumb(c.target.spec, c.id + ':t')}"><figcaption>${escapeHtml(c.target.name)}<span class="cc-sex">타겟</span></figcaption></figure>
       </div>
-      <p class="cc-clash">${escapeHtml(c.client.fell.split('. ')[0])}.</p>
       <ul class="cc-meta">
         <li>타겟 취향 <b>${c.target.taste.length}</b>항</li>
         <li>노출 항목 <b>8</b>/8</li>

@@ -15,7 +15,7 @@ test('대장이 비어 있지 않다', () => {
 
 test('고객 필드는 다섯 개로 닫혀 있다 (이름·성별 + 노출 네 항목)', () => {
   assert.deepEqual([...CLIENT_FIELDS].sort(),
-    ['fell', 'gender', 'look', 'name', 'personality', 'spec', 'upbringing'].sort());
+    ['gender', 'look', 'name', 'personality', 'spec', 'upbringing'].sort());
 });
 
 test('타겟 필드도 같은 폭이다 — 반한 이유 대신 취향', () => {
@@ -28,7 +28,7 @@ test('스크리닝 노출 목록과 실제 필드가 정확히 일치한다', ()
     client: P.SCREEN_FIELDS.client.map(f => f.key),
     target: P.SCREEN_FIELDS.target.map(f => f.key),
   };
-  assert.deepEqual(shown.client, ['look', 'personality', 'upbringing', 'fell']);
+  assert.deepEqual(shown.client, ['look', 'personality', 'upbringing']);
   assert.deepEqual(shown.target, ['look', 'personality', 'upbringing', 'taste']);
   for (const c of COUPLES) {
     for (const k of shown.client) assert.ok(c.client[k], `${c.id}.client.${k} 없음`);
@@ -65,17 +65,9 @@ test('각 인물의 시트가 실제로 채워져 있다', () => {
       assert.ok(p.upbringing.length >= 3, `${c.id}.${who} 성장환경이 부실하다`);
     }
     assert.ok(c.target.taste.length >= 3, `${c.id} 타겟 취향이 3항 미만이다`);
-    assert.ok(c.client.fell.length >= 60, `${c.id} 반한 이유가 뭉뚱그려져 있다`);
   }
 });
 
-test('반한 이유는 커플마다 다르다 — 복붙 금지', () => {
-  const seen = new Set();
-  for (const c of COUPLES) {
-    assert.ok(!seen.has(c.client.fell), `${c.id} 반한 이유가 복붙이다`);
-    seen.add(c.client.fell);
-  }
-});
 
 test('아바타 스펙이 렌더러를 통과한다', () => {
   for (const c of COUPLES) {

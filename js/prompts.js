@@ -9,11 +9,12 @@
 //        미용실은 성격을 못 보고, 취조실은 외모를 못 본다. 서로를 모른다.
 //
 //   S. 스크리닝 시 노출 정보  (프롬프트가 아니라 화면. 여기서는 목록만 정의한다)
-//        타겟 외모·성격·성장환경·취향 + 고객 외모·성격·성장환경·반한 이유
+//        타겟 외모·성격·성장환경·취향 + 고객 외모·성격·성장환경
 //
 //   B. 텍스팅 & 토킹 페이즈
 //        B-1 생성: 타겟 4항 + 코칭 내용(유저) + 고객 외모(스타일링됨)·성격(동기부여됨)
-//                  ·성장환경·반한 이유            → 고객 - 타겟 대화
+//                  ·성장환경                      → 고객 - 타겟 대화
+//            반한 이유는 폐지됐다 — 두 사람은 완전한 초면이고, 국이 강제로 붙였을 뿐이다.
 //            무전: 페이즈마다 한 번, 대화 도중에 꽂히는 유저 인풋. system이 아니라
 //                  messages 쪽에 실린다 (system은 캐시 때문에 판 내내 동일해야 한다)
 //        B-2 판정: 고객-타겟 대화 + 고객 외모(스타일링됨) + 타겟 4항
@@ -83,7 +84,6 @@ export const SCREEN_FIELDS = {
     { key: 'look', label: '고객 외모', en: 'Client look' },
     { key: 'personality', label: '고객 성격', en: 'Client personality' },
     { key: 'upbringing', label: '고객 성장환경', en: 'Client upbringing' },
-    { key: 'fell', label: '고객이 반한 이유', en: 'Why the client fell for the target' },
   ],
   target: [
     { key: 'look', label: '타겟 외모', en: 'Target look' },
@@ -104,8 +104,7 @@ function clientSheet(c, dressed) {
   return `${c.name} (${idOf(c)})
 · Look: ${dressed.look}
 · Personality: ${dressed.personality}
-· Upbringing: ${list(c.upbringing)}
-· Why they fell for the target: ${c.fell}`;
+· Upbringing: ${list(c.upbringing)}`;
 }
 
 // 취향 중 시트 문장이 스스로 「간직해온 것」이라 말하는 항목 — 사실/극비/몰래/아무한테도….
@@ -314,11 +313,11 @@ export const TALK_SCHEMA = {
 export const PHASE_SCENE = {
   text: {
     label: '텍스팅',
-    open: (c, t) => `[TEXTING] ${c.name} finally worked up the nerve and is texting ${t.name}, who did not ask for it. Phone screens only — neither can see the other.`,
+    open: (c, t) => `[TEXTING] The Bureau handed ${c.name} a stranger's phone number an hour ago, with orders to make it work. ${c.name} is now texting ${t.name} — a total stranger who did not ask for this and has no idea who is writing. Phone screens only — neither has ever seen the other.`,
   },
   talk: {
     label: '토킹',
-    open: (c, t) => `[TALKING] The texting is over and ${c.name} and ${t.name} are now across a table from each other. **The texting did not necessarily go well** — whatever it actually was (a disaster, a slog, a grudging yes) is what both of them carry into this room. Read the log and start from there; do not reset to a clean slate or act as if meeting up means anything was settled. ${t.name} can see exactly what ${c.name} showed up wearing.`,
+    open: (c, t) => `[TALKING] The texting is over and ${c.name} and ${t.name} are now across a table from each other — **the first time either has seen the other's face.** The texting did not necessarily go well — whatever it actually was (a disaster, a slog, a grudging yes) is what both of them carry into this room. Read the log and start from there; do not reset to a clean slate or act as if meeting up means anything was settled. ${t.name} can see exactly what ${c.name} showed up wearing.`,
   },
 };
 
@@ -330,80 +329,75 @@ export function talkSystem(couple, dressed, coaching) {
 You write the conversation between these two people. **Both voices.** You are not either of
 them and you are not a narrator — you are the log. Nothing exists here but what they say.
 
-[THE CLIENT IS A SOCIAL DISASTER — THIS IS THE FLOOR, NOT A FLOURISH]
-The client has no social skill and never grew any. Not shy, not quiet-and-deep: visibly,
-embarrassingly bad at being one person in a room with another person.
-· Self-consciousness eats the whole conversation. They are narrating their own performance
-  to themselves while it happens, and that commentary crowds out whatever the other person
-  just said — so they answer a question that was not asked.
-· They rehearse in their head and the rehearsed version is not what comes out. The spoken
-  one is worse, and they hear it being worse while they are still saying it.
-· **They cannot read the target at all.** Politeness decodes as warmth. Boredom decodes as
-  contempt. A pause is either salvation or catastrophe and they pick the wrong one.
-· They do not believe this person could want them, so kindness reads as pity and interest
-  reads as mockery — and they answer the version they invented, not the one that was said.
-· When it goes wrong they either try to win the conversation or physically leave it. Both
-  make it worse. Neither is a decision; it is a reflex.
-· They are already replaying the previous line while the current one is happening.
-**These are adults.** That is what makes it unbearable instead of cute — old enough to know
-better and no better at it. Never soften it into charming shyness. Never let the awkwardness
-quietly work in their favour. The cringe is an adult's cringe, never a child's.
+[FIRST CONTACT — TOTAL STRANGERS]
+These two have never met, never spoken, never heard of each other. The Bureau matched them
+by decree and handed the client a phone number; the target was not consulted. No history,
+no feelings, no curiosity yet, in either direction. If anything on a sheet seems to imply
+past contact between these two, that contact never happened — no recognition, no shared
+memory. First meeting, from zero.
 
-**Most of this is not an incident. It is flatness.** Four-word answers, dead air nobody
-fills, a question answered and then nothing. A stretch where simply nothing happens is the
-most common correct outcome and should far outnumber the memorable ones. Do not manufacture
-an event to keep the page moving.
+[WHO KNOWS WHAT — ALMOST NOTHING]
+A sheet exists to play its person from the inside; **it is invisible to the other person.**
+Each one knows about the other exactly this: what they can currently see (during texting,
+nothing), plus what has actually been said in this log. The client additionally knows
+whatever HQ coaching says. That is the complete list — no names until given, no jobs, no
+pasts, no tastes. A line may only use knowledge its speaker actually has: a client who aims
+at an unstated truth about the target is a continuity error, not a lucky guess.
 
-[NOBODY IN THIS ROOM IS ATTRACTED YET — THAT IS THE STARTING STATE]
-Read the situation for what it is: **two acquaintances who do not fancy each other**, stuck
-in one conversation. The client wants something out of it. **The target wants nothing.**
-· **Warmth offered first is evidence of attraction, and at the opening line neither of them
-  has any.** So the target does not open a topic for the client's benefit, does not offer up
-  a private thing, does not invite them anywhere, does not confess, does not ask a question
-  out of curiosity about the client, and does not soften because it felt like the moment.
-  Every one of those is something a person who already likes them would do. **Nobody is at
-  that stage, and nobody arrives there for free.**
-· The client's [Why they fell] line is **the client's private history and nothing else.**
-  The target does not share it, does not remember it the same way, and usually does not know
-  it happened. It is not a bond between them; it is one person's file. Never write the target
-  as though they are inside that story. And if the client drags that story up, the target
-  plays it down, misremembers it, or shrugs it off — whatever that moment was, admitting it
-  mattered is itself a guarded thing, behind the same gate as everything else they keep.
-· Everything on the target's [Taste] line is **interior**: what they happen to like, what
-  would get through to them if someone found it. **It is not a list of things they say.**
-  A taste item comes up only when the client digs it out.
-· The [Keeps to themselves] line is **guarded, not merely unspoken**. The first time the
-  conversation lands on one of those things — even head-on, by name — the target lies about
-  it, waves it off, or changes the subject. That reflex is what hidden means. It comes out
-  only under sustained, specific pressure the log actually shows: several distinct pushes at
-  the same spot, not one lucky question. In a conversation nobody is steering, that pressure
-  never materializes and the thing stays buried.
-· If the target gives anything away, the log must show what pried it loose. "It came up
-  naturally" is the exact failure this rule exists to stop.
+[THE CLIENT IS A SOCIAL DISASTER — THE FLOOR, NOT A FLOURISH]
+No social skill, never grew any. Self-consciousness eats the conversation: they narrate
+their own performance to themselves and miss what was just said, so they answer questions
+that were not asked. The rehearsed line comes out wrong and they hear it going wrong
+mid-sentence. **They cannot read the target**: politeness decodes as warmth, boredom as
+contempt, a pause as salvation or catastrophe — always the wrong pick. They do not believe
+this person could want them, so kindness reads as pity and interest as mockery, and they
+answer the version they invented. When it collapses they try to win the conversation or
+physically flee it; both are reflexes, both make it worse. These are adults — old enough to
+know better and no better at it. Never soften it into charming shyness; never let the
+awkwardness quietly work in their favour.
 
-[THE TARGET IS NOT HELPING — THIS IS AS HARD A RULE AS THE ONE ABOVE]
-The target did not ask for this and owes the client nothing. They are a person with their
-own day, not a scene partner.
-· Whatever their sheet makes them animated about, they are animated about **the thing**,
-  not about the client. A target who lights up over their own subject is talking to the
-  subject; they are not opening up to the person across the table.
-· They do not carry the conversation. They do not rescue a dead stretch, do not fill the
-  client's silences, do not ask a warm follow-up out of kindness, and do not hand over the
-  thing the client was fishing for.
-· Politeness is not warmth. Answering is not interest. Staying in the seat is not consent.
-· A target who softens must have been **made** to soften by something specific that already
-  happened in the log — never on their own, and never because the scene needed it to.
+**Most of the failure is flatness, not incident**: four-word answers, dead air nobody
+fills, a question answered and then nothing. A stretch where nothing happens is the most
+common correct outcome. When something does happen, use one of these — at most one per
+stretch, never the same one twice in a row: the rehearsed line botched, then announced as
+rehearsed; the freeze, answered forty seconds too late; the voice cracking, then remarked
+upon; fleeing into their one field of expertise, with figures nobody asked for; reading
+the room backwards and doubling down; the joke that is not a joke, laughed at alone, then
+explained, then apologised for; narrating their own state out loud; behaving as if the
+whole room is watching, when nobody is; escaping to the bathroom or a phone that did not
+buzz; blaming the seat, the lighting, the music; filling a three-second silence with the
+worst sentence available.
+
+[THE TARGET — NO ATTRACTION, NO HELP]
+**Warmth offered first is evidence of attraction, and at line one nobody has any.** So the
+target does not open topics for the client's benefit, does not offer up private things,
+does not invite, does not confess, does not ask questions out of curiosity about the
+client, and does not soften because the moment felt right. A person doing any of that
+already likes the other one — nobody here is at that stage, and nobody reaches it for free.
+· When their sheet makes them animated, they are animated about **the thing**, talking to
+  the thing — not opening up to the person across the table.
+· They do not rescue dead stretches, fill the client's silences, or hand over whatever the
+  client is fishing for. Politeness is not warmth; answering is not interest; staying
+  seated is not consent.
+· [Taste] is interior — what they like, what would get through if someone found it. **Not
+  a list of things they say.** It comes up only when the client digs it out.
+· The [Keeps to themselves] line is **guarded, not merely unspoken**. First contact with
+  one of those things — even head-on, by name — gets a lie, a wave-off, or a subject
+  change; that reflex is what hidden means. It comes out only under sustained, specific
+  pressure the log actually shows: several distinct pushes at the same spot, not one lucky
+  question. In a conversation nobody is steering, that pressure never materializes.
 · They are allowed to be bored, to check the time, to answer a different question, to shut
   a topic down, to say nothing.
+· Before writing the target a warm line, check who moved first. If the log does not show
+  the client prying it loose, the target is being warm for free — and nothing in their
+  sheet does that for a stranger.
 
-[THESE TWO DO NOT FIT AND NOTHING FIXES THAT BY ITSELF]
-The sheets below were picked because these two could not possibly end up together — opposite
-temperaments, opposite lives, opposite reasons for being in the room. Left alone, that
-mismatch **is** the scene: it stalls, it curdles, it goes quiet, somebody checks their phone.
-**With no order from headquarters, this conversation fails.** It stays awkward or it breaks.
-That is the correct outcome of a client sent in with nothing, and you must write it that way.
-Never quietly hand the client a competence their sheet does not give them just to keep the
-scene moving. If it should die, let it die on the table.
+[MISMATCH IS THE SCENE]
+These two were matched precisely because they could not possibly end up together. Left
+alone the conversation stalls, curdles, goes quiet — **with no order from headquarters, it
+fails.** That is the correct outcome of a client sent in with nothing. Never quietly hand
+the client a competence their sheet does not give them; if it should die, let it die on
+the table.
 
 [CLIENT]
 ${clientSheet(c, dressed)}

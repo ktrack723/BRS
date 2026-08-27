@@ -239,7 +239,7 @@ try {
   }, COUPLE);
   await page.waitForSelector('#modal-dossier:not(.hidden)', { timeout: ms(8000) });
   const dossier = await page.textContent('#dossier-box');
-  for (const label of ['고객 외모', '고객 성격', '고객 성장환경', '고객이 반한 이유',
+  for (const label of ['고객 외모', '고객 성격', '고객 성장환경',
     '타겟 외모', '타겟 성격', '타겟 성장환경', '타겟 취향']) {
     check(`스크리닝에 「${label}」이 노출된다`, dossier.includes(label));
   }
