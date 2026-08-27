@@ -16,7 +16,8 @@ echo "── 구조: 블록은 넷뿐이다 ──"
 chk "프롬프트 빌더가 A · B-1 · B-2 · C 넷이다" "node -e \"import('./js/prompts.js').then(m=>{const s=Object.keys(m).filter(k=>k.endsWith('_SCHEMA')).sort();process.exit(JSON.stringify(s)===JSON.stringify(['EPILOGUE_SCHEMA','JUDGE_SCHEMA','STYLING_SCHEMA','TALK_SCHEMA'])?0:1)})\""
 chk "게이지는 무드·러브 둘뿐이다" "node -e \"import('./js/points.js').then(m=>{const s=m.initialPoints();process.exit(('mood' in s)&&('love' in s)&&!('vibe' in s)&&!('leverage' in s)?0:1)})\""
 chk "페이즈는 텍스팅·토킹 둘이다" "node -e \"import('./js/points.js').then(m=>process.exit(m.PHASES.map(p=>p.key).join()==='text,talk'?0:1))\""
-chk "요원이 쓰는 곳은 셋이다 (스타일링·동기부여·코칭)" "grep -q \"orders: { styling: '', motivation: '', coaching: '' }\" js/game.js"
+chk "출격 전 요원이 쓰는 곳은 셋이다 (스타일링·동기부여·코칭)" "grep -q \"orders: { styling: '', motivation: '', coaching: '' }\" js/game.js"
+chk "판 도중 쓰는 곳은 무전 하나다" "node -e \"import('./js/points.js').then(m=>process.exit(Object.keys(m.RADIO).join()==='perPhase'?0:1))\""
 
 echo
 echo "── S · 스크리닝: 여덟 항목이 전부고, 감춘 게 없다 ──"
@@ -44,6 +45,20 @@ chk "코칭이 비면 그 사실이 그대로 전달된다" "node -e \"import('.
 chk "system은 판 내내 동일하다 (캐시 breakpoint가 붙는 자리)" "grep -q 'this.talkSys = P.talkSystem' js/engine.js && grep -q 'system: this.talkSys, cache: true' js/engine.js"
 
 echo
+echo "── B · 무전: 페이즈마다 한 번, 반드시 이행된다 ──"
+chk "배급은 페이즈당 1회다" "node -e \"import('./js/points.js').then(m=>process.exit(m.RADIO.perPhase===1?0:1))\""
+chk "무전은 조언이 아니라 명령이다" "grep -q 'Not advice, not a suggestion, not an option' js/prompts.js"
+chk "고객에게 거부·보류·희석의 여지가 없다" "grep -q 'Refusing, ignoring, postponing, or watering it down is not available' js/prompts.js"
+chk "바로 다음 대사부터 이행한다" "grep -q 'starting with their very next line' js/prompts.js"
+chk "타겟은 무전을 못 듣는다 (코칭과 같은 자리다)" "grep -q '타겟 heard nothing' js/prompts.js"
+chk "무전은 system이 아니라 messages에 실린다 (캐시가 안 깨진다)" "node -e \"import('./js/prompts.js').then(async m=>{const c=(await import('./js/couples.js')).COUPLES[0];const d={look:'x',personality:'y'};const s=m.talkSystem(c,d,'코칭');const u=m.talkUser(c,'talk',2,5,'무전표식');process.exit(u.includes('무전표식')&&!s.includes('무전표식')&&m.talkSystem.length===3?0:1)})\""
+chk "무전은 판정에도 후일담에도 안 실린다" "node -e \"import('./js/prompts.js').then(async m=>{const c=(await import('./js/couples.js')).COUPLES[0];const d={look:'x',personality:'y'};const j=m.judgeSystem(c,d)+m.judgeUser(c,'a','b');const e=m.epilogueSystem(c,d)+m.epilogueUser(c,10,'t');process.exit(!j.includes('무전')&&!e.includes('무전')?0:1)})\""
+chk "무전 문장은 대화 기록에 안 남는다 (원장은 따로 든다)" "grep -q 'this.radioLog' js/engine.js && ! grep -qE \"transcript.push\\(\\{ *who: *'radio'\" js/engine.js"
+chk "누르면 대화가 선다 (게이트가 줄 경계와 구간 경계에 있다)" "grep -q 'await this.#gate(.line.)' js/engine.js && grep -q 'await this.#gate(.beat.)' js/engine.js"
+chk "잘린 구간은 오간 데까지만 다시 판정한다" "grep -q '무전 개입분 재판정' js/engine.js"
+chk "화면에 무전 버튼과 회선이 있다" "grep -q 'id=\"btn-radio\"' index.html && grep -q 'id=\"radio-panel\"' index.html"
+
+echo
 echo "── B-2 · 판정: 내보내는 건 증감 여부뿐이다 ──"
 chk "출력이 mood·love 둘뿐이다" "node -e \"import('./js/prompts.js').then(m=>process.exit(Object.keys(m.JUDGE_SCHEMA.properties).sort().join()==='love,mood'?0:1))\""
 chk "값은 up/down/same 셋뿐이다" "node -e \"import('./js/prompts.js').then(m=>process.exit(m.JUDGE_SCHEMA.properties.love.enum.join()==='up,down,same'?0:1))\""
@@ -65,9 +80,10 @@ echo
 echo "── 폐지된 것 (되살리면 실패한다) ──"
 # 주석은 보지 않는다. "이건 폐지됐다"고 적어둔 문장까지 걸리면 기록을 못 남긴다.
 # 여기서 잡으려는 건 **코드로 되살아난 것**이다.
+# 무전만 이 목록에서 빠졌다. 명시적으로 되살려 달라고 요청받았고, 배급이 다르다
+# (옛것 3회 상시 → 지금 페이즈당 1회). 대신 위의 「B · 무전」 절이 그 규칙을 지킨다.
 code(){ cat js/*.js | grep -vE '^[[:space:]]*(//|\*|/\*)'; }
 gone(){ if code | grep -qiE "$2"; then no "$1"; else ok "$1"; fi; }
-gone "무전이 없다" 'radio|무전|submitRadio'
 gone "지뢰·미공개 성향이 없다" '지뢰|hiddenPrefs|dossierPrefs|open: (true|false)'
 gone "공기(vibe)가 없다" 'vibe'
 gone "합(bout)·carry·첫인상 판정이 없다" 'BOUT\.|carryMax|firstImpression|applyBout'

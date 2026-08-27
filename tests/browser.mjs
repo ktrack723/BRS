@@ -28,6 +28,7 @@ const ROOT = path.resolve(import.meta.dirname, '..');
 const SHOTS = args.shots || '/tmp/claude-0/shots';
 const COUPLE = args.couple || 'os-war';
 const AGENT_NAME = '박큐피드';
+const RADIO = '무전표식 — 하던 말 끊고 지금 당장 상대 신발부터 칭찬해라';
 const PORT = 8199;
 fs.mkdirSync(SHOTS, { recursive: true });
 
@@ -73,7 +74,10 @@ function installMockLlm() {
   const LOVE = ['same', 'up', 'same', 'same', 'up', 'same', 'same', 'up', 'same'];
   let judged = 0, beat = 0;
   llm.call = async ({ label, system, messages, schema }) => {
-    window.__mock.calls.push({ label, system: system || '', schema: !!schema });
+    window.__mock.calls.push({
+      label, system: system || '', schema: !!schema,
+      messages: JSON.parse(JSON.stringify(messages || [])),
+    });
     await new Promise(r => setTimeout(r, window.__mockLatency ?? 120));
     if (label === '본부 인증') return '이상무';
     if (label.startsWith('A ·')) {
@@ -270,6 +274,8 @@ try {
   const inject = await page.textContent('#coaching-inject');
   check('코칭이 프롬프트에 어떻게 박히는지 그대로 보여준다', inject.includes(COACH) && inject.includes('본부 코칭'));
   await shot('06-coaching');
+  // 무전을 눌러 볼 틈이 있어야 한다 — 가짜 LLM을 잠깐 느리게 돌린다
+  if (!LIVE) await page.evaluate(() => { window.__mockLatency = 500; });
   await page.click('#btn-start-op');
 
   // ── B. 텍스팅 & 토킹 ───────────────────────────────────
@@ -287,12 +293,59 @@ try {
   check('판정에 점수나 해설이 안 붙는다', !/[+-]\d/.test(firstVerdict), firstVerdict);
   await shot('07-texting');
 
+  // ── 무전 개입 — 페이즈마다 한 번, 누르면 대화가 선다 ──
+  console.log('\n📻 B · 무전 개입');
+  // 구간 중간에서 눌러야 대화가 실제로 잘린다 — 그 순간만 사람 속도로 되돌린다.
+  // 구간은 6줄이므로, 2줄까지 나온 자리에서 누르면 뒤가 남아 있는 게 확실하다.
+  await page.evaluate(() => window.__game.pace.setPace('slow'));
+  await page.waitForFunction(() => {
+    const e = window.__game.state.engine;
+    return e && e.transcript.length % 6 === 2 && e.canRadio();
+  }, null, { timeout: ms(120000) });
+  const radioLabel = await page.textContent('#btn-radio');
+  check('무전 버튼에 이 페이즈의 배급이 뜬다', /텍스팅 1회/.test(radioLabel), radioLabel);
+  await page.click('#btn-radio');
+  await page.waitForSelector('#radio-panel:not(.hidden)', { timeout: ms(60000) });
+  check('누르면 무전 회선이 열린다', true);
+
+  // 회선이 열려 있는 동안 대화는 서 있어야 한다
+  const heldAt = await page.evaluate(() => document.querySelectorAll('#chat-window .bubble').length);
+  await page.waitForTimeout(ms(2500));
+  const heldStill = await page.evaluate(() => document.querySelectorAll('#chat-window .bubble').length);
+  check('회선이 열린 동안 대화가 멈춰 있다', heldAt === heldStill, `${heldAt} → ${heldStill}`);
+
+  await page.fill('#radio-input', RADIO);
+  await page.waitForTimeout(60);
+  const radioInject = await page.textContent('#radio-inject');
+  check('무전이 프롬프트에 어떻게 박히는지 그대로 보여준다',
+    radioInject.includes(RADIO) && radioInject.includes('본부 무전'));
+  await shot('07b-radio');
+  await page.click('#btn-radio-send');
+  await page.waitForSelector('#radio-panel', { state: 'hidden', timeout: ms(30000) });
+  check('송출하면 회선이 닫히고 대화가 다시 굴러간다', true);
+  check('무전이 나간 자리가 화면에 남는다',
+    await page.evaluate(() => !!document.querySelector('#chat-window .bubble.radio-cut')));
+  const spentLabel = await page.textContent('#btn-radio');
+  check('배급을 쓰면 그 페이즈에서는 다시 못 쓴다',
+    /소진/.test(spentLabel) && await page.evaluate(() => document.querySelector('#btn-radio').disabled),
+    spentLabel);
+  const cutBeat = await page.evaluate(() => {
+    const h = window.__game.state.engine.radioLog[0];
+    return { beat: h?.beat ?? 0, said: window.__game.state.engine.transcript.length };
+  });
+  check('구간 중간에서 대화가 잘렸다 — 뒤에 있던 대사는 없던 것이 된다',
+    cutBeat.said % 6 !== 0, `${cutBeat.said}줄`);
+  await page.evaluate(() => window.__game.pace.setPace('instant'));
+  if (!LIVE) await page.evaluate(() => { window.__mockLatency = 60; });
+
   // 토킹 페이즈로 넘어가는가
   await page.waitForFunction(() => /토킹/.test(document.querySelector('#chat-phase-label').textContent),
     null, { timeout: ms(400000) });
   check('토킹 페이즈로 넘어간다', true);
   check('페이즈 경계가 기록에 남는다',
     await page.evaluate(() => !!document.querySelector('#chat-window .judge-sep')));
+  const talkRadio = await page.evaluate(() => window.__game.state.engine.radioState());
+  check('토킹에는 배급이 따로 한 번 더 있다', talkRadio.left === 1, `${talkRadio.left}회`);
   await shot('08-talking');
 
   // ── C. 후일담 ──────────────────────────────────────────
@@ -313,6 +366,9 @@ try {
   check('구간 원장이 판정 수만큼 있다', ledger === r.points.history.length + 1, `${ledger - 1}구간`);
   const transcript = await page.textContent('#debrief-transcript');
   check('대화 전문이 열람된다', (transcript || '').length > 50);
+  check('무전은 대화 기록에 안 남는다 (심판도 기록관도 못 본 문장이다)', !transcript.includes(RADIO));
+  const radioLedger = await page.textContent('#debrief-radio');
+  check('무전 원장은 요원 몫으로 따로 남는다', radioLedger.includes(RADIO), radioLedger.slice(0, 40));
   await shot('09-result');
 
   // 호출 감사 — 화면을 통해 실제로 나간 프롬프트가 하이어아키를 지키는가
@@ -321,7 +377,9 @@ try {
     const gen = calls.filter(c => c.label.includes('대화 생성'));
     const judge = calls.filter(c => c.label.includes('판정'));
     const epilogue = calls.filter(c => c.label.includes('후일담'));
-    check('생성과 판정이 구간마다 짝을 이룬다', gen.length === judge.length, `${gen.length} / ${judge.length}`);
+    const rejudge = judge.filter(c => /재판정/.test(c.label)).length;
+    check('생성과 판정이 구간마다 짝을 이룬다', gen.length === judge.length - rejudge,
+      `${gen.length} / ${judge.length - rejudge} (+재판정 ${rejudge})`);
     check('후일담은 딱 한 번 불린다', epilogue.length === 1, `${epilogue.length}회`);
     check('코칭은 생성 프롬프트에만 실린다',
       gen.every(c => c.system.includes(COACH)) && judge.every(c => !c.system.includes(COACH)));
@@ -333,6 +391,19 @@ try {
       !epilogue[0].system.includes(styled.look));
     const sysSet = new Set(gen.map(c => c.system));
     check('생성 system이 판 내내 동일하다 (캐시가 붙는 자리)', sysSet.size === 1, `${sysSet.size}종`);
+
+    // 무전 — 코칭과 같은 자리로 가되, system이 아니라 messages에 실린다
+    const inMsgs = c => JSON.stringify(c.messages || []).includes(RADIO);
+    const carried = gen.filter(inMsgs);
+    check('무전은 생성 프롬프트에만 실린다', carried.length > 0 && !gen.some(c => c.system.includes(RADIO)),
+      `${carried.length}/${gen.length}회`);
+    check('무전은 눌린 뒤의 호출부터 실린다', gen.indexOf(carried[0]) > 0, gen.indexOf(carried[0]) + '번째');
+    check('무전은 판정에 안 실린다 — 요원이 쓴 글은 채점되지 않는다',
+      !judge.some(c => inMsgs(c) || c.system.includes(RADIO)));
+    check('무전은 후일담에도 안 실린다', !inMsgs(epilogue[0]) && !epilogue[0].system.includes(RADIO));
+    check('무전으로 잘린 구간은 오간 데까지만 다시 판정된다', rejudge === 1, `${rejudge}회`);
+    check('재판정도 무전을 못 본다', !judge.filter(c => /재판정/.test(c.label)).some(inMsgs));
+
     const labels = new Set(calls.map(c => c.label.replace(/\d+/g, 'N')));
     check('구조도에 없는 호출이 없다',
       [...labels].every(l => /본부 인증|A ·|대화 생성|판정|후일담/.test(l)), [...labels].join(' / '));

@@ -203,9 +203,23 @@
           <div class="pace-bar">
             <span class="pace-tag">재생 속도</span>
             <div id="pace-buttons" class="pace-buttons" role="group" aria-label="대화 재생 속도"></div>
+            <!-- 판 도중 요원이 쓸 수 있는 유일한 레버. 페이즈마다 한 번씩만 배급된다. -->
+            <button id="btn-radio" class="btn95 tiny radio-btn" type="button">📻 무전 개입</button>
           </div>
           <div id="chat-window" class="panel95 chat-window" data-title="고객 - 타겟 대화 · 실시간 감청"></div>
           <div id="chat-advance" class="chat-advance" aria-live="off">▼ 눌러서 다음</div>
+          <!-- 무전 회선. 버튼을 누르면 대화가 서고 여기가 열린다. -->
+          <div id="radio-panel" class="panel95 radio-panel hidden" data-title="무전 회선 · 고객 이어폰 직결">
+            <p class="radio-note"><b>대화를 세웠다.</b> 여기 적어 보내는 것은 조언이 아니라 <b>명령</b>이다 —
+              고객은 <b>바로 다음 대사부터 반드시 이행한다</b>. 거부도, 보류도, 적당히 하기도 없다.
+              타겟은 이 무전을 <b>듣지 못하고</b>, 심판도 이 문장을 <b>보지 못한다</b>.</p>
+            <textarea id="radio-input" rows="3" placeholder="예) 지금 하던 말 끊고, 상대 신발부터 칭찬해라. 그리고 자리를 옥상으로 옮기자고 해라"></textarea>
+            <div id="radio-inject" class="radio-inject"></div>
+            <div class="radio-btns">
+              <button id="btn-radio-send" class="btn95" type="button">무전 송출 — 회선 재개</button>
+              <button id="btn-radio-cancel" class="btn95" type="button">취소 — 배급 유지</button>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -228,6 +242,7 @@
         </div>
         <div class="panel95 debrief-wide" data-title="구간별 원장">
           <div id="debrief-turns"></div>
+          <div id="debrief-radio"></div>
           <details id="debrief-log"><summary>고객 - 타겟 대화 전문 (열람)</summary><pre id="debrief-transcript" class="letter"></pre></details>
         </div>
       </div>

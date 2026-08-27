@@ -12,6 +12,8 @@
 //   B. 텍스팅 & 토킹 페이즈
 //        B-1 생성: 타겟 4항 + 코칭 내용(유저) + 고객 외모(스타일링됨)·성격(동기부여됨)
 //                  ·성장환경·반한 이유            → 고객 - 타겟 대화
+//            무전: 페이즈마다 한 번, 대화 도중에 꽂히는 유저 인풋. system이 아니라
+//                  messages 쪽에 실린다 (system은 캐시 때문에 판 내내 동일해야 한다)
 //        B-2 판정: 고객-타겟 대화 + 고객 외모(스타일링됨) + 타겟 4항
 //                                                → 무드 포인트 증감 여부 · 러브 포인트 증감 여부
 //
@@ -19,8 +21,12 @@
 //        입력: 러브 포인트 + 고객-타겟 대화 + 고객 성격(동기부여됨) + 타겟 성격
 //        출력: 성사 여부 · 후일담 텍스트
 //
-// 구조도에 없는 것은 프롬프트에 넣지 않는다. 지뢰·미공개 성향·공기·무전·어긋남·강압·
+// 구조도에 없는 것은 프롬프트에 넣지 않는다. 지뢰·미공개 성향·공기·어긋남·강압·
 // 새로 드러난 것 — 전부 폐지됐고, 되살리지 않는다.
+//
+// 무전만은 되살아났다. 배급이 다르다 — 옛것은 3회짜리 상시 개입이었고, 지금 것은
+// **페이즈마다 한 번**이다. 들어가는 자리는 코칭과 같다(고객의 귀). 다른 점은 하나,
+// 코칭은 조언이고 무전은 **반드시 이행되는 명령**이라는 것이다.
 
 import { BEAT } from './points.js';
 
@@ -293,13 +299,45 @@ straight, but carries it out. Where the coaching says nothing, 고객 acts on th
 ${KO}`;
 }
 
-export function talkUser(couple, phase, beat, total) {
+// ── B-1. 무전 — 대화 도중의 개입 ─────────────────────────
+// 코칭은 자리에 앉기 전에 한 덩이로 들어가고, 무전은 자리가 굴러가는 도중에 꽂힌다.
+// 배급은 페이즈마다 한 번(points.js의 RADIO). 요원이 버튼을 눌러 대화를 세우고 직접 때린다.
+//
+// **system이 아니라 messages 쪽에 실린다.** 이유가 둘이다 —
+//   · system은 판 내내 바이트 동일해야 한다. 캐시 breakpoint가 거기 붙어 있다.
+//   · 무전은 「그 순간」에 꽂힌 것이다. 대화 내역의 그 자리에 있어야 순서가 맞다.
+//
+// 코칭과 다른 점은 하나다. 코칭은 시트를 들고 앉는 요령이고, 무전은 **명령**이다 —
+// 고객에게 거부·보류·희석의 여지를 주지 않는다. 그게 이 레버의 전부이자 값이다.
+// 가는 곳은 코칭과 같다: 고객의 귀에만. 타겟도 심판도 이 문장을 못 본다.
+export function radioOrder(text) {
+  const order = String(text || '').trim();
+  if (!order) return '';
+  return `[본부 무전 — 방금 고객의 이어폰에 꽂혔다. 타겟은 듣지 못했다]
+"""
+${order}
+"""
+**This is a live order and 고객 executes it. Not advice, not a suggestion, not an option.**
+· 고객 acts on it **starting with their very next line** — not later in the scene, not "in
+  spirit", not a softened version of it.
+· If it is absurd, if it blows the table up, if 고객 would never do such a thing: they do it
+  anyway. Their sheet decides only *how* it comes out — clumsy, sulking, over-eager, snarling
+  — never *whether*. Refusing, ignoring, postponing, or watering it down is not available
+  to 고객.
+· 타겟 heard nothing. No radio, no earpiece, no pause — from 타겟's side 고객 simply said
+  the next thing, and 타겟 reacts only to what was actually said out loud.
+Carry it out, then let the scene keep going from wherever that leaves them.`;
+}
+
+export function talkUser(couple, phase, beat, total, radio) {
   const c = couple.client, t = couple.target;
   const scene = PHASE_SCENE[phase] || PHASE_SCENE.text;
+  const cut = radioOrder(radio);
+  const head = cut ? `${cut}\n\n` : '';
   return beat === 1
-    ? `${scene.open(c, t)}
+    ? `${head}${scene.open(c, t)}
 Write the opening ${BEAT.lines} lines. ${c.name} goes first.`
-    : `계속. Write the next ${BEAT.lines} lines${beat >= total ? ' — this is the last stretch of this phase, so let it land where it lands rather than wrapping it up neatly' : ''}.`;
+    : `${head}계속. Write the next ${BEAT.lines} lines${beat >= total ? ' — this is the last stretch of this phase, so let it land where it lands rather than wrapping it up neatly' : ''}.`;
 }
 
 // ── B-2. 판정 — 무드 포인트 · 러브 포인트 ────────────────────────

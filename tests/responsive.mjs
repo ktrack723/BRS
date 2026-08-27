@@ -114,6 +114,19 @@ function poseScreens() {
   }
   document.querySelector('#chat-advance').classList.add('on');
 
+  // 무전 회선을 열어둔 채로 잰다 — 대화 화면에서 제일 큰 덩이라 여기가 안 넘치면 된다
+  document.querySelector('#btn-radio').textContent = '📻 무전 개입 · 토킹 1회';
+  document.querySelector('#radio-panel').classList.remove('hidden');
+  const order = '지금 하던 말 끊고, 상대 신발부터 칭찬해라. 그리고 자리를 옥상으로 옮기자고 해라';
+  document.querySelector('#radio-input').value = order;
+  document.querySelector('#radio-inject').innerHTML =
+    `<span class="inject-label">고객 프롬프트에 이렇게 박힌다 · ${order.length}자</span>`
+    + `<code class="inject-code">[본부 무전 — 방금 고객의 이어폰에 꽂혔다. 타겟은 듣지 못했다]\n"""\n${esc(order)}\n"""\n→ 반드시 이행. 거부·보류·희석 없음.</code>`;
+  const cut = document.createElement('div');
+  cut.className = 'bubble sys radio-cut';
+  cut.innerHTML = `<span class="who">무전</span><span class="say">📻 본부 무전 · 고객 이어폰 직결 — "${esc(order)}" <b>(반드시 이행)</b>. 타겟은 듣지 못했다.</span>`;
+  win.appendChild(cut);
+
   document.querySelector('#turn-badge').textContent = '토킹 3/5구간';
   document.querySelector('#meter-mood-num').textContent = '62';
   document.querySelector('#meter-mood-fill').style.width = '62%';
@@ -146,6 +159,9 @@ function poseScreens() {
     + '</table></div>';
   document.querySelector('#debrief-transcript').textContent =
     lines.filter(l => l[0] !== 'sys').map(l => `${l[0] === 'client' ? c.client.name : c.target.name}: ${l[1]}`).join('\n');
+  document.querySelector('#debrief-radio').innerHTML =
+    '<h4 class="hud-h">무전 원장 <span class="dim">— 요원이 직접 꽂은 명령. 대화 기록에는 없다</span></h4>'
+    + `<ul class="radio-ledger"><li><span class="vr-when">토킹 3구간</span> ${esc(order)}</li></ul>`;
   document.querySelector('#btn-retry').classList.remove('hidden');
   document.querySelector('#btn-restart').classList.remove('hidden');
 }

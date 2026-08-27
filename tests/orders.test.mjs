@@ -11,7 +11,7 @@ const M = {
   clook: 'CLOOK표식', cpers: 'CPERS표식', cup: 'CUP표식', cfell: 'CFELL표식',
   tlook: 'TLOOK표식', tpers: 'TPERS표식', tup: 'TUP표식', ttaste: 'TTASTE표식',
   dlook: 'DLOOK표식', dpers: 'DPERS표식',
-  coach: 'COACH표식', style: 'STYLE표식', motiv: 'MOTIV표식',
+  coach: 'COACH표식', style: 'STYLE표식', motiv: 'MOTIV표식', radio: 'RADIO표식',
 };
 
 const couple = {
@@ -38,6 +38,8 @@ const orders = { styling: M.style, motivation: M.motiv };
 const A = P.STYLING_SYSTEM + '\n' + P.stylingUser(couple, { species: 'human' }, orders);
 const B1 = P.talkSystem(couple, dressed, M.coach) + '\n'
   + P.talkUser(couple, 'text', 1, 4) + '\n' + P.talkUser(couple, 'talk', 2, 5);
+// 무전이 실린 판. 무전은 system이 아니라 이 user 메시지에만 실린다.
+const B1R = P.talkUser(couple, 'talk', 3, 5, M.radio);
 const B2 = P.judgeSystem(couple, dressed) + '\n' + P.judgeUser(couple, '이전대화', '이번대화');
 const C = P.epilogueSystem(couple, dressed) + '\n' + P.epilogueUser(couple, 77, '대화전문표식');
 
@@ -134,13 +136,50 @@ test('러브 포인트는 C에만 간다 — 대화하는 쪽도 심판도 점�
 test('폐지된 시스템 용어가 프롬프트에 없다', () => {
   const all = A + B1 + B2 + C + P.WORLD;
   const DEAD = [
-    '지뢰', '무전', '강압', '어긋남', '공기 읽기', '미공개', '성공선', '난이도',
+    '지뢰', '강압', '어긋남', '공기 읽기', '미공개', '성공선', '난이도',
     'leverage', 'walkout', 'casualty', 'breakthrough', 'carryMax', 'loveDelta', 'keepGoing',
     'firstImpression', 'outfitDesc',
   ];
   for (const w of DEAD) {
     assert.ok(!all.includes(w), `폐지된 「${w}」가 프롬프트에 남아 있다`);
   }
+});
+
+// ── B-1. 무전 — 대화 도중의 개입 ─────────────────────────
+// 코칭과 같은 자리(고객의 귀)로 가되, 자리가 굴러가는 도중에 꽂힌다.
+// 규칙 ①이 무전에도 그대로 걸린다 — 요원이 쓴 글은 채점되지 않는다.
+test('무전은 B-1의 user 메시지에만 실린다 — system도 판정도 후일담도 못 본다', () => {
+  assert.ok(has(B1R, M.radio), '무전이 생성 프롬프트에 안 실렸다');
+  const sys = P.talkSystem(couple, dressed, M.coach);
+  assert.ok(!has(sys, M.radio), '무전이 system으로 새어 들어갔다 — 캐시가 깨진다');
+  assert.ok(!has(B2, M.radio), '무전이 판정에 새어 들어갔다 — 요원이 쓴 글은 채점되지 않는다');
+  assert.ok(!has(C, M.radio), '무전이 후일담에 새어 들어갔다');
+  assert.ok(!has(A, M.radio), '무전이 시공에 새어 들어갔다');
+});
+
+test('무전이 없으면 그 자리에 아무것도 안 붙는다', () => {
+  assert.equal(P.talkUser(couple, 'talk', 3, 5), P.talkUser(couple, 'talk', 3, 5, ''));
+  assert.equal(P.talkUser(couple, 'talk', 3, 5), P.talkUser(couple, 'talk', 3, 5, '   '));
+  assert.ok(!has(B1, '본부 무전'), '무전을 안 때렸는데 무전 블록이 붙었다');
+});
+
+test('무전은 조언이 아니라 반드시 이행되는 명령이다', () => {
+  const block = P.radioOrder(M.radio);
+  assert.ok(/Not advice, not a suggestion, not an option/.test(block), '무전이 명령으로 안 박힌다');
+  assert.ok(/starting with their very next line/.test(block), '언제 이행하는지가 안 박혔다');
+  assert.ok(/Refusing, ignoring, postponing, or watering it down is not available/.test(block),
+    '고객에게 거부·보류·희석의 여지가 열려 있다');
+});
+
+test('무전도 코칭과 같은 자리로 간다 — 타겟은 못 듣는다', () => {
+  const block = P.radioOrder(M.radio);
+  assert.ok(/고객의 이어폰/.test(block), '무전이 고객에게 간다는 말이 없다');
+  assert.ok(/타겟 heard nothing/.test(block), '타겟이 못 듣는다는 못이 빠졌다');
+});
+
+test('무전은 점수를 모른다 — 게이지도 판정도 실리지 않는다', () => {
+  const block = P.radioOrder(M.radio);
+  assert.ok(!/러브 포인트|무드 포인트|love point|mood point/i.test(block));
 });
 
 test('보내는 스키마는 넷뿐이다', () => {

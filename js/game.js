@@ -48,7 +48,9 @@ function show(screen) {
 }
 
 const TIPS = [
-  '참고 · 요원이 쓰는 곳은 셋뿐이다. 스타일링 · 동기부여 · 코칭. 셋 다 채점되지 않는다.',
+  '참고 · 출격 전에 요원이 쓰는 곳은 셋이다. 스타일링 · 동기부여 · 코칭. 셋 다 채점되지 않는다.',
+  '참고 · 판이 굴러가는 도중에 쓸 수 있는 건 무전 하나다. 텍스팅 1회 · 토킹 1회, 그게 전부다.',
+  '참고 · 무전은 조언이 아니라 명령이다. 고객은 바로 다음 대사부터 반드시 이행한다.',
   '참고 · 스타일링은 고객 외모를, 동기부여는 고객 성격을 통째로 덮어쓴다.',
   '참고 · 코칭은 고객에게만 간다. 타겟도 심판도 그 문장을 못 본다.',
   '참고 · 심판이 내보내는 것은 증감 여부뿐이다 — 무드 ▲▼─, 러브 ▲▼─. 점수도 해설도 없다.',
@@ -296,7 +298,8 @@ const SLIDES = [
       + '<text class="a-key e" x="266" y="80">러브</text>'
       + '<rect class="a-track" x="236" y="88" width="96" height="18"/>'
       + '<rect class="a-stamp" x="238" y="90" width="26" height="14"/>', 2),
-    line: '<b>B</b> — 대화가 구간 단위로 굴러가고, 매 구간 심판은 <b>증감 여부만</b> 답한다. 점수도, 해설도 없다.',
+    line: '<b>B</b> — 대화가 구간 단위로 굴러가고, 매 구간 심판은 <b>증감 여부만</b> 답한다. 점수도, 해설도 없다.'
+      + ' 굴러가는 도중에 딱 한 번, <b>무전</b>으로 자리를 세우고 고객에게 명령을 꽂을 수 있다 — 페이즈마다 1회다.',
   },
   {
     art: aSvg('러브 게이지 하나가 도장 하나로 이어지는 그림',
@@ -521,6 +524,7 @@ function pointsUpdate(s) {
   $('#meter-love-num').textContent = s.love;
   $('#meter-mood-fill').classList.toggle('danger', s.mood <= POINTS.moodStep);
   $('#turn-badge').textContent = `${s.phaseLabel} ${Math.min(s.beat + 1, s.beats)}/${s.beats}구간`;
+  paintRadio();
 }
 
 // 판정은 구간이 끝난 뒤에 온다. 말풍선이 뜨는 즉시 몸이 반응하도록 문장에서 표정을 유추한다.
@@ -574,6 +578,78 @@ function addVerdict(v) {
   return pace.beat(pace.judgeMs('무드 러브 판정'));
 }
 
+// ── 무전 — 판 도중 요원이 쓰는 유일한 레버 ──────────────
+// 버튼을 누르면 engine이 다음 줄 경계에서 대화를 세우고 hold 핸들러로 여기를 연다.
+// 송출하면 그 명령이 다음 생성 프롬프트에 「반드시 이행」으로 박힌다 (prompts.js의 radioOrder).
+function paintRadio() {
+  const btn = $('#btn-radio');
+  const e = state.engine;
+  if (!e) { btn.disabled = true; btn.textContent = '📻 무전 개입'; btn.classList.remove('armed'); return; }
+  const s = e.radioState();
+  btn.disabled = !s.can;
+  btn.classList.toggle('armed', s.armed);
+  btn.textContent = s.armed ? '📻 대기 — 곧 회선이 열린다'
+    : s.left > 0 ? `📻 무전 개입 · ${s.phaseLabel} ${s.left}회`
+      : `📻 무전 소진 · ${s.phaseLabel}`;
+  btn.title = s.left > 0
+    ? '대화를 세우고 고객 이어폰에 명령을 꽂는다. 페이즈마다 한 번뿐이다.'
+    : '이 페이즈의 배급을 다 썼다.';
+}
+
+function syncRadioInject() {
+  const t = $('#radio-input').value.trim();
+  $('#radio-inject').innerHTML = t
+    ? `<span class="inject-label">고객 프롬프트에 이렇게 박힌다 · ${t.length}자</span>`
+      + `<code class="inject-code">[본부 무전 — 방금 고객의 이어폰에 꽂혔다. 타겟은 듣지 못했다]\n"""\n${escapeHtml(t)}\n"""\n→ 반드시 이행. 거부·보류·희석 없음.</code>`
+    : `<span class="inject-empty">비워서 보내면 무전은 나가지 않고 배급도 그대로다</span>`;
+}
+
+function openRadio() {
+  const p = $('#radio-panel');
+  p.classList.remove('hidden');
+  $('#radio-input').value = '';
+  syncRadioInject();
+  paintRadio();
+  sfx.click();
+  $('#radio-input').focus();
+  p.scrollIntoView({ block: 'end' });   // 송출 버튼까지 보이게. focus 뒤에 와야 이게 이긴다
+}
+
+function closeRadio() {
+  $('#radio-panel').classList.add('hidden');
+  paintRadio();
+}
+
+// 무전이 나간 자리 표시. 화면에만 뜬다 — engine의 대화 기록에는 들어가지 않는다.
+function markRadio(order) {
+  const w = $('#chat-window');
+  const div = document.createElement('div');
+  div.className = 'bubble sys radio-cut';
+  div.innerHTML = `<span class="who">무전</span><span class="say">📻 본부 무전 · 고객 이어폰 직결 — "${escapeHtml(order)}" `
+    + `<b>(반드시 이행)</b>. 타겟은 듣지 못했다.</span>`;
+  w.appendChild(div);
+  w.scrollTop = w.scrollHeight;
+  sfx.send();
+}
+
+function initRadio() {
+  $('#btn-radio').addEventListener('click', () => {
+    const e = state.engine;
+    if (!e || !e.requestHold()) return;
+    sfx.click();
+    paintRadio();
+    toast('무전 대기 — 지금 오가는 대사가 끝나는 대로 대화가 선다.', 3000);
+  });
+  $('#radio-input').addEventListener('input', syncRadioInject);
+  $('#btn-radio-send').addEventListener('click', () => {
+    const t = $('#radio-input').value.trim();
+    if (!t) { toast('무전 내용이 비었다. 적어서 보내거나 취소하라.', 3000); return; }
+    state.engine?.sendRadio(t);
+  });
+  $('#btn-radio-cancel').addEventListener('click', () => { sfx.click(); state.engine?.releaseHold(); });
+  paintRadio();
+}
+
 function setChatTitle(label) {
   $('#chat-phase-label').textContent = `B · ${label} 페이즈 — ${state.couple.client.name} × ${state.couple.target.name}`;
 }
@@ -582,11 +658,15 @@ async function startOperation() {
   state.orders.coaching = $('#coaching-input').value.trim();
 
   const handlers = {
-    line: addBubble,
+    line: async (who, text) => { await addBubble(who, text); paintRadio(); },
     verdict: addVerdict,
     points: pointsUpdate,
+    // 무전 — 버튼이 눌리면 engine이 여기서 대화를 세운다. 송출/취소가 다시 굴린다.
+    hold: () => { openRadio(); },
+    resume: ({ order }) => { closeRadio(); if (order) markRadio(order); },
     phase: async p => {
       setChatTitle(p.label);
+      paintRadio();
       if (p.key === 'talk') {
         const sep = document.createElement('div');
         sep.className = 'judge-sep';
@@ -604,6 +684,7 @@ async function startOperation() {
   show('chat');
   $('#chat-window').innerHTML = '';
   $('#verdict-log').innerHTML = '';
+  $('#radio-panel').classList.add('hidden');
   stageViewer = getStageViewer('stage-chat');
   stageViewer.setDuo(state.clientSpec, state.targetSpec, 'camera');
   document.body.classList.add('phase-text');
@@ -615,6 +696,7 @@ async function startOperation() {
   });
   state.engine = engine;
   pointsUpdate(engine.snapshot());
+  paintRadio();
 
   try {
     await engine.run();
@@ -622,7 +704,9 @@ async function startOperation() {
     toast(errMsg(e));
     await addBubble('sys', '(전파 방해로 공작이 중단되었다...)');
     engine.aborted = true;
+    engine.releaseHold();
   }
+  closeRadio();
   await gotoResult();
 }
 
@@ -660,6 +744,14 @@ async function gotoResult() {
       `<td class="${MARK_CLASS[h.dMood]}">${MARK[h.dMood]} ${h.mood}</td>` +
       `<td class="${MARK_CLASS[h.dLove]}">${MARK[h.dLove]} ${h.love}</td></tr>`).join('') +
     '</table></div>';
+  // 무전은 대화 기록에 없다 (심판도 기록관도 못 본 문장이다). 요원 몫으로 따로 붙인다.
+  const radios = state.engine.radioLog;
+  $('#debrief-radio').innerHTML = radios.length
+    ? `<h4 class="hud-h">무전 원장 <span class="dim">— 요원이 직접 꽂은 명령. 대화 기록에는 없다</span></h4>`
+      + `<ul class="radio-ledger">` + radios.map(x =>
+        `<li><span class="vr-when">${escapeHtml(x.phaseLabel)} ${x.beat}구간</span> ${escapeHtml(x.text)}</li>`).join('')
+      + `</ul>`
+    : '';
   $('#debrief-transcript').textContent = r.transcript;
 
   if (r.success) markCleared(c.id);
@@ -706,6 +798,7 @@ function init() {
   initBoot();
   initIntro();
   initPacing();
+  initRadio();
   $('#btn-restart').addEventListener('click', () => { sfx.click(); gotoRoster(); });
   $('#btn-retry').addEventListener('click', () => { sfx.click(); chooseCouple(state.couple); });
   const toggleConsole = () => $('#console-panel').classList.toggle('hidden');

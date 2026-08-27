@@ -655,6 +655,41 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 }
 .pace-btn.on:hover:not(:disabled) { background: linear-gradient(180deg, #55749a 0, #3d5a7c 100%); }
 
+/* 무전 — 판 도중 요원이 쓰는 유일한 레버. 페이즈마다 한 번이라 눈에 걸려 있어야 한다 */
+.radio-btn { margin-left: auto; font-weight: 600; }
+.radio-btn:not(:disabled) {
+  color: #fff8ec;
+  background: linear-gradient(180deg, #a8642a 0, #8a4c1c 48%, #6d3a13 100%);
+  border-color: #4d280c;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 1px 1px rgba(0,0,0,.2);
+}
+.radio-btn:not(:disabled):hover { background: linear-gradient(180deg, #bd7433 0, #9c5822 48%, #7c4416 100%); }
+.radio-btn.armed { animation: radio-arm .9s steps(2, end) infinite; }
+@keyframes radio-arm { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .radio-btn.armed { animation: none; } }
+
+.radio-panel { margin-top: var(--s2); border-color: #8a4c1c; }
+.radio-note { font-size: var(--fs-sm); color: var(--ink); margin: 0 0 var(--s2); line-height: 1.65; }
+#radio-input { min-height: 78px; }
+.radio-inject { margin-top: var(--s2); min-height: 18px; }
+.radio-btns { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s2); }
+.radio-btns .btn95 { flex: 1 1 180px; }
+
+/* 무전이 나간 자리. 대화 기록에는 안 남는다 — 화면에만 뜨는 표시다 */
+.bubble.radio-cut {
+  background: #f6e6d2; color: #4a2c0e;
+  border-color: #a8642a; border-left-width: 4px;
+  font-style: normal;
+}
+
+/* 사후 검토의 무전 원장 */
+.radio-ledger { list-style: none; margin: 0; padding: 0; }
+.radio-ledger li {
+  font-size: var(--fs-sm); line-height: 1.6;
+  padding: var(--s2); margin-bottom: 3px;
+  background: #f6e6d2; color: #4a2c0e; border-left: 4px solid #a8642a;
+}
+
 /* 기다리는 중이라는 표시. 누르면 다음 줄로 간다 */
 .chat-advance {
   margin-top: var(--s1); min-height: 18px;
