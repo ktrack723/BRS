@@ -110,15 +110,24 @@ async function playOne(coupleId, profile) {
     : profile === 'good' ? goodOrders(c)
       : EMPTY;
 
-  // A. 스타일링 / 동기부여 — 주문이 있을 때만 부른다 (화면과 같은 동작)
-  let styled = null;
-  if ((orders.styling || '').trim() || (orders.motivation || '').trim()) {
-    styled = await llm.call({
-      label: `A · ${c.id}`, system: P.STYLING_SYSTEM,
-      messages: [{ role: 'user', content: P.stylingUser(c, c.client.spec, orders) }],
-      schema: P.STYLING_SCHEMA, effort: 'low', maxTokens: 6000,
-    }).catch(() => null);
-  }
+  // A. 스타일링 / 동기부여 — 칸마다 한 호출. 주문이 있을 때만 부른다 (화면과 같은 동작)
+  const styled = { look: null, personality: null };
+  const [look, persona] = await Promise.all([
+    (orders.styling || '').trim()
+      ? llm.call({
+        label: `A-1 · ${c.id}`, system: P.STYLING_SYSTEM,
+        messages: [{ role: 'user', content: P.stylingUser(c, c.client.spec, orders.styling) }],
+        schema: P.STYLING_SCHEMA, effort: 'low', maxTokens: 6000,
+      }).catch(() => null) : null,
+    (orders.motivation || '').trim()
+      ? llm.call({
+        label: `A-2 · ${c.id}`, system: P.MOTIVATION_SYSTEM,
+        messages: [{ role: 'user', content: P.motivationUser(c, orders.motivation) }],
+        schema: P.MOTIVATION_SCHEMA, effort: 'low', maxTokens: 6000,
+      }).catch(() => null) : null,
+  ]);
+  styled.look = look?.look || null;
+  styled.personality = persona?.personality || null;
   const dressed = dressOf(c.client, styled);
 
   const engine = new Engine(llm, { couple: c, dressed, coaching: orders.coaching, handlers: {} });

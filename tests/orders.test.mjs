@@ -35,7 +35,9 @@ const dressed = { look: M.dlook, personality: M.dpers };
 const orders = { styling: M.style, motivation: M.motiv };
 
 // 네 프롬프트를 한 번씩 만들어 둔다. 이게 이 게임이 보내는 전부다.
-const A = P.STYLING_SYSTEM + '\n' + P.stylingUser(couple, { species: 'human' }, orders);
+const A1 = P.STYLING_SYSTEM + '\n' + P.stylingUser(couple, { species: 'human' }, M.style);
+const A2 = P.MOTIVATION_SYSTEM + '\n' + P.motivationUser(couple, M.motiv);
+const A = A1 + '\n' + A2;
 const B1 = P.talkSystem(couple, dressed, M.coach) + '\n'
   + P.talkUser(couple, 'text', 1, 4) + '\n' + P.talkUser(couple, 'talk', 2, 5);
 const B2 = P.judgeSystem(couple, dressed) + '\n' + P.judgeUser(couple, '이전대화', '이번대화');
@@ -46,22 +48,38 @@ const R = Object.keys(P.REACT_ROOMS).map(k =>
 
 const has = (hay, needle) => hay.includes(needle);
 
-// ── A. 스타일링 / 동기부여 ───────────────────────────────
-test('A는 유저의 두 주문과 고객의 테이블 외모·성격을 받는다', () => {
-  for (const k of ['style', 'motiv', 'clook', 'cpers']) {
-    assert.ok(has(A, M[k]), `A에 ${k}가 안 실렸다`);
-  }
+// ── A. 스타일링 / 동기부여 — 한 상자, 두 호출 ────────────
+test('A-1 미용실은 스타일링 주문과 테이블 외모를 받는다', () => {
+  assert.ok(has(A1, M.style), 'A-1에 스타일링 주문이 안 실렸다');
+  assert.ok(has(A1, M.clook), 'A-1에 테이블 외모가 안 실렸다');
 });
 
-test('A는 타겟을 한 글자도 보지 않는다 — 시공은 고객 시트만 건드린다', () => {
+test('A-1은 성격을 보지 않는다 — 미용실은 사람을 안 고친다', () => {
+  assert.ok(!has(A1, M.cpers), 'A-1에 고객 성격이 새어 들어갔다');
+  assert.ok(!has(A1, M.motiv), 'A-1에 동기부여 주문이 새어 들어갔다');
+});
+
+test('A-2 취조실은 동기부여 주문과 테이블 성격을 받는다', () => {
+  assert.ok(has(A2, M.motiv), 'A-2에 동기부여 주문이 안 실렸다');
+  assert.ok(has(A2, M.cpers), 'A-2에 테이블 성격이 안 실렸다');
+});
+
+test('A-2는 외모를 보지 않는다 — 취조실은 옷을 안 고친다', () => {
+  assert.ok(!has(A2, M.clook), 'A-2에 고객 외모가 새어 들어갔다');
+  assert.ok(!has(A2, M.style), 'A-2에 스타일링 주문이 새어 들어갔다');
+  assert.ok(!/AVATAR SPEC/.test(A2), 'A-2에 조형 스펙이 새어 들어갔다');
+});
+
+test('A는 어느 쪽도 타겟을 한 글자도 보지 않는다', () => {
   for (const k of ['tlook', 'tpers', 'tup', 'ttaste']) {
     assert.ok(!has(A, M[k]), `A에 타겟 ${k}가 새어 들어갔다`);
   }
   assert.ok(!has(A, M.coach), 'A에 코칭이 새어 들어갔다');
 });
 
-test('A의 출력은 수정된 외모와 성격 둘뿐이다 (+ 렌더링용 스펙)', () => {
-  assert.deepEqual(Object.keys(P.STYLING_SCHEMA.properties).sort(), ['look', 'personality', 'spec']);
+test('A의 출력은 칸마다 하나씩이다 — 외모(+조형) / 성격', () => {
+  assert.deepEqual(Object.keys(P.STYLING_SCHEMA.properties).sort(), ['look', 'spec']);
+  assert.deepEqual(Object.keys(P.MOTIVATION_SCHEMA.properties).sort(), ['personality']);
 });
 
 // ── B-1. 대화 생성 ───────────────────────────────────────
@@ -153,7 +171,7 @@ test('폐지된 시스템 용어가 프롬프트에 없다', () => {
 test('보내는 스키마는 하이어아키 넷 + 반응 하나뿐이다', () => {
   const schemas = Object.keys(P).filter(k => k.endsWith('_SCHEMA'));
   assert.deepEqual(schemas.sort(),
-    ['EPILOGUE_SCHEMA', 'JUDGE_SCHEMA', 'REACT_SCHEMA', 'STYLING_SCHEMA', 'TALK_SCHEMA']);
+    ['EPILOGUE_SCHEMA', 'JUDGE_SCHEMA', 'MOTIVATION_SCHEMA', 'REACT_SCHEMA', 'STYLING_SCHEMA', 'TALK_SCHEMA']);
 });
 
 // ── R. 준비 단계 반응 — 구조도 밖이므로 아무것도 물어오면 안 된다 ──
@@ -204,7 +222,10 @@ test('다섯 프롬프트의 지시문에 한글이 한 글자도 없다', () =>
   };
   const d = { look: 'a red suit', personality: 'a coward' };
   const built = {
-    A: P.STYLING_SYSTEM + P.stylingUser(ascii, { species: 'human' }, { styling: 'x', motivation: 'y' }),
+    'A-1': P.STYLING_SYSTEM + P.stylingUser(ascii, { species: 'human' }, 'x'),
+    'A-2': P.MOTIVATION_SYSTEM + P.motivationUser(ascii, 'y'),
+    'A-1(주문없음)': P.stylingUser(ascii, { species: 'human' }, ''),
+    'A-2(주문없음)': P.motivationUser(ascii, ''),
     'B-1': P.talkSystem(ascii, d, 'z') + P.talkUser(ascii, 'text', 1, 4) + P.talkUser(ascii, 'talk', 2, 5),
     'B-1(코칭없음)': P.talkSystem(ascii, d, ''),
     'B-2': P.judgeSystem(ascii, d) + P.judgeUser(ascii, '', 'seg'),

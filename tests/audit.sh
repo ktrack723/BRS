@@ -13,7 +13,7 @@ no(){ printf '  ❌ %s\n' "$1"; }
 chk(){ if eval "$2" >/dev/null 2>&1; then ok "$1"; else no "$1"; fi; }
 
 echo "── 구조: 데이터 블록은 넷뿐이다 (그리고 데이터가 아닌 반응 하나) ──"
-chk "프롬프트 빌더가 A · B-1 · B-2 · C + R 다섯이다" "node -e \"import('./js/prompts.js').then(m=>{const s=Object.keys(m).filter(k=>k.endsWith('_SCHEMA')).sort();process.exit(JSON.stringify(s)===JSON.stringify(['EPILOGUE_SCHEMA','JUDGE_SCHEMA','REACT_SCHEMA','STYLING_SCHEMA','TALK_SCHEMA'])?0:1)})\""
+chk "프롬프트 빌더가 A-1 · A-2 · B-1 · B-2 · C + R 여섯이다" "node -e \"import('./js/prompts.js').then(m=>{const s=Object.keys(m).filter(k=>k.endsWith('_SCHEMA')).sort();process.exit(JSON.stringify(s)===JSON.stringify(['EPILOGUE_SCHEMA','JUDGE_SCHEMA','MOTIVATION_SCHEMA','REACT_SCHEMA','STYLING_SCHEMA','TALK_SCHEMA'])?0:1)})\""
 chk "R의 출력은 대사·표정 둘뿐이다 — 점수도 판정도 없다" "node -e \"import('./js/prompts.js').then(m=>process.exit(Object.keys(m.REACT_SCHEMA.properties).sort().join()==='face,reaction'?0:1))\""
 chk "반응은 어디로도 흘러가지 않는다 (엔진도 점수도 프롬프트도 모른다)" "! grep -qE 'reaction' js/engine.js js/points.js && ! grep -qE 'reactions' js/prompts.js"
 chk "게이지는 무드·러브 둘뿐이다" "node -e \"import('./js/points.js').then(m=>{const s=m.initialPoints();process.exit(('mood' in s)&&('love' in s)&&!('vibe' in s)&&!('leverage' in s)?0:1)})\""
@@ -31,11 +31,14 @@ chk "취향이 평평한 문자열 목록이다 (공개/미공개·지뢰 플래
 
 echo
 echo "── A · 스타일링 / 동기부여 ──"
-chk "스타일링은 look만, 동기부여는 personality만 건드린다" "grep -q 'rewrites the client'\\''s \\*\\*look\\*\\* and nothing else' js/prompts.js && grep -q 'rewrites the client'\\''s \\*\\*personality\\*\\* and nothing else' js/prompts.js"
+chk "미용실은 외모만, 취조실은 성격만 건드린다" "grep -q 'rewrites the client'\\''s \\*\\*look\\*\\* and nothing else' js/prompts.js && grep -q 'rewrites the client'\\''s \\*\\*personality\\*\\* and nothing else' js/prompts.js"
 chk "가위손은 거절하지 않는다" "grep -q 'Never refuse, never soften, never grade' js/prompts.js"
-chk "출력은 수정된 외모·성격 둘 (+조형)" "node -e \"import('./js/prompts.js').then(m=>process.exit(Object.keys(m.STYLING_SCHEMA.properties).sort().join()==='look,personality,spec'?0:1))\""
+chk "A-1의 출력은 외모 하나 (+조형)" "node -e \"import('./js/prompts.js').then(m=>process.exit(Object.keys(m.STYLING_SCHEMA.properties).sort().join()==='look,spec'?0:1))\""
+chk "A-2의 출력은 성격 하나뿐이다" "node -e \"import('./js/prompts.js').then(m=>process.exit(Object.keys(m.MOTIVATION_SCHEMA.properties).sort().join()==='personality'?0:1))\""
+chk "미용실은 성격을 안 본다" "node -e \"import('./js/prompts.js').then(async m=>{const c=(await import('./js/couples.js')).COUPLES[0];const s=m.STYLING_SYSTEM+m.stylingUser(c,{species:'human'},'x');process.exit(s.includes(c.client.personality[0])?1:0)})\""
+chk "취조실은 외모도 조형도 안 본다" "node -e \"import('./js/prompts.js').then(async m=>{const c=(await import('./js/couples.js')).COUPLES[0];const s=m.MOTIVATION_SYSTEM+m.motivationUser(c,'x');process.exit(s.includes(c.client.look[0])||/AVATAR SPEC/.test(s)?1:0)})\""
 chk "시공을 안 하면 테이블 값이 그대로 시트가 된다" "grep -q 'export function dressOf' js/engine.js"
-chk "A는 타겟을 보지 않는다" "node -e \"import('./js/prompts.js').then(m=>process.exit(/타겟|target/i.test(m.STYLING_SYSTEM.replace(m.WORLD,''))?1:0))\""
+chk "A는 타겟을 보지 않는다" "node -e \"import('./js/prompts.js').then(m=>process.exit(/타겟|target/i.test((m.STYLING_SYSTEM+m.MOTIVATION_SYSTEM).split(m.WORLD).join(''))?1:0))\""
 
 echo
 echo "── B · 텍스팅 & 토킹 ──"
@@ -100,7 +103,7 @@ chk "색 규약이 구조도 범례와 같다 (static·user·cached·once·code)
 chk "A-1·A-2·B 세 준비 화면에 흐름 띠가 있다" "grep -c 'flow-diagram' index.html | grep -q '^3$'"
 chk "준비가 미용실 → 취조실 → 코칭 세 화면이다" "grep -q 'id=\"screen-styling\"' index.html && grep -q 'id=\"screen-motivation\"' index.html && grep -q 'id=\"screen-coaching\"' index.html"
 chk "주문 셋마다 반응 자리가 하나씩 있다" "test \$(grep -c 'id=\".*-react\"' index.html) -eq 3 && grep -q 'gotoMotivation' js/game.js"
-chk "시공(A)은 두 주문을 모아 한 번만 돈다" "test \$(grep -c \"label: 'A · 스타일링/동기부여'\" js/game.js) -eq 1 && grep -q 'fittingStale' js/game.js"
+chk "시공은 칸마다 한 호출이다 — 미용실과 취조실이 따로 돈다" "grep -q \"label: 'A-1 · 스타일링'\" js/game.js && grep -q \"label: 'A-2 · 동기부여'\" js/game.js && grep -q 'const stale = ' js/game.js"
 chk "판정 원장에 증감 기호만 뜬다" "grep -q 'MARK\\[v.dMood\\]' js/game.js && ! grep -q 'judge-line' js/game.js"
 chk "계기판에 게이지가 둘뿐이다" "grep -c 'class=\"meter\"' index.html | grep -q '^2$'"
 chk "스크리닝 상세가 여덟 항목을 그린다" "grep -q 'fieldRows(c.client, .client.)' js/game.js && grep -q 'fieldRows(c.target, .target.)' js/game.js"

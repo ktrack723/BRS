@@ -76,10 +76,9 @@ function installMockLlm() {
     window.__mock.calls.push({ label, system: system || '', schema: !!schema });
     await new Promise(r => setTimeout(r, window.__mockLatency ?? 120));
     if (label === '본부 인증') return '이상무';
-    if (label.startsWith('A ·')) {
+    if (label.startsWith('A-1')) {
       return {
         look: '형광 주황으로 물들인 머리에 새빨간 턱시도, 카우보이 부츠, 선글라스. 오른손에 폭탄을 들고 머리 위에 금색 고리가 돈다.',
-        personality: '지고는 못 사는 성질이 끝까지 올라와 있다. 벌금 800만원이 머릿속에서 떠나지 않는다.',
         spec: {
           skin: '#e8d0c0', hair: '#ff8a2b', hairStyle: 'spiky', top: '#dd1122',
           bottom: '#2a3a4a', shoes: '#7a5a2a', heightScale: 1.02, widthScale: 0.9,
@@ -91,6 +90,9 @@ function installMockLlm() {
           ],
         },
       };
+    }
+    if (label.startsWith('A-2')) {
+      return { personality: '지고는 못 사는 성질이 끝까지 올라와 있다. 벌금 800만원이 머릿속에서 떠나지 않는다.' };
     }
     if (label.includes('판정')) {
       const i = judged++;
@@ -243,11 +245,20 @@ try {
   const specBefore = await page.evaluate(() => structuredClone(window.__game.state.clientSpec));
   await page.fill('#styling-input', '형광 주황 염색, 새빨간 턱시도, 등에 폭탄, 머리 위에 도는 금색 고리');
   await page.click('#btn-styling');
+  await page.waitForFunction(() => window.__game.state.styled.look !== null, null, { timeout: ms(120000) });
   await page.waitForSelector('#styling-react .react-line', { timeout: ms(120000) });
   const salonReact = await page.textContent('#styling-react');
   check('주문을 내리면 고객이 그 자리에서 대꾸한다', salonReact.trim().length > 8);
-  check('반응이 시공을 대신하지 않는다 (아직 시트는 그대로)',
-    await page.evaluate(() => window.__game.state.styled === null));
+  const specAfter = await page.evaluate(() => structuredClone(window.__game.state.clientSpec));
+  check('미용실에서 외모가 바뀐다', JSON.stringify(specBefore) !== JSON.stringify(specAfter));
+  check('미용실은 성격을 건드리지 않는다',
+    await page.evaluate(() => window.__game.state.styled.personality === null));
+  check('수정된 고객 외모가 화면에 뜬다',
+    (await page.textContent('#styling-result')).includes('수정된 고객 외모'));
+  if (!LIVE) {
+    const props = await page.evaluate(() => window.__game.state.clientSpec.props.length);
+    check('자유 도형이 붙는다 (폭탄·후광)', props === 2, `${props}개`);
+  }
   await shot('05-salon');
   await page.click('#btn-styling-next');
 
@@ -255,23 +266,18 @@ try {
   console.log('\n🔦 A-2 · 취조실 (동기부여)');
   await page.waitForSelector('#screen-motivation:not(.hidden)', { timeout: ms(10000) });
   await page.fill('#motivation-input', '오늘 안 되면 벌금 800만원이라고 못박아라. 지고는 못 사는 성질을 끝까지 끌어올려라');
+  const specAtInterro = await page.evaluate(() => structuredClone(window.__game.state.clientSpec));
   await page.click('#btn-motivation');
-  await page.waitForFunction(() => window.__game.state.styled !== null, null, { timeout: ms(120000) });
+  await page.waitForFunction(() => window.__game.state.styled.personality !== null, null, { timeout: ms(120000) });
   await page.waitForSelector('#motivation-react .react-line', { timeout: ms(120000) });
-  const interroReact = await page.textContent('#motivation-react');
-  check('취조실에서도 고객이 대꾸한다', interroReact.trim().length > 8);
-  const specAfter = await page.evaluate(() => structuredClone(window.__game.state.clientSpec));
-  check('시공이 아바타 스펙을 바꾼다', JSON.stringify(specBefore) !== JSON.stringify(specAfter));
+  check('취조실에서도 고객이 대꾸한다', (await page.textContent('#motivation-react')).trim().length > 8);
+  check('취조실은 외모를 건드리지 않는다',
+    JSON.stringify(specAtInterro) === await page.evaluate(() => JSON.stringify(window.__game.state.clientSpec)));
   const styled = await page.evaluate(() => window.__game.state.styled);
   check('수정된 고객 외모가 나온다', (styled.look || '').length > 10);
   check('수정된 고객 성격이 나온다', (styled.personality || '').length > 10);
-  const stylingOut = await page.textContent('#styling-result');
-  check('두 시트가 화면에 그대로 뜬다',
-    stylingOut.includes('수정된 고객 외모') && stylingOut.includes('수정된 고객 성격'));
-  if (!LIVE) {
-    const props = await page.evaluate(() => window.__game.state.clientSpec.props.length);
-    check('자유 도형이 붙는다 (폭탄·후광)', props === 2, `${props}개`);
-  }
+  check('수정된 고객 성격이 화면에 뜬다',
+    (await page.textContent('#motivation-result')).includes('수정된 고객 성격'));
   await shot('06-interro');
   await page.click('#btn-motivation-next');
 
@@ -356,14 +362,18 @@ try {
     check('생성 system이 판 내내 동일하다 (캐시가 붙는 자리)', sysSet.size === 1, `${sysSet.size}종`);
     const labels = new Set(calls.map(c => c.label.replace(/\d+/g, 'N')));
     check('구조도에 없는 호출이 없다',
-      [...labels].every(l => /본부 인증|A ·|R ·|대화 생성|판정|후일담/.test(l)), [...labels].join(' / '));
+      [...labels].every(l => /본부 인증|A-N ·|R ·|대화 생성|판정|후일담/.test(l)), [...labels].join(' / '));
     const react = calls.filter(c => c.label.startsWith('R ·'));
     check('주문 셋마다 반응을 한 번씩 물어본다', react.length === 3, `${react.length}회`);
     const targetName = await page.evaluate(() => window.__game.state.couple.target.name);
     check('반응 프롬프트는 타겟을 안 본다',
       react.every(c => !c.system.includes(targetName)));
-    check('시공은 두 주문을 모아 한 번만 돈다',
-      calls.filter(c => c.label.startsWith('A ·')).length === 1);
+    const a1 = calls.filter(c => c.label.startsWith('A-1'));
+    const a2 = calls.filter(c => c.label.startsWith('A-2'));
+    check('미용실과 취조실이 각자 한 번씩만 돈다', a1.length === 1 && a2.length === 1, `${a1.length} / ${a2.length}`);
+    check('미용실 프롬프트에 성격이 없다', !a1[0].system.includes(styled.personality));
+    check('취조실 프롬프트에 외모도 조형도 없다',
+      !a2[0].system.includes(styled.look) && !/AVATAR SPEC/.test(a2[0].system));
     const reactLine = (await page.textContent('#coaching-react')).replace(/\s+/g, ' ').trim().slice(-24);
     check('고객의 대꾸는 어느 프롬프트에도 실리지 않는다',
       [...gen, ...judge, ...epilogue].every(c => !c.system.includes(reactLine)));

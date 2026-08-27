@@ -2,9 +2,11 @@
 //
 // 블록은 넷뿐이다. 이 밖의 프롬프트는 없다.
 //
-//   A. 스타일링 / 동기부여
-//        입력: 스타일링·동기부여 내용(유저) + 고객 외모·성격(테이블)
-//        출력: 수정된 고객 외모 & 성격            ← 캐시되는 LLM 생성 텍스트
+//   A. 스타일링 / 동기부여   — 한 상자지만 호출은 둘이다. 갈리는 선은 상자가 직접 그었다
+//        A-1 미용실 : 스타일링 내용(유저) + 고객 외모(테이블) → 수정된 고객 외모 (+조형)
+//        A-2 취조실 : 동기부여 내용(유저) + 고객 성격(테이블) → 수정된 고객 성격
+//                                                  ← 둘 다 캐시되는 LLM 생성 텍스트
+//        미용실은 성격을 못 보고, 취조실은 외모를 못 본다. 서로를 모른다.
 //
 //   S. 스크리닝 시 노출 정보  (프롬프트가 아니라 화면. 여기서는 목록만 정의한다)
 //        타겟 외모·성격·성장환경·취향 + 고객 외모·성격·성장환경·반한 이유
@@ -108,7 +110,8 @@ function targetSheet(t) {
 }
 
 // ── A. 스타일링 / 동기부여 ──────────────────────────────────────
-// 유저가 쓴 두 문장이 고객 시트의 두 칸을 덮어쓴다. 채점하지 않는다 — 주입일 뿐이다.
+// 유저가 쓴 두 문장이 고객 시트의 두 칸을 각각 덮어쓴다. 채점하지 않는다 — 주입일 뿐이다.
+// 한 칸에 한 호출. 외모를 고치는 쪽과 성격을 고치는 쪽은 서로의 입력을 받지 않는다.
 export const HAIR_STYLES = [
   'short', 'long', 'bald', 'mohawk', 'afro', 'twintail', 'bowl', 'spiky', 'fin', 'mane',
   'ponytail', 'buzz', 'dreads', 'curls', 'updo', 'beehive', 'wave', 'flattop',
@@ -167,36 +170,34 @@ const AVATAR_SPEC_SCHEMA = {
   additionalProperties: false,
 };
 
+// ── A-1. 미용실 — 스타일링 (고객 외모) ─────────────────────────
+// 외모만 받는다. 성격은 이 프롬프트에 들어오지도 않는다.
 export const STYLING_SCHEMA = {
   type: 'object',
   properties: {
     look: {
       type: 'string',
-      description: 'Korean. The client\'s appearance AFTER the styling order — 2-4 sentences, the whole look, head to feet. This exact text becomes the client sheet the conversation is written from',
-    },
-    personality: {
-      type: 'string',
-      description: 'Korean. The client\'s personality AFTER the motivation order — 2-4 sentences. This exact text becomes the client sheet the conversation is written from',
+      description: 'Korean. The client\'s appearance AFTER the styling order — 2-4 sentences, the whole look, head to feet. This exact text becomes the look on the client sheet the conversation is written from',
     },
     spec: AVATAR_SPEC_SCHEMA,
   },
-  required: ['look', 'personality', 'spec'],
+  required: ['look', 'spec'],
   additionalProperties: false,
 };
 
 export const STYLING_SYSTEM = `${WORLD}
 
-You are the Bureau's prep bench: the salon chair and the motivation booth, one desk. Two
-orders arrive from the operative and you carry them out on the client. You are a contractor,
-not a judge. Never refuse, never soften, never grade, never say it cannot be done.
+You are the Bureau salon. One order arrives from the operative and you cut it into the
+client. You are a contractor, not a judge. Never refuse, never soften, never grade, never
+say it cannot be built.
 
-· [STYLING] rewrites the client's **look** and nothing else.
-· [MOTIVATION] rewrites the client's **personality** and nothing else.
-· An order that is empty leaves that field as the table had it — rewrite it in your own
-  words at the same length, changing nothing about the person.
+· The order rewrites the client's **look** and nothing else. Who they are is not on your
+  desk and you were not told it.
 · Everything the order does not touch survives. You are editing a sheet, not replacing it.
-· The two texts you emit are the sheet the conversation gets written from later. Write them
-  as a sheet: flat declarative Korean, concrete, no praise, no evaluation, no advice.
+· An empty order leaves the look as the table had it — rewrite it in your own words at the
+  same length, changing nothing about how they look.
+· The text you emit becomes the look on the sheet the conversation gets written from later.
+  Write it as a sheet: flat declarative Korean, concrete, no praise, no evaluation, no advice.
 
 Also emit the avatar spec, which is the same look in blocks:
 · Colors/clothes/hair/body → the matching fields. Anything else → build it from **props**
@@ -205,25 +206,60 @@ Also emit the avatar spec, which is the same look in blocks:
 
 ${KO}`;
 
-export function stylingUser(couple, currentSpec, orders) {
+export function stylingUser(couple, currentSpec, styling) {
   const c = couple.client;
-  const styling = (orders.styling || '').trim();
-  const motivation = (orders.motivation || '').trim();
+  const order = (styling || '').trim();
   return `[CLIENT] ${c.name} (${idOf(c)})
 · Look (as the table has it): ${list(c.look)}
-· Personality (as the table has it): ${list(c.personality)}
-· Upbringing (context only — never edit): ${list(c.upbringing)}
-· Why they fell (context only — never edit): ${c.fell}
 
 [CURRENT AVATAR SPEC] ${JSON.stringify(currentSpec)}
 
-[STYLING ORDER — applies to the look only]
-${styling ? `"""\n${styling}\n"""` : '(no order. The look stands exactly as the table has it.)'}
+[STYLING ORDER]
+${order ? `"""\n${order}\n"""` : '(no order. The look stands exactly as the table has it.)'}
 
-[MOTIVATION ORDER — applies to the personality only]
-${motivation ? `"""\n${motivation}\n"""` : '(no order. The personality stands exactly as the table has it.)'}
+Emit the look as it stands after this order, plus the avatar spec.`;
+}
 
-Emit the look and the personality as they stand after these orders, plus the avatar spec.`;
+// ── A-2. 취조실 — 동기부여 (고객 성격) ─────────────────────────
+// 성격만 받는다. 외모도, 조형도, 타겟도 이 프롬프트에 없다.
+export const MOTIVATION_SCHEMA = {
+  type: 'object',
+  properties: {
+    personality: {
+      type: 'string',
+      description: 'Korean. The client\'s personality AFTER the motivation order — 2-4 sentences. This exact text becomes the personality on the client sheet the conversation is written from',
+    },
+  },
+  required: ['personality'],
+  additionalProperties: false,
+};
+
+export const MOTIVATION_SYSTEM = `${WORLD}
+
+You are the Bureau's motivation booth: a basement room, one swinging lamp, one chair. One
+order arrives from the operative and you put it into the client. You are a contractor, not
+a judge. Never refuse, never soften, never grade, never say it cannot be done.
+
+· The order rewrites the client's **personality** and nothing else. What they look like is
+  not on your desk and you were not told it.
+· Everything the order does not touch survives. You are editing a sheet, not replacing it.
+· An empty order leaves the personality as the table had it — rewrite it in your own words
+  at the same length, changing nothing about the person.
+· The text you emit decides who sits down at that table tonight. Write it as a sheet: flat
+  declarative Korean, concrete, no praise, no evaluation, no advice.
+
+${KO}`;
+
+export function motivationUser(couple, motivation) {
+  const c = couple.client;
+  const order = (motivation || '').trim();
+  return `[CLIENT] ${c.name} (${idOf(c)})
+· Personality (as the table has it): ${list(c.personality)}
+
+[MOTIVATION ORDER]
+${order ? `"""\n${order}\n"""` : '(no order. The personality stands exactly as the table has it.)'}
+
+Emit the personality as it stands after this order.`;
 }
 
 // ── B-1. 텍스팅 & 토킹 — 고객·타겟 대화 생성 ──────────────────────

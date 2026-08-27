@@ -66,10 +66,9 @@ function mockLlm() {
     if (label.startsWith('R ·')) {
       return { reaction: '…진짜로 이걸 하라고요? (의자를 반 뼘 뒤로 민다) 합니다. 합니다만 이건 아니라고 봅니다.', face: 'cringe' };
     }
-    if (label.startsWith('A ·')) {
+    if (label.startsWith('A-1')) {
       return {
         look: '형광 주황으로 물들인 머리에 새빨간 턱시도, 카우보이 부츠, 선글라스. 오른손에 폭탄을 들었고 머리 위에 금색 고리가 천천히 돈다.',
-        personality: '지고는 못 사는 성질이 끝까지 올라와 있다. 벌금 800만원이 머릿속에서 떠나지 않아서, 말이 평소보다 반 박자 빠르다.',
         spec: {
           skin: '#e8d0c0', hair: '#ff8a2b', hairStyle: 'spiky', top: '#dd1122', bottom: '#2a3a4a',
           shoes: '#7a5a2a', heightScale: 1.02, widthScale: 0.9, accessory: 'sunglasses',
@@ -80,6 +79,9 @@ function mockLlm() {
           ],
         },
       };
+    }
+    if (label.startsWith('A-2')) {
+      return { personality: '지고는 못 사는 성질이 끝까지 올라와 있다. 벌금 800만원이 머릿속에서 떠나지 않아서, 말이 평소보다 반 박자 빠르다.' };
     }
     return '기타';
   };
@@ -310,13 +312,14 @@ await page.evaluate(() => {
 await page.waitForSelector('#screen-styling:not(.hidden)', { timeout: 15000 });
 await page.fill('#styling-input', '형광 주황색으로 염색, 새빨간 턱시도, 카우보이 부츠, 선글라스, 오른손에 폭탄');
 await page.click('#btn-styling');
+await page.waitForSelector('#styling-result .sheet-out', { timeout: 30000 });
 await page.waitForSelector('#styling-react .react-line', { timeout: 30000 });
 // A-2 · 취조실 (시공이 확정되는 자리)
 await page.click('#btn-styling-next');
 await page.waitForSelector('#screen-motivation:not(.hidden)', { timeout: 15000 });
 await page.fill('#motivation-input', '오늘 안 되면 벌금 800만원이라고 못박아라. 지고는 못 사는 성질을 끝까지 끌어올려라.');
 await page.click('#btn-motivation');
-await page.waitForSelector('#styling-result .sheet-out', { timeout: 30000 });
+await page.waitForSelector('#motivation-result .sheet-out', { timeout: 30000 });
 await page.waitForSelector('#motivation-react .react-line', { timeout: 30000 });
 // B · 코칭
 await page.click('#btn-motivation-next');
