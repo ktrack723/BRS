@@ -398,9 +398,12 @@ try {
       [...labels].every(l => /본부 인증|A-N ·|R ·|대화 생성|판정|후일담/.test(l)), [...labels].join(' / '));
     const react = calls.filter(c => c.label.startsWith('R ·'));
     check('주문 셋마다 반응을 한 번씩 물어본다', react.length === 3, `${react.length}회`);
-    const targetName = await page.evaluate(() => window.__game.state.couple.target.name);
-    check('반응 프롬프트는 타겟을 안 본다',
-      react.every(c => !c.body.includes(targetName)));
+    const tgt = await page.evaluate(() => {
+      const t = window.__game.state.couple.target;
+      return [t.name, t.look[0], t.personality[0], t.upbringing[0], t.taste[0]];
+    });
+    check('반응 프롬프트는 타겟을 안 본다 (이름도 시트 네 항목도)',
+      react.every(c => tgt.every(v => !c.body.includes(v))));
     const a1 = calls.filter(c => c.label.startsWith('A-1'));
     const a2 = calls.filter(c => c.label.startsWith('A-2'));
     // 미용실은 주문 두 벌(원본 · 지웠다 되넣은 것)에 두 번. 취조실은 한 벌에 한 번.
