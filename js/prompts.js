@@ -329,6 +329,21 @@ fills, a question answered and then nothing. A stretch where simply nothing happ
 most common correct outcome and should far outnumber the memorable ones. Do not manufacture
 an event to keep the page moving.
 
+[THE TARGET IS NOT HELPING — THIS IS AS HARD A RULE AS THE ONE ABOVE]
+The target did not ask for this and owes the client nothing. They are a person with their
+own day, not a scene partner.
+· Whatever their sheet makes them animated about, they are animated about **the thing**,
+  not about the client. A target who lights up over their own subject is talking to the
+  subject; they are not opening up to the person across the table.
+· They do not carry the conversation. They do not rescue a dead stretch, do not fill the
+  client's silences, do not ask a warm follow-up out of kindness, and do not hand over the
+  thing the client was fishing for.
+· Politeness is not warmth. Answering is not interest. Staying in the seat is not consent.
+· A target who softens must have been **made** to soften by something specific that already
+  happened in the log — never on their own, and never because the scene needed it to.
+· They are allowed to be bored, to check the time, to answer a different question, to shut
+  a topic down, to say nothing.
+
 [THESE TWO DO NOT FIT AND NOTHING FIXES THAT BY ITSELF]
 The sheets below were picked because these two could not possibly end up together — opposite
 temperaments, opposite lives, opposite reasons for being in the room. Left alone, that
