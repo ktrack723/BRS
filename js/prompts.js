@@ -31,6 +31,7 @@
 // 새로 드러난 것 — 전부 폐지됐고, 되살리지 않는다.
 
 import { BEAT } from './points.js';
+import { voiceOf } from './voices.js';
 
 // 출력 언어 고정. 블록마다 반복한다. 한 번만 넣으면 뒤쪽 출력에서 새어나간다.
 const KO = 'Write your output in Korean. Every word of it. No English in the output.';
@@ -93,20 +94,26 @@ const list = (v) => (Array.isArray(v) ? v.join(' / ') : String(v || ''));
 
 // 고객 시트. 외모·성격은 **스타일링/동기부여를 거친 것**이 들어간다 (dressed).
 // 스타일링을 안 했으면 dressed가 테이블 값을 그대로 들고 있다 (engine.js의 dressOf).
-function clientSheet(c, dressed) {
+// 말투는 인물에 붙은 데이터다 (js/voices.js). 배정이 없는 인물은 이 줄이 통째로 빠진다.
+const voiceLine = (coupleId, side) => {
+  const v = voiceOf(coupleId, side);
+  return v ? `\n· Voice — 「${v.label}」: ${v.text.replace(/\n/g, ' ')}` : '';
+};
+
+function clientSheet(c, dressed, coupleId) {
   return `${c.name} (${idOf(c)})
 · Look: ${dressed.look}
 · Personality: ${dressed.personality}
 · Upbringing: ${list(c.upbringing)}
-· Why they fell for the target: ${c.fell}`;
+· Why they fell for the target: ${c.fell}${voiceLine(coupleId, 'client')}`;
 }
 
-function targetSheet(t) {
+function targetSheet(t, coupleId) {
   return `${t.name} (${idOf(t)})
 · Look: ${list(t.look)}
 · Personality: ${list(t.personality)}
 · Upbringing: ${list(t.upbringing)}
-· Taste: ${list(t.taste)}`;
+· Taste: ${list(t.taste)}${voiceLine(coupleId, 'target')}`;
 }
 
 // ── A. 스타일링 / 동기부여 ──────────────────────────────────────
@@ -318,41 +325,6 @@ it is a room everyone else wants to leave. Never soften it into charming shyness
 the awkwardness quietly work in their favour. The client is an adult and must read as one;
 the cringe is an adult's cringe, never a child's.
 
-[HOW THE CLIENT FAILS — MOSTLY FLATNESS, OCCASIONALLY A SET PIECE]
-**Most of the failure is not an incident at all. It is flatness.** Four-word answers, dead
-air nobody fills, a question answered and then nothing, two people who have run out of
-things to say by the third exchange and still have to sit there. A stretch where simply
-nothing happens is the single most common correct outcome, and it should outnumber the
-spectacular ones by a wide margin. Do not manufacture an event to keep the page moving.
-
-When something does happen, it is one of these — done specifically, in this client's own
-subject matter and register, and **not more than once in a stretch**:
-· The rehearsed line, botched — practised for days, then delivered flat, at the wrong
-  volume, or three beats late. Then they announce that they rehearsed it: "that was
-  supposed to come out differently."
-· The freeze — an ordinary question produces a stalled half-syllable and nothing else. They
-  answer it in full forty seconds later, after the subject has already moved on.
-· The voice failing — the first word cracks or lands at twice the room's volume, and then
-  they remark on their own throat.
-· Fleeing into their own field — a small polite question gets four minutes of their one
-  specialised subject, with figures nobody asked for. They do not notice it landing.
-· Reading the room backwards — the target is bored and the client takes it for interest and
-  doubles down; the target is merely being polite and the client takes it for encouragement.
-· The forced bit — a line delivered as a joke that is not a joke. Nobody laughs. The client
-  laughs alone, then explains the joke, then apologises for the joke.
-· Narrating their own state out loud, which makes it worse: "I'm being weird right now,
-  aren't I", "I shouldn't be saying this", "sorry, I'm not normally like this."
-· Self-consciousness — they behave as if the entire room is watching them. Nobody is.
-· The escape — mid-conversation they go to the bathroom, check a phone that did not buzz,
-  or get up for water, purely to stop existing for ninety seconds.
-· Blaming anything else — the seat, the lighting, the music, the target's tone. Never
-  themselves.
-· Not surviving silence — three seconds of quiet and they fill it with the worst sentence
-  available.
-Never run the same one twice in a row. Several stretches in a row with none of them —
-just two people failing to have a conversation — is correct and expected. What is never
-correct is the client quietly becoming good at this on their own.
-
 [THESE TWO DO NOT FIT AND NOTHING FIXES THAT BY ITSELF]
 The sheets below were picked because these two could not possibly end up together — opposite
 temperaments, opposite lives, opposite reasons for being in the room. Left alone, that
@@ -363,10 +335,10 @@ Never quietly hand the client a competence their sheet does not give them just t
 scene moving. If it should die, let it die on the table.
 
 [CLIENT]
-${clientSheet(c, dressed)}
+${clientSheet(c, dressed, couple.id)}
 
 [TARGET]
-${targetSheet(t)}
+${targetSheet(t, couple.id)}
 
 [HQ COACHING — went into the client's ear only]
 ${orders ? `"""
@@ -386,6 +358,12 @@ into the right move by luck.`}
 · Write the next lines only. Continue from exactly where the log stops; never restate it.
 · Alternate sides. Each line is one person saying one thing — a person's length, not an
   essay. Some lines are two words.
+· **Write the Voice, not textbook Korean.** Both sheets carry a Voice; that register is how
+  that person actually talks and it has to be audible in every line they say. Do not flatten
+  the two of them into the same clean, complete, evenly-polite sentences — that is the one
+  failure that makes 47 different pairs read like the same two people. Broken syntax, a
+  sentence trailing off, the wrong register for the room, talking over each other, a word
+  repeated because they could not think of another one: all correct.
 · Play both sheets all the way down. The client wants this to work and the wanting comes
   out wrong; the target did not ask to be here and owes them nothing. Neither is written to
   be liked, and neither is a mind reader — they know about each other only what the other
@@ -439,7 +417,7 @@ who was reasonable, who deserved what — irrelevant. There is exactly one sheet
 and it is theirs.
 
 [TARGET]
-${targetSheet(t)}
+${targetSheet(t, couple.id)}
 
 [WHAT THE CLIENT SHOWED UP LOOKING LIKE]
 ${dressed.look}

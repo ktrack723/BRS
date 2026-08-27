@@ -202,3 +202,29 @@ test('성사 여부는 코드가 아니라 C(후일담)가 정한다', () => {
   assert.ok(!Object.keys(PT).some(k => /threshold|success|accept/i.test(k)),
     '성사 문턱이 코드로 되돌아왔다');
 });
+
+// ── 말투 프리셋 — 인물에 붙은 데이터지 지시문이 아니다 ────
+import * as V from '../js/voices.js';
+import { COUPLES } from '../js/couples.js';
+
+test('94명 전원에게 말투가 하나씩 붙어 있다', () => {
+  for (const c of COUPLES) {
+    const v = V.VOICE_BY_COUPLE[c.id];
+    assert.ok(v, `${c.id}에 말투 배정이 없다`);
+    for (const side of ['client', 'target']) {
+      assert.ok(V.VOICE_PRESETS[v[side]], `${c.id}/${side}의 말투 '${v[side]}'가 프리셋에 없다`);
+      assert.ok(V.voiceOf(c.id, side)?.text?.trim(), `${c.id}/${side}의 말투가 비었다`);
+    }
+  }
+});
+
+test('말투는 열 개를 돌려 쓴다 — 인물마다 새로 만들지 않는다', () => {
+  assert.ok(V.VOICE_IDS.length >= 8 && V.VOICE_IDS.length <= 14,
+    `프리셋이 ${V.VOICE_IDS.length}개다 — 너무 적으면 전부 같은 사람이 되고, 너무 많으면 데이터가 된다`);
+  const used = new Set(Object.values(V.VOICE_BY_COUPLE).flatMap(v => [v.client, v.target]));
+  assert.equal(used.size, V.VOICE_IDS.length, '한 번도 안 쓰인 프리셋이 있다');
+});
+
+test('배정이 없는 인물은 프롬프트에 말투 줄이 안 붙는다', () => {
+  assert.equal(V.voiceOf('그런-커플-없음', 'client'), null);
+});
