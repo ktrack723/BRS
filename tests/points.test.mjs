@@ -84,24 +84,28 @@ test('러브 ▲ 한 번의 폭은 1~4칸 사이다', () => {
 });
 
 test('연속은 ▼나 ─ 하나로 끊긴다', () => {
+  // 자리 온도를 안 건드리므로 밴드 보너스는 세 번 다 같다. 갈리는 건 연속뿐이다.
   let s = PT.initialPoints();
-  s = PT.applyVerdict(s, { mood: 'same', love: 'up' });    // 1연속 → +1
-  s = PT.applyVerdict(s, { mood: 'same', love: 'up' });    // 2연속 → +2
-  assert.equal(s.history.at(-1).step, 2);
+  s = PT.applyVerdict(s, { mood: 'same', love: 'up' });    // 1연속
+  const first = s.history.at(-1).step;
+  s = PT.applyVerdict(s, { mood: 'same', love: 'up' });    // 2연속 — 더 커져야 한다
+  assert.ok(s.history.at(-1).step > first, '연속인데 폭이 안 커졌다');
   s = PT.applyVerdict(s, { mood: 'same', love: 'same' });  // 끊김
-  s = PT.applyVerdict(s, { mood: 'same', love: 'up' });    // 다시 1연속 → +1
-  assert.equal(s.history.at(-1).step, 1);
+  s = PT.applyVerdict(s, { mood: 'same', love: 'up' });    // 다시 1연속
+  assert.equal(s.history.at(-1).step, first, '연속이 안 끊겼다');
 });
 
 test('같은 ▲ 개수라도 언제 어디서 났는지에 따라 갈린다', () => {
   const play = seq => seq.reduce((s, v) => PT.applyVerdict(s, v), PT.initialPoints());
-  const M = n => Array.from({ length: n }, () => ({ mood: 'up', love: 'same' }));
+  const D = n => Array.from({ length: n }, () => ({ mood: 'down', love: 'same' }));
   const L = n => Array.from({ length: n }, () => ({ mood: 'same', love: 'up' }));
   const gap = { mood: 'same', love: 'same' };
 
-  const scattered = play([L(1), [gap], L(1), [gap], L(1)].flat());        // ▲3 산발 · 미지근
-  const streak = play([L(3)].flat());                                     // ▲3 연속 · 미지근
-  const hotStreak = play([M(3), L(3)].flat());                            // ▲3 연속 · 달아오름
+  // 시작값이 곧 달아오름선이라 「미지근」을 만들려면 자리를 한 칸 식혀야 한다.
+  const cool = D(PT.POINTS.moodStart - PT.POINTS.moodHot + 1);
+  const scattered = play([cool, L(1), [gap], L(1), [gap], L(1)].flat());  // ▲3 산발 · 미지근
+  const streak = play([cool, L(3)].flat());                               // ▲3 연속 · 미지근
+  const hotStreak = play([L(3)].flat());                                  // ▲3 연속 · 달아오름
 
   assert.ok(scattered.love < streak.love, '연속이 산발보다 크지 않다');
   assert.ok(streak.love < hotStreak.love, '뜨거운 자리가 미지근한 자리보다 크지 않다');
@@ -136,14 +140,15 @@ test('눈금은 셀 수 있는 크기다 — 한 걸음이 1이고 최대치가 
   assert.equal(PT.POINTS.loveStep, 1);
   assert.ok(PT.POINTS.moodMax <= 20 && PT.POINTS.loveMax <= 20,
     '0..100으로 되돌아갔다 — 한 걸음이 1인데 최대치가 100이면 눈금이 거짓말을 한다');
-  assert.equal(PT.POINTS.moodStart * 2, PT.POINTS.moodMax, '무드는 한가운데서 시작한다');
+  assert.ok(PT.POINTS.moodStart > PT.POINTS.moodMax / 2,
+    '자리는 절반 위에서 시작한다 — 처음엔 견딜 만하고 방치하면 식는다');
 });
 
-test('무드는 다섯 걸음이면 바닥난다', () => {
+test('무드는 시작값만큼 내려가면 바닥난다 — 한 걸음이 1이므로', () => {
   let s = PT.initialPoints();
   let n = 0;
   while (!PT.isBroken(s)) { s = PT.applyVerdict(s, { mood: 'down', love: 'same' }); n++; }
-  assert.equal(n, 5);
+  assert.equal(n, PT.POINTS.moodStart);
 });
 
 test('C에 넘길 때만 0..100으로 되돌린다 — 프롬프트의 눈금은 그대로다', () => {
