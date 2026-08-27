@@ -12,6 +12,7 @@
 import http from 'node:http';
 import { createRequire } from 'node:module';
 import { resolveTestModel, resolveTestKey } from './test-model.mjs';
+import { POINTS } from '../js/points.js';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -301,8 +302,9 @@ try {
   await page.waitForFunction(() => !document.querySelector('#btn-restart').classList.contains('hidden'),
     null, { timeout: ms(300000) });
   const r = await page.evaluate(() => window.__game.state.result);
-  check('러브 포인트가 0~100 안에 있다', r.love >= 0 && r.love <= 100, `러브 ${r.love}`);
-  check('무드 포인트가 0~100 안에 있다', r.mood >= 0 && r.mood <= 100, `무드 ${r.mood}`);
+  check(`러브 포인트가 0~${POINTS.loveMax} 안에 있다`, r.love >= 0 && r.love <= POINTS.loveMax, `러브 ${r.love}`);
+  check(`무드 포인트가 0~${POINTS.moodMax} 안에 있다`, r.mood >= 0 && r.mood <= POINTS.moodMax, `무드 ${r.mood}`);
+  check('C에 넘어간 러브 눈금은 0~100이다', r.reading >= 0 && r.reading <= 100, `환산 ${r.reading}`);
   check('성사 여부가 불리언으로 확정된다', typeof r.success === 'boolean', String(r.success));
   check('후일담 텍스트가 왔다', (r.epilogue || '').length > 20);
   const epi = await page.textContent('#result-epilogue');
