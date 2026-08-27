@@ -31,6 +31,7 @@
 // 새로 드러난 것 — 전부 폐지됐고, 되살리지 않는다.
 
 import { BEAT } from './points.js';
+import { voiceOf } from './voices.js';
 
 // 출력 언어 고정. 블록마다 반복한다. 한 번만 넣으면 뒤쪽 출력에서 새어나간다.
 const KO = 'Write your output in Korean. Every word of it. No English in the output.';
@@ -93,20 +94,26 @@ const list = (v) => (Array.isArray(v) ? v.join(' / ') : String(v || ''));
 
 // 고객 시트. 외모·성격은 **스타일링/동기부여를 거친 것**이 들어간다 (dressed).
 // 스타일링을 안 했으면 dressed가 테이블 값을 그대로 들고 있다 (engine.js의 dressOf).
-function clientSheet(c, dressed) {
+// 말투는 인물에 붙은 데이터다 (js/voices.js). 배정이 없는 인물은 이 줄이 통째로 빠진다.
+const voiceLine = (coupleId, side) => {
+  const v = voiceOf(coupleId, side);
+  return v ? `\n· Voice — 「${v.label}」: ${v.text.replace(/\n/g, ' ')}` : '';
+};
+
+function clientSheet(c, dressed, coupleId) {
   return `${c.name} (${idOf(c)})
 · Look: ${dressed.look}
 · Personality: ${dressed.personality}
 · Upbringing: ${list(c.upbringing)}
-· Why they fell for the target: ${c.fell}`;
+· Why they fell for the target: ${c.fell}${voiceLine(coupleId, 'client')}`;
 }
 
-function targetSheet(t) {
+function targetSheet(t, coupleId) {
   return `${t.name} (${idOf(t)})
 · Look: ${list(t.look)}
 · Personality: ${list(t.personality)}
 · Upbringing: ${list(t.upbringing)}
-· Taste: ${list(t.taste)}`;
+· Taste: ${list(t.taste)}${voiceLine(coupleId, 'target')}`;
 }
 
 // ── A. 스타일링 / 동기부여 ──────────────────────────────────────
@@ -306,14 +313,17 @@ them and you are not a narrator — you are the log. Nothing exists here but wha
 
 [THE CLIENT IS BAD AT THIS — THIS IS THE BASELINE, NOT A QUIRK]
 The client poured an entire life into one thing and none of it into sitting across from a
-person. They are socially inept and it shows in the first line, not the fifth: they answer
-the wrong half of the question, keep going three sentences past the point the target stopped
-listening, drop the thing they rehearsed at the worst possible moment, or say nothing and
-let it rot. **The client cannot read the target.** They guess what the target is thinking
-and the guess is wrong. A pause reads to them as interest or as catastrophe and they pick
+person. **The client cannot read the target.** They guess what the target is thinking and
+the guess is wrong. A pause reads to them as interest or as catastrophe and they pick
 wrong. They mistake politeness for warmth and boredom for hostility, and act on it.
-Wanting it this badly makes them worse at it, not better. The want leaks out as pressure,
-oversharing, or a joke nobody asked for.
+Wanting it this badly makes them worse at it, not better.
+
+Pitch this at the top of the register: the kind of social failure that makes a reader put
+the page down. **These are grown adults**, and that is exactly what makes it unwatchable
+instead of cute — a person this old failing this hard at one conversation is not endearing,
+it is a room everyone else wants to leave. Never soften it into charming shyness. Never let
+the awkwardness quietly work in their favour. The client is an adult and must read as one;
+the cringe is an adult's cringe, never a child's.
 
 [THESE TWO DO NOT FIT AND NOTHING FIXES THAT BY ITSELF]
 The sheets below were picked because these two could not possibly end up together — opposite
@@ -325,10 +335,10 @@ Never quietly hand the client a competence their sheet does not give them just t
 scene moving. If it should die, let it die on the table.
 
 [CLIENT]
-${clientSheet(c, dressed)}
+${clientSheet(c, dressed, couple.id)}
 
 [TARGET]
-${targetSheet(t)}
+${targetSheet(t, couple.id)}
 
 [HQ COACHING — went into the client's ear only]
 ${orders ? `"""
@@ -348,6 +358,12 @@ into the right move by luck.`}
 · Write the next lines only. Continue from exactly where the log stops; never restate it.
 · Alternate sides. Each line is one person saying one thing — a person's length, not an
   essay. Some lines are two words.
+· **Write the Voice, not textbook Korean.** Both sheets carry a Voice; that register is how
+  that person actually talks and it has to be audible in every line they say. Do not flatten
+  the two of them into the same clean, complete, evenly-polite sentences — that is the one
+  failure that makes 47 different pairs read like the same two people. Broken syntax, a
+  sentence trailing off, the wrong register for the room, talking over each other, a word
+  repeated because they could not think of another one: all correct.
 · Play both sheets all the way down. The client wants this to work and the wanting comes
   out wrong; the target did not ask to be here and owes them nothing. Neither is written to
   be liked, and neither is a mind reader — they know about each other only what the other
@@ -401,7 +417,7 @@ who was reasonable, who deserved what — irrelevant. There is exactly one sheet
 and it is theirs.
 
 [TARGET]
-${targetSheet(t)}
+${targetSheet(t, couple.id)}
 
 [WHAT THE CLIENT SHOWED UP LOOKING LIKE]
 ${dressed.look}
