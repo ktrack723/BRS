@@ -148,7 +148,7 @@ test('C는 외모도 취향도 성장환경도 보지 않는다', () => {
 
 test('러브 포인트는 C에만 간다 — 대화하는 쪽도 심판도 점수를 모른다', () => {
   // 라벨을 영어로 옮겼으므로 두 표기를 다 막는다. 한쪽만 보면 통과가 공허해진다.
-  const POINTS_WORD = /러브 포인트|무드 포인트|\bLOVE\b|\bMOOD\b/;
+  const POINTS_WORD = /러브 포인트|무드 포인트|\blove\b|\bmood\b|love[- ]point|mood[- ]point/i;
   assert.ok(!POINTS_WORD.test(B1), 'B-1이 점수 축을 안다');
   assert.ok(!/\b77\b/.test(B1), 'B-1에 점수가 새어 들어갔다');
   assert.ok(POINTS_WORD.test(B2), 'B-2가 판정할 축의 이름을 모른다');
@@ -156,15 +156,22 @@ test('러브 포인트는 C에만 간다 — 대화하는 쪽도 심판도 점�
 });
 
 // ── 폐지된 축이 프롬프트로 되살아나지 않았는가 ──────────
-test('폐지된 시스템 용어가 프롬프트에 없다', () => {
-  const all = A + B1 + B2 + C + P.WORLD;
+test('폐지된 시스템 용어가 프롬프트에 없다 — 한글 이름도 영어 이름도', () => {
+  // 스키마도 프롬프트다 (구조화 출력이 막히면 시스템 프롬프트에 통째로 붙는다).
+  const all = [A, B1, B2, C, R, P.WORLD,
+    ...['STYLING', 'MOTIVATION', 'TALK', 'JUDGE', 'EPILOGUE', 'REACT']
+      .map(k => JSON.stringify(P[`${k}_SCHEMA`]))].join('\n');
+  // 한글 이름만 막아두면 영어로 되살아나는 것을 못 잡는다. 둘 다 적는다.
   const DEAD = [
-    '지뢰', '무전', '강압', '어긋남', '공기 읽기', '미공개', '성공선', '난이도',
-    'leverage', 'walkout', 'casualty', 'breakthrough', 'carryMax', 'loveDelta', 'keepGoing',
-    'firstImpression', 'outfitDesc',
+    /지뢰/, /\blandmines?\b/i, /미공개/, /\bundisclosed\b/i, /hidden pref/i,
+    /무전/, /\bradio\b/i, /강압/, /\bcoerc/i, /\bleverage\b/i,
+    /어긋남/, /\bwreck\b/i, /공기 읽기/, /read the room/i, /sense the air/i,
+    /성공선/, /success line/i, /난이도/, /\bdifficulty\b/i,
+    /\bwalkout\b/i, /\bcasualt/i, /\bbreakthrough\b/i, /\bvibe\b/i,
+    /carryMax/, /loveDelta/, /keepGoing/, /firstImpression/, /outfitDesc/,
   ];
-  for (const w of DEAD) {
-    assert.ok(!all.includes(w), `폐지된 「${w}」가 프롬프트에 남아 있다`);
+  for (const re of DEAD) {
+    assert.ok(!re.test(all), `폐지된 「${re.source}」가 프롬프트에 남아 있다`);
   }
 });
 
@@ -183,6 +190,9 @@ test('R은 고객의 **테이블** 시트만 받는다 — 시공된 시트가 �
   for (const k of ['clook', 'cpers', 'cup']) {
     assert.ok(has(R, M[k]), `R에 고객 ${k}가 없다`);
   }
+  // 부정 단언만 두면 공허하다 — reactSystem 이 애초에 시공물을 받을 자리가 없어야 한다.
+  assert.equal(P.reactSystem.length, 2, 'reactSystem이 인자를 더 받는다 — 시공된 시트가 들어올 자리가 생겼다');
+  assert.equal(P.reactUser.length, 2, 'reactUser가 인자를 더 받는다');
   assert.ok(!has(R, M.dlook), 'R에 시공된 외모가 새어 들어갔다 — 반응은 시공 전에 나온다');
   assert.ok(!has(R, M.dpers), 'R에 동기부여된 성격이 새어 들어갔다');
 });
@@ -228,9 +238,15 @@ test('다섯 프롬프트의 지시문에 한글이 한 글자도 없다', () =>
     'A-2(주문없음)': P.motivationUser(ascii, ''),
     'B-1': P.talkSystem(ascii, d, 'z') + P.talkUser(ascii, 'text', 1, 4) + P.talkUser(ascii, 'talk', 2, 5),
     'B-1(코칭없음)': P.talkSystem(ascii, d, ''),
+    'B-1(마지막 구간)': P.talkUser(ascii, 'talk', 4, 4),
     'B-2': P.judgeSystem(ascii, d) + P.judgeUser(ascii, '', 'seg'),
+    'B-2(앞대화 있음)': P.judgeUser(ascii, 'prior', 'seg'),
     C: P.epilogueSystem(ascii, d) + P.epilogueUser(ascii, 77, 'log'),
     R: Object.keys(P.REACT_ROOMS).map(k => P.reactSystem(ascii, k) + P.reactUser(k, 'q')).join(''),
+    'R(주문없음)': Object.keys(P.REACT_ROOMS).map(k => P.reactUser(k, '')).join(''),
+    // 스키마도 모형에게 간다 — 구조화 출력이 막히면 시스템 프롬프트에 통째로 붙는다.
+    스키마: ['STYLING', 'MOTIVATION', 'TALK', 'JUDGE', 'EPILOGUE', 'REACT']
+      .map(k => JSON.stringify(P[`${k}_SCHEMA`])).join(''),
   };
   for (const [name, text] of Object.entries(built)) {
     // 한글 전 영역 — 조합 자모 · 호환 자모 · 확장 A · 음절 · 반각까지 전부 본다.

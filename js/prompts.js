@@ -146,7 +146,7 @@ const PROP_SCHEMA = {
     size: { type: 'number', description: '0.05-1.2. Head is 0.55' },
     at: { type: 'string', enum: PROP_SLOTS },
     motion: { type: 'string', enum: PROP_MOTIONS },
-    label: { type: 'string', description: 'One Korean word, e.g. 폭탄 / 후광' },
+    label: { type: 'string', description: 'One word, written in Korean. e.g. a bomb, a halo' },
   },
   required: ['shape', 'color', 'size', 'at', 'motion', 'label'],
   additionalProperties: false,
