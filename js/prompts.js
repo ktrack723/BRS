@@ -292,7 +292,7 @@ export const PHASE_SCENE = {
   },
   talk: {
     label: '토킹',
-    open: (c, t) => `[TALKING] The texting got them into the same room. ${c.name} and ${t.name} are sitting across from each other now, in whatever place the texting settled on. ${t.name} can see exactly what ${c.name} showed up wearing.`,
+    open: (c, t) => `[TALKING] The texting is over and ${c.name} and ${t.name} are now across a table from each other. **The texting did not necessarily go well** — whatever it actually was (a disaster, a slog, a grudging yes) is what both of them carry into this room. Read the log and start from there; do not reset to a clean slate or act as if meeting up means anything was settled. ${t.name} can see exactly what ${c.name} showed up wearing.`,
   },
 };
 
@@ -303,6 +303,26 @@ export function talkSystem(couple, dressed, coaching) {
 
 You write the conversation between these two people. **Both voices.** You are not either of
 them and you are not a narrator — you are the log. Nothing exists here but what they say.
+
+[THE CLIENT IS BAD AT THIS — THIS IS THE BASELINE, NOT A QUIRK]
+The client poured an entire life into one thing and none of it into sitting across from a
+person. They are socially inept and it shows in the first line, not the fifth: they answer
+the wrong half of the question, keep going three sentences past the point the target stopped
+listening, drop the thing they rehearsed at the worst possible moment, or say nothing and
+let it rot. **The client cannot read the target.** They guess what the target is thinking
+and the guess is wrong. A pause reads to them as interest or as catastrophe and they pick
+wrong. They mistake politeness for warmth and boredom for hostility, and act on it.
+Wanting it this badly makes them worse at it, not better. The want leaks out as pressure,
+oversharing, or a joke nobody asked for.
+
+[THESE TWO DO NOT FIT AND NOTHING FIXES THAT BY ITSELF]
+The sheets below were picked because these two could not possibly end up together — opposite
+temperaments, opposite lives, opposite reasons for being in the room. Left alone, that
+mismatch **is** the scene: it stalls, it curdles, it goes quiet, somebody checks their phone.
+**With no order from headquarters, this conversation fails.** It stays awkward or it breaks.
+That is the correct outcome of a client sent in with nothing, and you must write it that way.
+Never quietly hand the client a competence their sheet does not give them just to keep the
+scene moving. If it should die, let it die on the table.
 
 [CLIENT]
 ${clientSheet(c, dressed)}
@@ -317,15 +337,22 @@ ${orders}
 An order from headquarters, not advice. The client carries it out — grumbling, badly, or
 straight, but carries it out. Where the coaching says nothing, the client acts on their own
 sheet. The target never heard a word of it and must never react as if they had.`
-    : `(none — nobody briefed the client. They walk in cold, on their own sheet alone.)`}
+    : `(none — nobody briefed the client. They walk in cold, on their own sheet alone.)
+No orders came. The client carries nothing but the sheet above — which is the exact thing
+that has never once worked for them. They do not improvise their way out of it. Write what
+an unprepared, socially inept person actually does in this room: the wrong opener, the
+silence they cannot fill, the subject they should not have raised. Do not let them stumble
+into the right move by luck.`}
 
 [HOW TO WRITE IT]
 · Write the next lines only. Continue from exactly where the log stops; never restate it.
 · Alternate sides. Each line is one person saying one thing — a person's length, not an
   essay. Some lines are two words.
-· Play both sheets all the way down. The client wants this to work and it shows; the
-  target did not ask to be here. Neither is written to be liked, and neither is a mind reader — they know
-  about each other only what the other has said out loud so far, plus what they can see.
+· Play both sheets all the way down. The client wants this to work and the wanting comes
+  out wrong; the target did not ask to be here and owes them nothing. Neither is written to
+  be liked, and neither is a mind reader — they know about each other only what the other
+  has said out loud so far, plus what they can see. The target has no reason to help the
+  scene along.
 · Nobody here is trying to have a good conversation. They are each after their own thing.
   Let it go wrong. Let it go somewhere neither planned. That is the game working.
 · No stage directions between lines, no scores, no summaries, no ending the scene on
