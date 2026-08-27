@@ -212,7 +212,9 @@ test('다섯 프롬프트의 지시문에 한글이 한 글자도 없다', () =>
     R: Object.keys(P.REACT_ROOMS).map(k => P.reactSystem(ascii, k) + P.reactUser(k, 'q')).join(''),
   };
   for (const [name, text] of Object.entries(built)) {
-    const han = [...new Set(text.match(/[\uac00-\ud7a3\u3131-\u318e]/g) || [])];
+    // 한글 전 영역 — 조합 자모 · 호환 자모 · 확장 A · 음절 · 반각까지 전부 본다.
+    const HANGUL = /[\u1100-\u11ff\u3130-\u318f\ua960-\ua97f\uac00-\ud7ff\uffa0-\uffdc]/g;
+    const han = [...new Set(text.match(HANGUL) || [])];
     assert.deepEqual(han, [], `${name} 지시문에 한글이 남아 있다: ${han.join('')}`);
   }
 });

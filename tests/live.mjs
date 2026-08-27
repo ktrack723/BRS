@@ -52,11 +52,11 @@ const AGENT_SCHEMA = {
 
 function screeningText(c) {
   const rows = (who, person) => P.SCREEN_FIELDS[who]
-    .map(f => `  · ${f.label}: ${Array.isArray(person[f.key]) ? person[f.key].join(' / ') : person[f.key]}`)
+    .map(f => `  · ${f.en}: ${Array.isArray(person[f.key]) ? person[f.key].join(' / ') : person[f.key]}`)
     .join('\n');
-  return `[고객] ${c.client.name} (${P.idOf(c.client)})
+  return `[CLIENT] ${c.client.name} (${P.idOf(c.client)})
 ${rows('client', c.client)}
-[타겟] ${c.target.name} (${P.idOf(c.target)})
+[TARGET] ${c.target.name} (${P.idOf(c.target)})
 ${rows('target', c.target)}`;
 }
 

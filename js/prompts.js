@@ -68,18 +68,19 @@ far as you like.`;
 // ── S. 스크리닝 시 노출 정보 ────────────────────────────────────
 // 화면(game.js)과 프롬프트(아래 시트 빌더)가 **같은 목록**을 본다.
 // 요원이 스크리닝에서 읽은 것이 곧 대화 프롬프트에 실리는 것이다. 숨긴 항목은 없다.
+// label 은 화면에 뜨는 이름, en 은 프롬프트로 나가는 이름이다. 한 목록이 둘 다 들고 있다.
 export const SCREEN_FIELDS = {
   client: [
-    { key: 'look', label: '고객 외모' },
-    { key: 'personality', label: '고객 성격' },
-    { key: 'upbringing', label: '고객 성장환경' },
-    { key: 'fell', label: '고객이 반한 이유' },
+    { key: 'look', label: '고객 외모', en: 'Client look' },
+    { key: 'personality', label: '고객 성격', en: 'Client personality' },
+    { key: 'upbringing', label: '고객 성장환경', en: 'Client upbringing' },
+    { key: 'fell', label: '고객이 반한 이유', en: 'Why the client fell for the target' },
   ],
   target: [
-    { key: 'look', label: '타겟 외모' },
-    { key: 'personality', label: '타겟 성격' },
-    { key: 'upbringing', label: '타겟 성장환경' },
-    { key: 'taste', label: '타겟 취향' },
+    { key: 'look', label: '타겟 외모', en: 'Target look' },
+    { key: 'personality', label: '타겟 성격', en: 'Target personality' },
+    { key: 'upbringing', label: '타겟 성장환경', en: 'Target upbringing' },
+    { key: 'taste', label: '타겟 취향', en: 'Target taste' },
   ],
 };
 

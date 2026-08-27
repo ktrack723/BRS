@@ -23,6 +23,7 @@ chk "요원이 쓰는 곳은 셋이다 (스타일링·동기부여·코칭)" "gr
 echo
 echo "── S · 스크리닝: 여덟 항목이 전부고, 감춘 게 없다 ──"
 chk "노출 목록의 원본이 prompts.js 한 곳이다" "grep -q 'export const SCREEN_FIELDS' js/prompts.js && grep -q 'P.SCREEN_FIELDS\[which\]' js/game.js"
+chk "노출 목록이 화면 라벨과 프롬프트 라벨을 따로 들고 있다" "node -e \"import('./js/prompts.js').then(m=>process.exit([...m.SCREEN_FIELDS.client,...m.SCREEN_FIELDS.target].every(f=>f.label&&f.en&&!/[\\uac00-\\ud7a3]/.test(f.en))?0:1))\""
 chk "고객은 외모·성격·성장환경·반한 이유" "node -e \"import('./js/prompts.js').then(m=>process.exit(m.SCREEN_FIELDS.client.map(f=>f.key).join()==='look,personality,upbringing,fell'?0:1))\""
 chk "타겟은 외모·성격·성장환경·취향" "node -e \"import('./js/prompts.js').then(m=>process.exit(m.SCREEN_FIELDS.target.map(f=>f.key).join()==='look,personality,upbringing,taste'?0:1))\""
 chk "인물 스키마가 일곱 필드로 닫혀 있다 (노출 넷 + 이름·성별·조형)" "grep -q \"CLIENT_FIELDS = new Set(\\['name', 'gender', 'look', 'personality', 'upbringing', 'fell', 'spec'\\])\" js/couples.js"
