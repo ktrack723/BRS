@@ -445,7 +445,9 @@ function renderReaction(kind, sel) {
     return;
   }
   el.innerHTML = `<div class="react-line"><span class="react-who">${escapeHtml(state.couple.client.name)}
-    <small>· ${escapeHtml(P.REACT_ROOMS[kind].room)}</small></span>${escapeHtml(r.reaction)}</div>`;
+    <small>· ${escapeHtml(P.REACT_ROOMS[kind].room)}</small></span>${escapeHtml(r.reaction)}</div>`
+    + (r.text === state.orders[kind].trim() ? ''
+      : `<p class="dim small">주문이 그 뒤로 바뀌었다 — 이건 <b>이전 주문</b>에 대한 대꾸다.</p>`);
 }
 
 async function reactTo(kind, { input, box, viewer }) {
@@ -537,30 +539,49 @@ function renderSheetOut(sel, kind) {
       : `<p class="dim small">이 문단이 그대로 대화 프롬프트의 고객 시트에 들어간다. 캐시되어 판이 끝날 때까지 유지된다.</p>`);
 }
 
-// 주문 하나 = 반응 하나 + 시공 하나. 둘은 서로를 안 보므로 같이 보낸다.
+// 준비 화면의 버튼은 한 번에 하나만 돈다. 대기막은 포인터를 막지 키보드를 막지 않는다 —
+// 초점이 버튼에 있으면 엔터로 얼마든지 또 누를 수 있다.
+let prepBusy = false;
+const oncePerPress = fn => async () => {
+  if (prepBusy) return;
+  prepBusy = true;
+  try { return await fn(); } finally { prepBusy = false; }
+};
+
+// 주문 하나 = 반응 하나 + 시공 하나. 둘은 서로를 안 보므로 같이 보내고,
+// **둘 다 끝난 뒤에** 그린다. 하나가 엎어졌다고 성공한 쪽까지 안 그리면 안 된다.
 function orderHandler(kind, { input, box, out, viewer }) {
-  return async () => {
+  return oncePerPress(async () => {
     sfx.click();
-    try {
-      await Promise.all([
-        reactTo(kind, { input, box, viewer: viewer() }),
-        syncSheet(kind, viewer()),
-      ]);
-    } catch (e) { toast(errMsg(e)); }
+    const done = await Promise.allSettled([
+      reactTo(kind, { input, box, viewer: viewer() }),
+      syncSheet(kind, viewer()),
+    ]);
+    renderReaction(kind, box);
     renderSheetOut(out, kind);
-  };
+    const failed = done.find(r => r.status === 'rejected');
+    if (failed) toast(errMsg(failed.reason));
+  });
 }
 
 // 넘어갈 때 시공이 밀려 있으면 조용히 흘리지 않고 한 번 돌린다.
+// 다만 회선이 죽었다고 화면에 가둬두지는 않는다 — 한 번 더 누르면 그대로 내보낸다.
 function nextHandler(kind, { out, viewer, go }) {
-  return async () => {
+  let forced = false;
+  return oncePerPress(async () => {
     sfx.click();
-    if (stale(kind)) {
-      try { await syncSheet(kind, viewer()); } catch (e) { return toast(errMsg(e)); }
+    if (stale(kind) && !forced) {
+      try { await syncSheet(kind, viewer()); }
+      catch (e) {
+        forced = true;
+        renderSheetOut(out, kind);
+        return toast(`${errMsg(e)} — 한 번 더 누르면 시공 없이 넘어간다.`);
+      }
       renderSheetOut(out, kind);
     }
+    forced = false;
     go();
-  };
+  });
 }
 
 // ── A-1. 미용실 · 스타일링 (고객 외모) ──────────────────
@@ -580,6 +601,7 @@ function gotoStyling() {
 
   $('#styling-input').oninput = e => {
     state.orders.styling = e.target.value;
+    renderReaction('styling', '#styling-react');
     renderSheetOut('#styling-result', 'styling');
   };
   const viewer = () => stylingViewer;
@@ -609,6 +631,7 @@ function gotoMotivation() {
 
   $('#motivation-input').oninput = e => {
     state.orders.motivation = e.target.value;
+    renderReaction('motivation', '#motivation-react');
     renderSheetOut('#motivation-result', 'motivation');
   };
   const viewer = () => motivationViewer;
@@ -643,17 +666,19 @@ function gotoCoaching() {
       ? `<span class="inject-label">고객 프롬프트에 이렇게 박힌다 · ${t.length}자</span>`
         + `<code class="inject-code">[본부 코칭 — 고객의 귀에만 들어갔다]\n"""\n${escapeHtml(t)}\n"""</code>`
       : `<span class="inject-empty">코칭 없음 → 고객은 <b>아무 준비 없이</b> 제 시트대로만 움직인다</span>`;
+    renderReaction('coaching', '#coaching-react');
   };
   $('#coaching-input').oninput = sync;
   sync();
 
   renderReaction('coaching', '#coaching-react');
-  $('#btn-coaching').onclick = async () => {
+  $('#btn-coaching').onclick = oncePerPress(async () => {
     sfx.click();
     state.orders.coaching = $('#coaching-input').value;
     try { await reactTo('coaching', { input: '#coaching-input', box: '#coaching-react', viewer: coachingViewer }); }
     catch (e) { toast(errMsg(e)); }
-  };
+    renderReaction('coaching', '#coaching-react');
+  });
   $('#btn-coaching-back').onclick = () => { sfx.click(); gotoMotivation(); };
   $('#btn-start-op').onclick = () => { sfx.stamp(); startOperation(); };
 }
