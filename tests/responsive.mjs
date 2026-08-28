@@ -357,7 +357,7 @@ const show = async (name) => {
     const dm = document.querySelector('#modal-dossier');
     if (isModal) {
       // 실제 경로 그대로 연다 — 마크업을 손으로 흉내 내면 회귀를 못 잡는다
-      const t = window.__game.COUPLES.find(c => c.id === 'gender-war') || window.__game.COUPLES[0];
+      const t = window.__game.COUPLES.find(c => c.id === 'smoke-quit') || window.__game.COUPLES[0];
       [...document.querySelectorAll('.couple-card')]
         .find(el => el.textContent.includes(t.client.name))?.querySelector('.cc-detail')?.click();
     } else if (dm) dm.classList.add('hidden');

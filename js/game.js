@@ -22,6 +22,9 @@ import { initBoot } from './boot.js';
 
 const llm = new LlmClient();
 
+// 스크리닝에서 열리는 항목 수. 손으로 박아두면 항목이 폐지될 때 화면만 거짓말한다.
+const SCREEN_COUNT = P.SCREEN_FIELDS.client.length + P.SCREEN_FIELDS.target.length;
+
 const state = {
   screen: 'boot',
   agent: { name: '' },
@@ -116,7 +119,7 @@ function renderRosterCards() {
       </div>
       <ul class="cc-meta">
         <li>타겟 취향 <b>${c.target.taste.length}</b>항</li>
-        <li>노출 항목 <b>8</b>/8</li>
+        <li>노출 항목 <b>${SCREEN_COUNT}</b>/${SCREEN_COUNT}</li>
       </ul>
       <div class="cc-btns">
         <button class="btn95 tiny cc-detail" type="button">스크리닝</button>
@@ -128,7 +131,7 @@ function renderRosterCards() {
   }
 }
 
-// 스크리닝 시 노출 정보 — 여덟 항목. 목록의 원본은 prompts.js의 SCREEN_FIELDS다.
+// 스크리닝 시 노출 정보 — 일곱 항목. 목록의 원본은 prompts.js의 SCREEN_FIELDS다.
 function fieldRows(person, which) {
   return P.SCREEN_FIELDS[which].map(f =>
     `<p><b>${escapeHtml(f.label)}:</b> ${escapeHtml(list(person[f.key]))}</p>`).join('');
@@ -147,7 +150,7 @@ function dossierHtml(c, { full = false } = {}) {
         ${fieldRows(c.target, 'target')}
       </div>
     </div>
-    <p class="handoff-warn">이 여덟 항목이 <b>노출 정보의 전부</b>다. 뒤에 숨겨둔 항목은 없다.
+    <p class="handoff-warn">이 일곱 항목이 <b>노출 정보의 전부</b>다. 뒤에 숨겨둔 항목은 없다.
       다만 <b>타겟 취향은 고객이 모른다</b> — 노리게 하려면 코칭에 직접 적어야 한다.</p>
     ${full ? `<div class="modal-btns"><button class="btn95 big" id="dossier-take">이 조합을 맡는다</button><button class="btn95" id="dossier-close">닫기</button></div>` : ''}`;
 }

@@ -25,7 +25,7 @@ chk "출격 전 요원이 쓰는 곳은 셋이다 (스타일링·동기부여·�
 chk "판 도중 쓰는 곳은 무전 하나다" "node -e \"import('./js/points.js').then(m=>process.exit(Object.keys(m.RADIO).join()==='perPhase'?0:1))\""
 
 echo
-echo "── S · 스크리닝: 여덟 항목이 전부고, 감춘 게 없다 ──"
+echo "── S · 스크리닝: 일곱 항목이 전부고, 감춘 게 없다 ──"
 chk "노출 목록의 원본이 prompts.js 한 곳이다" "grep -q 'export const SCREEN_FIELDS' js/prompts.js && grep -q 'P.SCREEN_FIELDS\[which\]' js/game.js"
 chk "노출 목록이 화면 라벨과 프롬프트 라벨을 **다르게** 들고 있다" "node -e \"import('./js/prompts.js').then(m=>process.exit([...m.SCREEN_FIELDS.client,...m.SCREEN_FIELDS.target].every(f=>f.label&&f.en&&f.label!==f.en&&!/[\\\\u1100-\\\\u11ff\\\\u3130-\\\\u318f\\\\ua960-\\\\ua97f\\\\uac00-\\\\ud7ff\\\\uffa0-\\\\uffdc]/.test(f.en))?0:1))\""
 chk "고객은 외모·성격·성장환경 셋뿐 — 반한 이유는 폐지" "node -e \"import('./js/prompts.js').then(m=>process.exit(m.SCREEN_FIELDS.client.map(f=>f.key).join()==='look,personality,upbringing'?0:1))\""
@@ -129,7 +129,7 @@ chk "시공은 칸마다 한 호출이다 — 미용실과 취조실이 따로 �
 chk "지운 주문도 어긋난 것으로 본다 (되돌릴 자리가 있다)" "grep -q 'function clearSheet' js/game.js && grep -q 'state.styledFrom[[]kind[]] !== state.orders[[]kind[]].trim()' js/game.js"
 chk "판정 원장에 증감 기호만 뜬다" "grep -q 'MARK\\[v.dMood\\]' js/game.js && ! grep -q 'judge-line' js/game.js"
 chk "계기판에 게이지가 둘뿐이다" "grep -c 'class=\"meter\"' index.html | grep -q '^2$'"
-chk "스크리닝 상세가 여덟 항목을 그린다" "grep -q 'fieldRows(c.client, .client.)' js/game.js && grep -q 'fieldRows(c.target, .target.)' js/game.js"
+chk "스크리닝 상세가 노출 항목을 그린다" "grep -q 'fieldRows(c.client, .client.)' js/game.js && grep -q 'fieldRows(c.target, .target.)' js/game.js"
 
 
 echo
