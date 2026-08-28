@@ -388,7 +388,7 @@ function gotoCoaching() {
     const el = $('#coaching-inject');
     el.innerHTML = t
       ? `<span class="inject-label">고객 프롬프트에 이렇게 박힌다 · ${t.length}자</span>`
-        + `<code class="inject-code">[Q 기관 코칭 — 고객의 귀에만 들어갔다]\n"""\n${escapeHtml(t)}\n"""</code>`
+        + `<code class="inject-code">[L 기관 코칭 — 고객의 귀에만 들어갔다]\n"""\n${escapeHtml(t)}\n"""</code>`
       : `<span class="inject-empty">코칭 없음 → 고객은 <b>아무 준비 없이</b> 제 시트대로만 움직인다</span>`;
     renderReaction('coaching', '#coaching-react');
   };
@@ -481,7 +481,7 @@ const LEVER_UI = {
     input: '#radio-input', send: '#btn-radio-send', who: '무전',
     empty: '무전 내용이 비었다. 적어서 보내거나 취소하라.',
     label: left => (left ? '무전 송출 — 회선 재개' : `📻 무전 소진 · 이 페이즈 배급 없음`),
-    cut: order => `📻 Q 기관 무전 · 고객 이어폰 직결 — "${order}" <b>(반드시 이행)</b>. 타겟은 듣지 못했다.`,
+    cut: order => `📻 L 기관 무전 · 고객 이어폰 직결 — "${order}" <b>(반드시 이행)</b>. 타겟은 듣지 못했다.`,
   },
   field: {
     input: '#field-input', send: '#btn-field-send', who: '현장',
@@ -525,7 +525,7 @@ function syncRadioInject() {
   const t = $('#radio-input').value.trim();
   $('#radio-inject').innerHTML = t
     ? `<span class="inject-label">고객 프롬프트에 이렇게 박힌다 · ${t.length}자</span>`
-      + `<code class="inject-code">[Q 기관 무전 — 방금 고객의 이어폰에 꽂혔다. 타겟은 듣지 못했다]\n"""\n${escapeHtml(t)}\n"""\n→ 반드시 이행. 거부·보류·희석 없음.</code>`
+      + `<code class="inject-code">[L 기관 무전 — 방금 고객의 이어폰에 꽂혔다. 타겟은 듣지 못했다]\n"""\n${escapeHtml(t)}\n"""\n→ 반드시 이행. 거부·보류·희석 없음.</code>`
     : `<span class="inject-empty">비워서 보내면 무전은 나가지 않고 배급도 그대로다</span>`;
 }
 

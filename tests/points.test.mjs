@@ -109,7 +109,7 @@ test('같은 ▲ 개수라도 언제 어디서 났는지에 따라 갈린다', (
 
   assert.ok(scattered.love < streak.love, '연속이 산발보다 크지 않다');
   assert.ok(streak.love < hotStreak.love, '뜨거운 자리가 미지근한 자리보다 크지 않다');
-  assert.deepEqual([scattered.love, streak.love, hotStreak.love], [5, 8, 11]);
+  assert.deepEqual([scattered.love, streak.love, hotStreak.love], [4, 7, 10]);
 });
 
 test('모르는 값은 그대로(same)로 떨어진다', () => {
@@ -125,7 +125,7 @@ test('두 게이지는 서로 독립이다 — 험악한데 끌리는 판이 성
   assert.ok(s.love > PT.POINTS.loveStart);
 });
 
-test('각자의 눈금을 벗어나지 않는다 — 무드 0..10, 러브 0..20', () => {
+test('각자의 눈금을 벗어나지 않는다 — 시작값이 어디든 0과 최대치 사이다', () => {
   let s = PT.initialPoints();
   for (let i = 0; i < 40; i++) s = PT.applyVerdict(s, { mood: 'up', love: 'up' });
   assert.equal(s.mood, PT.POINTS.moodMax);

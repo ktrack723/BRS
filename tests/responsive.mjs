@@ -62,7 +62,7 @@ const server = http.createServer((rq, rs) => {
 function mockLlm() {
   window.__game.llm.call = async ({ label }) => {
     await new Promise(r => setTimeout(r, 1));
-    if (label === 'Q 기관 인증') return '이상무';
+    if (label === 'L 기관 인증') return '이상무';
     if (label.startsWith('R ·')) {
       return { reaction: '…진짜로 이걸 하라고요? (의자를 반 뼘 뒤로 민다) 합니다. 합니다만 이건 아니라고 봅니다.', face: 'cringe' };
     }
@@ -126,10 +126,10 @@ function poseScreens() {
   document.querySelector('#radio-input').value = order;
   document.querySelector('#radio-inject').innerHTML =
     `<span class="inject-label">고객 프롬프트에 이렇게 박힌다 · ${order.length}자</span>`
-    + `<code class="inject-code">[Q 기관 무전 — 방금 고객의 이어폰에 꽂혔다. 타겟은 듣지 못했다]\n"""\n${esc(order)}\n"""\n→ 반드시 이행. 거부·보류·희석 없음.</code>`;
+    + `<code class="inject-code">[L 기관 무전 — 방금 고객의 이어폰에 꽂혔다. 타겟은 듣지 못했다]\n"""\n${esc(order)}\n"""\n→ 반드시 이행. 거부·보류·희석 없음.</code>`;
   const cut = document.createElement('div');
   cut.className = 'bubble sys radio-cut';
-  cut.innerHTML = `<span class="who">무전</span><span class="say">📻 Q 기관 무전 · 고객 이어폰 직결 — "${esc(order)}" <b>(반드시 이행)</b>. 타겟은 듣지 못했다.</span>`;
+  cut.innerHTML = `<span class="who">무전</span><span class="say">📻 L 기관 무전 · 고객 이어폰 직결 — "${esc(order)}" <b>(반드시 이행)</b>. 타겟은 듣지 못했다.</span>`;
   win.appendChild(cut);
 
   document.querySelector('#turn-badge').textContent = '토킹 3/5구간';
@@ -154,7 +154,7 @@ function poseScreens() {
     '둘은 그날 밤 야적장에서 새벽까지 녹슨 것들 얘기만 했다.\n'
     + '3주 뒤 한쪽이 신고 41건을 전부 취하했고, 다른 쪽은 그 취하서를 액자에 넣어 전시했다.\n'
     + '관람객들은 그게 작품인 줄 알았고, 아무도 정정해주지 않았다.\n'
-    + 'Q 기관은 이 건을 성사로 처리하고 회계에 야적장 대여료 12만원을 올렸다.';
+    + 'L 기관은 이 건을 성사로 처리하고 회계에 야적장 대여료 12만원을 올렸다.';
   document.querySelector('#debrief-turns').innerHTML =
     '<div class="turn-table-wrap"><table class="turn-table"><tr><th>구간</th><th>무드</th><th>러브</th></tr>'
     + MARKS.map(([w, dm, dl], i) =>
@@ -313,7 +313,7 @@ await page.evaluate(mockLlm);
 await page.evaluate(installContrast);
 
 // 게임을 대화/결과 화면 상태까지 끌어올린다 (실제 흐름으로 진입해야 내용이 진짜다)
-await page.fill('#agent-name', '박큐피드');
+await page.fill('#agent-name', '박애정');
 await page.fill('#key-input', 'sk-ant-fake');
 await page.click('#btn-boot');
 await page.waitForSelector('#screen-intro:not(.hidden)', { timeout: 20000 });

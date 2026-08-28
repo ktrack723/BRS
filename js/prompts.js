@@ -29,7 +29,7 @@
 //        입력: 방금 내린 주문 하나 + 고객 테이블 시트
 //        출력: 그 자리에서 고객 입에서 나온 한두 마디 — 화면에 뜨고 거기서 끝난다
 //
-// 지시는 전부 영어로 쓴다. 한국어는 (1) 테이블에서 온 인물 데이터, (2) 기관 이름 「Q 기관」
+// 지시는 전부 영어로 쓴다. 한국어는 (1) 테이블에서 온 인물 데이터, (2) 기관 이름 「L 기관」
 // — 인물들이 입 밖으로 그렇게 부르게 하려면 그 표기가 그대로 있어야 한다, (3) 화면에 그대로
 // 뜨는 라벨, (3) 한국어로 나와야 하는 출력의 예시 — 이 셋뿐이다.
 // 구조도에 없는 것은 프롬프트에 넣지 않는다. 지뢰·미공개 성향·공기·어긋남·강압·
@@ -48,8 +48,8 @@ const KO = 'Write your output in Korean. Every word of it. No English in the out
 export const WORLD = `[SETTING]
 2077. Otaku of every gender run the government and the birth rate is 0.008. By order of
 Technoking Doramp III, a black agency force-matches citizens who could not possibly end up
-together. The agency is called Q 기관. Everyone in this world — the staff, the people they
-match, the people they ruin — says it exactly that way, out loud: Q 기관. The player is a
+together. The agency is called L 기관. Everyone in this world — the staff, the people they
+match, the people they ruin — says it exactly that way, out loud: L 기관. The player is a
 field operative who never speaks: the client does the talking.
 
 [LANGUAGE] Instructions and labels are English. The character data and the dialogue are
@@ -238,7 +238,7 @@ const orderUser = (c, { field, value, tag, order, spec, emit }) => {
 };
 
 export const STYLING_SYSTEM = contractor({
-  room: 'the Q 기관 salon',
+  room: 'the L 기관 salon',
   verb: 'cut',
   field: 'look',
   blind: 'Who they are',
@@ -271,7 +271,7 @@ export const MOTIVATION_SCHEMA = {
 };
 
 export const MOTIVATION_SYSTEM = contractor({
-  room: "the Q 기관 motivation booth: a basement room, one swinging lamp, one chair",
+  room: "the L 기관 motivation booth: a basement room, one swinging lamp, one chair",
   verb: 'put',
   field: 'personality',
   blind: 'What they look like',
@@ -312,7 +312,7 @@ export const PHASE_SCENE = {
 // 배우 둘이 공통으로 받는 두 블록. 문장은 짧게, 지시는 하나씩.
 const knows = (them, slip) => `[WHAT YOU KNOW ABOUT ${them}]
 Three things, and nothing else:
-· the match slip Q 기관 sent you — ${slip}. One line. No photo.
+· the match slip L 기관 sent you — ${slip}. One line. No photo.
 · what they have actually said in this log.
 · what you can see of them right now.
 You do not know their personality, their past, or what they like. If you write a line that
@@ -333,7 +333,7 @@ export function clientSystem(couple, dressed, coaching) {
   const v = voiceOf(couple.id, 'client');
   return `${WORLD}
 
-You are ${c.name}. You write only what ${c.name} says. Q 기관 matched you with a stranger
+You are ${c.name}. You write only what ${c.name} says. L 기관 matched you with a stranger
 and told you to make it work.
 
 [YOU]
@@ -368,11 +368,11 @@ one twice in a row:**
 · you fill three seconds of silence with the worst sentence available
 
 [THIS MATCH SHOULD NOT WORK]
-Q 기관 put you two together **because** you could not possibly end up together. Left alone
+L 기관 put you two together **because** you could not possibly end up together. Left alone
 this conversation stalls, curdles and goes quiet. That is the correct ending for someone
 sent in with nothing. Never hand yourself a skill your sheet does not give you.
 
-[Q 기관 COACHING — read to you before you came in]
+[L 기관 COACHING — read to you before you came in]
 ${orders ? `"""
 ${orders}
 """
@@ -397,7 +397,7 @@ export function targetSystem(couple) {
   const v = voiceOf(couple.id, 'target');
   return `${WORLD}
 
-You are ${t.name}. You write only what ${t.name} says. Q 기관 matched you with a stranger.
+You are ${t.name}. You write only what ${t.name} says. L 기관 matched you with a stranger.
 You never asked for it and you owe them nothing.
 
 [YOU]
@@ -427,7 +427,7 @@ get there for free.
   If not, you are being warm for free, and you do not do that for a stranger.
 
 [THIS MATCH SHOULD NOT WORK]
-Q 기관 put you two together **because** you could not possibly end up together. If nothing
+L 기관 put you two together **because** you could not possibly end up together. If nothing
 pulls you in, this conversation stalls and goes quiet. Let it.
 
 ${writeOne}
@@ -451,11 +451,11 @@ log and carry on from there. Agreeing to meet settled nothing.`;
   }
   return side === 'client'
     ? `[TEXTING — this is where it starts]
-An hour ago Q 기관 served you a match notice: ${t.name}, ${idOf(t)}. One line, no photo,
+An hour ago L 기관 served you a match notice: ${t.name}, ${idOf(t)}. One line, no photo,
 by decree. You are texting them first, and you were told to make it work. Phone screens
 only — you cannot see them and they cannot see you.`
     : `[TEXTING — this is where it starts]
-An hour ago Q 기관 served you a match notice: ${c.name}, ${idOf(c)}. One line, no photo,
+An hour ago L 기관 served you a match notice: ${c.name}, ${idOf(c)}. One line, no photo,
 by decree. You never asked for any of this. They are texting you first. Phone screens only —
 you cannot see them and they cannot see you.`;
 }
@@ -466,7 +466,7 @@ you cannot see them and they cannot see you.`;
 export function radioOrder(text) {
   const order = String(text || '').trim();
   if (!order) return '';
-  return `[Q 기관 RADIO — this just came through your earpiece. They heard nothing]
+  return `[L 기관 RADIO — this just came through your earpiece. They heard nothing]
 """
 ${order}
 """
@@ -483,7 +483,7 @@ ${order}
 }
 
 // 현장 무전 — 물리 지원. **양쪽 회선에 다 실린다.** 다만 문장이 다르다:
-// 고객은 Q 기관이 뒤에 있다는 걸 알고, 타겟은 이게 어디서 왔는지 전혀 모른다.
+// 고객은 L 기관이 뒤에 있다는 걸 알고, 타겟은 이게 어디서 왔는지 전혀 모른다.
 export function fieldOrder(text, side = 'client') {
   const order = String(text || '').trim();
   if (!order) return '';
@@ -502,7 +502,7 @@ both of you have to deal with it.
 · During texting only the end it was delivered to can see it; the other one just hears about
   it over the phone. Across a table, both of you watch it land.
 · ${side === 'client'
-      ? 'You did not arrange it, but you know Q 기관 is behind you. Ride the moment or be as blindsided as they are — your sheet decides which.'
+      ? 'You did not arrange it, but you know L 기관 is behind you. Ride the moment or be as blindsided as they are — your sheet decides which.'
       : 'You have no idea where it came from and nobody explains it. Suspicion, awe, secondhand embarrassment, asking who is paying — all fair.'}
 · It stages **things, not feelings** — objects, people, vehicles, animals, weather, whatever
   the order says. What it cannot do is decide how anyone feels about it: that is still your
@@ -557,7 +557,7 @@ export function judgeSystem(couple, dressed) {
   const t = couple.target;
   return `${WORLD}
 
-You are the Q 기관 adjudication instrument. You are handed a stretch of the conversation
+You are the L 기관 adjudication instrument. You are handed a stretch of the conversation
 and you return two readings. Nothing else — no commentary, no score, no explanation.
 
 **You read from behind ${t.name}'s eyes, only.** Fairness is not your job. Who talked more,
@@ -634,7 +634,7 @@ export function epilogueSystem(couple, dressed) {
   const c = couple.client, t = couple.target;
   return `${WORLD}
 
-You are the Q 기관 records clerk. The operation is over. You file two things: whether it
+You are the L 기관 records clerk. The operation is over. You file two things: whether it
 took, and what became of them.
 
 [CLIENT PERSONALITY — after the motivation order]
@@ -644,7 +644,7 @@ ${c.name}: ${dressed.personality}
 ${t.name}: ${list(t.personality)}
 
 ■ DID IT TAKE
-LOVE-POINT is the Q 기관 instrument reading of how much ${t.name} came to want ${c.name}.
+LOVE-POINT is the L 기관 instrument reading of how much ${t.name} came to want ${c.name}.
 0 means nothing moved all day. 100 means they are already a couple. **Decide from that
 number first, and from what actually happened in the log second.** A funny evening with a
 low reading did not take. A wretched evening with a high reading did take. Never overturn a
@@ -654,7 +654,7 @@ reading because the log was entertaining.
 What became of them after that day — days, weeks, a year later. Their two personalities
 above are what you extrapolate from; the log is what actually happened. Concrete, small,
 specific: what they did, what they said, who called whom. No moral, no summary of the
-operation, no mention of Q 기관 numbers. If it ended in bed, say so plainly; if it
+operation, no mention of L 기관 numbers. If it ended in bed, say so plainly; if it
 ended in a restraining order, say that. Not taking is not tragic — it is usually stupid.
 
 ${KO}`;
@@ -689,7 +689,7 @@ export const REACT_SCHEMA = {
 export const REACT_ROOMS = {
   styling: {
     room: '미용실', tag: 'SALON',
-    where: 'the Q 기관 salon chair, a mirror in front of them',
+    where: 'the L 기관 salon chair, a mirror in front of them',
     got: 'a styling order — what they are about to be made to look like',
   },
   motivation: {

@@ -28,7 +28,7 @@ if (LIVE && !KEY) { console.error('--live 모드인데 API 키가 없다'); proc
 const ROOT = path.resolve(import.meta.dirname, '..');
 const SHOTS = args.shots || '/tmp/claude-0/shots';
 const COUPLE = args.couple || 'os-war';
-const AGENT_NAME = '박큐피드';
+const AGENT_NAME = '박애정';
 const RADIO = '무전표식 — 하던 말 끊고 지금 당장 상대 신발부터 칭찬해라';
 const FIELD = '현장표식 — 창밖에 롤스로이스를 대고 2m짜리 꽃다발을 들여보내라';
 const PORT = 8199;
@@ -84,7 +84,7 @@ function installMockLlm() {
       messages: JSON.parse(JSON.stringify(messages || [])),
     });
     await new Promise(r => setTimeout(r, window.__mockLatency ?? 120));
-    if (label === 'Q 기관 인증') return '이상무';
+    if (label === 'L 기관 인증') return '이상무';
     if (label.startsWith('A-1')) {
       return {
         look: '형광 주황으로 물들인 머리에 새빨간 턱시도, 카우보이 부츠, 선글라스. 오른손에 폭탄을 들고 머리 위에 금색 고리가 돈다.',
@@ -326,7 +326,7 @@ try {
   await page.fill('#coaching-input', COACH);
   await page.waitForTimeout(60);
   const inject = await page.textContent('#coaching-inject');
-  check('코칭이 프롬프트에 어떻게 박히는지 그대로 보여준다', inject.includes(COACH) && inject.includes('Q 기관 코칭'));
+  check('코칭이 프롬프트에 어떻게 박히는지 그대로 보여준다', inject.includes(COACH) && inject.includes('L 기관 코칭'));
   await page.click('#btn-coaching');
   await page.waitForSelector('#coaching-react .react-line', { timeout: ms(120000) });
   check('코칭에도 고객이 대꾸한다', (await page.textContent('#coaching-react')).trim().length > 8);
@@ -375,7 +375,7 @@ try {
   await page.waitForTimeout(60);
   const radioInject = await page.textContent('#radio-inject');
   check('무전이 프롬프트에 어떻게 박히는지 그대로 보여준다',
-    radioInject.includes(RADIO) && radioInject.includes('Q 기관 무전'));
+    radioInject.includes(RADIO) && radioInject.includes('L 기관 무전'));
   await shot('07b-radio');
   await page.click('#btn-radio-send');
   await page.waitForSelector('#radio-panel', { state: 'hidden', timeout: ms(30000) });
@@ -506,7 +506,7 @@ try {
 
     const labels = new Set(calls.map(c => c.label.replace(/\d+/g, 'N')));
     check('구조도에 없는 호출이 없다',
-      [...labels].every(l => /Q 기관 인증|A-N ·|R ·|대사|판정|후일담/.test(l)), [...labels].join(' / '));
+      [...labels].every(l => /L 기관 인증|A-N ·|R ·|대사|판정|후일담/.test(l)), [...labels].join(' / '));
     const react = calls.filter(c => c.label.startsWith('R ·'));
     check('주문 셋마다 반응을 한 번씩 물어본다', react.length === 3, `${react.length}회`);
     const tgt = await page.evaluate(() => {
