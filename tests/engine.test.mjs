@@ -331,6 +331,33 @@ test('현장 무전은 다음 생성 프롬프트에 실리고 system은 안 건
   }
 });
 
+test('현장 사건은 두 회선에 똑같이, 한 번씩만 들어간다 — 의지와 무관한 기록이다', async () => {
+  const llm = new MockLlm();
+  let n = 0;
+  const e = new Engine(llm, {
+    couple, dressed: DRESSED, coaching: '',
+    handlers: {
+      line: () => { n++; if (n === 3) e.requestHold(); },
+      hold: () => { e.sendField(FIELD_MARK); },
+    },
+  });
+  await e.run();
+  for (const re of [/고객 대사/, /타겟 대사/]) {
+    const thread = llm.labels(re).at(-1).messages;
+    const hits = thread.filter(m => m.role === 'user' && m.content.includes(FIELD_MARK));
+    assert.equal(hits.length, 1, `${re} 회선에 사건이 ${hits.length}번 실렸다`);
+    assert.ok(/already in the past/.test(hits[0].content), `${re} 회선이 사건을 「앞으로 할 일」로 받았다`);
+    // 사건은 그 뒤에 오간 대사보다 앞에 실린다
+    const said = hits[0].content.match(/^(표한나|지대건): /m);
+    if (said) {
+      assert.ok(hits[0].content.indexOf(FIELD_MARK) < hits[0].content.indexOf(said[0]),
+        `${re} 회선에서 사건이 대사보다 뒤에 실렸다`);
+    }
+  }
+  // 두 회선이 같은 사건을 받는다 (문장은 시점에 따라 다르되, 명령 원문은 같다)
+  assert.equal(e.fieldLog.length, 1);
+});
+
 test('고객 무전과 현장 무전은 배급이 따로 간다 — 한 판에 둘 다 쓸 수 있다', async () => {
   const llm = new MockLlm();
   let n = 0;

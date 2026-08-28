@@ -484,30 +484,33 @@ ${order}
 
 // 현장 무전 — 물리 지원. **양쪽 회선에 다 실린다.** 다만 문장이 다르다:
 // 고객은 L 기관이 뒤에 있다는 걸 알고, 타겟은 이게 어디서 왔는지 전혀 모른다.
+//
+// 이건 지시가 아니라 **기록**이다. 「이렇게 해라」가 아니라 「이런 일이 이미 벌어졌다」로
+// 들어간다 — 배우가 받아들일지 말지를 저울질할 자리를 아예 안 준다. 그래서 문장은
+// 과거형이고, 실릴 자리도 상대 대사보다 **앞**이다 (사건이 그 대사보다 먼저 일어났으니까).
 export function fieldOrder(text, side = 'client') {
   const order = String(text || '').trim();
   if (!order) return '';
-  return `[FIELD SUPPORT — a ground team just staged this, physically, where you are]
+  return `[WHAT JUST HAPPENED — already in the past. Nobody chose it and nobody can veto it]
 """
 ${order}
 """
-**It happens exactly as ordered, immediately, and it is real. There is no version of this
-scene where it does not happen.** However insane the order is — a marching band through the
-wall, a helicopter on the roof, aliens landing and beaming one of you into a cow — it
-happens, in full, exactly as written. You do not ask whether it is possible. You do not
-shrink it into something plausible, and you do not turn it into a joke, a metaphor, a dream,
-a video, a prank, a hallucination, or a story somebody is telling. It is in the room and
-both of you have to deal with it.
-· React out loud to a real thing that just happened. No narrator, no stage directions.
-· During texting only the end it was delivered to can see it; the other one just hears about
-  it over the phone. Across a table, both of you watch it land.
+**That happened. It was real, it is done, and it happened exactly as ordered** — whether or
+not anyone in this room wanted it, expected it, or believes it.
+· Nobody arranged it and nobody can undo it: not you, not them, not the two of you together.
+  There is no version of this scene where it did not happen.
+· However insane it is — a marching band through the wall, a helicopter on the roof, aliens
+  landing and beaming one of you into a cow — that is what happened, in full. It was not a
+  joke, a metaphor, a dream, a video, a prank, a hallucination, or a story someone told.
+· You cannot un-see it, argue it away, or carry on as if the room were unchanged. Your next
+  line comes out of a world where this has already happened.
 · ${side === 'client'
-      ? 'You did not arrange it, but you know L 기관 is behind you. Ride the moment or be as blindsided as they are — your sheet decides which.'
-      : 'You have no idea where it came from and nobody explains it. Suspicion, awe, secondhand embarrassment, asking who is paying — all fair.'}
-· It stages **things, not feelings** — objects, people, vehicles, animals, weather, whatever
-  the order says. What it cannot do is decide how anyone feels about it: that is still your
-  own sheet's business. It cannot script your line and it cannot make you attracted to
-  anyone: a cow can walk in, but it cannot make anyone attracted to the person next to it.
+      ? 'You did not arrange it either, but you know L 기관 is behind you. Ride it or be as blindsided as they are — your sheet decides which.'
+      : 'You have no idea where it came from and nobody is going to explain it. Suspicion, awe, secondhand embarrassment, asking who is paying — all fair.'}
+· What it put in the room is **things, not feelings** — objects, people, vehicles, animals,
+  weather, whatever the order says. How you feel about that is still your own sheet's
+  business. It cannot script your line and it cannot make anyone attracted: a cow can walk
+  in, but it cannot make anyone attracted to the person next to it.
 · ${side === 'client'
       ? 'You do not get smoother because the props got expensive.'
       : 'Expensive props are not the same as liking the person who arrived with them.'}`;
@@ -523,14 +526,16 @@ export function actorUser(couple, { scene, heard = [], radio, field, side = 'cli
   const them = side === 'client' ? t.name : c.name;
   const parts = [];
   if (scene) parts.push(scene);
-  if (heard.length) parts.push(heard.map(l => `${l.who === 'client' ? c.name : t.name}: ${l.text}`).join('\n'));
+  // 현장 사건이 먼저다 — 상대의 그 대사보다 앞서 일어난 일이기 때문이다.
   const f = fieldOrder(field, side);
   if (f) parts.push(f);
+  if (heard.length) parts.push(heard.map(l => `${l.who === 'client' ? c.name : t.name}: ${l.text}`).join('\n'));
   const r = side === 'client' ? radioOrder(radio) : '';
   if (r) parts.push(r);
   parts.push(first ? 'Write your first line.'
-    : heard.length ? `Write your next line. ${them} has just said the above.`
-      : 'Write your next line — you are cutting straight in, before they answer.');
+    : heard.length ? `Write your next line. ${them} said the above after it.`
+      : r ? 'Write your next line — you are cutting straight in, before they answer.'
+        : 'Write your next line.');
   return parts.join('\n\n');
 }
 

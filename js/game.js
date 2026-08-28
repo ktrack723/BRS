@@ -484,7 +484,7 @@ const LEVER_UI = {
     input: '#field-input', send: '#btn-field-send', who: '현장',
     empty: '현장 지시가 비었다. 무엇을 실행할지 적어라.',
     label: left => (left ? '🚚 현장 투입 — 회선 재개' : '🚚 현장 배급 소진 (판 전체 1회)'),
-    cut: order => `🚚 현장팀 투입 — "${order}" <b>(그대로 실행됨)</b>. 누가 시켰는지는 아무도 모른다.`,
+    cut: order => `🚚 현장팀 투입 — "${order}" <b>(이미 벌어진 일)</b>. 거부권도, 되돌릴 길도 없다.`,
   },
 };
 

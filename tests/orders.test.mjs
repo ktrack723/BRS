@@ -212,7 +212,7 @@ test('현장 무전은 B-1의 user 메시지에만 실린다 — 그리고 양�
   const t = P.actorUser(couple, { side: 'target', field: M.field });
   assert.ok(u.includes(M.field), '현장 무전이 고객 회선에 안 실렸다');
   assert.ok(t.includes(M.field), '현장 무전이 타겟 회선에 안 실렸다 — 물리 사건은 둘 다 겪는다');
-  assert.ok(u.includes('FIELD SUPPORT'), '현장 블록 머리가 없다');
+  assert.ok(u.includes('WHAT JUST HAPPENED'), '현장 블록 머리가 없다');
   assert.ok(!P.clientSystem(couple, dressed, '').includes(M.field), 'system에 샜다');
   assert.ok(!P.targetSystem(couple).includes(M.field), 'system에 샜다');
   assert.ok(!P.judgeSystem(couple, dressed).includes(M.field), '심판이 봤다');
@@ -220,9 +220,30 @@ test('현장 무전은 B-1의 user 메시지에만 실린다 — 그리고 양�
   assert.ok(!P.epilogueUser(couple, 50, 'log').includes(M.field), '후일담이 봤다');
 });
 
+test('현장 사건은 상대 대사보다 앞에 실린다 — 그 대사보다 먼저 일어난 일이다', () => {
+  const u = P.actorUser(couple, {
+    side: 'target', field: M.field, heard: [{ who: 'client', text: '고객대사표식' }],
+  });
+  assert.ok(u.indexOf(M.field) < u.indexOf('고객대사표식'),
+    '이미 벌어진 사건이 그 뒤 대사보다 뒤에 실렸다 — 시간 순서가 뒤집혔다');
+});
+
+test('현장 사건은 의지에 상관없이 이미 일어난 것으로 들어간다', () => {
+  for (const side of ['client', 'target']) {
+    const f = P.fieldOrder(M.field, side);
+    assert.ok(/already in the past/.test(f), `${side}: 과거의 일로 안 박혔다`);
+    assert.ok(/Nobody chose it and nobody can veto it/.test(f), `${side}: 거부권이 열려 있다`);
+    assert.ok(/whether or\nnot anyone in this room wanted it/.test(f), `${side}: 의지와 무관하다는 못이 빠졌다`);
+    assert.ok(/nobody can undo it/.test(f), `${side}: 되돌릴 길이 열려 있다`);
+    assert.ok(/cannot un-see it/.test(f), `${side}: 못 본 척할 길이 열려 있다`);
+    assert.ok(!/React out loud|You do not ask/.test(f), `${side}: 지시체가 남아 있다`);
+  }
+});
+
 test('현장 무전은 그대로 실행되는 물리 사건이다 — 마음은 못 움직인다', () => {
   const f = P.fieldOrder(M.field);
   assert.ok(/exactly as ordered/.test(f), '그대로 실행 규칙이 없다');
+  assert.ok(/There is no version of this scene where it did not happen/.test(f), '안 일어난 판이 열려 있다');
   assert.ok(/things, not feelings/.test(f), '물건-만 규칙이 없다');
   assert.ok(/cannot make anyone attracted/.test(f), '호감 조작 금지가 없다');
   assert.equal(P.fieldOrder(''), '', '빈 현장 무전이 뭔가를 내보냈다');
