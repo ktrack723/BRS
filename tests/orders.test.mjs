@@ -303,8 +303,8 @@ test('무전은 점수를 모른다 — 게이지도 판정도 실리지 않는�
 
 test('기관 이름은 한 가지 표기로만 나간다 — 사람들이 그렇게 부르게 하려면 그래야 한다', () => {
   const all = [A, B1, B2, C, R, P.radioOrder('x'), P.fieldOrder('x')].join('\n');
-  assert.ok(/Q 기관/.test(all), '기관 이름이 프롬프트에서 사라졌다');
-  for (const dead of [/Bureau/i, /\bHQ\b/, /headquarters/i, /큐피드국/, /본부/]) {
+  assert.ok(/L 기관/.test(all), '기관 이름이 프롬프트에서 사라졌다');
+  for (const dead of [/Bureau/i, /\bHQ\b/, /headquarters/i, /큐피드국/, /본부/, /Q 기관/]) {
     assert.ok(!dead.test(all), `옛 기관 표기 「${dead.source}」가 남아 있다`);
   }
   assert.ok(/says it exactly that way, out loud/.test(P.WORLD),
@@ -391,9 +391,9 @@ test('다섯 프롬프트의 지시문에 한글이 한 글자도 없다', () =>
       .map(k => JSON.stringify(P[`${k}_SCHEMA`])).join(''),
   };
   for (const [name, text] of Object.entries(built)) {
-    // 기관 이름 「Q 기관」만 예외다. 인물들이 입 밖으로 그렇게 부르게 하려면 그 표기가
+    // 기관 이름 「L 기관」만 예외다. 인물들이 입 밖으로 그렇게 부르게 하려면 그 표기가
     // 프롬프트에 그대로 있어야 한다 — 번역해 버리면 지정한 것이 사라진다.
-    const stripped = text.split('Q 기관').join('Q');
+    const stripped = text.split('L 기관').join('Q');
     // 한글 전 영역 — 조합 자모 · 호환 자모 · 확장 A · 음절 · 반각까지 전부 본다.
     const HANGUL = /[\u1100-\u11ff\u3130-\u318f\ua960-\ua97f\uac00-\ud7ff\uffa0-\uffdc]/g;
     const han = [...new Set(stripped.match(HANGUL) || [])];

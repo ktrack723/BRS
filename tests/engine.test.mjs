@@ -414,7 +414,7 @@ test('빈 무전은 나가지 않는다 — 배급도 그대로다', async () =>
   const { e } = await runWithRadio(llm, { at: 3, order: '   ' });
   assert.equal(e.radioFor('text'), RADIO.perPhase);
   assert.equal(e.radioLog.length, 0);
-  assert.ok(!llm.labels(/대사/).some(c => JSON.stringify(c.messages).includes('Q 기관 RADIO')));
+  assert.ok(!llm.labels(/대사/).some(c => JSON.stringify(c.messages).includes('L 기관 RADIO')));
 });
 
 test('무전이 먹힐 대사가 안 남았으면 버튼이 잠긴다', async () => {
@@ -441,5 +441,5 @@ test('무전을 안 쓰면 호출 수도 대화도 예전 그대로다', async (
   await e.run();
   assert.equal(llm.calls.length, TOTAL_BEATS * (BEAT.lines + 1), '무전을 안 썼는데 호출이 늘었다');
   assert.equal(e.radioLog.length, 0);
-  assert.ok(!llm.calls.some(c => JSON.stringify(c.messages || []).includes('Q 기관 RADIO')));
+  assert.ok(!llm.calls.some(c => JSON.stringify(c.messages || []).includes('L 기관 RADIO')));
 });
