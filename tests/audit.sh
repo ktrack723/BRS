@@ -36,7 +36,7 @@ chk "취향이 평평한 문자열 목록이다 (공개/미공개·지뢰 플래
 
 echo
 echo "── A · 스타일링 / 동기부여 ──"
-chk "미용실은 외모만, 취조실은 성격만 건드린다" "grep -q 'rewrites the client'\\''s \\*\\*look\\*\\* and nothing else' js/prompts.js && grep -q 'rewrites the client'\\''s \\*\\*personality\\*\\* and nothing else' js/prompts.js"
+chk "미용실은 외모만, 취조실은 성격만 건드린다" "node -e \"import('./js/prompts.js').then(m=>{const L=/rewrites the client.s [*][*]look[*][*] and nothing else/,P=/rewrites the client.s [*][*]personality[*][*] and nothing else/;process.exit(L.test(m.STYLING_SYSTEM)&&P.test(m.MOTIVATION_SYSTEM)&&!P.test(m.STYLING_SYSTEM)&&!L.test(m.MOTIVATION_SYSTEM)?0:1)})\""
 chk "가위손은 거절하지 않는다" "grep -q 'Never refuse, never soften, never grade' js/prompts.js"
 chk "A-1의 출력은 외모 하나 (+조형)" "node -e \"import('./js/prompts.js').then(m=>process.exit(Object.keys(m.STYLING_SCHEMA.properties).sort().join()==='look,spec'?0:1))\""
 chk "A-2의 출력은 성격 하나뿐이다" "node -e \"import('./js/prompts.js').then(m=>process.exit(Object.keys(m.MOTIVATION_SCHEMA.properties).sort().join()==='personality'?0:1))\""
@@ -64,7 +64,7 @@ chk "바로 다음 대사부터 이행한다" "grep -q 'starting with their very
 chk "타겟은 무전을 못 듣는다 (코칭과 같은 자리다)" "grep -q 'The target heard nothing' js/prompts.js"
 chk "무전은 system이 아니라 messages에 실린다 (캐시가 안 깨진다)" "node -e \"import('./js/prompts.js').then(async m=>{const c=(await import('./js/couples.js')).COUPLES[0];const d={look:'x',personality:'y'};const s=m.talkSystem(c,d,'코칭');const u=m.talkUser(c,'talk',2,5,'무전표식');process.exit(u.includes('무전표식')&&!s.includes('무전표식')&&m.talkSystem.length===3?0:1)})\""
 chk "무전은 판정에도 후일담에도 안 실린다" "node -e \"import('./js/prompts.js').then(async m=>{const c=(await import('./js/couples.js')).COUPLES[0];const d={look:'x',personality:'y'};const j=m.judgeSystem(c,d)+m.judgeUser(c,'a','b');const e=m.epilogueSystem(c,d)+m.epilogueUser(c,10,'t');process.exit(!/HQ RADIO|무전/.test(j+e)?0:1)})\""
-chk "무전 문장은 대화 기록에 안 남는다 (원장은 따로 든다)" "grep -q 'this.radioLog' js/engine.js && ! grep -qE \"transcript.push\\(\\{ *who: *'radio'\" js/engine.js"
+chk "무전 문장은 대화 기록에 안 남는다 (원장은 따로 든다)" "grep -q 'radioLog' js/engine.js && ! grep -qE \"transcript.push\\(\\{ *who: *'radio'\" js/engine.js"
 chk "누르면 대화가 선다 (게이트가 줄 경계와 구간 경계에 있다)" "grep -q 'await this.#gate(.line.)' js/engine.js && grep -q 'await this.#gate(.beat.)' js/engine.js"
 chk "잘린 구간은 오간 데까지만 다시 판정한다" "grep -q '무전 개입분 재판정' js/engine.js"
 chk "화면에 무전 버튼과 회선이 있다" "grep -q 'id=\"btn-radio\"' index.html && grep -q 'id=\"radio-panel\"' index.html"

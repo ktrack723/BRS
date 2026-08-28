@@ -30,6 +30,7 @@ const SHOTS = args.shots || '/tmp/claude-0/shots';
 const COUPLE = args.couple || 'os-war';
 const AGENT_NAME = '박큐피드';
 const RADIO = '무전표식 — 하던 말 끊고 지금 당장 상대 신발부터 칭찬해라';
+const FIELD = '현장표식 — 창밖에 롤스로이스를 대고 2m짜리 꽃다발을 들여보내라';
 const PORT = 8199;
 fs.mkdirSync(SHOTS, { recursive: true });
 
@@ -209,7 +210,7 @@ try {
   // ── 신입 교육 ──────────────────────────────────────────
   console.log('\n📚 신입 교육');
   const slideCount = await page.evaluate(() => document.querySelectorAll('#intro-dots .dot').length);
-  check('슬라이드가 다섯 장이다', slideCount === 5, `${slideCount}장`);
+  check('슬라이드가 넉 장이다 — 첫 판에 필요한 것만', slideCount === 4, `${slideCount}장`);
   for (let i = 0; i < slideCount; i++) {
     const line = await page.textContent('.slide-line');
     check(`슬라이드 ${i + 1}에 문장이 있다`, (line || '').length > 12);
@@ -383,9 +384,30 @@ try {
   check('무전이 나간 자리가 화면에 남는다',
     await page.evaluate(() => !!document.querySelector('#chat-window .bubble.radio-cut')));
   const spentLabel = await page.textContent('#btn-radio');
-  check('배급을 쓰면 그 페이즈에서는 다시 못 쓴다',
-    /소진/.test(spentLabel) && await page.evaluate(() => document.querySelector('#btn-radio').disabled),
+  check('고객 무전 배급이 떨어져도 회선은 현장 몫으로 남는다',
+    /현장/.test(spentLabel) && !await page.evaluate(() => document.querySelector('#btn-radio').disabled),
     spentLabel);
+
+  // ── 현장 무전 — 판 전체 한 번. 같은 회선, 다른 배급 ──
+  await page.waitForFunction(() => {
+    const e = window.__game.state.engine;
+    return e && e.canField() && e.transcript.length % 6 === 2;
+  }, null, { timeout: ms(120000) });
+  await page.click('#btn-radio');
+  await page.waitForSelector('#radio-panel:not(.hidden)', { timeout: ms(60000) });
+  const radioBtnLabel = await page.textContent('#btn-radio-send');
+  check('배급이 끝난 고객 무전 칸만 잠긴다', /소진/.test(radioBtnLabel)
+    && await page.evaluate(() => document.querySelector('#radio-input').disabled), radioBtnLabel);
+  await page.fill('#field-input', FIELD);
+  await page.click('#btn-field-send');
+  await page.waitForSelector('#radio-panel', { state: 'hidden', timeout: ms(30000) });
+  check('현장 무전이 나간 자리가 화면에 남는다',
+    await page.evaluate(() => [...document.querySelectorAll('#chat-window .radio-cut')]
+      .some(el => el.textContent.includes('현장팀 투입'))));
+  const bothSpent = await page.textContent('#btn-radio');
+  check('두 배급이 다 떨어지면 회선이 닫힌다',
+    /소진/.test(bothSpent) && await page.evaluate(() => document.querySelector('#btn-radio').disabled),
+    bothSpent);
   const cutBeat = await page.evaluate(() => {
     const h = window.__game.state.engine.radioLog[0];
     return { beat: h?.beat ?? 0, said: window.__game.state.engine.transcript.length };
@@ -425,8 +447,10 @@ try {
   const transcript = await page.textContent('#debrief-transcript');
   check('대화 전문이 열람된다', (transcript || '').length > 50);
   check('무전은 대화 기록에 안 남는다 (심판도 기록관도 못 본 문장이다)', !transcript.includes(RADIO));
+  check('현장 무전도 대화 기록에 안 남는다', !transcript.includes(FIELD));
   const radioLedger = await page.textContent('#debrief-radio');
-  check('무전 원장은 요원 몫으로 따로 남는다', radioLedger.includes(RADIO), radioLedger.slice(0, 40));
+  check('개입 원장은 요원 몫으로 따로 남는다 — 무전도 현장도',
+    radioLedger.includes(RADIO) && radioLedger.includes(FIELD), radioLedger.slice(0, 40));
   await shot('09-result');
 
   // 호출 감사 — 화면을 통해 실제로 나간 프롬프트가 하이어아키를 지키는가
@@ -460,7 +484,14 @@ try {
     check('무전은 판정에 안 실린다 — 요원이 쓴 글은 채점되지 않는다',
       !judge.some(c => inMsgs(c) || c.system.includes(RADIO)));
     check('무전은 후일담에도 안 실린다', !inMsgs(epilogue[0]) && !epilogue[0].system.includes(RADIO));
-    check('무전으로 잘린 구간은 오간 데까지만 다시 판정된다', rejudge === 1, `${rejudge}회`);
+    const inMsgsF = c => JSON.stringify(c.messages || []).includes(FIELD);
+    const carriedF = gen.filter(inMsgsF);
+    check('현장 무전도 생성 프롬프트에만 실린다',
+      carriedF.length > 0 && !gen.some(c => c.system.includes(FIELD)), `${carriedF.length}/${gen.length}회`);
+    check('현장 무전은 판정에도 후일담에도 안 실린다',
+      !judge.some(c => inMsgsF(c) || c.system.includes(FIELD))
+      && !inMsgsF(epilogue[0]) && !epilogue[0].system.includes(FIELD));
+    check('무전으로 잘린 구간은 오간 데까지만 다시 판정된다', rejudge >= 1, `${rejudge}회`);
     check('재판정도 무전을 못 본다', !judge.filter(c => /재판정/.test(c.label)).some(inMsgs));
 
     const labels = new Set(calls.map(c => c.label.replace(/\d+/g, 'N')));

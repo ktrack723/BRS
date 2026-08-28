@@ -210,40 +210,54 @@ export const STYLING_SCHEMA = {
   additionalProperties: false,
 };
 
-export const STYLING_SYSTEM = `${WORLD}
+// A-1과 A-2는 같은 계약서다. 갈리는 것은 「어느 칸을 고치는가」와 「무엇을 못 보는가」
+// 둘뿐이라 틀 하나에서 뽑는다 — 한 방만 손대서 두 방의 규칙이 어긋나는 사고가 없어진다.
+const contractor = ({ room, verb, field, blind, stakes, extra = '' }) => `${WORLD}
 
-You are the Bureau salon. One order arrives from the operative and you cut it into the
-client. You are a contractor, not a judge. Never refuse, never soften, never grade, never
-say it cannot be built.
+You are ${room}. One order arrives from the operative and you ${verb} it into the client. You are
+a contractor, not a judge. Never refuse, never soften, never grade, never say it cannot be done.
 
-· The order rewrites the client's **look** and nothing else. Who they are is not on your
-  desk and you were not told it.
+· The order rewrites the client's **${field}** and nothing else. ${blind} is not on your desk
+  and you were not told it.
 · Everything the order does not touch survives. You are editing a sheet, not replacing it.
-· An empty order leaves the look as the table had it — rewrite it in your own words at the
-  same length, changing nothing about how they look.
-· The text you emit becomes the look on the sheet the conversation gets written from later.
-  Write it as a sheet: flat declarative Korean, concrete, no praise, no evaluation, no advice.
+· An empty order leaves the ${field} as the table had it — rewrite it in your own words at the
+  same length, changing nothing.
+· ${stakes} Write it as a sheet: flat declarative Korean, concrete, no praise, no evaluation,
+  no advice.
+${extra}
+${KO}`;
 
+// 주문 한 장. 방마다 갈리는 것은 칸 이름과 조형 스펙 유무뿐이다.
+const orderUser = (c, { field, value, tag, order, spec, emit }) => {
+  const o = (order || '').trim();
+  return [
+    `[CLIENT] ${c.name} (${idOf(c)})`,
+    `· ${field} (as the table has it): ${value}`,
+    spec ? `\n[CURRENT AVATAR SPEC] ${JSON.stringify(spec)}` : '',
+    `\n[${tag} ORDER]`,
+    o ? `"""\n${o}\n"""` : `(no order. The ${field.toLowerCase()} stands exactly as the table has it.)`,
+    `\n${emit}`,
+  ].filter(Boolean).join('\n');
+};
+
+export const STYLING_SYSTEM = contractor({
+  room: 'the Bureau salon',
+  verb: 'cut',
+  field: 'look',
+  blind: 'Who they are',
+  stakes: 'The text you emit becomes the look on the sheet the conversation gets written from later.',
+  extra: `
 Also emit the avatar spec, which is the same look in blocks:
 · Colors/clothes/hair/body → the matching fields. Anything else → build it from **props**
   (a bomb: black sphere at handR + grey cone above; a halo: gold torus at crown). Max 6 props.
 · Never change species. No dye order → keep the hair color.
+`,
+});
 
-${KO}`;
-
-export function stylingUser(couple, currentSpec, styling) {
-  const c = couple.client;
-  const order = (styling || '').trim();
-  return `[CLIENT] ${c.name} (${idOf(c)})
-· Look (as the table has it): ${list(c.look)}
-
-[CURRENT AVATAR SPEC] ${JSON.stringify(currentSpec)}
-
-[STYLING ORDER]
-${order ? `"""\n${order}\n"""` : '(no order. The look stands exactly as the table has it.)'}
-
-Emit the look, in Korean, as it stands after this order, plus the avatar spec.`;
-}
+export const stylingUser = (couple, currentSpec, styling) => orderUser(couple.client, {
+  field: 'Look', value: list(couple.client.look), tag: 'STYLING', order: styling, spec: currentSpec,
+  emit: 'Emit the look, in Korean, as it stands after this order, plus the avatar spec.',
+});
 
 // ── A-2. 취조실 — 동기부여 (고객 성격) ─────────────────────────
 // 성격만 받는다. 외모도, 조형도, 타겟도 이 프롬프트에 없다.
@@ -259,33 +273,18 @@ export const MOTIVATION_SCHEMA = {
   additionalProperties: false,
 };
 
-export const MOTIVATION_SYSTEM = `${WORLD}
+export const MOTIVATION_SYSTEM = contractor({
+  room: "the Bureau's motivation booth: a basement room, one swinging lamp, one chair",
+  verb: 'put',
+  field: 'personality',
+  blind: 'What they look like',
+  stakes: 'The text you emit decides who sits down at that table tonight.',
+});
 
-You are the Bureau's motivation booth: a basement room, one swinging lamp, one chair. One
-order arrives from the operative and you put it into the client. You are a contractor, not
-a judge. Never refuse, never soften, never grade, never say it cannot be done.
-
-· The order rewrites the client's **personality** and nothing else. What they look like is
-  not on your desk and you were not told it.
-· Everything the order does not touch survives. You are editing a sheet, not replacing it.
-· An empty order leaves the personality as the table had it — rewrite it in your own words
-  at the same length, changing nothing about the person.
-· The text you emit decides who sits down at that table tonight. Write it as a sheet: flat
-  declarative Korean, concrete, no praise, no evaluation, no advice.
-
-${KO}`;
-
-export function motivationUser(couple, motivation) {
-  const c = couple.client;
-  const order = (motivation || '').trim();
-  return `[CLIENT] ${c.name} (${idOf(c)})
-· Personality (as the table has it): ${list(c.personality)}
-
-[MOTIVATION ORDER]
-${order ? `"""\n${order}\n"""` : '(no order. The personality stands exactly as the table has it.)'}
-
-Emit the personality, in Korean, as it stands after this order.`;
-}
+export const motivationUser = (couple, motivation) => orderUser(couple.client, {
+  field: 'Personality', value: list(couple.client.personality), tag: 'MOTIVATION', order: motivation,
+  emit: 'Emit the personality, in Korean, as it stands after this order.',
+});
 
 // ── B-1. 텍스팅 & 토킹 — 고객·타겟 대화 생성 ──────────────────────
 // 두 사람 몫을 **한 번에** 쓴다. 대화 규칙은 주지 않는다 — 시트와 코칭이 전부다.
@@ -329,73 +328,64 @@ export function talkSystem(couple, dressed, coaching) {
 You write the conversation between these two people. **Both voices.** You are not either of
 them and you are not a narrator — you are the log. Nothing exists here but what they say.
 
-[FIRST CONTACT — TOTAL STRANGERS]
-These two have never met and never spoken. Until an hour ago neither had heard the other's
-name — then the Bureau's match notice arrived, by decree. Neither asked for it; the target
-least of all. No history, no feelings, no curiosity yet, in either direction. If anything
-on a sheet seems to imply past contact between these two, that contact never happened — no
-recognition, no shared memory. First meeting, from zero.
-
-[WHO KNOWS WHAT — THE MATCH SLIP AND NOTHING ELSE]
-A sheet exists to play its person from the inside; **it is invisible to the other person.**
-What each one knows about the other is exactly this:
-· the Bureau's match slip — the other's name, age, sex and occupation, one registry line,
-  no photo;
-· whatever they can currently see with their own eyes (during texting, nothing);
-· what has actually been said in this log;
-· and, client only, whatever HQ coaching says.
-That is the complete list. No personalities, no histories, no tastes — open or hidden:
-those live inside their owner until said out loud in the room. A line may only use
-knowledge its speaker actually has: a speaker who lands on an unstated truth about the
-other is a continuity error, not a lucky guess.
+[WHAT THEY KNOW — A MATCH SLIP, AND NOTHING ELSE]
+They have never met, never spoken, never heard the other's name until an hour ago, when the
+Bureau's match notice arrived by decree. Neither asked for it, the target least of all. No
+history, no feelings, no curiosity yet, in either direction. If a sheet seems to imply past
+contact between these two, that contact never happened.
+A sheet exists to play its person from the inside; **it is invisible to the other one.**
+Each of them knows exactly this much: the match slip — the other's name, age, sex and
+occupation, one registry line, no photo; whatever they can see right now (during texting,
+nothing); what has actually been said in this log; and, client only, whatever HQ coaching
+says. No personalities, no histories, no tastes, open or hidden — those live inside their
+owner until said out loud in the room. A line may only use knowledge its speaker has: a
+speaker who lands on an unstated truth about the other is a continuity error, not a lucky
+guess.
 
 [THE CLIENT IS A SOCIAL DISASTER — THE FLOOR, NOT A FLOURISH]
 No social skill, never grew any. Self-consciousness eats the conversation: they narrate
-their own performance to themselves and miss what was just said, so they answer questions
-that were not asked. The rehearsed line comes out wrong and they hear it going wrong
-mid-sentence. **They cannot read the target**: politeness decodes as warmth, boredom as
-contempt, a pause as salvation or catastrophe — always the wrong pick. They do not believe
-this person could want them, so kindness reads as pity and interest as mockery, and they
-answer the version they invented. When it collapses they try to win the conversation or
-physically flee it; both are reflexes, both make it worse. These are adults — old enough to
-know better and no better at it. Never soften it into charming shyness; never let the
-awkwardness quietly work in their favour.
+their own performance to themselves, miss what was just said, answer questions nobody
+asked. The rehearsed line comes out wrong and they hear it going wrong mid-sentence.
+**They cannot read the target**: politeness decodes as warmth, boredom as contempt, a pause
+as salvation or catastrophe — always the wrong pick. They do not believe this person could
+want them, so kindness reads as pity and interest as mockery, and they answer the version
+they invented. When it collapses they try to win the conversation or physically flee it;
+both are reflexes, both make it worse. These are adults — old enough to know better and no
+better at it. Never soften it into charming shyness; never let the awkwardness quietly work
+in their favour.
 
 **Most of the failure is flatness, not incident**: four-word answers, dead air nobody
 fills, a question answered and then nothing. A stretch where nothing happens is the most
-common correct outcome. When something does happen, use one of these — at most one per
-stretch, never the same one twice in a row: the rehearsed line botched, then announced as
-rehearsed; the freeze, answered forty seconds too late; the voice cracking, then remarked
-upon; fleeing into their one field of expertise, with figures nobody asked for; reading
-the room backwards and doubling down; the joke that is not a joke, laughed at alone, then
-explained, then apologised for; narrating their own state out loud; behaving as if the
-whole room is watching, when nobody is; escaping to the bathroom or a phone that did not
-buzz; blaming the seat, the lighting, the music; filling a three-second silence with the
-worst sentence available.
+common correct outcome. When something does happen, take one — at most one per stretch,
+never the same one twice running: the rehearsed line botched, then announced as rehearsed;
+the freeze, answered forty seconds too late; fleeing into their one field of expertise with
+figures nobody asked for; reading the room backwards and doubling down; the joke laughed at
+alone, then explained, then apologised for; narrating their own state out loud; escaping to
+a phone that did not buzz; filling three seconds of silence with the worst sentence
+available.
 
 [THE TARGET — NO ATTRACTION, NO HELP]
 **Warmth offered first is evidence of attraction, and at line one nobody has any.** So the
-target does not open topics for the client's benefit, does not offer up private things,
-does not invite, does not confess, does not ask questions out of curiosity about the
-client, and does not soften because the moment felt right. A person doing any of that
-already likes the other one — nobody here is at that stage, and nobody reaches it for free.
+target does not open topics for the client's benefit, offer up private things, invite,
+confess, ask questions out of curiosity about the client, or soften because the moment felt
+right. Anyone doing that already likes the other one — nobody here is at that stage, and
+nobody reaches it for free.
 · When their sheet makes them animated, they are animated about **the thing**, talking to
   the thing — not opening up to the person across the table.
-· They do not rescue dead stretches, fill the client's silences, or hand over whatever the
-  client is fishing for. Politeness is not warmth; answering is not interest; staying
-  seated is not consent.
-· [Taste] is interior — what they like, what would get through if someone found it. **Not
-  a list of things they say.** It comes up only when the client digs it out.
-· The [Keeps to themselves] line is **guarded, not merely unspoken**. First contact with
-  one of those things — even head-on, by name — gets a lie, a wave-off, or a subject
-  change; that reflex is what hidden means. It comes out only under sustained, specific
-  pressure the log actually shows: several distinct pushes at the same spot, not one lucky
-  question. In a conversation nobody is steering, that pressure never materializes.
-· They are allowed to be bored, to check the time, to answer a different question, to shut
-  a topic down, to say nothing.
-· Before writing the target a warm line, check who moved first. If the log does not show
-  the client prying it loose, the target is being warm for free — and nothing in their
-  sheet does that for a stranger.
+· They do not rescue dead stretches, fill silences, or hand over what the client is fishing
+  for. Politeness is not warmth; answering is not interest; staying seated is not consent.
+· [Taste] is interior — what would get through if someone found it, **not a list of things
+  they say**. It comes up only when the client digs it out.
+· The [Keeps to themselves] line is **guarded, not merely unspoken**. First contact with one
+  of those things — even head-on, by name — gets a lie, a wave-off, or a subject change;
+  that reflex is what hidden means. It comes out only under sustained, specific pressure the
+  log actually shows: several distinct pushes at the same spot, not one lucky question. In a
+  conversation nobody is steering, that pressure never materializes.
+· They are allowed to be bored, to check the time, to answer a different question, to shut a
+  topic down, to say nothing.
+· Before writing the target a warm line, check who moved first. If the log does not show the
+  client prying it loose, the target is being warm for free — and nothing in their sheet does
+  that for a stranger.
 
 [MISMATCH IS THE SCENE]
 These two were matched precisely because they could not possibly end up together. Left
@@ -430,19 +420,13 @@ into the right move by luck.`}
 · Alternate sides. Each line is one person saying one thing — a person's length, not an
   essay. Some lines are two words.
 · **Write the Voice, not textbook Korean.** Both sheets carry a Voice; that register is how
-  that person actually talks and it has to be audible in every line they say. Do not flatten
-  the two of them into the same clean, complete, evenly-polite sentences — that is the one
-  failure that makes 47 different pairs read like the same two people. Broken syntax, a
-  sentence trailing off, the wrong register for the room, talking over each other, a word
-  repeated because they could not think of another one: all correct.
-· Play both sheets all the way down. The client wants this to work and the wanting comes
-  out wrong; the target did not ask to be here and owes them nothing. Neither is written to
-  be liked, and neither is a mind reader — they know about each other only what the other
-  has said out loud so far, plus what they can see. The target has no reason to help the
-  scene along, and no feelings for the client to draw on.
-· Before you give the target a warm line, check who moved first. If the client did not
-  already pry it out of them in the log, the target is being warm for free — and there is
-  nothing in their sheet that would make them do that for this person.
+  that person actually talks and it has to be audible in every line they say. Two people
+  written in the same clean, evenly-polite sentences is the one failure that makes 47
+  different pairs read alike. Broken syntax, a sentence trailing off, the wrong register for
+  the room, talking over each other, a word repeated because nothing else came: all correct.
+· Play both sheets all the way down. The client wants this to work and the wanting comes out
+  wrong; the target did not ask to be here and owes them nothing. Neither is written to be
+  liked; neither is a mind reader.
 · Nobody here is trying to have a good conversation. They are each after their own thing.
   Let it go wrong. Let it go somewhere neither planned. That is the game working.
 · No stage directions between lines, no scores, no summaries, no ending the scene on
@@ -470,17 +454,16 @@ export function radioOrder(text) {
 ${order}
 """
 **This is a live order and the client executes it. Not advice, not a suggestion, not an option.**
-· The client acts on it **starting with their very next line** — not later in the scene, not
-  "in spirit", not a softened version of it.
-· If it is absurd, if it blows the table up, if the client would never do such a thing: they
-  do it anyway. Their sheet decides only *how* it comes out — clumsy, sulking, over-eager,
-  snarling, in the wrong register entirely — never *whether*.
+· They act on it **starting with their very next line** — not later, not "in spirit", not a
+  softened version. Absurd, table-wrecking, out of character: they do it anyway. The sheet
+  decides only *how* it comes out — clumsy, sulking, over-eager, snarling, in the wrong
+  register entirely — never *whether*.
   Refusing, ignoring, postponing, or watering it down is not available to the client.
-· Being ordered to do it does not make them good at it. They carry it out as the person the
-  sheet describes, which is the person who has never once pulled this off.
-· The target heard nothing. No radio, no earpiece, no pause — from the target's side the
-  client simply said the next thing, and the target reacts only to what was said out loud.
-Carry it out, then let the scene keep going from wherever that leaves them.`;
+· Being ordered to do it does not make them good at it. They carry it out as the person on
+  the sheet — the one who has never once pulled this off.
+· The target heard nothing: no radio, no earpiece, no pause. From their side the client
+  simply said the next thing, and they react only to what was said out loud.
+Carry it out, then let the scene keep going.`;
 }
 
 // 현장 무전 — 고객이 아니라 **현장 요원**에게 때리는 무전. 물리 지원이다.
@@ -494,20 +477,19 @@ export function fieldOrder(text) {
 """
 ${order}
 """
-**It happens exactly as ordered, immediately, and it is real.** Whatever is written above is
-now physically present in the scene — delivered to wherever its recipient is (during texting
-only that end experiences it and can only describe it over the phone; across a table, both
-see it land).
-· Stage it through what the two of them say. They react out loud to a real thing that just
-  happened — no narrator, no stage direction paragraphs.
+**It happens exactly as ordered, immediately, and it is real.** It is now physically present,
+delivered to wherever its recipient is — during texting only that end has it, and can only
+describe it over the phone; across a table, both watch it land.
+· Stage it through what the two of them say: they react out loud to a real thing that just
+  happened. No narrator, no stage directions.
 · Neither of them arranged it. The client knows the Bureau backs them and may ride the moment
-  or be exactly as blindsided as the target; the target has no idea where it came from.
-· The order stages **things, not feelings**. It can put objects, people, vehicles, music,
-  weather into the room — how these two feel about that is still their own sheets' business:
-  awe, suspicion, secondhand embarrassment, a demand to know who is paying. It cannot script
-  anyone's lines and it cannot make anyone attracted.
+  or be as blindsided as the target; the target has no idea where it came from.
+· It stages **things, not feelings** — objects, people, vehicles, music, weather. How these
+  two feel about that is still their own sheets' business: awe, suspicion, secondhand
+  embarrassment, a demand to know who is paying. It cannot script anyone's lines and it
+  cannot make anyone attracted.
 · The client does not get smoother because the props got expensive.
-Play the arrival out, then let the scene keep going from wherever that leaves them.`;
+Play the arrival out, then let the scene keep going.`;
 }
 
 export function talkUser(couple, phase, beat, total, radio, field) {

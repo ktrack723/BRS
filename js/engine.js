@@ -32,6 +32,16 @@ export function dressOf(client, styled) {
 
 const SAME = { mood: 'same', love: 'same' };
 
+// 판 도중 요원이 쓰는 레버 둘. 기계는 하나다 — 갈리는 것은 배급 단위 하나뿐이다.
+//   radio (고객 무전) : 페이즈마다 한 번. 고객의 이어폰에 꽂히는 명령이다.
+//   field (현장 무전) : 판 전체에 한 번. 현장팀이 물리 지원을 그대로 실행한다.
+// 셋째 레버가 생기면 여기 한 줄이 늘 뿐이다.
+const LEVERS = {
+  radio: { per: RADIO.perPhase, perPhase: true },
+  field: { per: FIELD.perOp, perPhase: false },
+};
+const LEVER_KINDS = Object.keys(LEVERS);
+
 export class Engine {
   #wake = null;    // 멈춰 선 대화를 다시 굴리는 손잡이. 무전을 때리거나 취소하면 풀린다
 
@@ -48,14 +58,14 @@ export class Engine {
     this.aborted = false;
     this.phase = PHASES[0].key;
 
-    // 무전 — 페이즈마다 한 번씩 배급된다. 남은 횟수는 코드가 들고 있고 프롬프트는 모른다.
-    this.radioLeft = Object.fromEntries(PHASES.map(p => [p.key, RADIO.perPhase]));
-    this.radioLog = [];        // [{phase, phaseLabel, beat, text}] — 화면용. transcript에는 안 들어간다
-    // 현장 무전 — 페이즈 무관, 판 전체 1회. 같은 게이트를 쓰고 다음 생성에 실린다.
-    this.fieldLeft = FIELD.perOp;
-    this.fieldLog = [];
-    this.pendingField = null;
-    this.pendingRadio = null;  // 다음 생성 호출에 실릴 명령
+    // 레버 둘의 배급·원장·대기 명령. 기계는 하나고 배급 단위만 다르다 (LEVERS).
+    // 남은 횟수는 코드가 들고 있고 프롬프트는 모른다.
+    this.levers = Object.fromEntries(Object.entries(LEVERS).map(([kind, spec]) => [kind, {
+      spec,
+      left: spec.perPhase ? Object.fromEntries(PHASES.map(p => [p.key, spec.per])) : spec.per,
+      log: [],       // [{phase, phaseLabel, beat, text}] — 화면용. transcript에는 안 들어간다
+      pending: null, // 다음 생성 호출에 실릴 명령
+    }]));
     this.holdWanted = false;   // 버튼이 눌렸다 — 다음 경계에서 멈춘다
     this.held = false;         // 지금 멈춰 서서 무전을 기다리는 중
     this.writesLeft = 0;       // 이 페이즈에 아직 나갈 생성 호출 수. 무전이 먹힐 자리가 있는가의 기준
@@ -98,10 +108,8 @@ export class Engine {
   // 대기 중인 무전이 있으면 여기서 물고 나간다 — system이 아니라 이 user 메시지에 실린다.
   async #generate(phase, beat, beats) {
     this.writesLeft = Math.max(0, this.writesLeft - 1);
-    const radio = this.pendingRadio;
-    const field = this.pendingField;
-    this.pendingRadio = null;
-    this.pendingField = null;
+    const radio = this.#take('radio');
+    const field = this.#take('field');
     this.messages.push({ role: 'user', content: P.talkUser(this.couple, phase, beat, beats, radio, field) });
     let out;
     try {
@@ -186,84 +194,72 @@ export class Engine {
     }
   }
 
-  // ── 무전 — 요원이 판 도중에 쓰는 유일한 레버 ──────────
-  // 화면이 부르는 것은 이 넷뿐이다: radioState · requestHold · sendRadio · releaseHold.
+  // ── 무전 · 현장 무전 — 판 도중의 레버 둘 ──────────────
+  // 화면이 부르는 것은 이 넷뿐이다: 상태 · requestHold · 송출 · releaseHold.
+  // 아래 다섯 메서드가 두 레버 몫을 다 한다. 그 밑은 이름만 붙인 손잡이다.
 
-  /** 이 페이즈에 남은 배급. */
-  radioFor(phase = this.phase) { return this.radioLeft[phase] ?? 0; }
+  #phaseNow() { return PHASES.find(p => p.key === this.phase) || PHASES[0]; }
 
-  /** 지금 무전을 부를 수 있는가. 배급이 남았고, 그 명령이 실릴 대사가 아직 남아 있어야 한다. */
-  canRadio() {
-    return !this.aborted && !this.held && !this.holdWanted
-      && this.radioFor() > 0 && this.writesLeft > 0;
+  /** 남은 배급. 무전은 페이즈별로, 현장은 판 전체로 센다. */
+  leverLeft(kind, phase = this.phase) {
+    const L = this.levers[kind];
+    return L.spec.perPhase ? (L.left[phase] ?? 0) : L.left;
   }
 
-  /** 현장 무전을 부를 수 있는가 — 판 전체 배급이 남았고, 실릴 대사가 남아 있어야 한다. */
-  canField() {
+  /** 지금 부를 수 있는가. 배급이 남았고, 그 명령이 실릴 대사가 아직 남아 있어야 한다. */
+  canUse(kind) {
     return !this.aborted && !this.held && !this.holdWanted
-      && this.fieldLeft > 0 && this.writesLeft > 0;
+      && this.leverLeft(kind) > 0 && this.writesLeft > 0;
   }
 
-  /** 현장 무전 버튼이 그릴 것 전부. */
-  fieldState() {
+  /** 화면이 레버 하나를 그릴 때 보는 것 전부. */
+  leverState(kind) {
+    const L = this.levers[kind];
     return {
-      left: this.fieldLeft, per: FIELD.perOp,
-      can: this.canField(), armed: this.holdWanted, open: this.held,
-      spent: this.fieldLog.length,
+      phase: this.phase, phaseLabel: this.#phaseNow().label,
+      left: this.leverLeft(kind), per: L.spec.per,
+      can: this.canUse(kind), armed: this.holdWanted, open: this.held,
+      spent: L.log.length,
     };
   }
 
-  /** 화면이 버튼 하나를 그릴 때 보는 것 전부. */
-  radioState() {
-    const cur = PHASES.find(p => p.key === this.phase) || PHASES[0];
-    return {
-      phase: this.phase, phaseLabel: cur.label,
-      left: this.radioFor(), per: RADIO.perPhase,
-      can: this.canRadio(), armed: this.holdWanted, open: this.held,
-      spent: this.radioLog.length,
-    };
+  /**
+   * 레버를 때린다. 붙잡혀 있던 대화가 여기서 풀리고, 명령은 다음 생성 프롬프트에 실린다.
+   * 배급은 이때 깎인다 — 버튼만 누르고 취소하면 그대로다.
+   */
+  send(kind, text) {
+    const L = this.levers[kind];
+    const order = String(text || '').trim();
+    if (!this.held || !order || this.leverLeft(kind) <= 0) return this.releaseHold();
+    if (L.spec.perPhase) L.left[this.phase] -= 1; else L.left -= 1;
+    L.pending = order;
+    L.log.push({
+      phase: this.phase, phaseLabel: this.#phaseNow().label,
+      beat: this.points.beats + 1, text: order,
+    });
+    this.#release();
+    return true;
   }
+
+  /** 대기 중인 명령을 꺼낸다. 꺼내면 자리는 빈다 — 한 번 실린 명령은 두 번 안 실린다. */
+  #take(kind) { const L = this.levers[kind]; const v = L.pending; L.pending = null; return v; }
+
+  // 이름만 붙인 손잡이. 화면과 테스트가 부르는 말은 그대로 둔다.
+  get radioLog() { return this.levers.radio.log; }
+  get fieldLog() { return this.levers.field.log; }
+  get fieldLeft() { return this.levers.field.left; }
+  radioFor(phase = this.phase) { return this.leverLeft('radio', phase); }
+  canRadio() { return this.canUse('radio'); }
+  canField() { return this.canUse('field'); }
+  radioState() { return this.leverState('radio'); }
+  fieldState() { return this.leverState('field'); }
+  sendRadio(text) { return this.send('radio', text); }
+  sendField(text) { return this.send('field', text); }
 
   /** 개입 버튼. 다음 줄 경계에서 대화가 선다. 무전이든 현장이든 회선은 하나다. */
   requestHold() {
-    if (!this.canRadio() && !this.canField()) return false;
+    if (!LEVER_KINDS.some(k => this.canUse(k))) return false;
     this.holdWanted = true;
-    return true;
-  }
-
-  /**
-   * 무전을 때린다. 붙잡혀 있던 대화가 여기서 풀리고, 명령은 다음 생성 프롬프트에
-   * 「반드시 이행」으로 실린다. 배급은 이때 깎인다 — 버튼만 누르고 취소하면 그대로다.
-   */
-  sendRadio(text) {
-    const order = String(text || '').trim();
-    if (!this.held || !order || this.radioFor() <= 0) return this.releaseHold();
-    this.radioLeft[this.phase] -= 1;
-    this.pendingRadio = order;
-    const cur = PHASES.find(p => p.key === this.phase) || PHASES[0];
-    this.radioLog.push({
-      phase: this.phase, phaseLabel: cur.label,
-      beat: this.points.beats + 1, text: order,
-    });
-    this.#release();
-    return true;
-  }
-
-  /**
-   * 현장 무전을 때린다. 명령은 다음 생성 프롬프트에 「그대로 실행된 물리 사건」으로 실린다.
-   * 판 전체 1회 — 배급은 이때 깎인다.
-   */
-  sendField(text) {
-    const order = String(text || '').trim();
-    if (!this.held || !order || this.fieldLeft <= 0) return this.releaseHold();
-    this.fieldLeft -= 1;
-    this.pendingField = order;
-    const cur = PHASES.find(p => p.key === this.phase) || PHASES[0];
-    this.fieldLog.push({
-      phase: this.phase, phaseLabel: cur.label,
-      beat: this.points.beats + 1, text: order,
-    });
-    this.#release();
     return true;
   }
 
@@ -289,8 +285,8 @@ export class Engine {
     await this.h.hold?.({ phase: this.phase, at, left: this.radioFor() });
     await open;
     this.held = false;
-    const order = this.pendingRadio;
-    const field = this.pendingField;
+    const order = this.levers.radio.pending;
+    const field = this.levers.field.pending;
     await this.h.resume?.({ phase: this.phase, at, order: order || null, field: field || null, left: this.radioFor() });
     return !!(order || field);
   }

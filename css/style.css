@@ -343,6 +343,12 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 
 /* 삽화 팔레트 — 도형에 직접 색을 쓰지 않고 전부 토큰을 통한다 */
 .slide-art .a-ink   { fill: var(--ink); }
+.slide-art .a-shade { fill: var(--ink-soft); opacity: .22; }
+.slide-art .a-txt   { fill: var(--ink-soft); opacity: .45; }
+/* 게이지 색은 실제 계기판과 같다 (.meter-fill) — 교육에서 본 색이 판에서도 그대로 뜬다 */
+.slide-art .a-mood  { fill: var(--ok); }
+.slide-art .a-mood.danger { fill: var(--stamp); }
+.slide-art .a-love  { fill: #8f2f47; }
 .slide-art .a-soft  { fill: var(--ink-soft); }
 .slide-art .a-file  { fill: var(--file); }
 .slide-art .a-stamp { fill: var(--stamp); }
@@ -352,11 +358,8 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 .slide-art .a-tag   { fill: var(--dlg-lit); stroke: var(--ink-soft); stroke-width: 2; }
 .slide-art .a-bub-c { fill: var(--dlg-lit); stroke: var(--file); stroke-width: 2; }
 .slide-art .a-bub-t { fill: var(--dlg-lit); stroke: var(--stamp); stroke-width: 2; }
-.slide-art .a-line  { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
 .slide-art .a-dash  { fill: none; stroke: var(--ink-soft); stroke-width: 2.5; stroke-dasharray: 7 5; }
-.slide-art .a-crack,
-.slide-art .a-block { fill: none; stroke: var(--stamp); stroke-width: 4.5; stroke-linejoin: round; stroke-linecap: round; }
-.slide-art .a-scribble { fill: none; stroke: var(--ink-soft); stroke-width: 3.5; stroke-linejoin: round; stroke-linecap: round; }
+.slide-art .a-crack { fill: none; stroke: var(--stamp); stroke-width: 4.5; stroke-linejoin: round; stroke-linecap: round; }
 .slide-art .a-seal  { fill: none; stroke: var(--stamp); stroke-width: 2.5; }
 
 .slide-art text { text-anchor: middle; font-family: var(--font-mono); }
@@ -367,7 +370,6 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 .slide-art .a-hdr    { fill: var(--title-fg); font-size: 13px; font-weight: 600; }
 .slide-art .a-seal-t { fill: var(--stamp); font-size: 15px; font-weight: 700; }
 .slide-art .a-seal-t.big { font-size: 19px; }
-.slide-art .a-q      { fill: var(--ink-soft); font-size: 30px; font-weight: 700; }
 
 .intro-nav { display: flex; align-items: center; gap: var(--s3); justify-content: space-between; margin-top: var(--s4); }
 .intro-dots { display: flex; gap: var(--s2); }
@@ -1013,7 +1015,6 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 
 /* 교육 슬라이드 추가 도형 */
 .slide-art .a-user { fill: #cfdcee; stroke: var(--tone-user); stroke-width: 2; }
-.slide-art .a-cachebox { fill: #eee2d4; stroke: var(--tone-cached); stroke-width: 2; }
 
 /* 무전 패널 안의 고객/현장 구획 구분선 */
 .radio-sep { border: none; border-top: 1px dashed var(--dlg-edge); margin: var(--s3) 0; }
