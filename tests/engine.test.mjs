@@ -286,21 +286,23 @@ test('무전은 페이즈당 한 번뿐이다 — 배급이 끝나면 송출해�
 
 const FIELD_MARK = '현장표식 — 창밖에 롤스로이스를 대라';
 
-test('현장 무전은 판 전체에 한 번뿐이다 — 두 번째는 회선이 안 열린다', async () => {
+test('현장 무전은 판 전체에 한 번뿐이다 — 배급이 끝나면 송출해도 안 나간다', async () => {
   const llm = new MockLlm();
   let n = 0;
-  const opened = [];
+  const opened = [], left = [];
   const e = new Engine(llm, {
     couple, dressed: DRESSED, coaching: '',
     handlers: {
-      line: () => { n++; if (n === 3 || n === 21) e.requestHold(); },   // 텍스팅에서 한 번, 토킹에서 한 번
-      hold: (h) => { opened.push(h.phase); e.sendField(FIELD_MARK); },
+      line: () => { n++; if (n === 27 || n === 33) e.requestHold(); },   // 둘 다 토킹이다
+      hold: (h) => { opened.push(h.phase); left.push(e.leverLeft('field')); e.sendField(FIELD_MARK); },
     },
   });
   await e.run();
   assert.equal(e.fieldLeft, 0, '배급이 안 깎였다');
   assert.equal(e.fieldLog.length, 1, '판 전체 1회 제한이 안 걸렸다');
-  assert.equal(opened.length, 1, '배급이 소진됐는데 회선이 또 열렸다 (고객 무전 배급은 안 씀)');
+  assert.equal(opened.length, 2, '두 번 다 자리는 섰어야 한다 — 회선은 고객 무전 몫으로도 열린다');
+  assert.deepEqual(left, [1, 0], '두 번째 회선에서도 현장 배급이 남아 있었다');
+  assert.equal(e.radioLog.length, 0, '현장 송출이 고객 무전으로 새어 나갔다');
 });
 
 test('현장 무전은 다음 생성 프롬프트에 실리고 system은 안 건드린다', async () => {
@@ -309,7 +311,7 @@ test('현장 무전은 다음 생성 프롬프트에 실리고 system은 안 건
   const e = new Engine(llm, {
     couple, dressed: DRESSED, coaching: '',
     handlers: {
-      line: () => { n++; if (n === 3) e.requestHold(); },
+      line: () => { n++; if (n === 27) e.requestHold(); },   // 토킹에서만 열린다
       hold: () => { e.sendField(FIELD_MARK); },
     },
   });
@@ -337,7 +339,7 @@ test('현장 사건은 두 회선에 똑같이, 한 번씩만 들어간다 — �
   const e = new Engine(llm, {
     couple, dressed: DRESSED, coaching: '',
     handlers: {
-      line: () => { n++; if (n === 3) e.requestHold(); },
+      line: () => { n++; if (n === 27) e.requestHold(); },   // 토킹에서만 열린다
       hold: () => { e.sendField(FIELD_MARK); },
     },
   });
@@ -358,6 +360,34 @@ test('현장 사건은 두 회선에 똑같이, 한 번씩만 들어간다 — �
   assert.equal(e.fieldLog.length, 1);
 });
 
+test('텍스팅에는 물리 개입이 없다 — 배급이 남아 있어도 그 자리에서는 못 쓴다', async () => {
+  const llm = new MockLlm();
+  let n = 0;
+  const tried = [];
+  const e = new Engine(llm, {
+    couple, dressed: DRESSED, coaching: '',
+    handlers: {
+      line: () => {
+        n++;
+        if (n <= 24) tried.push(e.canField());      // 텍스팅 4구간 = 24줄
+        if (n === 3) e.requestHold();
+      },
+      hold: () => { e.sendField(FIELD_MARK); },     // 텍스팅에서 때려본다
+    },
+  });
+  await e.run();
+  assert.ok(tried.length > 0 && tried.every(v => v === false),
+    '텍스팅인데 현장 투입이 열려 있다');
+  assert.equal(e.fieldLog.length, 0, '텍스팅에서 현장 사건이 나갔다');
+  assert.equal(e.fieldLeft, 1, '못 쓴 자리에서 배급이 깎였다');
+  assert.ok(!llm.labels(/대사/).some(c => JSON.stringify(c.messages).includes(FIELD_MARK)),
+    '텍스팅 회선에 현장 사건이 실렸다');
+  // 토킹에 들어가면 그 자리에서 열린다
+  assert.equal(e.leverHere('field', 'talk'), true);
+  assert.equal(e.leverHere('field', 'text'), false);
+  assert.equal(e.leverHere('radio', 'text'), true, '고객 무전까지 같이 막혔다');
+});
+
 test('고객 무전과 현장 무전은 배급이 따로 간다 — 한 판에 둘 다 쓸 수 있다', async () => {
   const llm = new MockLlm();
   let n = 0;
@@ -365,8 +395,8 @@ test('고객 무전과 현장 무전은 배급이 따로 간다 — 한 판에 �
   const e = new Engine(llm, {
     couple, dressed: DRESSED, coaching: '',
     handlers: {
-      line: () => { n++; if (n === 3 || n === 9) e.requestHold(); },
-      hold: () => { sent.length ? e.sendRadio(RADIO_MARK) : e.sendField(FIELD_MARK); sent.push(1); },
+      line: () => { n++; if (n === 3 || n === 27) e.requestHold(); },
+      hold: () => { sent.length ? e.sendField(FIELD_MARK) : e.sendRadio(RADIO_MARK); sent.push(1); },
     },
   });
   await e.run();

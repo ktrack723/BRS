@@ -480,13 +480,14 @@ const LEVER_UI = {
   radio: {
     input: '#radio-input', send: '#btn-radio-send', who: '무전',
     empty: '무전 내용이 비었다. 적어서 보내거나 취소하라.',
-    label: left => (left ? '무전 송출 — 회선 재개' : `📻 무전 소진 · 이 페이즈 배급 없음`),
+    label: s => (s.left ? '무전 송출 — 회선 재개' : '📻 무전 소진 · 이 페이즈 배급 없음'),
     cut: order => `📻 L 기관 무전 · 고객 이어폰 직결 — "${order}" <b>(반드시 이행)</b>. 타겟은 듣지 못했다.`,
   },
   field: {
     input: '#field-input', send: '#btn-field-send', who: '현장',
     empty: '현장 지시가 비었다. 무엇을 실행할지 적어라.',
-    label: left => (left ? '🚚 현장 투입 — 회선 재개' : '🚚 현장 배급 소진 (판 전체 1회)'),
+    label: s => (!s.here ? '🚚 텍스팅에는 현장이 없다 — 토킹부터'
+      : s.left ? '🚚 현장 투입 — 회선 재개' : '🚚 현장 배급 소진 (판 전체 1회)'),
     cut: order => `🚚 현장팀 투입 — "${order}" <b>(이미 벌어진 일)</b>. 거부권도, 되돌릴 길도 없다.`,
   },
 };
@@ -501,21 +502,22 @@ function paintRadio() {
   btn.classList.toggle('armed', s.armed);
   btn.textContent = s.armed ? '📻 대기 — 곧 회선이 열린다'
     : s.left > 0 ? `📻 무전 개입 · ${s.phaseLabel} ${s.left}회`
-      : f.left > 0 ? '🚚 현장 개입 · 판 전체 1회'
+      : f.here && f.left > 0 ? '🚚 현장 개입 · 판 전체 1회'
         : `📻 배급 소진 · ${s.phaseLabel}`;
   btn.title = s.left > 0 ? '대화를 세우고 고객 이어폰에 명령을 꽂는다. 페이즈마다 한 번뿐이다.'
-    : f.left > 0 ? '고객 무전은 소진됐다. 현장팀 물리 지원은 아직 한 번 남았다.'
+    : f.here && f.left > 0 ? '고객 무전은 소진됐다. 현장팀 물리 지원은 아직 한 번 남았다.'
       : '이 페이즈에 남은 개입이 없다.';
 }
 
-// 송출 버튼 둘. 배급이 없으면 그 칸만 잠긴다.
+// 송출 버튼 둘. 배급이 없거나 이 페이즈에서 못 쓰는 레버면 그 칸만 잠긴다.
 function paintPanel() {
   const e = state.engine;
   for (const [kind, u] of Object.entries(LEVER_UI)) {
-    const left = e ? e.leverLeft(kind) : 0;
-    $(u.send).disabled = !left;
-    $(u.input).disabled = !left;
-    $(u.send).textContent = u.label(left);
+    const s = e ? e.leverState(kind) : { left: 0, here: false };
+    const open = s.here && s.left > 0;
+    $(u.send).disabled = !open;
+    $(u.input).disabled = !open;
+    $(u.send).textContent = u.label(s);
   }
   syncRadioInject();
   paintRadio();

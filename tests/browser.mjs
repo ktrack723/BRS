@@ -383,30 +383,14 @@ try {
   check('무전이 나간 자리가 화면에 남는다',
     await page.evaluate(() => !!document.querySelector('#chat-window .bubble.radio-cut')));
   const spentLabel = await page.textContent('#btn-radio');
-  check('고객 무전 배급이 떨어져도 회선은 현장 몫으로 남는다',
-    /현장/.test(spentLabel) && !await page.evaluate(() => document.querySelector('#btn-radio').disabled),
+  check('텍스팅에서 고객 무전을 쓰면 회선이 닫힌다 — 현장은 이 페이즈에 없다',
+    /소진/.test(spentLabel) && await page.evaluate(() => document.querySelector('#btn-radio').disabled),
     spentLabel);
-
-  // ── 현장 무전 — 판 전체 한 번. 같은 회선, 다른 배급 ──
-  await page.waitForFunction(() => {
-    const e = window.__game.state.engine;
-    return e && e.canField() && e.transcript.length % 6 === 2;
-  }, null, { timeout: ms(120000) });
-  await page.click('#btn-radio');
-  await page.waitForSelector('#radio-panel:not(.hidden)', { timeout: ms(60000) });
-  const radioBtnLabel = await page.textContent('#btn-radio-send');
-  check('배급이 끝난 고객 무전 칸만 잠긴다', /소진/.test(radioBtnLabel)
-    && await page.evaluate(() => document.querySelector('#radio-input').disabled), radioBtnLabel);
-  await page.fill('#field-input', FIELD);
-  await page.click('#btn-field-send');
-  await page.waitForSelector('#radio-panel', { state: 'hidden', timeout: ms(30000) });
-  check('현장 무전이 나간 자리가 화면에 남는다',
-    await page.evaluate(() => [...document.querySelectorAll('#chat-window .radio-cut')]
-      .some(el => el.textContent.includes('현장팀 투입'))));
-  const bothSpent = await page.textContent('#btn-radio');
-  check('두 배급이 다 떨어지면 회선이 닫힌다',
-    /소진/.test(bothSpent) && await page.evaluate(() => document.querySelector('#btn-radio').disabled),
-    bothSpent);
+  check('텍스팅에서는 현장 배급이 남아 있어도 못 쓴다',
+    await page.evaluate(() => {
+      const e = window.__game.state.engine;
+      return e.fieldLeft === 1 && e.leverHere('field') === false && e.canField() === false;
+    }));
   const cutBeat = await page.evaluate(() => {
     const h = window.__game.state.engine.radioLog[0];
     return { beat: h?.beat ?? 0, said: window.__game.state.engine.transcript.length };
@@ -424,6 +408,26 @@ try {
     await page.evaluate(() => !!document.querySelector('#chat-window .judge-sep')));
   const talkRadio = await page.evaluate(() => window.__game.state.engine.radioState());
   check('토킹에는 배급이 따로 한 번 더 있다', talkRadio.left === 1, `${talkRadio.left}회`);
+
+  // ── 현장 무전 — 토킹에서만. 판 전체 한 번, 같은 회선 ──
+  await page.evaluate(() => window.__game.pace.setPace('slow'));
+  await page.waitForFunction(() => {
+    const e = window.__game.state.engine;
+    return e && e.canField() && e.transcript.length % 6 === 2;
+  }, null, { timeout: ms(200000) });
+  check('토킹에 들어오면 현장 회선이 열린다', true);
+  await page.click('#btn-radio');
+  await page.waitForSelector('#radio-panel:not(.hidden)', { timeout: ms(60000) });
+  const fieldBtnLabel = await page.textContent('#btn-field-send');
+  check('토킹의 현장 칸은 열려 있다', /현장 투입/.test(fieldBtnLabel)
+    && !await page.evaluate(() => document.querySelector('#field-input').disabled), fieldBtnLabel);
+  await page.fill('#field-input', FIELD);
+  await page.click('#btn-field-send');
+  await page.waitForSelector('#radio-panel', { state: 'hidden', timeout: ms(30000) });
+  check('현장 무전이 나간 자리가 화면에 남는다',
+    await page.evaluate(() => [...document.querySelectorAll('#chat-window .radio-cut')]
+      .some(el => el.textContent.includes('현장팀 투입'))));
+  await page.evaluate(() => window.__game.pace.setPace('instant'));
   await shot('08-talking');
 
   // ── C. 후일담 ──────────────────────────────────────────

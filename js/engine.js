@@ -33,13 +33,14 @@ export function dressOf(client, styled) {
 
 const SAME = { mood: 'same', love: 'same' };
 
-// 판 도중 요원이 쓰는 레버 둘. 기계는 하나다 — 갈리는 것은 배급 단위 하나뿐이다.
-//   radio (고객 무전) : 페이즈마다 한 번. 고객의 이어폰에 꽂히는 명령이다.
+// 판 도중 요원이 쓰는 레버 둘. 기계는 하나다 — 갈리는 것은 배급 단위와 쓸 수 있는 자리뿐이다.
+//   radio (고객 무전) : 페이즈마다 한 번. 고객의 이어폰에 꽂히는 명령이다. 어느 페이즈든 된다.
 //   field (현장 무전) : 판 전체에 한 번. 현장팀이 물리 지원을 그대로 실행한다.
+//                       **토킹에서만** — 텍스팅에는 물건을 놓을 방이 없다 (points.js의 FIELD).
 // 셋째 레버가 생기면 여기 한 줄이 늘 뿐이다.
 const LEVERS = {
-  radio: { per: RADIO.perPhase, perPhase: true },
-  field: { per: FIELD.perOp, perPhase: false },
+  radio: { per: RADIO.perPhase, perPhase: true, phases: null },
+  field: { per: FIELD.perOp, perPhase: false, phases: FIELD.phases },
 };
 const LEVER_KINDS = Object.keys(LEVERS);
 
@@ -231,10 +232,16 @@ export class Engine {
     return L.spec.perPhase ? (L.left[phase] ?? 0) : L.left;
   }
 
-  /** 지금 부를 수 있는가. 배급이 남았고, 그 명령이 실릴 대사가 아직 남아 있어야 한다. */
+  /** 이 페이즈에서 쓸 수 있는 레버인가. 배급과 무관한, 자리의 문제다. */
+  leverHere(kind, phase = this.phase) {
+    const allow = this.levers[kind].spec.phases;
+    return !allow || allow.includes(phase);
+  }
+
+  /** 지금 부를 수 있는가. 자리가 맞고, 배급이 남았고, 실릴 대사가 아직 남아 있어야 한다. */
   canUse(kind) {
     return !this.aborted && !this.held && !this.holdWanted
-      && this.leverLeft(kind) > 0 && this.writesLeft > 0;
+      && this.leverHere(kind) && this.leverLeft(kind) > 0 && this.writesLeft > 0;
   }
 
   /** 화면이 레버 하나를 그릴 때 보는 것 전부. */
@@ -243,6 +250,7 @@ export class Engine {
     return {
       phase: this.phase, phaseLabel: this.#phaseNow().label,
       left: this.leverLeft(kind), per: L.spec.per,
+      here: this.leverHere(kind),
       can: this.canUse(kind), armed: this.holdWanted, open: this.held,
       spent: L.log.length,
     };
@@ -255,7 +263,7 @@ export class Engine {
   send(kind, text) {
     const L = this.levers[kind];
     const order = String(text || '').trim();
-    if (!this.held || !order || this.leverLeft(kind) <= 0) return this.releaseHold();
+    if (!this.held || !order || !this.leverHere(kind) || this.leverLeft(kind) <= 0) return this.releaseHold();
     if (L.spec.perPhase) L.left[this.phase] -= 1; else L.left -= 1;
     L.pending = order;   // 회선이 열린 자리에서 화면이 읽어간다
     // 무전은 고객이 「바로 다음 대사부터」 이행한다고 약속된 것이다. 지금이 타겟 차례면
