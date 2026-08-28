@@ -84,7 +84,7 @@ function installMockLlm() {
       messages: JSON.parse(JSON.stringify(messages || [])),
     });
     await new Promise(r => setTimeout(r, window.__mockLatency ?? 120));
-    if (label === '본부 인증') return '이상무';
+    if (label === 'Q 기관 인증') return '이상무';
     if (label.startsWith('A-1')) {
       return {
         look: '형광 주황으로 물들인 머리에 새빨간 턱시도, 카우보이 부츠, 선글라스. 오른손에 폭탄을 들고 머리 위에 금색 고리가 돈다.',
@@ -107,18 +107,17 @@ function installMockLlm() {
       const i = judged++;
       return { mood: MOOD[i % MOOD.length], love: LOVE[i % LOVE.length] };
     }
-    if (label.includes('대화 생성')) {
-      const n = ++beat;
-      return {
-        lines: [
-          { who: 'client', text: `${n}구간 · 고객이 먼저 말을 건다. 그 부츠 얘기부터.` },
-          { who: 'target', text: '…그래서요? (컵을 고쳐 잡는다)' },
-          { who: 'client', text: '아니 그게 아니라, 제 말은요.' },
-          { who: 'target', text: 'ㅇㅇ' },
-          { who: 'client', text: '지금 웃으셨죠. 봤습니다.' },
-          { who: 'target', text: '안 웃었는데요.' },
-        ],
-      };
+    if (label.includes('대사')) {
+      const i = beat++;
+      const mine = label.includes('고객 대사');
+      const CLIENT = [
+        '그, 부츠 얘기부터 하려고 했는데요.',
+        '아니 그게 아니라, 제 말은요.',
+        '지금 웃으셨죠. 봤습니다.',
+      ];
+      const TARGET = ['…그래서요? (컵을 고쳐 잡는다)', 'ㅇㅇ', '안 웃었는데요.'];
+      const pool = mine ? CLIENT : TARGET;
+      return { text: `${Math.floor(i / 6) + 1}구간 · ${pool[Math.floor(i / 2) % pool.length]}` };
     }
     if (label.startsWith('R ·')) {
       return { reaction: '…진짜로 이걸 하라고요? (의자를 반 뼘 뒤로 민다) 합니다. 합니다만 이건 아니라고 봅니다.', face: 'cringe' };
@@ -327,7 +326,7 @@ try {
   await page.fill('#coaching-input', COACH);
   await page.waitForTimeout(60);
   const inject = await page.textContent('#coaching-inject');
-  check('코칭이 프롬프트에 어떻게 박히는지 그대로 보여준다', inject.includes(COACH) && inject.includes('본부 코칭'));
+  check('코칭이 프롬프트에 어떻게 박히는지 그대로 보여준다', inject.includes(COACH) && inject.includes('Q 기관 코칭'));
   await page.click('#btn-coaching');
   await page.waitForSelector('#coaching-react .react-line', { timeout: ms(120000) });
   check('코칭에도 고객이 대꾸한다', (await page.textContent('#coaching-react')).trim().length > 8);
@@ -376,7 +375,7 @@ try {
   await page.waitForTimeout(60);
   const radioInject = await page.textContent('#radio-inject');
   check('무전이 프롬프트에 어떻게 박히는지 그대로 보여준다',
-    radioInject.includes(RADIO) && radioInject.includes('본부 무전'));
+    radioInject.includes(RADIO) && radioInject.includes('Q 기관 무전'));
   await shot('07b-radio');
   await page.click('#btn-radio-send');
   await page.waitForSelector('#radio-panel', { state: 'hidden', timeout: ms(30000) });
@@ -456,16 +455,23 @@ try {
   // 호출 감사 — 화면을 통해 실제로 나간 프롬프트가 하이어아키를 지키는가
   if (!LIVE) {
     const calls = await page.evaluate(() => window.__mock.calls);
-    const gen = calls.filter(c => c.label.includes('대화 생성'));
+    const gen = calls.filter(c => c.label.includes('대사'));
     const judge = calls.filter(c => c.label.includes('판정'));
     const epilogue = calls.filter(c => c.label.includes('후일담'));
-    const rejudge = judge.filter(c => /재판정/.test(c.label)).length;
-    check('생성과 판정이 구간마다 짝을 이룬다', gen.length === judge.length - rejudge,
-      `${gen.length} / ${judge.length - rejudge} (+재판정 ${rejudge})`);
+    const cliSay = gen.filter(c => c.label.includes('고객 대사'));
+    const tgtSay = gen.filter(c => c.label.includes('타겟 대사'));
+    check('구간마다 대사 여섯 줄 + 판정 하나다', gen.length === judge.length * 6,
+      `대사 ${gen.length} / 판정 ${judge.length}`);
+    check('배우 둘이 각자의 회선에서 반씩 쓴다', cliSay.length + tgtSay.length === gen.length && tgtSay.length > 0,
+      `고객 ${cliSay.length} · 타겟 ${tgtSay.length}`);
+    check('타겟 배우는 고객 시트도 코칭도 못 본다',
+      tgtSay.every(c => !c.system.includes(COACH) && !c.system.includes(styled.personality)));
+    const taste = await page.evaluate(id => window.__game.COUPLES.find(c => c.id === id).target.taste[0], COUPLE);
+    check('고객 배우는 타겟 취향을 못 본다', cliSay.every(c => !c.system.includes(taste)), taste.slice(0, 14));
     check('후일담은 딱 한 번 불린다', epilogue.length === 1, `${epilogue.length}회`);
     // system 뿐 아니라 user 메시지까지 합쳐서 본다 — 대화 전문은 그쪽으로 간다.
-    check('코칭은 생성 프롬프트에만 실린다',
-      gen.every(c => c.system.includes(COACH)) && judge.every(c => !c.body.includes(COACH)));
+    check('코칭은 고객 배우에게만 실린다',
+      cliSay.every(c => c.system.includes(COACH)) && judge.every(c => !c.body.includes(COACH)));
     check('판정은 코칭도 고객 성격도 못 본다',
       judge.every(c => !c.body.includes(COACH) && !c.body.includes(styled.personality)));
     check('판정은 스타일링된 고객 외모를 본다', judge.every(c => c.system.includes(styled.look)));
@@ -473,7 +479,7 @@ try {
     check('후일담은 취향도 외모도 안 받는다',
       !epilogue[0].body.includes(styled.look));
     const sysSet = new Set(gen.map(c => c.system));
-    check('생성 system이 판 내내 동일하다 (캐시가 붙는 자리)', sysSet.size === 1, `${sysSet.size}종`);
+    check('생성 system이 배우마다 하나씩, 판 내내 동일하다', sysSet.size === 2, `${sysSet.size}종`);
 
     // 무전 — 코칭과 같은 자리로 가되, system이 아니라 messages에 실린다
     const inMsgs = c => JSON.stringify(c.messages || []).includes(RADIO);
@@ -481,6 +487,9 @@ try {
     check('무전은 생성 프롬프트에만 실린다', carried.length > 0 && !gen.some(c => c.system.includes(RADIO)),
       `${carried.length}/${gen.length}회`);
     check('무전은 눌린 뒤의 호출부터 실린다', gen.indexOf(carried[0]) > 0, gen.indexOf(carried[0]) + '번째');
+    check('현장 사건은 양쪽 회선이 다 겪는다',
+      cliSay.some(c => JSON.stringify(c.messages).includes(FIELD))
+      && tgtSay.some(c => JSON.stringify(c.messages).includes(FIELD)));
     check('무전은 판정에 안 실린다 — 요원이 쓴 글은 채점되지 않는다',
       !judge.some(c => inMsgs(c) || c.system.includes(RADIO)));
     check('무전은 후일담에도 안 실린다', !inMsgs(epilogue[0]) && !epilogue[0].system.includes(RADIO));
@@ -491,12 +500,13 @@ try {
     check('현장 무전은 판정에도 후일담에도 안 실린다',
       !judge.some(c => inMsgsF(c) || c.system.includes(FIELD))
       && !inMsgsF(epilogue[0]) && !epilogue[0].system.includes(FIELD));
-    check('무전으로 잘린 구간은 오간 데까지만 다시 판정된다', rejudge >= 1, `${rejudge}회`);
-    check('재판정도 무전을 못 본다', !judge.filter(c => /재판정/.test(c.label)).some(inMsgs));
+    check('버릴 대사도 재판정도 없다 — 아직 쓰지 않은 말이기 때문이다',
+      judge.every(c => !/재판정/.test(c.label)));
+    check('무전은 고객 회선에만 실린다', !tgtSay.some(inMsgs));
 
     const labels = new Set(calls.map(c => c.label.replace(/\d+/g, 'N')));
     check('구조도에 없는 호출이 없다',
-      [...labels].every(l => /본부 인증|A-N ·|R ·|대화 생성|판정|후일담/.test(l)), [...labels].join(' / '));
+      [...labels].every(l => /Q 기관 인증|A-N ·|R ·|대사|판정|후일담/.test(l)), [...labels].join(' / '));
     const react = calls.filter(c => c.label.startsWith('R ·'));
     check('주문 셋마다 반응을 한 번씩 물어본다', react.length === 3, `${react.length}회`);
     const tgt = await page.evaluate(() => {

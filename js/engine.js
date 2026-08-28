@@ -2,9 +2,10 @@
 //
 // 한 판의 전부:
 //   텍스팅 페이즈 · 토킹 페이즈, 각 페이즈는 구간(beat) 몇 개로 나뉜다.
-//   구간마다 두 번 부른다 —
-//     B-1  대화 생성   : 두 사람 몫을 한 번에 쓴다 (system은 판 내내 같다 → 캐시)
-//     B-2  판정        : 그 구간을 보고 무드·러브의 증감 여부만 돌려준다
+//   구간 하나는 대사 여섯 줄이고, **줄마다 한 번씩 부른다** —
+//     B-1  대사 생성   : 배우 둘이 번갈아 한 줄씩 쓴다. 회선이 둘로 갈려 있어
+//                        서로의 시트를 못 본다 (system은 판 내내 같다 → 캐시)
+//     B-2  판정        : 그 구간 여섯 줄을 보고 무드·러브의 증감 여부만 돌려준다
 //   무드가 바닥나면 자리가 깨지고 남은 구간은 돌지 않는다.
 //   끝나면 C를 한 번 불러 성사 여부와 후일담을 받는다.
 //
@@ -12,8 +13,8 @@
 //   현장 무전 — 판 도중의 두 번째 레버. 현장 요원이 물리 지원(꽃다발·차량·연출)을 그대로
 //     실행한다. 페이즈 무관 판 전체 1회(points.js의 FIELD). 같은 게이트, 같은 주입 경로다.
 //     버튼을 누르면 다음 줄 경계에서 대화가 **멈춘다**(#gate). 무전을 때리면 그 명령이
-//     다음 생성 프롬프트에 「반드시 이행」으로 실린다. 구간 중간에서 잘렸으면 남은 대사는
-//     없던 것이 되고, 실제로 오간 데까지만 다시 판정한다 — 하지 않은 말은 채점되지 않는다.
+//     **바로 다음 줄**의 프롬프트에 실린다 — 아직 안 쓴 말이라 버릴 것도, 다시 판정할 것도
+//     없다. 무전은 고객 회선에만, 현장 무전은 양쪽 회선에 실린다.
 //     무전 문장 자체는 대화 기록(transcript)에 들어가지 않는다. 심판도 기록관도 못 본다.
 //
 // 여기 없는 것: 공기 · 합/carry · 첫인상 판정 · 강압 · 사망 · 자리이탈 판정 ·
@@ -54,7 +55,6 @@ export class Engine {
 
     this.points = initialPoints();
     this.transcript = [];     // [{who:'client'|'target'|'sys', text}]
-    this.messages = [];       // 생성 호출의 대화 내역 (접두사가 그대로 캐시된다)
     this.aborted = false;
     this.phase = PHASES[0].key;
 
@@ -70,8 +70,17 @@ export class Engine {
     this.held = false;         // 지금 멈춰 서서 무전을 기다리는 중
     this.writesLeft = 0;       // 이 페이즈에 아직 나갈 생성 호출 수. 무전이 먹힐 자리가 있는가의 기준
 
-    // system 프롬프트 둘은 판 내내 바이트 동일하다. 캐시 breakpoint가 붙는 자리다.
-    this.talkSys = P.talkSystem(couple, dressed, this.coaching);
+    // 배우 둘. 각자 제 시트만 들고 제 회선에서 논다 — 서로의 시트는 어느 쪽에도 없다.
+    // system 셋은 판 내내 바이트 동일하다. 캐시 breakpoint가 붙는 자리다.
+    this.sys = {
+      client: P.clientSystem(couple, dressed, this.coaching),
+      target: P.targetSystem(couple),
+    };
+    this.threads = { client: [], target: [] };    // 각 배우의 대화 내역
+    this.heard = { client: [], target: [] };      // 다음 차례에 넘겨줄 「상대가 한 말」
+    this.scene = { client: null, target: null };  // 페이즈가 열릴 때 한 번 실리는 상황
+    this.pending = { client: {}, target: {} };    // 다음 차례에 실릴 무전·현장 명령
+    this.turn = 0;                                // 짝수면 고객 차례
     this.judgeSys = P.judgeSystem(couple, dressed);
   }
 
@@ -104,28 +113,43 @@ export class Engine {
     return lines.map(l => `${l.who === 'client' ? c.client.name : c.target.name}: ${l.text}`).join('\n');
   }
 
-  // ── B-1. 대화 생성 ────────────────────────────────────
-  // 대기 중인 무전이 있으면 여기서 물고 나간다 — system이 아니라 이 user 메시지에 실린다.
-  async #generate(phase, beat, beats) {
-    this.writesLeft = Math.max(0, this.writesLeft - 1);
-    const radio = this.#take('radio');
-    const field = this.#take('field');
-    this.messages.push({ role: 'user', content: P.talkUser(this.couple, phase, beat, beats, radio, field) });
+  // ── B-1. 대사 한 줄 ───────────────────────────────────
+  // 배우 하나를 불러 한 마디를 받는다. 그 배우의 회선에만 쌓이고, 나온 말은 상대 회선의
+  // 「들은 말」 큐로 넘어간다. 무전·현장은 system이 아니라 이 user 메시지에 실린다.
+  async #say(side, phase, beat) {
+    const scene = this.scene[side];
+    const orders = this.pending[side];
+    const heard = this.heard[side];
+    const first = !this.threads[side].length;
+    this.scene[side] = null;
+    this.pending[side] = {};
+    this.heard[side] = [];
+
+    this.threads[side].push({
+      role: 'user',
+      content: P.actorUser(this.couple, { scene, heard, side, first, ...orders }),
+    });
     let out;
     try {
       out = await this.llm.call({
-        label: `${P.PHASE_SCENE[phase].label} ${beat}구간 · 대화 생성`,
-        system: this.talkSys, cache: true,
-        messages: this.messages,
-        schema: P.TALK_SCHEMA, effort: 'low', maxTokens: 6000,
+        label: `${P.PHASE_SCENE[phase].label} ${beat}구간 · ${side === 'client' ? '고객' : '타겟'} 대사`,
+        system: this.sys[side], cache: true,
+        messages: this.threads[side],
+        schema: P.TALK_SCHEMA, effort: 'low', maxTokens: 2000,
       });
     } catch {
-      return [];
+      // 실패한 차례는 없던 일로 되돌린다. 안 그러면 장면 안내와 명령이 통째로 증발한다.
+      this.threads[side].pop();
+      this.scene[side] = scene;
+      this.pending[side] = orders;
+      this.heard[side] = heard.concat(this.heard[side]);
+      return null;
     }
-    return (out?.lines || [])
-      .filter(l => l && typeof l.text === 'string' && l.text.trim())
-      .map(l => ({ who: l.who === 'target' ? 'target' : 'client', text: l.text.trim() }))
-      .slice(0, BEAT.lines * 2);
+    const text = String(out?.text || '').trim();
+    if (!text) { this.threads[side].pop(); return null; }
+    this.threads[side].push({ role: 'assistant', content: text });
+    this.heard[side === 'client' ? 'target' : 'client'].push({ who: side, text });
+    return { who: side, text };
   }
 
   // ── B-2. 판정 ─────────────────────────────────────────
@@ -143,6 +167,10 @@ export class Engine {
   async #runPhase(ph) {
     this.phase = ph.key;
     this.writesLeft = ph.beats;
+    // 페이즈가 열렸다. 두 배우에게 각자 제 시점의 상황을 한 번씩 건다.
+    for (const side of ['client', 'target']) {
+      this.scene[side] = P.sceneOpen(this.couple, this.dressed, ph.key, side);
+    }
     await this.h.phase?.({ key: ph.key, label: ph.label, beats: ph.beats });
     this.h.points?.(this.snapshot());
 
@@ -151,30 +179,27 @@ export class Engine {
 
       await this.#gate('beat');   // 구간 사이에서 눌렀다면 여기서 받는다
 
+      // 이 구간이 시작되면 그만큼의 자리가 줄어든다. 남은 자리가 없으면 무전이 먹힐 데도 없다.
+      this.writesLeft = Math.max(0, this.writesLeft - 1);
       const priorLog = this.fullTranscript();
-      const lines = await this.#generate(ph.key, beat, ph.beats);
-      if (!lines.length) { await this.#note('(회선이 끊겼다. 이 구간은 기록되지 않았다.)'); continue; }
 
-      // 판정은 띄워놓고 말풍선을 먼저 흘린다 — 읽는 동안 뒤에서 날아온다.
-      const judging = this.#judge(priorLog, this.#segmentText(lines), ph.key, beat);
-
-      // 무전이 들어오면 그 줄에서 대화가 끊긴다. 뒤에 있던 대사는 없던 것이 된다 —
-      // 요원이 자리를 세운 시점보다 뒤의 말은 아직 나오지 않은 말이기 때문이다.
+      // 여섯 줄. 줄마다 배우가 갈리고, 줄 사이마다 무전이 들어올 자리가 있다.
+      // 아직 안 쓴 말이라 잘라낼 것이 없다 — 명령은 곧바로 다음 줄에 실린다.
       const said = [];
-      let cut = false;
-      for (const l of lines) {
-        this.transcript.push(l);
-        said.push(l);
-        await this.h.line?.(l.who, l.text);
-        if (said.length < lines.length && await this.#gate('line')) { cut = true; break; }
+      for (let i = 0; i < BEAT.lines; i++) {
+        if (this.aborted) break;
+        const side = this.turn % 2 === 0 ? 'client' : 'target';
+        const line = await this.#say(side, ph.key, beat);
+        if (!line) break;
+        this.turn++;
+        this.transcript.push(line);
+        said.push(line);
+        await this.h.line?.(line.who, line.text);
+        if (i < BEAT.lines - 1) await this.#gate('line');
       }
+      if (!said.length) { await this.#note('(회선이 끊겼다. 이 구간은 기록되지 않았다.)'); continue; }
 
-      // 모델이 자기 출력을 이어 읽을 수 있게 평문으로 되돌려 쌓는다. 접두사가 그대로 캐시된다.
-      this.messages.push({ role: 'assistant', content: this.#segmentText(said) });
-
-      // 잘렸으면 띄워둔 판정은 버린다. 하지 않은 말은 채점되지 않는다.
-      let verdict = await judging;
-      if (cut) verdict = await this.#judge(priorLog, this.#segmentText(said), ph.key, beat, ' · 무전 개입분 재판정');
+      const verdict = await this.#judge(priorLog, this.#segmentText(said), ph.key, beat);
 
       this.points = applyVerdict(this.points, verdict, { phase: ph.key });
       const last = this.points.history.at(-1);
@@ -232,7 +257,13 @@ export class Engine {
     const order = String(text || '').trim();
     if (!this.held || !order || this.leverLeft(kind) <= 0) return this.releaseHold();
     if (L.spec.perPhase) L.left[this.phase] -= 1; else L.left -= 1;
-    L.pending = order;
+    L.pending = order;   // 회선이 열린 자리에서 화면이 읽어간다
+    // 무전은 고객이 「바로 다음 대사부터」 이행한다고 약속된 것이다. 지금이 타겟 차례면
+    // 그 차례를 건너뛴다 — 고객이 말을 자르고 끼어드는 그림이고, 약속도 지켜진다.
+    if (kind === 'radio' && this.turn % 2 !== 0) this.turn++;
+    // 배달: 무전은 고객 귀에만, 현장 사건은 두 사람 다 겪는다.
+    this.pending.client[kind] = order;
+    if (kind === 'field') this.pending.target.field = order;
     L.log.push({
       phase: this.phase, phaseLabel: this.#phaseNow().label,
       beat: this.points.beats + 1, text: order,
@@ -240,9 +271,6 @@ export class Engine {
     this.#release();
     return true;
   }
-
-  /** 대기 중인 명령을 꺼낸다. 꺼내면 자리는 빈다 — 한 번 실린 명령은 두 번 안 실린다. */
-  #take(kind) { const L = this.levers[kind]; const v = L.pending; L.pending = null; return v; }
 
   // 이름만 붙인 손잡이. 화면과 테스트가 부르는 말은 그대로 둔다.
   get radioLog() { return this.levers.radio.log; }
@@ -287,6 +315,8 @@ export class Engine {
     this.held = false;
     const order = this.levers.radio.pending;
     const field = this.levers.field.pending;
+    this.levers.radio.pending = null;
+    this.levers.field.pending = null;
     await this.h.resume?.({ phase: this.phase, at, order: order || null, field: field || null, left: this.radioFor() });
     return !!(order || field);
   }

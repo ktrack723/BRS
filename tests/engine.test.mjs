@@ -2,22 +2,23 @@
 //
 // 확인하는 것: 호출 순서와 횟수, 구간 판정 반영, 무드 바닥 시 조기 종료,
 // 대화 내역 누적, 후일담 정산, 무전 개입. 프롬프트 내용 감사는 orders.test.mjs가 본다.
+//
+// 대사는 **줄마다 한 번씩** 부른다. 배우 둘이 각자의 회선에서 번갈아 한 줄씩 쓴다.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Engine, dressOf } from '../js/engine.js';
 import { COUPLES } from '../js/couples.js';
-import { PHASES, POINTS, RADIO, TOTAL_BEATS } from '../js/points.js';
+import { BEAT, PHASES, POINTS, RADIO, TOTAL_BEATS } from '../js/points.js';
 
 const couple = COUPLES[0];
 const DRESSED = dressOf(couple.client, null);
 
 // 라벨로 분기하는 가짜 LLM. 판정 값은 대본(script)대로 순서대로 내준다.
 class MockLlm {
-  constructor({ verdicts = [], epilogue = null, lines = 6 } = {}) {
+  constructor({ verdicts = [], epilogue = null } = {}) {
     this.calls = [];
     this.verdicts = verdicts;
     this.epilogue = epilogue;
-    this.lines = lines;
     this.vi = 0;
   }
   async call({ label, system, messages, schema }) {
@@ -28,14 +29,9 @@ class MockLlm {
     if (label.includes('후일담')) {
       return this.epilogue || { success: false, epilogue: '아무 일도 없었다.' };
     }
-    // 대화 생성
-    const n = this.calls.filter(c => c.label.includes('대화 생성')).length;
-    return {
-      lines: Array.from({ length: this.lines }, (_, i) => ({
-        who: i % 2 === 0 ? 'client' : 'target',
-        text: `${n}-${i}번째 대사`,
-      })),
-    };
+    // 대사 한 줄
+    const n = this.calls.filter(c => /대사/.test(c.label)).length;
+    return { text: `대사${n}` };
   }
   labels(re) { return this.calls.filter(c => re.test(c.label)); }
 }
@@ -44,13 +40,33 @@ function makeEngine(llm, handlers = {}) {
   return new Engine(llm, { couple, dressed: DRESSED, coaching: '코칭원문', handlers });
 }
 
-test('한 판은 구간마다 생성 1회 + 판정 1회, 딱 그만큼만 부른다', async () => {
+test('한 판은 구간마다 대사 여섯 줄 + 판정 1회, 딱 그만큼만 부른다', async () => {
   const llm = new MockLlm();
   const e = makeEngine(llm);
   await e.run();
-  assert.equal(llm.labels(/대화 생성/).length, TOTAL_BEATS);
+  assert.equal(llm.labels(/대사/).length, TOTAL_BEATS * BEAT.lines);
   assert.equal(llm.labels(/판정/).length, TOTAL_BEATS);
-  assert.equal(llm.calls.length, TOTAL_BEATS * 2, '구조도에 없는 호출이 섞였다');
+  assert.equal(llm.calls.length, TOTAL_BEATS * (BEAT.lines + 1), '구조도에 없는 호출이 섞였다');
+});
+
+test('배우 둘이 번갈아 쓰고, 서로의 회선을 못 본다', async () => {
+  const llm = new MockLlm();
+  const e = makeEngine(llm);
+  await e.run();
+  const said = llm.labels(/대사/);
+  for (let i = 0; i < said.length; i++) {
+    assert.ok(new RegExp(i % 2 === 0 ? '고객 대사' : '타겟 대사').test(said[i].label),
+      `${i}번째 차례에 엉뚱한 배우가 불렸다: ${said[i].label}`);
+  }
+  const cSys = [...new Set(llm.labels(/고객 대사/).map(c => c.system))];
+  const tSys = [...new Set(llm.labels(/타겟 대사/).map(c => c.system))];
+  assert.equal(cSys.length, 1, '고객 배우의 system이 판 도중에 갈렸다');
+  assert.equal(tSys.length, 1, '타겟 배우의 system이 판 도중에 갈렸다');
+  assert.notEqual(cSys[0], tSys[0], '두 배우가 같은 프롬프트를 받고 있다');
+  assert.ok(!cSys[0].includes(couple.target.taste[0]), '고객 배우가 타겟 취향을 보고 있다');
+  assert.ok(!cSys[0].includes(couple.target.personality[0]), '고객 배우가 타겟 성격을 보고 있다');
+  assert.ok(!tSys[0].includes(couple.client.personality[0]), '타겟 배우가 고객 성격을 보고 있다');
+  assert.ok(!tSys[0].includes('코칭원문'), '타겟 배우가 코칭을 보고 있다');
 });
 
 test('후일담은 판이 끝난 뒤 한 번만 부른다', async () => {
@@ -90,7 +106,7 @@ test('무드가 바닥나면 남은 구간을 돌지 않는다', async () => {
   const llm = new MockLlm({ verdicts: down });
   const e = makeEngine(llm);
   await e.run();
-  const beats = llm.labels(/대화 생성/).length;
+  const beats = llm.labels(/판정/).length;
   assert.ok(beats < TOTAL_BEATS, `자리가 깨졌는데 ${beats}구간을 다 돌았다`);
   assert.equal(e.points.mood, 0);
   assert.equal(e.points.broken, true);
@@ -110,26 +126,28 @@ test('대화가 누적되고 두 사람 몫이 모두 들어간다', async () =>
   assert.ok(text.includes(couple.target.name));
 });
 
-test('생성 호출의 system은 판 내내 바이트 동일하다 (캐시가 붙는 자리)', async () => {
+test('system 셋이 판 내내 바이트 동일하다 (캐시가 붙는 자리)', async () => {
   const llm = new MockLlm();
   const e = makeEngine(llm);
   await e.run();
-  const sys = new Set(llm.labels(/대화 생성/).map(c => c.system));
-  assert.equal(sys.size, 1, '생성 system이 호출마다 달라져 캐시가 깨진다');
-  const jsys = new Set(llm.labels(/판정/).map(c => c.system));
-  assert.equal(jsys.size, 1, '판정 system이 호출마다 달라져 캐시가 깨진다');
+  for (const re of [/고객 대사/, /타겟 대사/, /판정/]) {
+    assert.equal(new Set(llm.labels(re).map(c => c.system)).size, 1,
+      `${re} system이 호출마다 달라져 캐시가 깨진다`);
+  }
 });
 
-test('생성 호출은 직전 출력을 그대로 이어받는다 (접두사 캐시)', async () => {
+test('회선마다 제 출력을 그대로 이어받는다 (접두사 캐시)', async () => {
   const llm = new MockLlm();
   const e = makeEngine(llm);
   await e.run();
-  const gen = llm.labels(/대화 생성/);
-  assert.equal(gen[0].messages.length, 1);
-  for (let i = 1; i < gen.length; i++) {
-    assert.ok(gen[i].messages.length > gen[i - 1].messages.length, '대화 내역이 안 쌓였다');
-    // 앞선 호출의 메시지가 접두사로 그대로 남아 있어야 한다
-    assert.deepEqual(gen[i].messages.slice(0, gen[i - 1].messages.length), gen[i - 1].messages);
+  for (const re of [/고객 대사/, /타겟 대사/]) {
+    const gen = llm.labels(re);
+    assert.equal(gen[0].messages.length, 1);
+    for (let i = 1; i < gen.length; i++) {
+      assert.equal(gen[i].messages.length, gen[i - 1].messages.length + 2, '한 차례에 두 줄씩 안 쌓였다');
+      assert.deepEqual(gen[i].messages.slice(0, gen[i - 1].messages.length), gen[i - 1].messages);
+      assert.equal(gen[i].messages[gen[i - 1].messages.length].role, 'assistant', '제 대사가 회선에 안 남았다');
+    }
   }
 });
 
@@ -146,7 +164,7 @@ test('말풍선 핸들러가 순서대로, 한 줄씩 불린다', async () => {
 test('생성이 실패해도 판은 계속 간다', async () => {
   class Flaky extends MockLlm {
     async call(args) {
-      if (args.label.includes('대화 생성') && this.calls.filter(c => c.label.includes('대화 생성')).length === 1) {
+      if (/대사/.test(args.label) && this.calls.filter(c => /대사/.test(c.label)).length === 0) {
         this.calls.push({ label: args.label, system: args.system, messages: [] });
         throw new Error('회선 불안정');
       }
@@ -234,13 +252,13 @@ test('무전을 때리면 그 명령이 다음 생성 프롬프트에 실린다'
   assert.equal(seen.hold.length, 1, '대화가 서지 않았다');
   assert.equal(seen.resume.at(-1).order, RADIO_MARK, '재개 신호가 명령을 안 들고 있다');
 
-  const gen = llm.labels(/대화 생성/);
+  const gen = llm.labels(/대사/);
   const first = gen.findIndex(c => JSON.stringify(c.messages).includes(RADIO_MARK));
-  assert.ok(first > 0, '무전이 어느 생성 호출에도 안 실렸다');
-  assert.ok(!JSON.stringify(gen[first - 1].messages).includes(RADIO_MARK),
-    '무전이 눌리기도 전의 호출에 실렸다');
-  // system은 판 내내 바이트 동일해야 한다 — 무전이 캐시를 깨면 안 된다
-  assert.equal(new Set(gen.map(c => c.system)).size, 1, '무전이 system을 갈아 캐시를 깼다');
+  assert.ok(first > 0, '무전이 어느 대사 호출에도 안 실렸다');
+  assert.equal(first, 3, '세 줄 뒤에 때린 무전이 바로 다음 차례에 안 실렸다');
+  assert.ok(/고객 대사/.test(gen[first].label), '무전이 타겟 배우에게 갔다');
+  assert.ok(!llm.labels(/타겟 대사/).some(c => JSON.stringify(c.messages).includes(RADIO_MARK)),
+    '타겟 회선에 무전이 실렸다 — 타겟은 무전을 못 듣는다');
   assert.ok(!gen.some(c => c.system.includes(RADIO_MARK)), '무전이 system으로 새어 들어갔다');
 });
 
@@ -260,8 +278,10 @@ test('무전은 페이즈당 한 번뿐이다 — 배급이 끝나면 송출해�
   assert.equal(e.radioLog.length, 1, '고객 무전이 두 번 나갔다');
   assert.equal(e.radioFor('text'), 0);
   assert.equal(e.radioFor('talk'), RADIO.perPhase, '안 쓴 페이즈의 배급까지 깎였다');
-  const hits = llm.labels(/대화 생성/).filter(c => JSON.stringify(c.messages).includes(RADIO_MARK));
-  assert.equal(hits.length >= 1, true);
+  // 회선은 계속 쌓이므로 뒤 호출에도 그 문장이 남아 있다. 계약은 「한 번만 실렸다」이다.
+  const thread = llm.labels(/고객 대사/).at(-1).messages;
+  const hits = thread.filter(m => m.role === 'user' && m.content.includes(RADIO_MARK));
+  assert.equal(hits.length, 1, '무전이 두 번 실렸다');
 });
 
 const FIELD_MARK = '현장표식 — 창밖에 롤스로이스를 대라';
@@ -294,12 +314,17 @@ test('현장 무전은 다음 생성 프롬프트에 실리고 system은 안 건
     },
   });
   await e.run();
-  const gen = llm.labels(/대화 생성/);
+  const gen = llm.labels(/대사/);
   const first = gen.findIndex(c => JSON.stringify(c.messages).includes(FIELD_MARK));
-  assert.ok(first > 0, '현장 무전이 어느 생성 호출에도 안 실렸다');
+  assert.ok(first > 0, '현장 무전이 어느 대사 호출에도 안 실렸다');
   assert.ok(!JSON.stringify(gen[first - 1].messages).includes(FIELD_MARK),
     '누르기도 전의 호출에 실렸다');
-  assert.equal(new Set(gen.map(c => c.system)).size, 1, '현장 무전이 system을 갈아 캐시를 깼다');
+  // 물리 사건이다 — 두 사람 다 겪는다. 양쪽 회선에 각자의 문장으로 실린다.
+  for (const re of [/고객 대사/, /타겟 대사/]) {
+    assert.ok(llm.labels(re).some(c => JSON.stringify(c.messages).includes(FIELD_MARK)),
+      `${re} 회선이 현장 사건을 못 봤다`);
+  }
+  assert.ok(!gen.some(c => c.system.includes(FIELD_MARK)), '현장 무전이 system으로 새어 들어갔다');
   // 판정·후일담은 이 문장을 못 본다
   for (const c of llm.labels(/판정|후일담/)) {
     assert.ok(!JSON.stringify(c.messages).includes(FIELD_MARK), `${c.label}이 현장 무전을 봤다`);
@@ -320,7 +345,7 @@ test('고객 무전과 현장 무전은 배급이 따로 간다 — 한 판에 �
   await e.run();
   assert.equal(e.fieldLog.length, 1);
   assert.equal(e.radioFor('text'), 0, '고객 무전 배급이 그대로다');
-  const all = JSON.stringify(llm.labels(/대화 생성/).map(c => c.messages));
+  const all = JSON.stringify(llm.labels(/고객 대사/).map(c => c.messages));
   assert.ok(all.includes(FIELD_MARK) && all.includes(RADIO_MARK), '둘 중 하나가 안 실렸다');
 });
 
@@ -341,26 +366,23 @@ test('두 페이즈에서 한 번씩, 각각 그 페이즈에 먹는다', async 
   assert.deepEqual(e.radioLog.map(x => x.phase), ['text', 'talk']);
 });
 
-test('대화가 실제로 선다 — 잘린 구간의 남은 대사는 없던 것이 된다', async () => {
+test('누르면 대화가 그 줄에서 선다', async () => {
   const llm = new MockLlm();
-  const { e } = await runWithRadio(llm, { at: 3 });
-  const firstBeat = e.transcript.filter(l => l.text.startsWith('1-'));
-  assert.equal(firstBeat.length, 3, '무전을 때렸는데 구간이 그대로 다 흘렀다');
-  // 잘린 뒤로도 판은 계속 굴러간다
-  assert.ok(e.transcript.filter(l => l.who !== 'sys').length > 3);
+  const { e, seen } = await runWithRadio(llm, { at: 3 });
+  assert.equal(seen.hold.length, 1, '대화가 서지 않았다');
+  assert.equal(seen.hold[0].at, 'line', '줄 경계가 아닌 데서 섰다');
+  assert.ok(e.transcript.filter(l => l.who !== 'sys').length > 3, '선 뒤로 판이 안 굴러갔다');
 });
 
-test('잘린 구간은 실제로 오간 데까지만 다시 판정한다 — 하지 않은 말은 채점되지 않는다', async () => {
+test('버릴 대사도, 다시 볼 판정도 없다 — 아직 쓰지 않은 말이기 때문이다', async () => {
   const llm = new MockLlm();
   const { e } = await runWithRadio(llm, { at: 3 });
-  const re = llm.labels(/재판정/);
-  assert.equal(re.length, 1, '잘린 구간을 다시 안 봤다');
-  const body = JSON.stringify(re[0].messages);
-  assert.ok(body.includes('1-2') && !body.includes('1-3'),
-    '재판정이 하지 않은 말까지 들고 있다');
-  assert.ok(!body.includes(RADIO_MARK), '무전이 판정으로 새어 들어갔다');
-  // 잘린 구간도 판정은 한 번만 반영된다
-  assert.equal(e.points.history.length, llm.labels(/대화 생성/).length);
+  assert.equal(llm.labels(/재판정/).length, 0, '다시 판정할 것이 남아 있다');
+  assert.equal(llm.labels(/판정/).length, e.points.history.length, '구간마다 판정이 한 번이 아니다');
+  // 구간은 그대로 여섯 줄을 채운다
+  assert.equal(e.transcript.filter(l => l.who !== 'sys').length % BEAT.lines, 0);
+  assert.ok(!llm.labels(/판정/).some(c => JSON.stringify(c.messages).includes(RADIO_MARK)),
+    '무전이 판정으로 새어 들어갔다');
 });
 
 test('무전은 대화 기록에 남지 않는다 — 심판도 기록관도 못 본다', async () => {
@@ -383,8 +405,8 @@ test('취소하면 배급이 안 깎이고 대화가 그대로 이어진다', as
   assert.equal(seen.resume.at(-1).order, null);
   assert.equal(e.radioFor('text'), RADIO.perPhase, '취소했는데 배급이 깎였다');
   assert.equal(e.radioLog.length, 0);
-  assert.equal(e.transcript.filter(l => l.text.startsWith('1-')).length, 6, '취소했는데 구간이 잘렸다');
-  assert.equal(llm.labels(/재판정/).length, 0, '취소했는데 다시 판정했다');
+  assert.equal(e.transcript.filter(l => l.who !== 'sys').length, TOTAL_BEATS * BEAT.lines,
+    '취소했는데 대사가 모자란다');
 });
 
 test('빈 무전은 나가지 않는다 — 배급도 그대로다', async () => {
@@ -392,7 +414,7 @@ test('빈 무전은 나가지 않는다 — 배급도 그대로다', async () =>
   const { e } = await runWithRadio(llm, { at: 3, order: '   ' });
   assert.equal(e.radioFor('text'), RADIO.perPhase);
   assert.equal(e.radioLog.length, 0);
-  assert.ok(!llm.labels(/대화 생성/).some(c => JSON.stringify(c.messages).includes('본부 무전')));
+  assert.ok(!llm.labels(/대사/).some(c => JSON.stringify(c.messages).includes('Q 기관 RADIO')));
 });
 
 test('무전이 먹힐 대사가 안 남았으면 버튼이 잠긴다', async () => {
@@ -417,7 +439,7 @@ test('무전을 안 쓰면 호출 수도 대화도 예전 그대로다', async (
   const llm = new MockLlm();
   const e = makeEngine(llm);
   await e.run();
-  assert.equal(llm.calls.length, TOTAL_BEATS * 2, '무전을 안 썼는데 호출이 늘었다');
+  assert.equal(llm.calls.length, TOTAL_BEATS * (BEAT.lines + 1), '무전을 안 썼는데 호출이 늘었다');
   assert.equal(e.radioLog.length, 0);
-  assert.ok(!llm.calls.some(c => JSON.stringify(c.messages || []).includes('본부 무전')));
+  assert.ok(!llm.calls.some(c => JSON.stringify(c.messages || []).includes('Q 기관 RADIO')));
 });

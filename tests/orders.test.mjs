@@ -37,10 +37,16 @@ const orders = { styling: M.style, motivation: M.motiv };
 const A1 = P.STYLING_SYSTEM + '\n' + P.stylingUser(couple, { species: 'human' }, M.style);
 const A2 = P.MOTIVATION_SYSTEM + '\n' + P.motivationUser(couple, M.motiv);
 const A = A1 + '\n' + A2;
-const B1 = P.talkSystem(couple, dressed, M.coach) + '\n'
-  + P.talkUser(couple, 'text', 1, 4) + '\n' + P.talkUser(couple, 'talk', 2, 5);
-// 무전이 실린 판. 무전은 system이 아니라 이 user 메시지에만 실린다.
-const B1R = P.talkUser(couple, 'talk', 3, 5, M.radio);
+// B-1은 배우 둘이다. 각자 제 회선만 본다 — 이 두 문자열이 서로 섞이면 그게 사고다.
+const B1C = P.clientSystem(couple, dressed, M.coach) + '\n'
+  + P.sceneOpen(couple, dressed, 'text', 'client') + '\n'
+  + P.actorUser(couple, { side: 'client', scene: P.sceneOpen(couple, dressed, 'talk', 'client'), first: true });
+const B1T = P.targetSystem(couple) + '\n'
+  + P.sceneOpen(couple, dressed, 'text', 'target') + '\n'
+  + P.actorUser(couple, { side: 'target', scene: P.sceneOpen(couple, dressed, 'talk', 'target'), first: true });
+const B1 = B1C + '\n' + B1T;
+// 무전이 실린 판. 무전은 system이 아니라 고객 회선의 user 메시지에만 실린다.
+const B1R = P.actorUser(couple, { side: 'client', radio: M.radio, heard: [{ who: 'target', text: 'x' }] });
 const B2 = P.judgeSystem(couple, dressed) + '\n' + P.judgeUser(couple, '이전대화', '이번대화');
 const C = P.epilogueSystem(couple, dressed) + '\n' + P.epilogueUser(couple, 77, '대화전문표식');
 // R은 구조도 밖이다. 주문 하나와 고객 테이블 시트만 받고, 출력은 어디로도 안 간다.
@@ -111,9 +117,9 @@ test('코칭은 B-1에만 실린다', () => {
 });
 
 test('코칭이 비면 그 사실이 그대로 전달된다 — 조용히 채워 넣지 않는다', () => {
-  const empty = P.talkSystem(couple, dressed, '');
+  const empty = P.clientSystem(couple, dressed, '');
   assert.ok(!has(empty, M.coach));
-  assert.ok(/\(none — nobody briefed the client/.test(empty), '코칭 없음이 명시되지 않는다');
+  assert.ok(/\(none — nobody briefed you/.test(empty), '코칭 없음이 명시되지 않는다');
 });
 
 // ── B-2. 판정 ────────────────────────────────────────────
@@ -168,7 +174,7 @@ test('표지 있는 취향은 「간직」 줄로 가고 Taste 줄에서는 빠�
     ['sauce-war', '혼자 먹을 땐 부어 먹는다'],
   ];
   for (const [id, secret] of cases) {
-    const sheet = P.talkSystem(COUPLE_BY_ID[id], d, '');
+    const sheet = P.targetSystem(COUPLE_BY_ID[id]);
     const tasteLine = sheet.match(/· Taste: [^\n]*/)[0];
     const keptLine = (sheet.match(/· Keeps to themselves[^\n]*/) || [''])[0];
     assert.ok(keptLine.includes(secret), `${id}의 비밀이 간직 줄에 없다`);
@@ -176,7 +182,7 @@ test('표지 있는 취향은 「간직」 줄로 가고 Taste 줄에서는 빠�
   }
   // 표지 없는 합성 커플은 간직 줄 자체가 안 생긴다
   // 지시문은 라벨을 항상 언급하므로 시트 줄(· 접두) 형태로만 본다
-  assert.ok(!/· Keeps to themselves/.test(P.talkSystem(couple, dressed, '')),
+  assert.ok(!/· Keeps to themselves/.test(P.targetSystem(couple)),
     '표지가 없는데 간직 줄이 생겼다');
 });
 
@@ -193,7 +199,7 @@ test('간직 항목도 어디까지나 재배치다 — 항목이 사라지지�
   const { COUPLES } = await import('../js/couples.js');
   const d = { look: 'x', personality: 'y' };
   for (const c of COUPLES) {
-    const sheet = P.talkSystem(c, d, '');
+    const sheet = P.targetSystem(c);
     for (const item of c.target.taste) {
       assert.ok(sheet.includes(item), `${c.id}의 취향 「${item.slice(0, 20)}…」이 시트에서 사라졌다`);
     }
@@ -201,11 +207,14 @@ test('간직 항목도 어디까지나 재배치다 — 항목이 사라지지�
 });
 
 // ── 현장 무전: 물리 지원 — 그대로 실행되고, 심판은 못 본다 ──
-test('현장 무전은 B-1의 user 메시지에만 실린다', () => {
-  const u = P.talkUser(couple, 'talk', 2, 5, '', M.field);
-  assert.ok(u.includes(M.field), '현장 무전이 생성 user에 안 실렸다');
+test('현장 무전은 B-1의 user 메시지에만 실린다 — 그리고 양쪽 회선에 다 실린다', () => {
+  const u = P.actorUser(couple, { side: 'client', field: M.field });
+  const t = P.actorUser(couple, { side: 'target', field: M.field });
+  assert.ok(u.includes(M.field), '현장 무전이 고객 회선에 안 실렸다');
+  assert.ok(t.includes(M.field), '현장 무전이 타겟 회선에 안 실렸다 — 물리 사건은 둘 다 겪는다');
   assert.ok(u.includes('FIELD SUPPORT'), '현장 블록 머리가 없다');
-  assert.ok(!P.talkSystem(couple, dressed, '').includes(M.field), 'system에 샜다');
+  assert.ok(!P.clientSystem(couple, dressed, '').includes(M.field), 'system에 샜다');
+  assert.ok(!P.targetSystem(couple).includes(M.field), 'system에 샜다');
   assert.ok(!P.judgeSystem(couple, dressed).includes(M.field), '심판이 봤다');
   assert.ok(!P.judgeUser(couple, 'p', 's').includes(M.field), '심판 user가 봤다');
   assert.ok(!P.epilogueUser(couple, 50, 'log').includes(M.field), '후일담이 봤다');
@@ -220,7 +229,7 @@ test('현장 무전은 그대로 실행되는 물리 사건이다 — 마음은 
 });
 
 test('고객 무전과 현장 무전은 한 메시지에 같이 실릴 수 있다', () => {
-  const u = P.talkUser(couple, 'talk', 2, 5, M.radio, M.field);
+  const u = P.actorUser(couple, { side: 'client', radio: M.radio, field: M.field });
   assert.ok(u.includes(M.radio) && u.includes(M.field));
   assert.ok(u.indexOf(M.field) < u.indexOf(M.radio), '현장 사건이 무전 명령보다 뒤에 실렸다');
 });
@@ -251,8 +260,10 @@ test('폐지된 시스템 용어가 프롬프트에 없다 — 한글 이름도 
 // 규칙 ①이 무전에도 그대로 걸린다 — 요원이 쓴 글은 채점되지 않는다.
 test('무전은 B-1의 user 메시지에만 실린다 — system도 판정도 후일담도 못 본다', () => {
   assert.ok(has(B1R, M.radio), '무전이 생성 프롬프트에 안 실렸다');
-  const sys = P.talkSystem(couple, dressed, M.coach);
-  assert.ok(!has(sys, M.radio), '무전이 system으로 새어 들어갔다 — 캐시가 깨진다');
+  assert.ok(!has(P.clientSystem(couple, dressed, M.coach), M.radio),
+    '무전이 system으로 새어 들어갔다 — 캐시가 깨진다');
+  assert.ok(!has(P.actorUser(couple, { side: 'target', radio: M.radio }), M.radio),
+    '무전이 타겟 회선에 실렸다 — 타겟은 무전을 못 듣는다');
   assert.ok(!has(B2, M.radio), '무전이 판정에 새어 들어갔다 — 요원이 쓴 글은 채점되지 않는다');
   assert.ok(!has(C, M.radio), '무전이 후일담에 새어 들어갔다');
   assert.ok(!has(A, M.radio), '무전이 시공에 새어 들어갔다');
@@ -260,33 +271,44 @@ test('무전은 B-1의 user 메시지에만 실린다 — system도 판정도 �
 });
 
 test('무전이 없으면 그 자리에 아무것도 안 붙는다', () => {
-  assert.equal(P.talkUser(couple, 'talk', 3, 5), P.talkUser(couple, 'talk', 3, 5, ''));
-  assert.equal(P.talkUser(couple, 'talk', 3, 5), P.talkUser(couple, 'talk', 3, 5, '   '));
-  assert.ok(!has(B1, 'HQ RADIO'), '무전을 안 때렸는데 무전 블록이 붙었다');
+  const bare = P.actorUser(couple, { side: 'client' });
+  assert.equal(bare, P.actorUser(couple, { side: 'client', radio: '' }));
+  assert.equal(bare, P.actorUser(couple, { side: 'client', radio: '   ' }));
+  assert.ok(!has(B1, 'RADIO —'), '무전을 안 때렸는데 무전 블록이 붙었다');
 });
 
 test('무전은 조언이 아니라 반드시 이행되는 명령이다', () => {
   const block = P.radioOrder(M.radio);
   assert.ok(/Not advice, not a suggestion, not an option/.test(block), '무전이 명령으로 안 박힌다');
-  assert.ok(/starting with their very next line/.test(block), '언제 이행하는지가 안 박혔다');
+  assert.ok(/starting with your very next line/.test(block), '언제 이행하는지가 안 박혔다');
   assert.ok(/Refusing, ignoring, postponing, or watering it down is not available/.test(block),
     '고객에게 거부·보류·희석의 여지가 열려 있다');
 });
 
 test('무전도 코칭과 같은 자리로 간다 — 타겟은 못 듣는다', () => {
   const block = P.radioOrder(M.radio);
-  assert.ok(/client's earpiece/.test(block), '무전이 고객에게 간다는 말이 없다');
-  assert.ok(/The target heard nothing/.test(block), '타겟이 못 듣는다는 못이 빠졌다');
+  assert.ok(/your earpiece/.test(block), '무전이 고객에게 간다는 말이 없다');
+  assert.ok(/They heard nothing/.test(block), '타겟이 못 듣는다는 못이 빠졌다');
 });
 
 test('명령받았다고 고객이 갑자기 유능해지지는 않는다', () => {
-  assert.ok(/does not make them good at it/.test(P.radioOrder(M.radio)),
+  assert.ok(/does not make you good at it/.test(P.radioOrder(M.radio)),
     '무전이 고객의 시트를 덮어써 버린다');
 });
 
 test('무전은 점수를 모른다 — 게이지도 판정도 실리지 않는다', () => {
   const block = P.radioOrder(M.radio);
   assert.ok(!/러브 포인트|무드 포인트|love point|mood point/i.test(block));
+});
+
+test('기관 이름은 한 가지 표기로만 나간다 — 사람들이 그렇게 부르게 하려면 그래야 한다', () => {
+  const all = [A, B1, B2, C, R, P.radioOrder('x'), P.fieldOrder('x')].join('\n');
+  assert.ok(/Q 기관/.test(all), '기관 이름이 프롬프트에서 사라졌다');
+  for (const dead of [/Bureau/i, /\bHQ\b/, /headquarters/i, /큐피드국/, /본부/]) {
+    assert.ok(!dead.test(all), `옛 기관 표기 「${dead.source}」가 남아 있다`);
+  }
+  assert.ok(/says it exactly that way, out loud/.test(P.WORLD),
+    '인물들이 그 이름을 입 밖으로 부른다는 못이 빠졌다');
 });
 
 test('보내는 스키마는 하이어아키 넷 + 반응 하나뿐이다', () => {
@@ -350,11 +372,15 @@ test('다섯 프롬프트의 지시문에 한글이 한 글자도 없다', () =>
     'A-2': P.MOTIVATION_SYSTEM + P.motivationUser(ascii, 'y'),
     'A-1(주문없음)': P.stylingUser(ascii, { species: 'human' }, ''),
     'A-2(주문없음)': P.motivationUser(ascii, ''),
-    'B-1': P.talkSystem(ascii, d, 'z') + P.talkUser(ascii, 'text', 1, 4) + P.talkUser(ascii, 'talk', 2, 5),
-    'B-1(코칭없음)': P.talkSystem(ascii, d, ''),
-    'B-1(마지막 구간)': P.talkUser(ascii, 'talk', 4, 4),
-    'B-1(현장 무전)': P.fieldOrder('x'),
-    'B-1(무전)': P.talkUser(ascii, 'text', 1, 4, 'go') + P.talkUser(ascii, 'talk', 3, 5, 'go'),
+    'B-1(고객 배우)': P.clientSystem(ascii, d, 'z')
+      + P.sceneOpen(ascii, d, 'text', 'client') + P.sceneOpen(ascii, d, 'talk', 'client')
+      + P.actorUser(ascii, { side: 'client', first: true }),
+    'B-1(코칭없음)': P.clientSystem(ascii, d, ''),
+    'B-1(타겟 배우)': P.targetSystem(ascii)
+      + P.sceneOpen(ascii, d, 'text', 'target') + P.sceneOpen(ascii, d, 'talk', 'target')
+      + P.actorUser(ascii, { side: 'target', heard: [{ who: 'client', text: 'x' }] }),
+    'B-1(현장 무전)': P.fieldOrder('x', 'client') + P.fieldOrder('x', 'target'),
+    'B-1(무전)': P.actorUser(ascii, { side: 'client', radio: 'go' }),
     'B-2': P.judgeSystem(ascii, d) + P.judgeUser(ascii, '', 'seg'),
     'B-2(앞대화 있음)': P.judgeUser(ascii, 'prior', 'seg'),
     C: P.epilogueSystem(ascii, d) + P.epilogueUser(ascii, 77, 'log'),
@@ -365,9 +391,12 @@ test('다섯 프롬프트의 지시문에 한글이 한 글자도 없다', () =>
       .map(k => JSON.stringify(P[`${k}_SCHEMA`])).join(''),
   };
   for (const [name, text] of Object.entries(built)) {
+    // 기관 이름 「Q 기관」만 예외다. 인물들이 입 밖으로 그렇게 부르게 하려면 그 표기가
+    // 프롬프트에 그대로 있어야 한다 — 번역해 버리면 지정한 것이 사라진다.
+    const stripped = text.split('Q 기관').join('Q');
     // 한글 전 영역 — 조합 자모 · 호환 자모 · 확장 A · 음절 · 반각까지 전부 본다.
     const HANGUL = /[\u1100-\u11ff\u3130-\u318f\ua960-\ua97f\uac00-\ud7ff\uffa0-\uffdc]/g;
-    const han = [...new Set(text.match(HANGUL) || [])];
+    const han = [...new Set(stripped.match(HANGUL) || [])];
     assert.deepEqual(han, [], `${name} 지시문에 한글이 남아 있다: ${han.join('')}`);
   }
 });

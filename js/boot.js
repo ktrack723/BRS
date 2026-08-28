@@ -95,7 +95,7 @@ export function initBoot({ llm, onBooted, onFailed, errMsg }) {
     sset('sessionStorage', 'cupid_key', key);
     sset('localStorage', 'cupid_key', $('#remember-key').checked ? key : null);
     try {
-      await withLoading(`본부 회선 연결 중... (${providerOf(provider).label} 키 인증)`, () => llm.ping());
+      await withLoading(`Q 기관 회선 연결 중... (${providerOf(provider).label} 키 인증)`, () => llm.ping());
       startBgm();
       onBooted(name);
     } catch (e) {

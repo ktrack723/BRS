@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════
-   style.css — 큐피드局 공작단말 UI
+   style.css — Q 기관 공작단말 UI
 
    기준: 2000년대 초 공공기관 내부 전산시스템을 CRT 모니터로 보는 화면.
    Windows XP(Luna) 창 크롬 + 기밀문서 서식 + 인광 터미널.
@@ -952,6 +952,7 @@ label { display: block; font-weight: 500; font-size: var(--fs-sm); margin-bottom
 /* 이 화면이 프롬프트의 어느 칸을 채우는지 그려주는 띠 */
 .flow-card { padding-bottom: var(--s2); }
 .flow-diagram { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.fl-break { flex-basis: 100%; height: 0; }   /* 회선이 갈린 자리 — 줄을 바꾼다 */
 .fl {
   font-family: var(--font-mono); font-size: var(--fs-xs); line-height: 1.5;
   padding: 2px var(--s2); border: 1px solid currentColor; white-space: nowrap;

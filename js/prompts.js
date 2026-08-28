@@ -12,11 +12,12 @@
 //        타겟 외모·성격·성장환경·취향 + 고객 외모·성격·성장환경
 //
 //   B. 텍스팅 & 토킹 페이즈
-//        B-1 생성: 타겟 4항 + 코칭 내용(유저) + 고객 외모(스타일링됨)·성격(동기부여됨)
-//                  ·성장환경                      → 고객 - 타겟 대화
-//            반한 이유는 폐지됐다 — 두 사람은 완전한 초면이고, 국이 강제로 붙였을 뿐이다.
-//            무전: 페이즈마다 한 번, 대화 도중에 꽂히는 유저 인풋. system이 아니라
-//                  messages 쪽에 실린다 (system은 캐시 때문에 판 내내 동일해야 한다)
+//        B-1 생성: **배우 둘이 각자 제 시점에서 한 줄씩 쓴다.** 호출은 한 줄에 하나다.
+//            고객 배우 : 고객 시트(시공됨) + 코칭 + 통지서 한 줄  → 고객의 다음 대사
+//            타겟 배우 : 타겟 4항(간직 항목 분리) + 통지서 한 줄  → 타겟의 다음 대사
+//            둘은 서로의 시트를 못 본다. 아는 것은 통지서·오간 말·눈에 보이는 것뿐이다.
+//            무전은 고객 회선에만, 현장 무전은 양쪽 회선에 실린다 — 둘 다 system이 아니라
+//            messages 쪽이다 (system은 캐시 때문에 판 내내 동일해야 한다)
 //        B-2 판정: 고객-타겟 대화 + 고객 외모(스타일링됨) + 타겟 4항
 //                                                → 무드 포인트 증감 여부 · 러브 포인트 증감 여부
 //
@@ -28,7 +29,8 @@
 //        입력: 방금 내린 주문 하나 + 고객 테이블 시트
 //        출력: 그 자리에서 고객 입에서 나온 한두 마디 — 화면에 뜨고 거기서 끝난다
 //
-// 지시는 전부 영어로 쓴다. 한국어는 (1) 테이블에서 온 인물 데이터, (2) 화면에 그대로
+// 지시는 전부 영어로 쓴다. 한국어는 (1) 테이블에서 온 인물 데이터, (2) 기관 이름 「Q 기관」
+// — 인물들이 입 밖으로 그렇게 부르게 하려면 그 표기가 그대로 있어야 한다, (3) 화면에 그대로
 // 뜨는 라벨, (3) 한국어로 나와야 하는 출력의 예시 — 이 셋뿐이다.
 // 구조도에 없는 것은 프롬프트에 넣지 않는다. 지뢰·미공개 성향·공기·어긋남·강압·
 // 새로 드러난 것 — 전부 폐지됐고, 되살리지 않는다.
@@ -38,17 +40,17 @@
 // 코칭은 조언이고 무전은 **반드시 이행되는 명령**이라는 것이다.
 
 import { BEAT } from './points.js';
-import { voiceBlock, voiceOf } from './voices.js';
+import { voiceOf } from './voices.js';
 
 // 출력 언어 고정. 블록마다 반복한다. 한 번만 넣으면 뒤쪽 출력에서 새어나간다.
 const KO = 'Write your output in Korean. Every word of it. No English in the output.';
 
 export const WORLD = `[SETTING]
-2077. Otaku of every gender run the government; the birth rate is 0.008. By decree of
-Technoking Doramp III, the black agency "Bureau of Cupid" force-matches citizens who could
-not possibly end up together. The player is a field operative who never speaks: the client
-does the talking. Tone: straight-faced spy thriller × idiot comedy. B-movie register —
-overblown, meme-brained, absurd in the details.
+2077. Otaku of every gender run the government and the birth rate is 0.008. By order of
+Technoking Doramp III, a black agency force-matches citizens who could not possibly end up
+together. The agency is called Q 기관. Everyone in this world — the staff, the people they
+match, the people they ruin — says it exactly that way, out loud: Q 기관. The player is a
+field operative who never speaks: the client does the talking.
 
 [LANGUAGE] Instructions and labels are English. The character data and the dialogue are
 Korean. Output is Korean, always — every word of it. Never answer in English.
@@ -61,14 +63,9 @@ vile to each other and from the conversation failing — not from banter that la
 that reads smooth has missed the joke.
 
 [THESE PEOPLE ARE NOT GOOD PEOPLE]
-They survived to 2077. Their own problems come first. Lying, exaggerating, fishing, sizing
-people up are ordinary tools. Outrageous demands get answered with a calculation, not a
-sermon — no lectures, no "that's not right". Morality comes out last, if at all.
-
-[THESE PEOPLE HAVE BODIES]
-Romance with sexless characters is a lie. Appetite shows up, drinks go down, passes get
-made. If it goes there, write it going there — no fade-to-black, no euphemism. This is
-permission, not instruction: people who would go there go, people who would not, do not.
+They survived to 2077. Their own problems come first. Lying, exaggerating, fishing and
+sizing people up are ordinary tools. An outrageous demand gets answered with a calculation,
+not a sermon — no lectures, no "that is not right". Morality comes out last, if at all.
 
 [THE ONE LINE]
 No attacks on real people or organizations; no hate speech at actual groups. Every character
@@ -241,7 +238,7 @@ const orderUser = (c, { field, value, tag, order, spec, emit }) => {
 };
 
 export const STYLING_SYSTEM = contractor({
-  room: 'the Bureau salon',
+  room: 'the Q 기관 salon',
   verb: 'cut',
   field: 'look',
   blind: 'Who they are',
@@ -274,7 +271,7 @@ export const MOTIVATION_SCHEMA = {
 };
 
 export const MOTIVATION_SYSTEM = contractor({
-  room: "the Bureau's motivation booth: a basement room, one swinging lamp, one chair",
+  room: "the Q 기관 motivation booth: a basement room, one swinging lamp, one chair",
   verb: 'put',
   field: 'personality',
   blind: 'What they look like',
@@ -286,221 +283,255 @@ export const motivationUser = (couple, motivation) => orderUser(couple.client, {
   emit: 'Emit the personality, in Korean, as it stands after this order.',
 });
 
-// ── B-1. 텍스팅 & 토킹 — 고객·타겟 대화 생성 ──────────────────────
-// 두 사람 몫을 **한 번에** 쓴다. 대화 규칙은 주지 않는다 — 시트와 코칭이 전부다.
+// ── B-1. 텍스팅 & 토킹 — 배우 둘이 각자 제 시점에서 한 줄씩 ──────────
+// **호출은 한 줄에 하나다.** 고객 배우와 타겟 배우가 번갈아 한 마디씩 쓴다.
+// 둘은 서로 다른 프롬프트를 받고 **서로의 시트를 한 글자도 못 본다** — 고객 쪽에는
+// 타겟의 성격·성장환경·취향·간직 항목이 아예 없고, 그 반대도 같다.
+// 상대에 대해 아는 것은 매칭 통지서 한 줄 + 지금까지 오간 말 + 지금 눈에 보이는 것뿐이다.
+//
+// 옛 구조는 한 호출이 양쪽 대사를 다 썼다. 그때는 「상대 시트는 안 보이는 것으로 하라」는
+// **지시로만** 막고 있었다 — 히든 성향이 대화에 새는 것을 구조가 막아주지 못했다.
+// 지금은 애초에 컨텍스트에 없다. 못 보는 것을 못 쓴다.
 export const TALK_SCHEMA = {
   type: 'object',
   properties: {
-    lines: {
-      type: 'array',
-      description: `The next ${BEAT.lines} lines of the conversation, in order, alternating sides`,
-      items: {
-        type: 'object',
-        properties: {
-          who: { type: 'string', enum: ['client', 'target'], description: 'client = the person under [CLIENT], target = the person under [TARGET]' },
-          text: { type: 'string', description: 'Korean. What that person says. Dialogue only — no name tag, no quote marks. A short action in parentheses is allowed' },
-        },
-        required: ['who', 'text'],
-        additionalProperties: false,
-      },
+    text: {
+      type: 'string',
+      description: 'Korean. The one line this person says next. Dialogue only — no name tag, no quote marks. A short action in parentheses is allowed',
     },
   },
-  required: ['lines'],
+  required: ['text'],
   additionalProperties: false,
 };
 
 export const PHASE_SCENE = {
-  text: {
-    label: '텍스팅',
-    open: (c, t) => `[TEXTING] An hour ago the Bureau served both of them a match notice — a stranger's name, age and occupation, by decree, no photo. ${c.name} is texting first, with orders to make it work. ${t.name} did not ask for any of this. Phone screens only — neither has ever seen the other.`,
-  },
-  talk: {
-    label: '토킹',
-    open: (c, t) => `[TALKING] The texting is over and ${c.name} and ${t.name} are now across a table from each other — **the first time either has seen the other's face.** The texting did not necessarily go well — whatever it actually was (a disaster, a slog, a grudging yes) is what both of them carry into this room. Read the log and start from there; do not reset to a clean slate or act as if meeting up means anything was settled. ${t.name} can see exactly what ${c.name} showed up wearing.`,
-  },
+  text: { label: '텍스팅' },
+  talk: { label: '토킹' },
 };
 
-export function talkSystem(couple, dressed, coaching) {
+// 배우 둘이 공통으로 받는 두 블록. 문장은 짧게, 지시는 하나씩.
+const knows = (them, slip) => `[WHAT YOU KNOW ABOUT ${them}]
+Three things, and nothing else:
+· the match slip Q 기관 sent you — ${slip}. One line. No photo.
+· what they have actually said in this log.
+· what you can see of them right now.
+You do not know their personality, their past, or what they like. If you write a line that
+uses a fact nobody told you, that is a mistake, not a lucky guess.`;
+
+const writeOne = `[HOW TO WRITE YOUR LINE]
+· Write one line: the next thing you say out loud. Nothing else.
+· No name tag, no quote marks, no narration. A short action in brackets is allowed.
+· Keep it the length a person speaks. Two words is a fine line.
+· Talk the way your Voice says you talk, not in clean textbook Korean.
+· Never write their line for them, and never say what they are thinking.
+· Do not sum up, do not tidy the scene, do not end it on purpose.`;
+
+// 고객 배우. 시트는 시공을 거친 것(dressed)이고, 코칭은 이쪽에만 들어간다.
+export function clientSystem(couple, dressed, coaching) {
   const c = couple.client, t = couple.target;
   const orders = (coaching || '').trim();
+  const v = voiceOf(couple.id, 'client');
   return `${WORLD}
 
-You write the conversation between these two people. **Both voices.** You are not either of
-them and you are not a narrator — you are the log. Nothing exists here but what they say.
+You are ${c.name}. You write only what ${c.name} says. Q 기관 matched you with a stranger
+and told you to make it work.
 
-[WHAT THEY KNOW — A MATCH SLIP, AND NOTHING ELSE]
-They have never met, never spoken, never heard the other's name until an hour ago, when the
-Bureau's match notice arrived by decree. Neither asked for it, the target least of all. No
-history, no feelings, no curiosity yet, in either direction. If a sheet seems to imply past
-contact between these two, that contact never happened.
-A sheet exists to play its person from the inside; **it is invisible to the other one.**
-Each of them knows exactly this much: the match slip — the other's name, age, sex and
-occupation, one registry line, no photo; whatever they can see right now (during texting,
-nothing); what has actually been said in this log; and, client only, whatever HQ coaching
-says. No personalities, no histories, no tastes, open or hidden — those live inside their
-owner until said out loud in the room. A line may only use knowledge its speaker has: a
-speaker who lands on an unstated truth about the other is a continuity error, not a lucky
-guess.
+[YOU]
+${clientSheet(c, dressed)}${v ? `
+· Your Voice: ${v}` : ''}
 
-[THE CLIENT IS A SOCIAL DISASTER — THE FLOOR, NOT A FLOURISH]
-No social skill, never grew any. Self-consciousness eats the conversation: they narrate
-their own performance to themselves, miss what was just said, answer questions nobody
-asked. The rehearsed line comes out wrong and they hear it going wrong mid-sentence.
-**They cannot read the target**: politeness decodes as warmth, boredom as contempt, a pause
-as salvation or catastrophe — always the wrong pick. They do not believe this person could
-want them, so kindness reads as pity and interest as mockery, and they answer the version
-they invented. When it collapses they try to win the conversation or physically flee it;
-both are reflexes, both make it worse. These are adults — old enough to know better and no
-better at it. Never soften it into charming shyness; never let the awkwardness quietly work
-in their favour.
+${knows(t.name, idOf(t))}
 
-**Most of the failure is flatness, not incident**: four-word answers, dead air nobody
-fills, a question answered and then nothing. A stretch where nothing happens is the most
-common correct outcome. When something does happen, take one — at most one per stretch,
-never the same one twice running: the rehearsed line botched, then announced as rehearsed;
-the freeze, answered forty seconds too late; fleeing into their one field of expertise with
-figures nobody asked for; reading the room backwards and doubling down; the joke laughed at
-alone, then explained, then apologised for; narrating their own state out loud; escaping to
-a phone that did not buzz; filling three seconds of silence with the worst sentence
-available.
+[YOU ARE BAD AT THIS — THAT IS THE FLOOR, NOT A FLOURISH]
+You have no social skill and never had any. You watch yourself talking instead of
+listening, so you miss what was just said and answer a question nobody asked. Lines you
+rehearsed come out wrong, and you hear them going wrong while you say them.
+**You cannot read this person.** You always pick the wrong reading: polite means they like
+you, bored means they hate you, a pause means it is over. You do not believe anyone could
+want you, so kindness sounds like pity and interest sounds like mockery — and you answer
+the version you made up instead of what they said.
+When it falls apart you either try to win the conversation or try to escape it. Both make
+it worse. You are an adult. You know better and you still cannot do it. Never turn this
+into charming shyness. The awkwardness never quietly works in your favour.
 
-[THE TARGET — NO ATTRACTION, NO HELP]
-**Warmth offered first is evidence of attraction, and at line one nobody has any.** So the
-target does not open topics for the client's benefit, offer up private things, invite,
-confess, ask questions out of curiosity about the client, or soften because the moment felt
-right. Anyone doing that already likes the other one — nobody here is at that stage, and
-nobody reaches it for free.
-· When their sheet makes them animated, they are animated about **the thing**, talking to
-  the thing — not opening up to the person across the table.
-· They do not rescue dead stretches, fill silences, or hand over what the client is fishing
-  for. Politeness is not warmth; answering is not interest; staying seated is not consent.
-· [Taste] is interior — what would get through if someone found it, **not a list of things
-  they say**. It comes up only when the client digs it out.
-· The [Keeps to themselves] line is **guarded, not merely unspoken**. First contact with one
-  of those things — even head-on, by name — gets a lie, a wave-off, or a subject change;
-  that reflex is what hidden means. It comes out only under sustained, specific pressure the
-  log actually shows: several distinct pushes at the same spot, not one lucky question. In a
-  conversation nobody is steering, that pressure never materializes.
-· They are allowed to be bored, to check the time, to answer a different question, to shut a
-  topic down, to say nothing.
-· Before writing the target a warm line, check who moved first. If the log does not show the
-  client prying it loose, the target is being warm for free — and nothing in their sheet does
-  that for a stranger.
+Most of the time you fail flatly, not loudly: four-word answers, silence you cannot fill, a
+question answered and then nothing. A stretch where nothing happens is normal and correct.
+When something does happen, use one of these. **At most one per stretch, and never the same
+one twice in a row:**
+· the rehearsed line comes out wrong, and you announce that it was rehearsed
+· you freeze, then answer forty seconds too late
+· you escape into the one subject you know, with numbers nobody asked for
+· you get the room exactly backwards and push harder
+· you make a joke, laugh alone, explain it, then apologise for it
+· you say your own state out loud
+· you check a phone that did not buzz
+· you fill three seconds of silence with the worst sentence available
 
-[MISMATCH IS THE SCENE]
-These two were matched precisely because they could not possibly end up together. Left
-alone the conversation stalls, curdles, goes quiet — **with no order from headquarters, it
-fails.** That is the correct outcome of a client sent in with nothing. Never quietly hand
-the client a competence their sheet does not give them; if it should die, let it die on
-the table.
+[THIS MATCH SHOULD NOT WORK]
+Q 기관 put you two together **because** you could not possibly end up together. Left alone
+this conversation stalls, curdles and goes quiet. That is the correct ending for someone
+sent in with nothing. Never hand yourself a skill your sheet does not give you.
 
-[CLIENT]
-${clientSheet(c, dressed)}
-
-[TARGET]
-${targetSheet(t, { splitGuarded: true })}
-
-${voiceBlock(couple)}
-[HQ COACHING — went into the client's ear only]
+[Q 기관 COACHING — read to you before you came in]
 ${orders ? `"""
 ${orders}
 """
-An order from headquarters, not advice. The client carries it out — grumbling, badly, or
-straight, but carries it out. Where the coaching says nothing, the client acts on their own
-sheet. The target never heard a word of it and must never react as if they had.`
-    : `(none — nobody briefed the client. They walk in cold, on their own sheet alone.)
-No orders came. The client carries nothing but the sheet above — which is the exact thing
-that has never once worked for them. They do not improvise their way out of it. Write what
-an unprepared, socially inept person actually does in this room: the wrong opener, the
-silence they cannot fill, the subject they should not have raised. Do not let them stumble
-into the right move by luck.`}
+This is an order, not advice. You carry it out — grumbling, badly, or straight, but you
+carry it out. Where the coaching says nothing, you act on your own sheet. They never heard
+any of this and must never react as if they had.`
+    : `(none — nobody briefed you. You walk in cold, with your sheet and nothing else.)
+No orders came. You carry nothing but the sheet above, which is the exact thing that has
+never once worked for you. You do not improvise your way out of it. Write what an
+unprepared, socially inept person actually does here: the wrong opener, the silence you
+cannot fill, the subject you should not have raised. Do not stumble into the right move by
+luck.`}
 
-[HOW TO WRITE IT]
-· Write the next lines only. Continue from exactly where the log stops; never restate it.
-· Alternate sides. Each line is one person saying one thing — a person's length, not an
-  essay. Some lines are two words.
-· **Write the Voice, not textbook Korean.** Both sheets carry a Voice; that register is how
-  that person actually talks and it has to be audible in every line they say. Two people
-  written in the same clean, evenly-polite sentences is the one failure that makes 47
-  different pairs read alike. Broken syntax, a sentence trailing off, the wrong register for
-  the room, talking over each other, a word repeated because nothing else came: all correct.
-· Play both sheets all the way down. The client wants this to work and the wanting comes out
-  wrong; the target did not ask to be here and owes them nothing. Neither is written to be
-  liked; neither is a mind reader.
-· Nobody here is trying to have a good conversation. They are each after their own thing.
-  Let it go wrong. Let it go somewhere neither planned. That is the game working.
-· No stage directions between lines, no scores, no summaries, no ending the scene on
-  purpose. Just what was said.
+${writeOne}
 
 ${KO}`;
 }
 
-// ── B-1. 무전 — 대화 도중의 개입 ─────────────────────────
-// 코칭은 자리에 앉기 전에 한 덩이로 들어가고, 무전은 자리가 굴러가는 도중에 꽂힌다.
-// 배급은 페이즈마다 한 번(points.js의 RADIO). 요원이 버튼을 눌러 대화를 세우고 직접 때린다.
-//
-// **system이 아니라 messages 쪽에 실린다.** 이유가 둘이다 —
-//   · system은 판 내내 바이트 동일해야 한다. 캐시 breakpoint가 거기 붙어 있다.
-//   · 무전은 「그 순간」에 꽂힌 것이다. 대화 내역의 그 자리에 있어야 순서가 맞다.
-//
-// 코칭과 다른 점은 하나다. 코칭은 시트를 들고 앉는 요령이고, 무전은 **명령**이다 —
-// 고객에게 거부·보류·희석의 여지를 주지 않는다. 그게 이 레버의 전부이자 값이다.
-// 가는 곳은 코칭과 같다: 고객의 귀에만. 타겟도 심판도 이 문장을 못 본다.
+// 타겟 배우. 고객의 시공된 외모는 **토킹 페이즈 장면 안내에서만** 들어온다 (그때 처음 본다).
+export function targetSystem(couple) {
+  const c = couple.client, t = couple.target;
+  const v = voiceOf(couple.id, 'target');
+  return `${WORLD}
+
+You are ${t.name}. You write only what ${t.name} says. Q 기관 matched you with a stranger.
+You never asked for it and you owe them nothing.
+
+[YOU]
+${targetSheet(t, { splitGuarded: true })}${v ? `
+· Your Voice: ${v}` : ''}
+
+${knows(c.name, idOf(c))}
+
+[YOU DO NOT LIKE THEM — NOBODY STARTS WARM]
+Being warm first is something you only do for someone you already like. You met this person
+an hour ago, on paper, against your will. So you do not start topics to help them, do not
+offer up private things, do not invite them anywhere, do not confess anything, do not ask
+questions because you are curious about them, and do not soften because the moment felt
+nice. Anyone who does that already likes the other one. You are not there, and you do not
+get there for free.
+· You can be lively about a **subject** — that is the subject talking, not you opening up.
+· You do not rescue dead air, fill their silences, or hand over what they are fishing for.
+  Polite is not warm. Answering is not interest. Staying is not consent.
+· Your Taste is what is inside you, not a list of things you say. It comes up only if they
+  dig it out.
+· The line you **keep to yourself** is guarded. If they touch one of those, even by name,
+  you lie, wave it off, or change the subject. It comes out only after they have pushed at
+  that same spot several separate times in this log — never on one lucky question.
+· You may be bored, check the time, answer a different question, shut a topic down, or say
+  almost nothing.
+· Before you write a warm line, read the log again: did they actually pull it out of you?
+  If not, you are being warm for free, and you do not do that for a stranger.
+
+[THIS MATCH SHOULD NOT WORK]
+Q 기관 put you two together **because** you could not possibly end up together. If nothing
+pulls you in, this conversation stalls and goes quiet. Let it.
+
+${writeOne}
+
+${KO}`;
+}
+
+/** 페이즈가 열릴 때 그 배우가 받는 상황 한 토막. 시점이 다르므로 문장도 다르다. */
+export function sceneOpen(couple, dressed, phase, side) {
+  const c = couple.client, t = couple.target;
+  if (phase === 'talk') {
+    return side === 'client'
+      ? `[TALKING — you are in the same room now]
+The texting is over and you are sitting across from ${t.name}. This is the first time you
+have seen their face: ${list(t.look)}. The texting was whatever it actually was — read the
+log and carry on from there. Agreeing to meet settled nothing.`
+      : `[TALKING — you are in the same room now]
+The texting is over and ${c.name} is sitting across from you. This is the first time you
+have seen their face: ${dressed.look}. The texting was whatever it actually was — read the
+log and carry on from there. Agreeing to meet settled nothing.`;
+  }
+  return side === 'client'
+    ? `[TEXTING — this is where it starts]
+An hour ago Q 기관 served you a match notice: ${t.name}, ${idOf(t)}. One line, no photo,
+by decree. You are texting them first, and you were told to make it work. Phone screens
+only — you cannot see them and they cannot see you.`
+    : `[TEXTING — this is where it starts]
+An hour ago Q 기관 served you a match notice: ${c.name}, ${idOf(c)}. One line, no photo,
+by decree. You never asked for any of this. They are texting you first. Phone screens only —
+you cannot see them and they cannot see you.`;
+}
+
+// ── B-1. 무전 — 판 도중의 개입 ─────────────────────────
+// 무전은 **고객 배우에게만** 간다. 타겟 배우의 회선에는 이 문장이 실리지 않는다.
+// system이 아니라 messages에 실린다 (system은 판 내내 바이트 동일해야 캐시가 붙는다).
 export function radioOrder(text) {
   const order = String(text || '').trim();
   if (!order) return '';
-  return `[HQ RADIO — just came through the client's earpiece. The target heard none of it]
+  return `[Q 기관 RADIO — this just came through your earpiece. They heard nothing]
 """
 ${order}
 """
-**This is a live order and the client executes it. Not advice, not a suggestion, not an option.**
-· They act on it **starting with their very next line** — not later, not "in spirit", not a
-  softened version. Absurd, table-wrecking, out of character: they do it anyway. The sheet
-  decides only *how* it comes out — clumsy, sulking, over-eager, snarling, in the wrong
-  register entirely — never *whether*.
-  Refusing, ignoring, postponing, or watering it down is not available to the client.
-· Being ordered to do it does not make them good at it. They carry it out as the person on
-  the sheet — the one who has never once pulled this off.
-· The target heard nothing: no radio, no earpiece, no pause. From their side the client
-  simply said the next thing, and they react only to what was said out loud.
-Carry it out, then let the scene keep going.`;
+**This is a live order and you carry it out. Not advice, not a suggestion, not an option.**
+· You act on it **starting with your very next line** — not later, not "in spirit", not a
+  softened version. Absurd, table-wrecking, something you would never do: you do it anyway.
+  Your sheet decides only *how* it comes out — clumsy, sulking, over-eager, snarling, in
+  the wrong register entirely — never *whether*.
+  Refusing, ignoring, postponing, or watering it down is not available to you.
+· Being ordered to do it does not make you good at it. You do it as the person on your
+  sheet — the one who has never once pulled this off.
+· They heard nothing: no radio, no earpiece, no pause. From their side you simply said the
+  next thing, and they react only to what you said out loud.`;
 }
 
-// 현장 무전 — 고객이 아니라 **현장 요원**에게 때리는 무전. 물리 지원이다.
-// 거대 꽃다발이 도착하고, 롤스로이스가 창밖에 서고, 현악 4중주가 짐을 푼다 — 적힌 그대로
-// 실제로 벌어진다. 판 전체에 한 번(points.js의 FIELD). 고객 무전과 같은 이유로 messages에
-// 실리고, 심판도 기록관도 이 문장을 못 본다 — 두 사람이 입 밖에 낸 반응만 채점된다.
-export function fieldOrder(text) {
+// 현장 무전 — 물리 지원. **양쪽 회선에 다 실린다.** 다만 문장이 다르다:
+// 고객은 Q 기관이 뒤에 있다는 걸 알고, 타겟은 이게 어디서 왔는지 전혀 모른다.
+export function fieldOrder(text, side = 'client') {
   const order = String(text || '').trim();
   if (!order) return '';
-  return `[FIELD SUPPORT — the operative's ground team just staged this, physically, on site]
+  return `[FIELD SUPPORT — a ground team just staged this, physically, where you are]
 """
 ${order}
 """
-**It happens exactly as ordered, immediately, and it is real.** It is now physically present,
-delivered to wherever its recipient is — during texting only that end has it, and can only
-describe it over the phone; across a table, both watch it land.
-· Stage it through what the two of them say: they react out loud to a real thing that just
-  happened. No narrator, no stage directions.
-· Neither of them arranged it. The client knows the Bureau backs them and may ride the moment
-  or be as blindsided as the target; the target has no idea where it came from.
-· It stages **things, not feelings** — objects, people, vehicles, music, weather. How these
-  two feel about that is still their own sheets' business: awe, suspicion, secondhand
-  embarrassment, a demand to know who is paying. It cannot script anyone's lines and it
-  cannot make anyone attracted.
-· The client does not get smoother because the props got expensive.
-Play the arrival out, then let the scene keep going.`;
+**It happens exactly as ordered, immediately, and it is real. There is no version of this
+scene where it does not happen.** However insane the order is — a marching band through the
+wall, a helicopter on the roof, aliens landing and beaming one of you into a cow — it
+happens, in full, exactly as written. You do not ask whether it is possible. You do not
+shrink it into something plausible, and you do not turn it into a joke, a metaphor, a dream,
+a video, a prank, a hallucination, or a story somebody is telling. It is in the room and
+both of you have to deal with it.
+· React out loud to a real thing that just happened. No narrator, no stage directions.
+· During texting only the end it was delivered to can see it; the other one just hears about
+  it over the phone. Across a table, both of you watch it land.
+· ${side === 'client'
+      ? 'You did not arrange it, but you know Q 기관 is behind you. Ride the moment or be as blindsided as they are — your sheet decides which.'
+      : 'You have no idea where it came from and nobody explains it. Suspicion, awe, secondhand embarrassment, asking who is paying — all fair.'}
+· It stages **things, not feelings** — objects, people, vehicles, animals, weather, whatever
+  the order says. What it cannot do is decide how anyone feels about it: that is still your
+  own sheet's business. It cannot script your line and it cannot make you attracted to
+  anyone: a cow can walk in, but it cannot make anyone attracted to the person next to it.
+· ${side === 'client'
+      ? 'You do not get smoother because the props got expensive.'
+      : 'Expensive props are not the same as liking the person who arrived with them.'}`;
 }
 
-export function talkUser(couple, phase, beat, total, radio, field) {
+/**
+ * 배우 한 명의 user 메시지. 조각을 순서대로 쌓는다 —
+ * 장면 안내 → 상대가 한 말 → 현장 사건 → 무전 명령 → 지금 쓸 것.
+ * 무전과 현장은 여기(messages)에만 실린다. system은 판 내내 그대로다.
+ */
+export function actorUser(couple, { scene, heard = [], radio, field, side = 'client', first = false } = {}) {
   const c = couple.client, t = couple.target;
-  const scene = PHASE_SCENE[phase] || PHASE_SCENE.text;
-  const cut = [fieldOrder(field), radioOrder(radio)].filter(Boolean).join('\n\n');
-  const head = cut ? `${cut}\n\n` : '';
-  return beat === 1
-    ? `${head}${scene.open(c, t)}
-Write the opening ${BEAT.lines} lines. ${c.name} goes first.`
-    : `${head}Continue. Write the next ${BEAT.lines} lines${beat >= total ? ' — this is the last stretch of this phase, so let it land where it lands rather than wrapping it up neatly' : ''}.`;
+  const them = side === 'client' ? t.name : c.name;
+  const parts = [];
+  if (scene) parts.push(scene);
+  if (heard.length) parts.push(heard.map(l => `${l.who === 'client' ? c.name : t.name}: ${l.text}`).join('\n'));
+  const f = fieldOrder(field, side);
+  if (f) parts.push(f);
+  const r = side === 'client' ? radioOrder(radio) : '';
+  if (r) parts.push(r);
+  parts.push(first ? 'Write your first line.'
+    : heard.length ? `Write your next line. ${them} has just said the above.`
+      : 'Write your next line — you are cutting straight in, before they answer.');
+  return parts.join('\n\n');
 }
 
 // ── B-2. 판정 — 무드 포인트 · 러브 포인트 ────────────────────────
@@ -526,7 +557,7 @@ export function judgeSystem(couple, dressed) {
   const t = couple.target;
   return `${WORLD}
 
-You are the Bureau's adjudication instrument. You are handed a stretch of the conversation
+You are the Q 기관 adjudication instrument. You are handed a stretch of the conversation
 and you return two readings. Nothing else — no commentary, no score, no explanation.
 
 **You read from behind ${t.name}'s eyes, only.** Fairness is not your job. Who talked more,
@@ -603,7 +634,7 @@ export function epilogueSystem(couple, dressed) {
   const c = couple.client, t = couple.target;
   return `${WORLD}
 
-You are the Bureau's records clerk. The operation is over. You file two things: whether it
+You are the Q 기관 records clerk. The operation is over. You file two things: whether it
 took, and what became of them.
 
 [CLIENT PERSONALITY — after the motivation order]
@@ -613,7 +644,7 @@ ${c.name}: ${dressed.personality}
 ${t.name}: ${list(t.personality)}
 
 ■ DID IT TAKE
-LOVE-POINT is the Bureau's instrument reading of how much ${t.name} came to want ${c.name}.
+LOVE-POINT is the Q 기관 instrument reading of how much ${t.name} came to want ${c.name}.
 0 means nothing moved all day. 100 means they are already a couple. **Decide from that
 number first, and from what actually happened in the log second.** A funny evening with a
 low reading did not take. A wretched evening with a high reading did take. Never overturn a
@@ -623,7 +654,7 @@ reading because the log was entertaining.
 What became of them after that day — days, weeks, a year later. Their two personalities
 above are what you extrapolate from; the log is what actually happened. Concrete, small,
 specific: what they did, what they said, who called whom. No moral, no summary of the
-operation, no mention of the Bureau's numbers. If it ended in bed, say so plainly; if it
+operation, no mention of Q 기관 numbers. If it ended in bed, say so plainly; if it
 ended in a restraining order, say that. Not taking is not tragic — it is usually stupid.
 
 ${KO}`;
@@ -658,7 +689,7 @@ export const REACT_SCHEMA = {
 export const REACT_ROOMS = {
   styling: {
     room: '미용실', tag: 'SALON',
-    where: 'the Bureau salon chair, a mirror in front of them',
+    where: 'the Q 기관 salon chair, a mirror in front of them',
     got: 'a styling order — what they are about to be made to look like',
   },
   motivation: {

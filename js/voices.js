@@ -1,6 +1,6 @@
-// voices.js — 커플마다 손으로 디자인한 말투. **B-1(대화 생성)과 R(준비 반응)에만 간다.**
+// voices.js — 커플마다 손으로 디자인한 말투. **B-1(두 배우)과 R(준비 반응)에만 간다.**
 //
-// 화면에도, 심판에게도, 후일담에게도 안 간다. 요원은 이걸 못 본다 — 스크리닝 여덟 항목이
+// 화면에도, 심판에게도, 후일담에게도 안 간다. 요원은 이걸 못 본다 — 스크리닝 일곱 항목이
 // 여전히 전부다. 이건 「그 인물이 실제로 어떻게 말하는가」를 생성 쪽에만 알려주는 연출 지시다.
 //
 // 만화 말투 프리셋을 돌려 쓰던 방식은 폐기했다. 열 개를 94명에게 나눠 붙이니 인물이 아니라
@@ -8,7 +8,8 @@
 // 그래서 프리셋을 없애고 커플 하나하나에 맞춰 다시 썼다 — 그 사람의 설정, 상대의 성향,
 // 이 자리의 난이도, 대화가 실제로 어떻게 흘러갈지를 보고. 길이는 한두 마디로 묶는다.
 //
-// 말투는 **껍데기**다. 고객의 사회성 부족은 talkSystem이 따로 깔고, 그건 47커플 공통이다.
+// 말투는 **껍데기**다. 고객의 사회성 부족은 clientSystem이 따로 깔고, 그건 47커플 공통이다.
+// 배우가 둘로 갈린 뒤로는 각자 제 말투만 받는다 — 상대의 말투도 못 본다.
 
 export const VOICES = {
   politics: {
@@ -204,13 +205,4 @@ export const VOICES = {
 /** 인물 하나의 말투. 배정이 없으면 null — 프롬프트에 아무것도 안 실린다. */
 export function voiceOf(coupleId, side) {
   return VOICES[coupleId]?.[side] || null;
-}
-
-/** B-1이 쓰는 블록. 두 사람 몫을 한 번에 낸다. 배정이 없으면 통째로 빈 문자열. */
-export function voiceBlock(couple) {
-  const v = VOICES[couple.id];
-  if (!v) return '';
-  return `\n[HOW THESE TWO ACTUALLY TALK — surface only, never state it outright]\n`
-    + `· ${couple.client.name}: ${v.client}\n`
-    + `· ${couple.target.name}: ${v.target}\n`;
 }

@@ -223,19 +223,23 @@ test('말투는 커플마다 따로 디자인한 것이다 — 프리셋 돌려�
   assert.equal(new Set(all).size, all.length, '같은 문장이 두 인물에게 붙어 있다');
 });
 
-test('배정이 없는 커플은 말투 블록이 통째로 빠진다', () => {
+test('배정이 없는 커플은 말투 줄이 통째로 빠진다', () => {
   assert.equal(V.voiceOf('그런-커플-없음', 'client'), null);
-  assert.equal(V.voiceBlock({ id: '그런-커플-없음', client: {}, target: {} }), '');
+  assert.equal(V.voiceOf('그런-커플-없음', 'target'), null);
 });
 
-test('말투는 대화·반응 생성에만 간다 — 심판도 후일담도 화면도 못 본다', async () => {
+test('말투는 제 배우와 반응 생성에만 간다 — 상대도 심판도 후일담도 화면도 못 본다', async () => {
   const P = await import('../js/prompts.js');
   const { dressOf } = await import('../js/engine.js');
   for (const c of COUPLES) {
     const d = dressOf(c.client, null);
     const v = V.VOICES[c.id];
+    const cs = P.clientSystem(c, d, ''), ts = P.targetSystem(c);
+    assert.ok(cs.includes(v.client), `${c.id} 고객 말투가 제 배우에게 안 실렸다`);
+    assert.ok(ts.includes(v.target), `${c.id} 타겟 말투가 제 배우에게 안 실렸다`);
+    assert.ok(!cs.includes(v.target), `${c.id} 타겟 말투가 고객 배우에게 샜다`);
+    assert.ok(!ts.includes(v.client), `${c.id} 고객 말투가 타겟 배우에게 샜다`);
     for (const side of ['client', 'target']) {
-      assert.ok(P.talkSystem(c, d, '').includes(v[side]), `${c.id}/${side} 말투가 B-1에 안 실렸다`);
       assert.ok(!P.judgeSystem(c, d).includes(v[side]), `${c.id}/${side} 말투가 심판에게 샜다`);
       assert.ok(!P.epilogueUser(c, 50, '').includes(v[side]), `${c.id}/${side} 말투가 후일담에 샜다`);
       assert.ok(!P.epilogueSystem(c, d).includes(v[side]), `${c.id}/${side} 말투가 후일담에 샜다`);
