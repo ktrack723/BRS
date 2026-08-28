@@ -309,7 +309,7 @@ R. 준비 단계 반응                      (구조도 밖. 데이터가 아니
 ```js
 {
   id, category,
-  client: { name, gender, look[], personality[], upbringing[], fell,   spec },
+  client: { name, gender, look[], personality[], upbringing[],          spec },
   target: { name, gender, look[], personality[], upbringing[], taste[], spec },
 }
 ```
@@ -320,7 +320,10 @@ R. 준비 단계 반응                      (구조도 밖. 데이터가 아니
   타겟이 알아서 마음을 여는 것이 실측으로 확인돼 뿌리째 걷어냈다.
 - **`taste`** — 타겟 취향. **평평한 문자열 목록**이다. 공개/미공개 플래그도, 지뢰도 없다.
   **타겟에게만 있다.** 공략당하는 쪽이 타겟이다.
-- **`spec`** — 3D 조형. 정보가 아니라 렌더링이다.
+- **`spec`** — 3D 조형. 정보가 아니라 렌더링이다. 열거형(머리·액세서리·표정·오라·종족)으로
+  안 되는 것은 **`props`**로 손수 붙여둔다 — 위대한의 닭다리, 정시각의 손목시계 두 개,
+  두걸음의 반경 2m. 47건 94인이 전부 갖고 있다. 반한 이유가 폐지된 뒤로 로스터 카드는
+  **직업 한 줄과 썸네일 한 장**이 전부다. **조합이 거기서 읽히게 하는 게 이 칸의 일이다.**
 
 `js/couples.js`는 로드되는 순간 스키마 밖 필드가 있으면 죽는다.
 `tests/couples.test.mjs`가 47건 전수로 같은 것을 본다.
