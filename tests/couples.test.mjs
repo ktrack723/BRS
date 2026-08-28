@@ -89,3 +89,39 @@ test('여성 인물에는 조형 보정 플래그가 붙는다', () => {
     }
   }
 });
+
+// 조형은 정보가 아니라 렌더링이다 — 그런데 **읽히지 않으면 렌더링도 아니다.**
+// 아래 두 값은 눈으로 정한 게 아니라 썸네일 카메라(320×400 · fov 38 · z 3.2)로
+// 실제로 뽑아 재본 것이다. 로스터 47건은 이 썸네일 한 장으로만 판단된다.
+const THUMB = {
+  // 어깨가 프레임 좌우를 넘기 시작하는 지점
+  maxWidth: 1.4,
+  // 'above'(y=2.05)는 프레임 위로 벗어나고, 'back'(z=-0.24)은 몸에 완전히 가린다
+  offFrame: new Set(['above', 'back']),
+};
+
+test('인물마다 소품이 붙어 있다 — 조합이 썸네일 한 장에서 읽혀야 한다', () => {
+  for (const c of COUPLES) {
+    for (const who of ['client', 'target']) {
+      const props = sanitizeSpec(c[who].spec).props;
+      assert.ok(props.length >= 1, `${c.id}.${who} 소품이 없다`);
+      assert.equal(props.length, c[who].spec.props.length,
+        `${c.id}.${who} 소품이 sanitize에서 잘려나갔다 (도형·자리 오타)`);
+      for (const p of props) assert.ok(p.label, `${c.id}.${who} 소품에 이름이 없다`);
+    }
+  }
+});
+
+test('소품이 썸네일 프레임 안에 있다 — 안 보이는 자리에 두지 않는다', () => {
+  for (const c of COUPLES) {
+    for (const who of ['client', 'target']) {
+      const s = sanitizeSpec(c[who].spec);
+      assert.ok(s.widthScale <= THUMB.maxWidth,
+        `${c.id}.${who} 가로 ${s.widthScale} — 썸네일에서 어깨가 잘린다 (상한 ${THUMB.maxWidth})`);
+      for (const p of s.props) {
+        assert.ok(!THUMB.offFrame.has(p.at),
+          `${c.id}.${who} 「${p.label}」이 ${p.at}에 있다 — 썸네일에서 안 보인다`);
+      }
+    }
+  }
+});
